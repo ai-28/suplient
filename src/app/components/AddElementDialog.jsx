@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Label } from "@/app/components/ui/label";
@@ -25,6 +25,16 @@ export function AddElementDialog({
   const [selectedWeek, setSelectedWeek] = useState(preselectedWeek || defaultWeek);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(preselectedDay || 1);
   const [selectedTime, setSelectedTime] = useState('09:00');
+  
+  // Update state when props change
+  useEffect(() => {
+    if (preselectedWeek) {
+      setSelectedWeek(preselectedWeek);
+    }
+    if (preselectedDay) {
+      setSelectedDayOfWeek(preselectedDay);
+    }
+  }, [preselectedWeek, preselectedDay]);
   
   // Content selection state
   const [selectedFiles, setSelectedFiles] = useState([]);

@@ -9,6 +9,25 @@ import { Check, X, Clock, MessageSquare, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export function MembershipRequestsPanel({ groupId, showAllRequests = false }) {
+  // Mock functions for membership requests
+  const getPendingRequests = () => {
+    return [
+      {
+        id: 1,
+        userId: "user1",
+        userName: "John Doe",
+        userEmail: "john@example.com",
+        groupId: 1,
+        status: "pending",
+        requestedAt: new Date().toISOString(),
+        message: "I'd like to join this group to work on my anxiety management."
+      }
+    ];
+  };
+
+  const getRequestsByGroup = (groupId) => {
+    return getPendingRequests().filter(request => request.groupId === groupId);
+  };
   
   const requests = showAllRequests 
     ? getPendingRequests() 

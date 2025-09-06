@@ -32,7 +32,7 @@ const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export function ProgramFlowChart({ elements, duration, highlightedElementId, onElementClick, onAddElementToDay }) {
   const [currentWeekStart, setCurrentWeekStart] = useState(1);
-
+  console.log("elements", elements)
   // Group elements by week and day (filtered to current 4-week view)
   const weeklyData = React.useMemo(() => {
     const weeks = [];
@@ -41,12 +41,11 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
     for (let week = currentWeekStart; week <= currentWeekEnd; week++) {
       const weekStart = (week - 1) * 7 + 1;
       const weekEnd = week * 7;
-      
       const days = [];
       for (let day = weekStart; day <= weekEnd; day++) {
         const dayElements = elements.filter(el => el.scheduledDay === day);
         const dayOfWeek = ((day - 1) % 7);
-        
+
         days.push({
           day,
           dayOfWeek,
@@ -54,12 +53,14 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
           elements: dayElements.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime))
         });
       }
+      console.log("days", days)
       
       weeks.push({
         week,
         days,
         elementCount: days.reduce((count, day) => count + day.elements.length, 0)
       });
+      console.log(weeks)
     }
     
     return weeks;
@@ -71,7 +72,6 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
   
   const canGoPrevious = currentWeekStart > 1;
   const canGoNext = currentWeekEnd < duration;
-  
   const handlePreviousWeeks = () => {
     setCurrentWeekStart(Math.max(1, currentWeekStart - 4));
   };

@@ -1,13 +1,13 @@
+"use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { ArrowLeft, Send, Users, Settings, Mic } from "lucide-react";
 import { useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { VoiceRecorder } from "@/app/components/VoiceRecorder";
 import { VoiceMessage } from "@/app/components/VoiceMessage";
-import { ChatMessage } from "@/app/types/chat";
 
 const initialMessages = [
   {
@@ -63,10 +63,11 @@ const initialMessages = [
 ];
 
 export default function GroupChat() {
-  const navigate = useNavigate();
-  const { groupId } = useParams();
-  const location = useLocation();
-  const groupName = location.state?.groupName || "Group Chat";
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const groupId = params?.groupId;
+  const groupName = searchParams?.get('groupName') || "Group Chat";
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState(initialMessages);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
@@ -119,7 +120,7 @@ export default function GroupChat() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-card">
         <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/client/groups')}>
+          <Button variant="ghost" size="icon" onClick={() => router.push('/client/groups')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

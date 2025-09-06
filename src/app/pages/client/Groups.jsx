@@ -1,3 +1,5 @@
+"use client"
+// Updated to fix SSR build issues - no more useMembershipRequests hook
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -5,9 +7,22 @@ import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { ArrowLeft, Users, MessageCircle, Calendar, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
-import { useMembershipRequests } from "@/app/hooks/useMembershipRequests";
+
+// Mock membership requests data
+const mockMembershipRequests = [
+  {
+    id: 1,
+    userId: "user1",
+    userName: "John Doe",
+    userEmail: "john@example.com",
+    groupId: 1,
+    status: "pending",
+    requestedAt: new Date().toISOString(),
+    message: "I'd like to join this group to work on my anxiety management."
+  }
+];
 
 const groups = [
   {
@@ -84,12 +99,16 @@ const groups = [
   }
 ];
 
-export default function ClientGroups() {
-  const navigate = useNavigate();
+function ClientGroupsComponent() {
+  const router = useRouter();
   const [filter, setFilter] = useState("all");
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
-  const { getRequestsByGroup } = useMembershipRequests();
+  
+  // Mock function to get requests by group
+  const getRequestsByGroup = (groupId) => {
+    return mockMembershipRequests.filter(request => request.groupId === groupId);
+  };
 
   // Mock current user data - in real app this would come from auth context
   const currentUser = {
@@ -124,7 +143,10 @@ export default function ClientGroups() {
   };
 
   const handleOpenChat = (groupId, groupName) => {
-    navigate(`/client/group/${groupId}/chat`, { state: { groupName } });
+    router.push(`/client/group/${groupId}/chat?groupName=${encodeURIComponent(groupName)}`);
+    console.log("groupId", groupId)
+    console.log("groupName", groupName)
+    console.log("router", router)
   };
 
   const handleJoinSession = (groupId, groupName) => {
@@ -136,9 +158,9 @@ export default function ClientGroups() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="flex items-center p-4 border-b border-border bg-card">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/client')}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
           <ArrowLeft className="h-5 w-5" />
-        </Button>
+        </Button> 
         <h1 className="ml-4 text-xl font-semibold">Support Circles</h1>
       </div>
 
@@ -300,3 +322,5 @@ export default function ClientGroups() {
     </div>
   );
 }
+
+export default ClientGroupsComponent;

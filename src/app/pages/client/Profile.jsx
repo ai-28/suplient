@@ -1,3 +1,4 @@
+"use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -26,9 +27,190 @@ import {
   Trash2,
   TrendingDown
 } from "lucide-react";
-import { useState } from "react";
-import { useGoalTracking } from "@/app/hooks/useGoalTracking";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+
+// Demo data for goals and habits
+const demoGoals = [
+  {
+    id: 1,
+    name: "Exercise Regularly",
+    description: "Work out at least 3 times per week",
+    isActive: true,
+    isCustom: false,
+    category: "health",
+    targetValue: 3,
+    currentValue: 2,
+    unit: "times per week",
+    progress: 67
+  },
+  {
+    id: 2,
+    name: "Meditate Daily",
+    description: "Practice mindfulness meditation for 10 minutes daily",
+    isActive: true,
+    isCustom: false,
+    category: "mindfulness",
+    targetValue: 7,
+    currentValue: 5,
+    unit: "days per week",
+    progress: 71
+  },
+  {
+    id: 3,
+    name: "Read Books",
+    description: "Read for at least 30 minutes every day",
+    isActive: false,
+    isCustom: true,
+    category: "learning",
+    targetValue: 7,
+    currentValue: 4,
+    unit: "days per week",
+    progress: 57
+  },
+  {
+    id: 4,
+    name: "Drink More Water",
+    description: "Drink at least 8 glasses of water daily",
+    isActive: true,
+    isCustom: true,
+    category: "health",
+    targetValue: 8,
+    currentValue: 6,
+    unit: "glasses per day",
+    progress: 75
+  }
+];
+
+const demoBadHabits = [
+  {
+    id: 1,
+    name: "Smoking",
+    description: "Reduce cigarette consumption",
+    isActive: true,
+    isCustom: false,
+    category: "health",
+    targetValue: 0,
+    currentValue: 2,
+    unit: "cigarettes per day",
+    progress: 80 // 80% reduction
+  },
+  {
+    id: 2,
+    name: "Late Night Snacking",
+    description: "Avoid eating after 9 PM",
+    isActive: true,
+    isCustom: true,
+    category: "health",
+    targetValue: 0,
+    currentValue: 3,
+    unit: "nights per week",
+    progress: 57 // 57% reduction
+  },
+  {
+    id: 3,
+    name: "Excessive Screen Time",
+    description: "Limit phone usage to 2 hours per day",
+    isActive: false,
+    isCustom: true,
+    category: "productivity",
+    targetValue: 2,
+    currentValue: 4,
+    unit: "hours per day",
+    progress: 50
+  }
+];
+
+// Custom hook for goal tracking
+const useGoalTracking = () => {
+  const [goals, setGoals] = useState(demoGoals);
+  const [badHabits, setBadHabits] = useState(demoBadHabits);
+
+  const toggleGoal = (goalId) => {
+    setGoals(prev => prev.map(goal => 
+      goal.id === goalId 
+        ? { ...goal, isActive: !goal.isActive }
+        : goal
+    ));
+  };
+
+  const toggleBadHabit = (habitId) => {
+    setBadHabits(prev => prev.map(habit => 
+      habit.id === habitId 
+        ? { ...habit, isActive: !habit.isActive }
+        : habit
+    ));
+  };
+
+  const addCustomGoal = (name, description) => {
+    const newGoal = {
+      id: Date.now(),
+      name,
+      description,
+      isActive: true,
+      isCustom: true,
+      category: "custom",
+      targetValue: 1,
+      currentValue: 0,
+      unit: "times per week",
+      progress: 0
+    };
+    setGoals(prev => [...prev, newGoal]);
+  };
+
+  const removeCustomGoal = (goalId) => {
+    setGoals(prev => prev.filter(goal => goal.id !== goalId));
+  };
+
+  const addCustomBadHabit = (name, description) => {
+    const newHabit = {
+      id: Date.now(),
+      name,
+      description,
+      isActive: true,
+      isCustom: true,
+      category: "custom",
+      targetValue: 0,
+      currentValue: 1,
+      unit: "times per week",
+      progress: 0
+    };
+    setBadHabits(prev => [...prev, newHabit]);
+  };
+
+  const removeCustomBadHabit = (habitId) => {
+    setBadHabits(prev => prev.filter(habit => habit.id !== habitId));
+  };
+
+  const calculateOverallScore = () => {
+    const activeGoals = goals.filter(goal => goal.isActive);
+    const activeBadHabits = badHabits.filter(habit => habit.isActive);
+    
+    if (activeGoals.length === 0 && activeBadHabits.length === 0) {
+      return 0;
+    }
+
+    const goalScore = activeGoals.reduce((sum, goal) => sum + goal.progress, 0);
+    const habitScore = activeBadHabits.reduce((sum, habit) => sum + habit.progress, 0);
+    
+    const totalScore = goalScore + habitScore;
+    const totalItems = activeGoals.length + activeBadHabits.length;
+    
+    return Math.round(totalScore / totalItems);
+  };
+
+  return {
+    goals,
+    badHabits,
+    toggleGoal,
+    toggleBadHabit,
+    addCustomGoal,
+    removeCustomGoal,
+    addCustomBadHabit,
+    removeCustomBadHabit,
+    calculateOverallScore
+  };
+};
 
 export default function ClientProfile() {
   const { 
@@ -73,6 +255,24 @@ export default function ClientProfile() {
   const [showCustomBadHabitDialog, setShowCustomBadHabitDialog] = useState(false);
   const [newBadHabitName, setNewBadHabitName] = useState("");
   const [newBadHabitDescription, setNewBadHabitDescription] = useState("");
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Check on mount
+    checkMobile();
+
+    // Add event listener for window resize
+    window.addEventListener('resize', checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleAddCustomGoal = () => {
     if (!newGoalName.trim()) {

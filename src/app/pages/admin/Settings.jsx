@@ -6,6 +6,29 @@ import { Switch } from "@/app/components/ui/switch";
 import { Separator } from "@/app/components/ui/separator";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 
+// Simple translation function for demo purposes
+const t = (key) => {
+  const translations = {
+    'settings:general.title': 'General Settings',
+    'settings:general.description': 'Configure basic platform settings',
+    'settings:general.platformName': 'Platform Name',
+    'settings:general.supportEmail': 'Support Email',
+    'settings:general.maxClients': 'Maximum Clients per Coach',
+    'settings:general.sessionDuration': 'Session Duration (minutes)',
+    'settings:security.title': 'Security Settings',
+    'settings:security.description': 'Configure security and authentication settings',
+    'settings:security.twoFactorAuth': 'Two-Factor Authentication',
+    'settings:security.sessionTimeout': 'Session Timeout',
+    'settings:notifications.title': 'Notification Settings',
+    'settings:notifications.description': 'Configure notification preferences',
+    'settings:notifications.emailNotifications': 'Email Notifications',
+    'settings:notifications.weeklyReports': 'Weekly Reports',
+    'common:buttons.cancel': 'Cancel',
+    'common:buttons.save': 'Save'
+  };
+  return translations[key] || key;
+};
+
 export default function AdminSettings() {
   return (
     <div className="space-y-8">

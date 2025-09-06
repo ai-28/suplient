@@ -12,11 +12,8 @@ import { AddElementDialog } from "@/app/components/AddElementDialog";
 import { EditElementDialog } from "@/app/components/EditElementDialog";
 import { ProgramFlowChart } from "@/app/components/ProgramFlowChart";
 
-export default function ProgramEditor() {
-  const { id } = useParams();
-  const router = useRouter();
-  console.log("id", id);
-  const programs = [
+// Move programs data outside component to prevent recreation on every render
+const PROGRAMS_DATA = [
     {
       id: "1",
       name: "Anxiety Management Program",
@@ -261,15 +258,21 @@ export default function ProgramEditor() {
         }
       ]
     }
-  ]
-  const program = programs.find(p => p.id === id);
+];
+
+export default function ProgramEditor() {
+  const { id } = useParams();
+  const router = useRouter();
+  console.log("id", id);
+  
+  const program = PROGRAMS_DATA.find(p => p.id === id);
 
   // Function to update program (demo version)
   const updateProgram = (id, updatedData) => {
-    const index = programs.findIndex(p => p.id === id);
+    const index = PROGRAMS_DATA.findIndex(p => p.id === id);
     if (index !== -1) {
-      programs[index] = { ...programs[index], ...updatedData };
-      return programs[index];
+      PROGRAMS_DATA[index] = { ...PROGRAMS_DATA[index], ...updatedData };
+      return PROGRAMS_DATA[index];
     }
     return null;
   };
@@ -303,7 +306,19 @@ export default function ProgramEditor() {
         duration: program.duration,
         isTemplate: program.isTemplate
       });
-      setElements([...program.elements]);
+      
+      // Transform demo data format to ProgramFlowChart expected format
+      const transformedElements = program.elements.map(element => ({
+        ...element,
+        scheduledDay: (element.week - 1) * 7 + element.day, // Convert week/day to absolute day
+        scheduledTime: element.scheduledTime || '09:00', // Default time if not provided
+        type: element.type === 'session' ? 'content' : 
+              element.type === 'exercise' ? 'task' : 
+              element.type === 'assessment' ? 'checkin' : 
+              element.type === 'homework' ? 'task' : 'content' // Map demo types to chart types
+      }));
+      
+      setElements(transformedElements);
     }
   }, [program]);
 
@@ -319,7 +334,6 @@ export default function ProgramEditor() {
       </div>
     );
   }
-
 
   const handleAddElementToDay = (day, week, type) => {
     setAddElementDialog({ 

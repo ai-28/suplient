@@ -4,7 +4,6 @@ import authOptions from '@/app/lib/authoption';
 import {
     createProgram,
     getProgramsByCoach,
-    createProgramTable,
     getProgramStats
 } from '@/app/lib/db/programRepo';
 
@@ -97,9 +96,6 @@ export async function POST(request) {
                 { status: 400 }
             );
         }
-
-        // Ensure program tables exist
-        await createProgramTable();
 
         // Create the program
         const program = await createProgram({

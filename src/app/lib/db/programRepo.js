@@ -25,19 +25,31 @@ export async function createProgram(programData) {
 
         // Insert program elements if provided
         if (elements.length > 0) {
-            for (const element of elements) {
-                await sql`
-          INSERT INTO "ProgramElement" (
-            "programId", type, title, description, week, day, duration, content, 
-            "scheduledTime", "elementData", "createdAt", "updatedAt"
-          )
-          VALUES (
-            ${program.id}, ${element.type}, ${element.title}, ${element.description}, 
-            ${element.week}, ${element.day}, ${element.duration || 60}, ${element.content}, 
-            ${element.scheduledTime || '09:00:00'}, ${JSON.stringify(element.data || {})}, NOW(), NOW()
-          )
-        `;
-            }
+            // Use Promise.all for concurrent inserts (better than sequential)
+            await Promise.all(
+                elements.map(element =>
+                    sql`
+                        INSERT INTO "ProgramElement" (
+                            "programId", type, title, description, week, day, duration, content, 
+                            "scheduledTime", "elementData", "createdAt", "updatedAt"
+                        )
+                        VALUES (
+                            ${program.id}, 
+                            ${element.type || 'exercise'}, 
+                            ${element.title || 'Untitled Element'}, 
+                            ${element.description || null}, 
+                            ${element.week || 1}, 
+                            ${element.day || 1}, 
+                            ${element.duration || 60}, 
+                            ${element.content || null}, 
+                            ${element.scheduledTime || '09:00:00'}, 
+                            ${JSON.stringify(element.data || {})}, 
+                            NOW(), 
+                            NOW()
+                        )
+                    `
+                )
+            );
         }
 
         return program;
@@ -151,9 +163,18 @@ export async function updateProgram(id, programData) {
             "scheduledTime", "elementData", "createdAt", "updatedAt"
           )
           VALUES (
-            ${id}, ${element.type}, ${element.title}, ${element.description}, 
-            ${element.week}, ${element.day}, ${element.duration || 60}, ${element.content}, 
-            ${element.scheduledTime || '09:00:00'}, ${JSON.stringify(element.data || {})}, NOW(), NOW()
+            ${id}, 
+            ${element.type || 'exercise'}, 
+            ${element.title || 'Untitled Element'}, 
+            ${element.description || null}, 
+            ${element.week || 1}, 
+            ${element.day || 1}, 
+            ${element.duration || 60}, 
+            ${element.content || null}, 
+            ${element.scheduledTime || '09:00:00'}, 
+            ${JSON.stringify(element.data || {})}, 
+            NOW(), 
+            NOW()
           )
         `;
             }

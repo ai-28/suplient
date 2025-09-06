@@ -6,7 +6,6 @@ import { Button } from "@/app/components/ui/button";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Label } from "@/app/components/ui/label";
 
-import { useMembershipRequests } from "@/app/hooks/useMembershipRequests";
 export function MembershipRequestDialog({ 
   open, 
   onOpenChange, 
@@ -16,7 +15,21 @@ export function MembershipRequestDialog({
   clientEmail 
 }) {
   const [message, setMessage] = useState("");
-  const { createRequest } = useMembershipRequests();
+  
+  // Mock function to create membership request
+  const createRequest = (groupId, clientId, clientName, clientEmail, message) => {
+    // Mock request creation - in real app this would make an API call
+    return {
+      id: `req_${Date.now()}`,
+      groupId,
+      clientId,
+      clientName,
+      clientEmail,
+      message,
+      status: "pending",
+      requestedAt: new Date().toISOString()
+    };
+  };
 
   const handleSubmit = () => {
     if (!group) return;

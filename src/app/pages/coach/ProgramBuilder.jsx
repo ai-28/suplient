@@ -184,7 +184,8 @@ export default function ProgramBuilder() {
           // Optional: Handle element clicks if needed
         }}
         onAddElementToDay={(absoluteDay, week, type) => {
-          // Calculate day of week from absolute day
+          // absoluteDay is already the absolute day number (1-28 for 4 weeks)
+          // Calculate day of week from absolute day (1-7, where 1=Monday, 7=Sunday)
           const dayOfWeek = ((absoluteDay - 1) % 7) + 1;
           setAddElementDialog({ open: true, type, week, day: dayOfWeek });
         }}

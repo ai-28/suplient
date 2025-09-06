@@ -145,7 +145,7 @@ const clientGroups = [
 
 export default function ClientProfile() {
   const { id } = useParams();
-  const navigate = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
   
   // Safety check to ensure searchParams is available
@@ -278,7 +278,7 @@ const programs = [
 
   const handleBack = () => {
     if (!searchParams) {
-      navigate('/coach/clients');
+      router.push('/coach/clients');
       return;
     }
     
@@ -287,9 +287,9 @@ const programs = [
     const groupTab = searchParams.get('groupTab') || 'overview';
     
     if (fromGroup && groupId) {
-      navigate(`/coach/group/${groupId}?tab=${groupTab}`);
+      router.push(`/coach/group/${groupId}?tab=${groupTab}`);
     } else {
-      navigate('/coach/clients');
+      router.push('/coach/clients');
     }
   };
 
@@ -600,7 +600,7 @@ const programs = [
                              progress={progress}
                              onMarkComplete={(elementId) => markElementComplete(clientProgram.id, elementId)}
                              onPauseResume={() => clientProgram.status === 'active' ? pauseProgram(clientProgram.id) : resumeProgram(clientProgram.id)}
-                             onViewProgram={() => navigate(`/coach/programs/${program.id}/edit`)}
+                             onViewProgram={() => router.push(`/coach/programs/${program.id}/edit`)}
                            />
                         );
                       })}
@@ -677,7 +677,7 @@ const programs = [
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => navigate(`/coach/programs/${program.id}/edit`)}
+                                        onClick={() => router.push(`/coach/programs/${program.id}/edit`)}
                                         title="View Program Details"
                                       >
                                         <Eye className="h-4 w-4" />
@@ -768,14 +768,14 @@ const programs = [
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => navigate(`/coach/group/${group.id}`)}
+                              onClick={() => router.push(`/coach/group/${group.id}`)}
                             >
                               View Group
                             </Button>
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => navigate(`/coach/group/${group.id}?tab=members`)}
+                              onClick={() => router.push(`/coach/group/${group.id}?tab=members`)}
                             >
                               <Users className="h-4 w-4 mr-1" />
                               Members
