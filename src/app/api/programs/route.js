@@ -22,15 +22,11 @@ export async function GET(request) {
         }
 
         const { searchParams } = new URL(request.url);
-        const isTemplate = searchParams.get('isTemplate');
-        const category = searchParams.get('category');
         const limit = parseInt(searchParams.get('limit')) || 50;
         const offset = parseInt(searchParams.get('offset')) || 0;
 
         // Get programs for the coach
         const programs = await getProgramsByCoach(session.user.id, {
-            isTemplate: isTemplate === 'true' ? true : isTemplate === 'false' ? false : undefined,
-            category,
             limit,
             offset
         });
@@ -76,9 +72,6 @@ export async function POST(request) {
             name,
             description,
             duration,
-            category = 'general',
-            isTemplate = false,
-            targetConditions = [],
             elements = []
         } = body;
 
@@ -102,9 +95,6 @@ export async function POST(request) {
             name: name.trim(),
             description: description?.trim() || '',
             duration: parseInt(duration),
-            category: category.trim(),
-            isTemplate: Boolean(isTemplate),
-            targetConditions: Array.isArray(targetConditions) ? targetConditions : [],
             coachId: session.user.id,
             elements: Array.isArray(elements) ? elements : []
         });

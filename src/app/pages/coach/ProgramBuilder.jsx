@@ -20,8 +20,7 @@ export default function ProgramBuilder() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    duration: 4, // weeks
-    isTemplate: false
+    duration: 4 // weeks
   });
 
   const [elements, setElements] = useState([]);
@@ -64,20 +63,20 @@ export default function ProgramBuilder() {
         name: formData.name.trim(),
         description: formData.description.trim(),
         duration: formData.duration,
-        category: 'general',
-        isTemplate: formData.isTemplate,
-        targetConditions: [],
-        elements: elements.map(element => ({
-          type: element.type,
-          title: element.title,
-          description: element.description,
-          week: element.week,
-          day: element.day,
-          duration: element.duration || 60,
-          content: element.content,
-          scheduledTime: element.scheduledTime || '09:00:00',
-          data: element.data || {}
-        }))
+        elements: elements.map(element => {
+          // Convert scheduledDay back to week and day
+          const week = Math.ceil(element.scheduledDay / 7);
+          const day = ((element.scheduledDay - 1) % 7) + 1;
+          
+          return {
+            type: element.type,
+            title: element.title,
+            week: week,
+            day: day,
+            scheduledTime: element.scheduledTime || '09:00:00',
+            data: element.data || {}
+          };
+        })
       };
 
       const response = await fetch('/api/programs', {

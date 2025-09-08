@@ -63,9 +63,6 @@ export async function createProgramTable() {
       name VARCHAR(255) NOT NULL,
       description TEXT,
       duration INTEGER NOT NULL DEFAULT 4,
-      category VARCHAR(100) DEFAULT 'general',
-      "isTemplate" BOOLEAN DEFAULT false,
-      "targetConditions" TEXT[], -- Array of target conditions
       "coachId" UUID NOT NULL REFERENCES "User"(id),
       "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -79,11 +76,8 @@ export async function createProgramTable() {
       "programId" UUID NOT NULL REFERENCES "Program"(id) ON DELETE CASCADE,
       type VARCHAR(50) NOT NULL CHECK (type IN ('session', 'exercise', 'assessment', 'homework', 'content', 'task', 'message')),
       title VARCHAR(255) NOT NULL,
-      description TEXT,
       week INTEGER NOT NULL,
       day INTEGER NOT NULL CHECK (day >= 1 AND day <= 7),
-      duration INTEGER DEFAULT 60, -- in minutes
-      content TEXT,
       "scheduledTime" TIME DEFAULT '09:00:00',
       "elementData" JSONB, -- For additional element-specific data
       "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -93,8 +87,6 @@ export async function createProgramTable() {
 
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_programs_coachId ON "Program"("coachId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_programs_category ON "Program"(category)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_programs_isTemplate ON "Program"("isTemplate")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_program_elements_programId ON "ProgramElement"("programId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_program_elements_type ON "ProgramElement"(type)`;
 

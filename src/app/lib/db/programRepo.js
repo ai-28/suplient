@@ -7,22 +7,38 @@ export async function createProgram(programData) {
             name,
             description,
             duration,
-            category = 'general',
-            isTemplate = false,
-            targetConditions = [],
             coachId,
             elements = []
         } = programData;
 
+        console.log('createProgram called with:', {
+            name,
+            description,
+            duration,
+            coachId,
+            elementsCount: elements?.length || 0
+        });
+
+        // Validate required fields
+        if (!name) {
+            throw new Error('Program name is required');
+        }
+        if (!duration) {
+            throw new Error('Program duration is required');
+        }
+        if (!coachId) {
+            throw new Error('Coach ID is required');
+        }
+
         // Start a transaction
         const result = await sql`
-      INSERT INTO "Program" (name, description, duration, category, "isTemplate", "targetConditions", "coachId", "createdAt", "updatedAt")
-      VALUES (${name}, ${description}, ${duration}, ${category}, ${isTemplate}, ${targetConditions}, ${coachId}, NOW(), NOW())
-      RETURNING id, name, description, duration, category, "isTemplate", "targetConditions", "coachId", "createdAt"
+      INSERT INTO "Program" (name, description, duration, "coachId", "createdAt", "updatedAt")
+      VALUES (${name}, ${description}, ${duration}, ${coachId}, NOW(), NOW())
+      RETURNING id, name, description, duration, "coachId", "createdAt"
     `;
 
         const program = result[0];
-
+        console.log("elements", elements)
         // Insert program elements if provided
         if (elements.length > 0) {
             // Use Promise.all for concurrent inserts (better than sequential)
@@ -30,18 +46,15 @@ export async function createProgram(programData) {
                 elements.map(element =>
                     sql`
                         INSERT INTO "ProgramElement" (
-                            "programId", type, title, description, week, day, duration, content, 
+                            "programId", type, title, week, day, 
                             "scheduledTime", "elementData", "createdAt", "updatedAt"
                         )
                         VALUES (
                             ${program.id}, 
                             ${element.type || 'exercise'}, 
                             ${element.title || 'Untitled Element'}, 
-                            ${element.description || null}, 
                             ${element.week || 1}, 
                             ${element.day || 1}, 
-                            ${element.duration || 60}, 
-                            ${element.content || null}, 
                             ${element.scheduledTime || '09:00:00'}, 
                             ${JSON.stringify(element.data || {})}, 
                             NOW(), 
@@ -94,27 +107,16 @@ export async function getProgramById(id) {
 // Get all programs for a coach
 export async function getProgramsByCoach(coachId, options = {}) {
     try {
-        const { isTemplate, category, limit = 50, offset = 0 } = options;
+        const { limit = 50, offset = 0 } = options;
 
-        let query = sql`
+        const programs = await sql`
       SELECT p.*, u.name as "coachName",
              (SELECT COUNT(*) FROM "ProgramElement" WHERE "programId" = p.id) as "elementCount"
       FROM "Program" p
       LEFT JOIN "User" u ON p."coachId" = u.id
       WHERE p."coachId" = ${coachId}
+      ORDER BY p."createdAt" DESC LIMIT ${limit} OFFSET ${offset}
     `;
-
-        if (isTemplate !== undefined) {
-            query = sql`${query} AND p."isTemplate" = ${isTemplate}`;
-        }
-
-        if (category) {
-            query = sql`${query} AND p.category = ${category}`;
-        }
-
-        query = sql`${query} ORDER BY p."createdAt" DESC LIMIT ${limit} OFFSET ${offset}`;
-
-        const programs = await query;
 
         return programs;
     } catch (error) {
@@ -130,18 +132,29 @@ export async function updateProgram(id, programData) {
             name,
             description,
             duration,
-            category,
-            isTemplate,
-            targetConditions,
             elements
         } = programData;
+
+        console.log('updateProgram called with:', {
+            id,
+            name,
+            description,
+            duration,
+            elementsCount: elements?.length || 0
+        });
+
+        // Validate required fields
+        if (!name) {
+            throw new Error('Program name is required');
+        }
+        if (!duration) {
+            throw new Error('Program duration is required');
+        }
 
         // Update program
         const result = await sql`
       UPDATE "Program"
-      SET name = ${name}, description = ${description}, duration = ${duration},
-          category = ${category}, "isTemplate" = ${isTemplate}, 
-          "targetConditions" = ${targetConditions}, "updatedAt" = NOW()
+      SET name = ${name}, description = ${description || ''}, duration = ${duration}, "updatedAt" = NOW()
       WHERE id = ${id}
       RETURNING *
     `;
@@ -151,26 +164,32 @@ export async function updateProgram(id, programData) {
         }
 
         // If elements are provided, replace all elements
-        if (elements) {
+        if (elements && elements.length > 0) {
+            console.log('Updating elements:', elements.length, 'elements');
+
             // Delete existing elements
             await sql`DELETE FROM "ProgramElement" WHERE "programId" = ${id}`;
 
             // Insert new elements
             for (const element of elements) {
+                console.log('Inserting element:', {
+                    type: element.type,
+                    title: element.title,
+                    week: element.week,
+                    day: element.day
+                });
+
                 await sql`
           INSERT INTO "ProgramElement" (
-            "programId", type, title, description, week, day, duration, content, 
+            "programId", type, title, week, day, 
             "scheduledTime", "elementData", "createdAt", "updatedAt"
           )
           VALUES (
             ${id}, 
             ${element.type || 'exercise'}, 
             ${element.title || 'Untitled Element'}, 
-            ${element.description || null}, 
             ${element.week || 1}, 
             ${element.day || 1}, 
-            ${element.duration || 60}, 
-            ${element.content || null}, 
             ${element.scheduledTime || '09:00:00'}, 
             ${JSON.stringify(element.data || {})}, 
             NOW(), 
@@ -211,16 +230,20 @@ export async function duplicateProgram(originalId, newName, coachId) {
             throw new Error('Original program not found');
         }
 
+        console.log('Original program data:', {
+            name: originalProgram.name,
+            description: originalProgram.description,
+            duration: originalProgram.duration,
+            elementsCount: originalProgram.elements?.length || 0
+        });
+
         // Create new program with duplicated data
         const duplicatedProgram = await createProgram({
             name: newName,
-            description: originalProgram.description,
+            description: originalProgram.description || '',
             duration: originalProgram.duration,
-            category: originalProgram.category,
-            isTemplate: originalProgram.isTemplate,
-            targetConditions: originalProgram.targetConditions,
             coachId,
-            elements: originalProgram.elements
+            elements: originalProgram.elements || []
         });
 
         return duplicatedProgram;
@@ -236,8 +259,6 @@ export async function getProgramStats(coachId) {
         const stats = await sql`
       SELECT 
         COUNT(*) as "totalPrograms",
-        COUNT(CASE WHEN "isTemplate" = true THEN 1 END) as "templatePrograms",
-        COUNT(CASE WHEN "isTemplate" = false THEN 1 END) as "activePrograms",
         AVG(duration) as "averageDuration"
       FROM "Program"
       WHERE "coachId" = ${coachId}

@@ -17,7 +17,7 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id } = params;
+        const { id } = await params;
 
         if (!id) {
             return NextResponse.json({ error: 'Program ID is required' }, { status: 400 });
@@ -55,7 +55,7 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id } = params;
+        const { id } = await params;
         const body = await request.json();
 
         if (!id) {
@@ -77,9 +77,6 @@ export async function PUT(request, { params }) {
             name,
             description,
             duration,
-            category,
-            isTemplate,
-            targetConditions,
             elements
         } = body;
 
@@ -103,9 +100,6 @@ export async function PUT(request, { params }) {
             name: name?.trim(),
             description: description?.trim(),
             duration: duration ? parseInt(duration) : undefined,
-            category: category?.trim(),
-            isTemplate: isTemplate !== undefined ? Boolean(isTemplate) : undefined,
-            targetConditions: Array.isArray(targetConditions) ? targetConditions : undefined,
             elements: Array.isArray(elements) ? elements : undefined
         });
 
@@ -132,7 +126,7 @@ export async function DELETE(request, { params }) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id } = params;
+        const { id } = await params;
 
         if (!id) {
             return NextResponse.json({ error: 'Program ID is required' }, { status: 400 });

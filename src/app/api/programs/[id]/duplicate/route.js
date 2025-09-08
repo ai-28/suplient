@@ -17,16 +17,16 @@ export async function POST(request, { params }) {
             return NextResponse.json({ error: 'Access denied. Coaches only.' }, { status: 403 });
         }
 
-        const { id } = params;
+        const { id } = await params;
         const body = await request.json();
         const { newName } = body;
 
-        if (!id) {
-            return NextResponse.json({ error: 'Program ID is required' }, { status: 400 });
-        }
-
+        // Validation
         if (!newName || newName.trim().length === 0) {
-            return NextResponse.json({ error: 'New program name is required' }, { status: 400 });
+            return NextResponse.json(
+                { error: 'New program name is required' },
+                { status: 400 }
+            );
         }
 
         // Duplicate the program
@@ -39,11 +39,6 @@ export async function POST(request, { params }) {
 
     } catch (error) {
         console.error('Error duplicating program:', error);
-
-        if (error.message === 'Original program not found') {
-            return NextResponse.json({ error: 'Original program not found' }, { status: 404 });
-        }
-
         return NextResponse.json(
             { error: 'Failed to duplicate program' },
             { status: 500 }
