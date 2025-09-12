@@ -36,63 +36,43 @@ import { CreateTaskDialog } from "@/app/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/app/components/EditTaskDialog";
 import { Input } from "@/app/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { useTasks } from "@/app/hooks/useTasks";
 
-// Combined client tasks data
-const allClientTasks = [
-  { id: 1, client: "John Doe", task: "Complete daily meditation", status: "open", avatar: "JD", dueDate: "2024-01-15" },
-  { id: 2, client: "Bob Dylan", task: "Journal writing exercise", status: "closed", avatar: "BD", dueDate: "2024-01-12" },
-  { id: 3, client: "Alice Smith", task: "Breathing exercises session", status: "open", avatar: "AS", dueDate: "2024-01-15" },
-  { id: 4, client: "Emma Wilson", task: "Review weekly progress", status: "open", avatar: "EW", dueDate: "2024-01-15" },
-  { id: 5, client: "Mark Johnson", task: "Complete anxiety worksheet", status: "open", avatar: "MJ", dueDate: "2024-01-10" },
-  { id: 6, client: "Sarah Brown", task: "Submit self-assessment form", status: "open", avatar: "SB", dueDate: "2024-01-08" },
-  { id: 7, client: "David Miller", task: "Weekly therapy homework", status: "open", avatar: "DM", dueDate: "2024-01-18" },
-  { id: 8, client: "Lisa Chen", task: "Mindfulness practice log", status: "open", avatar: "LC", dueDate: "2024-01-20" },
-  { id: 9, client: "Tom Wilson", task: "Anxiety management plan", status: "closed", avatar: "TW", dueDate: "2024-01-14" },
-  { id: 10, client: "Kate Brown", task: "Sleep hygiene checklist", status: "open", avatar: "KB", dueDate: "2024-01-22" }
-];
-
-// Combined personal tasks data
-const allMyTasks = [
-  { id: 1, task: "Review client progress reports", completed: true, dueDate: "2024-01-14" },
-  { id: 2, task: "Prepare group session materials", completed: false, dueDate: "2024-01-16" },
-  { id: 3, task: "Call new client referrals", completed: false, dueDate: "2024-01-15" },
-  { id: 4, task: "Update treatment plans", completed: false, dueDate: "2024-01-15" },
-  { id: 5, task: "Submit monthly report", completed: false, dueDate: "2024-01-12" },
-  { id: 6, task: "Schedule team meeting", completed: false, dueDate: "2024-01-10" },
-  { id: 7, task: "Update client documentation", completed: false, dueDate: "2024-01-18" },
-  { id: 8, task: "Attend supervision meeting", completed: true, dueDate: "2024-01-13" },
-  { id: 9, task: "Research new therapy techniques", completed: false, dueDate: "2024-01-20" },
-  { id: 10, task: "Complete professional development course", completed: false, dueDate: "2024-01-25" },
-  // Membership request tasks
-  { id: 11, task: "Review membership request from Emma Thompson for Anxiety Support Group", completed: false, dueDate: "2024-01-23", type: "membership_request", groupId: 3, requestId: "req_1" },
-  { id: 12, task: "Review membership request from David Chen for Teen Support Group", completed: false, dueDate: "2024-01-24", type: "membership_request", groupId: 4, requestId: "req_2" }
-];
-
-// Group tasks data
-const allGroupTasks = [
-  { id: 1, groupName: "Anxiety Support Group", task: "Complete weekly check-in survey", status: "open", dueDate: "2024-01-15", assignedCount: 8, completedCount: 5 },
-  { id: 2, groupName: "Mindfulness Circle", task: "Practice daily meditation", status: "open", dueDate: "2024-01-14", assignedCount: 12, completedCount: 9 },
-  { id: 3, groupName: "Depression Recovery", task: "Submit mood tracking journal", status: "open", dueDate: "2024-01-10", assignedCount: 6, completedCount: 2 },
-  { id: 4, groupName: "Teen Support Group", task: "Read coping strategies handout", status: "open", dueDate: "2024-01-18", assignedCount: 10, completedCount: 7 },
-  { id: 5, groupName: "PTSD Recovery", task: "Complete breathing exercise log", status: "closed", dueDate: "2024-01-12", assignedCount: 5, completedCount: 5 },
-  { id: 6, groupName: "Anxiety Support Group", task: "Practice grounding techniques", status: "open", dueDate: "2024-01-20", assignedCount: 8, completedCount: 3 },
-  { id: 7, groupName: "Mindfulness Circle", task: "Watch mindfulness video", status: "open", dueDate: "2024-01-22", assignedCount: 12, completedCount: 8 },
-  { id: 8, groupName: "Depression Recovery", task: "Complete self-care checklist", status: "open", dueDate: "2024-01-16", assignedCount: 6, completedCount: 4 }
-];
+// Helper function to format task due date
+const formatTaskDueDate = (dueDate) => {
+  if (!dueDate) return 'No due date';
+  const date = new Date(dueDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date < today) return `${Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))} days ago`;
+  
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
 
 // Helper functions
 const getTaskStatus = (task) => {
-  const today = new Date("2024-01-15");
-  const dueDate = new Date(task.dueDate);
+  if (task.status === 'completed') return { label: 'Completed', variant: 'success' };
   
-  if (dueDate < today) return "overdue";
-  if (dueDate.toDateString() === today.toDateString()) return "today";
-  return "upcoming";
+  if (!task.dueDate) return { label: 'No due date', variant: 'secondary' };
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dueDate = new Date(task.dueDate);
+  dueDate.setHours(0, 0, 0, 0);
+  
+  if (dueDate < today) return { label: 'Overdue', variant: 'destructive' };
+  if (dueDate.toDateString() === today.toDateString()) return { label: 'Due Today', variant: 'info' };
+  return { label: 'Upcoming', variant: 'secondary' };
 };
 
 const formatDate = (dateStr) => {
+  if (!dateStr) return 'No due date';
   const date = new Date(dateStr);
-  const today = new Date("2024-01-15");  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   if (date.toDateString() === today.toDateString()) return "Today";
   if (date < today) return `${Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))} days ago`;
   
@@ -109,119 +89,81 @@ export default function Tasks() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Use new task system
-  const allClientTasks = [];
-  const coachTaskStats = {
-    totalTasks: 0,
-    completedTasks: 0,
-    overdueCount: 0
-  };
+  // Use real data from database
+  const { 
+    personalTasks, 
+    clientTasks, 
+    groupTasks, 
+    stats, 
+    loading, 
+    error, 
+    refetchTasks,
+    updateTaskStatus
+  } = useTasks();
 
   const filterClientTasks = (tasks) => {
     if (clientFilter === "all") return tasks;
-    if (clientFilter === "today") return tasks.filter(task => task.status === "due_today");
-    if (clientFilter === "overdue") return tasks.filter(task => task.status === "overdue");
+    if (clientFilter === "today") return tasks.filter(task => getTaskStatus(task).label === "Due Today");
+    if (clientFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
     if (clientFilter === "completed") return tasks.filter(task => task.status === "completed");
-    if (clientFilter === "open") return tasks.filter(task => !task.isCompleted);
+    if (clientFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
   };
 
   const filterMyTasks = (tasks) => {
     if (myTaskFilter === "all") return tasks;
-    if (myTaskFilter === "today") return tasks.filter(task => getTaskStatus(task) === "today");
-    if (myTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task) === "overdue");
-    if (myTaskFilter === "completed") return tasks.filter(task => task.completed);
-    if (myTaskFilter === "open") return tasks.filter(task => !task.completed);
+    if (myTaskFilter === "today") return tasks.filter(task => getTaskStatus(task).label === "Due Today");
+    if (myTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
+    if (myTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
+    if (myTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
   };
 
   const filterGroupTasks = (tasks) => {
     if (groupTaskFilter === "all") return tasks;
-    if (groupTaskFilter === "today") return tasks.filter(task => getTaskStatus(task) === "today");
-    if (groupTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task) === "overdue");
-    if (groupTaskFilter === "completed") return tasks.filter(task => task.status === "closed");
-    if (groupTaskFilter === "open") return tasks.filter(task => task.status === "open");
+    if (groupTaskFilter === "today") return tasks.filter(task => getTaskStatus(task).label === "Due Today");
+    if (groupTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
+    if (groupTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
+    if (groupTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
   };
 
   // Tab-specific stats calculators
   const getClientTaskStats = () => {
     return {
-      totalTasks: coachTaskStats.totalTasks,
-      totalCompleted: coachTaskStats.completedTasks,
-      overdueTasks: coachTaskStats.overdueCount
+      totalTasks: clientTasks.length,
+      totalCompleted: clientTasks.filter(task => task.status === "completed").length,
+      overdueTasks: clientTasks.filter(task => getTaskStatus(task).label === "Overdue").length
     };
   };
 
   const getMyTaskStats = () => {
-    const today = new Date("2024-01-15");
-    const completedTasks = allMyTasks.filter(task => task.completed).length;
-    const overdueTasks = allMyTasks.filter(task => {
-      const dueDate = new Date(task.dueDate);
-      return dueDate < today && !task.completed;
-    }).length;
-
     return {
-      totalTasks: allMyTasks.length,
-      totalCompleted: completedTasks,
-      overdueTasks
+      totalTasks: personalTasks.length,
+      totalCompleted: personalTasks.filter(task => task.status === "completed").length,
+      overdueTasks: personalTasks.filter(task => getTaskStatus(task).label === "Overdue").length
     };
   };
 
   const getGroupTaskStats = () => {
-    const today = new Date("2024-01-15");
-    const completedTasks = allGroupTasks.filter(task => task.status === "closed").length;
-    const overdueTasks = allGroupTasks.filter(task => {
-      const dueDate = new Date(task.dueDate);
-      return dueDate < today && task.status === "open";
-    }).length;
-
     return {
-      totalTasks: allGroupTasks.length,
-      totalCompleted: completedTasks,
-      overdueTasks
+      totalTasks: groupTasks.length,
+      totalCompleted: groupTasks.filter(task => task.status === "completed").length,
+      overdueTasks: groupTasks.filter(task => getTaskStatus(task).label === "Overdue").length
     };
   };
 
-  // Dynamic KPI stats based on active tab
+  // Always show combined KPI stats from all task types
   const kpiStats = useMemo(() => {
-    switch (activeTab) {
-      case 'client-tasks':
-        return getClientTaskStats();
-      case 'my-tasks':
-        return getMyTaskStats();
-      case 'group-tasks':
-        return getGroupTaskStats();
-      default:
-        // Default to overall stats (all combined)
-        const totalMyTasks = allMyTasks.length;
-        const totalGroupTasks = allGroupTasks.length;
-        const totalTasks = coachTaskStats.totalTasks + totalMyTasks + totalGroupTasks;
-        
-        const completedMyTasks = allMyTasks.filter(task => task.completed).length;
-        const completedGroupTasks = allGroupTasks.filter(task => task.status === "closed").length;
-        const totalCompleted = coachTaskStats.completedTasks + completedMyTasks + completedGroupTasks;
-        
-        const today = new Date("2024-01-15");
-        const myOverdue = allMyTasks.filter(task => {
-          const dueDate = new Date(task.dueDate);
-          return dueDate < today && !task.completed;
-        }).length;
-        
-        const groupOverdue = allGroupTasks.filter(task => {
-          const dueDate = new Date(task.dueDate);
-          return dueDate < today && task.status === "open";
-        }).length;
-        
-        const overdueTasks = coachTaskStats.overdueCount + myOverdue + groupOverdue;
-
-        return {
-          totalTasks,
-          totalCompleted,
-          overdueTasks
-        };
-    }
-  }, [activeTab, coachTaskStats, allMyTasks, allGroupTasks]);
+    // Calculate combined stats from all task types
+    const allTasks = [...personalTasks, ...clientTasks, ...groupTasks];
+    
+    return {
+      totalTasks: allTasks.length,
+      totalCompleted: allTasks.filter(task => task.status === "completed").length,
+      overdueTasks: allTasks.filter(task => getTaskStatus(task).label === "Overdue").length
+    };
+  }, [personalTasks, clientTasks, groupTasks]);
 
   // Dynamic chart data based on active tab
   const getChartData = () => {
@@ -299,37 +241,47 @@ export default function Tasks() {
     // For now, we'll just log it
   };
 
+  const handleTaskStatusChange = async (taskId, currentStatus) => {
+    try {
+      const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+      await updateTaskStatus(taskId, newStatus);
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      // You could add a toast notification here to show the error to the user
+    }
+  };
+
   const filteredClientTasks = useMemo(() => {
-    let tasks = filterClientTasks(allClientTasks);
+    let tasks = filterClientTasks(clientTasks);
     if (searchTerm) {
       tasks = tasks.filter(task => 
-        task.clientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (task.clientId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         task.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     return tasks;
-  }, [allClientTasks, clientFilter, searchTerm]);
+  }, [clientTasks, clientFilter, searchTerm]);
 
   const filteredMyTasks = useMemo(() => {
-    let tasks = filterMyTasks(allMyTasks);
+    let tasks = filterMyTasks(personalTasks);
     if (searchTerm) {
       tasks = tasks.filter(task => 
-        task.task.toLowerCase().includes(searchTerm.toLowerCase())
+        task.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     return tasks;
-  }, [myTaskFilter, searchTerm]);
+  }, [personalTasks, myTaskFilter, searchTerm]);
 
   const filteredGroupTasks = useMemo(() => {
-    let tasks = filterGroupTasks(allGroupTasks);
+    let tasks = filterGroupTasks(groupTasks);
     if (searchTerm) {
       tasks = tasks.filter(task => 
-        task.groupName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.task.toLowerCase().includes(searchTerm.toLowerCase())
+        (task.groupName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.title.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     return tasks;
-  }, [groupTaskFilter, searchTerm]);
+  }, [groupTasks, groupTaskFilter, searchTerm]);
 
   return (
     <div className="page-container">
@@ -338,7 +290,7 @@ export default function Tasks() {
         title={"Tasks"} 
         subtitle={"Manage your tasks"}
       >
-        <CreateTaskDialog />
+        <CreateTaskDialog onTaskCreated={refetchTasks} />
       </PageHeader>
 
       {/* Simplified KPI Statistics - Only 3 Essential Cards */}
@@ -462,51 +414,65 @@ export default function Tasks() {
 
                 {/* Enhanced Task List */}
                 <div className="max-h-[32rem] overflow-y-auto space-y-3">
-                  {filteredClientTasks.map((task) => {
-                    const status = getTaskStatus(task);
-                    
-                    return (
-                      <div 
-                        key={task.id} 
-                        className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                              {task.clientId.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-medium text-foreground">Client {task.clientId}</p>
-                            </div>
-                            <p className="text-sm text-muted-foreground truncate">{task.title}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-muted-foreground">{formatTaskDueDate(task.dueDate)}</span>
+                  {loading ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">Loading tasks...</div>
+                    </div>
+                  ) : error ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-destructive">Error loading tasks: {error}</div>
+                    </div>
+                  ) : filteredClientTasks.length === 0 ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">No client tasks found</div>
+                    </div>
+                  ) : (
+                    filteredClientTasks.map((task) => {
+                      const status = getTaskStatus(task);
+                      
+                      return (
+                        <div 
+                          key={task.id} 
+                          className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <Avatar className="h-9 w-9">
+                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                                {task.clientId ? task.clientId.slice(0, 2).toUpperCase() : 'CL'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm font-medium text-foreground">Client Task</p>
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">{task.title}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-muted-foreground">{formatTaskDueDate(task.dueDate)}</span>
                                 <Badge variant={status.variant} className="text-xs h-4 px-1.5">
-                                {status.label}
-                              </Badge>
+                                  {status.label}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2">
+                            {task.status === 'completed' ? (
+                              <CircleCheck className="h-5 w-5 text-success" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-info" />
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 w-8 p-0 hover-scale"
+                              onClick={() => handleEditTask(task)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {task.isCompleted ? (
-                            <CircleCheck className="h-5 w-5 text-success" />
-                          ) : (
-                            <Circle className="h-5 w-5 text-info" />
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-8 w-8 p-0 hover-scale"
-                            onClick={() => handleEditTask(task)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -563,61 +529,63 @@ export default function Tasks() {
 
                 {/* Enhanced Task List */}
                 <div className="max-h-[32rem] overflow-y-auto space-y-3">
-                  {filteredMyTasks.map((task) => {
-                    const status = getTaskStatus(task);
-                    
-                    return (
-                         <div 
-                         key={task.id} 
-                         className={`flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in ${
-                           task.type === 'membership_request' ? 'cursor-pointer' : ''
-                         }`}
-                         onClick={() => {
-                           if (task.type === 'membership_request' && task.groupId) {
-                            router.push(`/coach/group/${task.groupId}?tab=members&settings=true&requestsTab=true`);
-                           }
-                         }}
-                       >
-                        <Checkbox 
-                          id={`my-task-${task.id}`} 
-                          checked={task.completed}
-                          className="transition-transform hover:scale-110"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <label 
-                              htmlFor={`my-task-${task.id}`} 
-                              className={`text-sm font-medium cursor-pointer transition-all ${
-                                task.completed ? 'line-through text-muted-foreground' : 'text-foreground'
-                              }`}
-                            >
-                              {task.task}
-                            </label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</span>
-                            {status === "overdue" && !task.completed && (
-                              <Badge variant="destructive" className="text-xs h-4 px-1.5 animate-pulse">Overdue</Badge>
-                            )}
-                            {status === "today" && !task.completed && (
-                              <Badge variant="info" className="text-xs h-4 px-1.5">Due Today</Badge>
-                            )}
-                            {task.completed && (
-                              <Badge variant="success" className="text-xs h-4 px-1.5">Completed</Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-8 w-8 p-0 hover-scale"
-                          onClick={() => handleEditTask(task)}
+                  {loading ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">Loading tasks...</div>
+                    </div>
+                  ) : error ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-destructive">Error loading tasks: {error}</div>
+                    </div>
+                  ) : filteredMyTasks.length === 0 ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">No personal tasks found</div>
+                    </div>
+                  ) : (
+                    filteredMyTasks.map((task) => {
+                      const status = getTaskStatus(task);
+                      
+                      return (
+                        <div 
+                          key={task.id} 
+                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
+                          <Checkbox 
+                            id={`my-task-${task.id}`} 
+                            checked={task.status === 'completed'}
+                            onCheckedChange={() => handleTaskStatusChange(task.id, task.status)}
+                            className="transition-transform hover:scale-110"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <label 
+                                htmlFor={`my-task-${task.id}`} 
+                                className={`text-sm font-medium cursor-pointer transition-all ${
+                                  task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
+                                }`}
+                              >
+                                {task.title}
+                              </label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</span>
+                              <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                                {status.label}
+                              </Badge>
+                            </div>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0 hover-scale"
+                            onClick={() => handleEditTask(task)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -674,65 +642,63 @@ export default function Tasks() {
 
                 {/* Enhanced Task List */}
                 <div className="max-h-[32rem] overflow-y-auto space-y-3">
-                  {filteredGroupTasks.map((task) => {
-                    const status = getTaskStatus(task);
-                    const progressPercentage = (task.completedCount / task.assignedCount) * 100;
-                    
-                    return (
-                      <div 
-                        key={task.id} 
-                        className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
-                            <UsersRound className="h-4 w-4 text-secondary-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-medium text-foreground">{task.groupName}</p>
+                  {loading ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">Loading tasks...</div>
+                    </div>
+                  ) : error ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-destructive">Error loading tasks: {error}</div>
+                    </div>
+                  ) : filteredGroupTasks.length === 0 ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">No group tasks found</div>
+                    </div>
+                  ) : (
+                    filteredGroupTasks.map((task) => {
+                      const status = getTaskStatus(task);
+                      
+                      return (
+                        <div 
+                          key={task.id} 
+                          className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
+                              <UsersRound className="h-4 w-4 text-secondary-foreground" />
                             </div>
-                            <p className="text-sm text-muted-foreground truncate">{task.task}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {task.completedCount}/{task.assignedCount} completed ({Math.round(progressPercentage)}%)
-                              </span>
-                              {status === "overdue" && task.status === "open" && (
-                                <Badge variant="destructive" className="text-xs h-4 px-1.5 animate-pulse">Overdue</Badge>
-                              )}
-                              {status === "today" && task.status === "open" && (
-                                <Badge variant="info" className="text-xs h-4 px-1.5">Due Today</Badge>
-                              )}
-                              {task.status === "closed" && (
-                                <Badge variant="success" className="text-xs h-4 px-1.5">Completed</Badge>
-                              )}
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-2 mt-2">
-                              <div 
-                                className="bg-primary h-2 rounded-full transition-all duration-500 ease-out" 
-                                style={{ width: `${progressPercentage}%` }}
-                              />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm font-medium text-foreground">Group Task</p>
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">{task.title}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</span>
+                                <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                                  {status.label}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2">
+                            {task.status === 'completed' ? (
+                              <CircleCheck className="h-5 w-5 text-success" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-info" />
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 w-8 p-0 hover-scale"
+                              onClick={() => handleEditTask(task)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {task.status === 'open' ? (
-                            <Circle className="h-5 w-5 text-info" />
-                          ) : (
-                            <CircleCheck className="h-5 w-5 text-success" />
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-8 w-8 p-0 hover-scale"
-                            onClick={() => handleEditTask(task)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </TabsContent>

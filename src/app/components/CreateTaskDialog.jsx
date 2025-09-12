@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, addDays, addWeeks, addMonths } from "date-fns";
 import { CalendarIcon, Plus, User, Users, X, Search } from "lucide-react";
+import { useClients } from "@/app/hooks/useClients";
+import { useGroupsForTasks } from "@/app/hooks/useGroupsForTasks";
 
 import { cn } from "@/app/lib/utils";
 import { Button } from "@/app/components/ui/button";
@@ -39,7 +41,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/app/components/ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Badge } from "@/app/components/ui/badge";
 
@@ -49,6 +50,7 @@ const taskSchema = z.object({
   dueDate: z.date().optional(),
   assignedTo: z.string().optional(),
   selectedClients: z.array(z.string()).optional(),
+  selectedGroup: z.string().optional(),
   isRepetitive: z.boolean().optional(),
   repetitiveFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
   repetitiveCount: z.number().min(1).max(50).optional(),
@@ -63,40 +65,23 @@ const taskSchema = z.object({
   path: ["dueDate"],
 });
 
-// Mock client data - in real app, this would come from API
-const mockClients = [
-  { id: "1", name: "John Doe", avatar: "JD" },
-  { id: "2", name: "Alice Smith", avatar: "AS" },
-  { id: "3", name: "Bob Dylan", avatar: "BD" },
-  { id: "4", name: "Emma Wilson", avatar: "EW" },
-  { id: "5", name: "Mark Johnson", avatar: "MJ" },
-  { id: "sarah-johnson", name: "Sarah Johnson", avatar: "SJ" },
-];
-
-
 
 export function CreateTaskDialog({ 
   children, 
-  mode = "default", 
-  groupId, 
-  memberCount,
-  clientId,
-  clientName,
-  restrictToClient = false,
-  hideGroupTasks = false,
-  defaultTab = "personal",
-  preSelectClient = false,
   onTaskCreated 
   }) {
   const [open, setOpen] = useState(false);
-  const [taskType, setTaskType] = useState(
-    mode === "group" ? "group" : restrictToClient ? "client" : defaultTab
-  );
-  const [selectedClients, setSelectedClients] = useState(
-    (restrictToClient || preSelectClient) && clientId ? [clientId] : []
-  );
+  
+  // Fetch real data from database
+  const { availableClients, loading: clientsLoading, error: clientsError } = useClients();
+  const { groups, loading: groupsLoading, error: groupsError } = useGroupsForTasks();
+  const [taskType, setTaskType] = useState("personal");
+  const [selectedClients, setSelectedClients] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState(null);
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [groupSearchOpen, setGroupSearchOpen] = useState(false);
+  const [groupSearchQuery, setGroupSearchQuery] = useState("");
 
   const form = useForm({
     resolver: zodResolver(taskSchema),
@@ -104,7 +89,8 @@ export function CreateTaskDialog({
       title: "",
       description: "",
       assignedTo: "",
-      selectedClients: (restrictToClient || preSelectClient) && clientId ? [clientId] : [],
+      selectedClients: [],
+      selectedGroup: "",
       isRepetitive: false,
       repetitiveFrequency: "weekly",
       repetitiveCount: 1,
@@ -128,49 +114,68 @@ export function CreateTaskDialog({
     }
   };
 
-  const onSubmit = (data) => {
-    // Store the task in the assigned tasks system
-    if (taskType === "client" || restrictToClient) {
-      const clientsToAssign = restrictToClient && clientId ? [clientId] : data.selectedClients || [];
-      clientsToAssign.forEach(targetClientId => {
-        console.log(data);
+  const onSubmit = async (data) => {
+    try {
+      // Add task type and selected group/client info to the data
+      const taskData = {
+        ...data,
+        taskType,
+        selectedGroup: selectedGroup ? {
+          id: selectedGroup.id,
+          name: selectedGroup.name,
+          memberCount: selectedGroup.memberCount
+        } : null,
+        selectedClients: selectedClients.length > 0 ? selectedClients : null
+      };
+
+      // Send to backend API
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taskData),
       });
-    } else if (taskType === "group" && groupId) {
-      // For group tasks, we'd need to get all group members and assign to each
-      // For now, we'll just create a sample task for client_1 if they're in the group
-      
-    }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create task');
+      }
+
+      const result = await response.json();
     
     if (onTaskCreated) {
-      onTaskCreated(data);
+        onTaskCreated(result.tasks);
     }
-    
-    const taskTypeLabel = restrictToClient ? `Task for ${clientName}` : 
-                         taskType === "personal" ? "Personal task" : 
-                         taskType === "client" ? "Client task" : "Group task";
     
     setOpen(false);
     form.reset();
+    } catch (error) {
+      console.error('Error creating task:', error);
+      // You might want to show a toast notification here
+      alert('Failed to create task: ' + error.message);
+    }
   };
 
   const handleOpenChange = (newOpen) => {
     if (!newOpen) {
       form.reset();
-      if (!restrictToClient && !preSelectClient) {
         setSelectedClients([]);
-      }
+      setSelectedGroup(null);
       setClientSearchQuery("");
-    } else if (newOpen && preSelectClient && clientId && !selectedClients.includes(clientId)) {
-      // Ensure client is selected when dialog opens with preSelectClient
-      setSelectedClients([clientId]);
-      form.setValue("selectedClients", [clientId]);
+      setGroupSearchQuery("");
     }
     setOpen(newOpen);
   };
 
-  const filteredClients = mockClients.filter(client =>
+  const filteredClients = availableClients.filter(client =>
     client.name.toLowerCase().includes(clientSearchQuery.toLowerCase()) &&
     !selectedClients.includes(client.id)
+  );
+
+  const filteredGroups = groups.filter(group =>
+    group.name.toLowerCase().includes(groupSearchQuery.toLowerCase()) &&
+    (!selectedGroup || selectedGroup.id !== group.id)
   );
 
   const handleClientSelect = (clientId) => {
@@ -188,35 +193,28 @@ export function CreateTaskDialog({
     form.setValue("selectedClients", newSelectedClients);
   };
 
-  const getClientName = (clientId) => {
-    const found = mockClients.find(client => client.id === clientId);
-    if (found) return found.name;
-    // Fallback: if we have clientName prop and clientId matches, use it
-    if (clientId === clientId && clientName) return clientName;
-    return "";
+  const handleGroupSelect = (groupId) => {
+    const group = groups.find(g => g.id === groupId);
+    if (group) {
+      setSelectedGroup(group);
+      form.setValue("selectedGroup", groupId);
+    }
+    setGroupSearchOpen(false);
   };
 
-  // If in client-specific mode, show simplified form
-  if (restrictToClient) {
-    return (
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild>
-          {children || (
-            <Button className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Task
-            </Button>
-          )}
-        </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-foreground">
-              Create Task for {clientName}
-            </DialogTitle>
-          </DialogHeader>
+  const handleGroupRemove = () => {
+    setSelectedGroup(null);
+    form.setValue("selectedGroup", "");
+  };
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+  const getClientName = (clientId) => {
+    const found = availableClients.find(client => client.id === clientId);
+    return found ? found.name : "";
+  };
+
+  // Create a reusable form field component to avoid duplication
+  const renderFormFields = () => (
+    <>
               <FormField
                 control={form.control}
                 name="title"
@@ -387,37 +385,14 @@ export function CreateTaskDialog({
                   )}
                 />
               )}
+    </>
+  );
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-border">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setOpen(false)}
-                  className="border-border hover:bg-muted"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all"
-                >
-                  Create Task
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // If in group mode, don't show tabs - go directly to group task form
-  if (mode === "group") {
     return (
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           {children || (
-            <Button className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all">
+            <Button className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all">
               <Plus className="h-4 w-4 mr-2" />
               Create Task
             </Button>
@@ -426,472 +401,48 @@ export function CreateTaskDialog({
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-foreground">
-              Create Group Task
+            Create New Task
             </DialogTitle>
           </DialogHeader>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  Creating task for group with {memberCount} members
-                </p>
-              </div>
-
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-foreground">
-                      Task Title
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter group task title..." 
-                        className="bg-background border-border focus:border-primary"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-foreground">
-                      Description
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Describe what group members need to do..." 
-                        className="bg-background border-border focus:border-primary min-h-[100px]"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="isRepetitive"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        Repetitive Task
-                      </FormLabel>
-                      <p className="text-xs text-muted-foreground">
-                        Automatically create future tasks when this one is completed or becomes overdue
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              {watchIsRepetitive && (
-                <div className="space-y-4 pl-6 border-l-2 border-muted">
-                  <FormField
-                    control={form.control}
-                    name="repetitiveFrequency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-foreground">
-                          Frequency
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="bg-background border-border">
-                              <SelectValue placeholder="Select frequency" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="repetitiveCount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-foreground">
-                          Number of Repetitions
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            min="1"
-                            max="50"
-                            placeholder="Enter number of repetitions..." 
-                            className="bg-background border-border focus:border-primary"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          How many times should this task be repeated? (1-50)
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <p className="text-sm text-foreground font-medium">Next Due Date</p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(getNextDueDate(), "PPP")}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {!watchIsRepetitive && (
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        Due Date
-                      </FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
+            {/* Task Type Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">Task Type</label>
+              <div className="grid grid-cols-3 gap-3">
                             <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal bg-background border-border hover:bg-muted",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  type="button"
+                  variant={taskType === "personal" ? "default" : "outline"}
+                  onClick={() => setTaskType("personal")}
+                  className="justify-start"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  My Tasks
                             </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-border">
                 <Button 
                   type="button" 
-                  variant="outline" 
-                  onClick={() => setOpen(false)}
-                  className="border-border hover:bg-muted"
+                  variant={taskType === "client" ? "default" : "outline"}
+                  onClick={() => setTaskType("client")}
+                  className="justify-start"
                 >
-                  Cancel
+                  <Users className="h-4 w-4 mr-2" />
+                  Client Task
                 </Button>
                 <Button 
-                  type="submit"
-                  className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all"
-                >
-                  Create Task
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  const getTabsList = () => {
-    const gridCols = hideGroupTasks ? "grid-cols-2" : "grid-cols-3";
-    
-    // When defaultTab is "client", put Client Task first
-    if (defaultTab === "client") {
-      return (
-        <TabsList className={`grid w-full ${gridCols} bg-muted mb-6`}>
-          <TabsTrigger 
-            value="client" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Client Task
-          </TabsTrigger>
-          <TabsTrigger 
-            value="personal" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <User className="h-4 w-4 mr-2" />
-            My Tasks
-          </TabsTrigger>
-          {!hideGroupTasks && (
-            <TabsTrigger 
-              value="group" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  type="button"
+                  variant={taskType === "group" ? "default" : "outline"}
+                  onClick={() => setTaskType("group")}
+                  className="justify-start"
             >
               <Users className="h-4 w-4 mr-2" />
               Group Task
-            </TabsTrigger>
-          )}
-        </TabsList>
-      );
-    }
-    
-    // Default order
-    return (
-      <TabsList className={`grid w-full ${gridCols} bg-muted mb-6`}>
-        <TabsTrigger 
-          value="personal" 
-          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-        >
-          <User className="h-4 w-4 mr-2" />
-          My Tasks
-        </TabsTrigger>
-        <TabsTrigger 
-          value="client" 
-          className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-        >
-          <Users className="h-4 w-4 mr-2" />
-          Client Task
-        </TabsTrigger>
-        {!hideGroupTasks && (
-          <TabsTrigger 
-            value="group" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Group Task
-          </TabsTrigger>
-        )}
-      </TabsList>
-    );
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Task
           </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-foreground">
-            Create New Task
-          </DialogTitle>
-        </DialogHeader>
-
-        <Tabs value={taskType} onValueChange={(value) => setTaskType(value)}>
-          {getTabsList()}
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <TabsContent value="personal" className="space-y-6 mt-0">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        Task Title
-                      </FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter task title..." 
-                          className="bg-background border-border focus:border-primary"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        Description
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Add task description..." 
-                          className="bg-background border-border focus:border-primary min-h-[100px]"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isRepetitive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm font-medium text-foreground">
-                          Repetitive Task
-                        </FormLabel>
-                        <p className="text-xs text-muted-foreground">
-                          Automatically create future tasks when this one is completed or becomes overdue
-                        </p>
                       </div>
-                    </FormItem>
-                  )}
-                />
-
-                {watchIsRepetitive && (
-                  <div className="space-y-4 pl-6 border-l-2 border-muted">
-                    <FormField
-                      control={form.control}
-                      name="repetitiveFrequency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-foreground">
-                            Frequency
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-background border-border">
-                                <SelectValue placeholder="Select frequency" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Weekly</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="repetitiveCount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-foreground">
-                            Number of Repetitions
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              max="50"
-                              placeholder="Enter number of repetitions..." 
-                              className="bg-background border-border focus:border-primary"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                            />
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">
-                            How many times should this task be repeated? (1-50)
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="bg-muted/50 p-3 rounded-lg">
-                      <p className="text-sm text-foreground font-medium">Next Due Date</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(getNextDueDate(), "PPP")}
-                      </p>
                     </div>
-                  </div>
-                )}
 
-                {!watchIsRepetitive && (
-                  <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-sm font-medium text-foreground">
-                          Due Date
-                        </FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "pl-3 text-left font-normal bg-background border-border hover:bg-muted",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </TabsContent>
-
-              <TabsContent value="client" className="space-y-6 mt-0">
+            {/* Client Selection - only show for client tasks */}
+            {taskType === "client" && (
                 <FormField
                   control={form.control}
                   name="selectedClients"
@@ -947,7 +498,15 @@ export function CreateTaskDialog({
                                 />
                               </div>
                               <div className="max-h-[200px] overflow-y-auto space-y-1">
-                                {filteredClients.length === 0 ? (
+                                {clientsLoading ? (
+                                  <div className="text-sm text-muted-foreground p-2 text-center">
+                                    Loading clients...
+                                  </div>
+                                ) : clientsError ? (
+                                  <div className="text-sm text-destructive p-2 text-center">
+                                    Error loading clients: {clientsError}
+                                  </div>
+                                ) : filteredClients.length === 0 ? (
                                   <div className="text-sm text-muted-foreground p-2 text-center">
                                     No clients found
                                   </div>
@@ -961,7 +520,7 @@ export function CreateTaskDialog({
                                     >
                                       <div className="flex items-center gap-3 w-full">
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                                          {client.avatar}
+                                          {client.initials}
                                         </div>
                                         <span>{client.name}</span>
                                       </div>
@@ -980,351 +539,111 @@ export function CreateTaskDialog({
                     </FormItem>
                   )}
                 />
+            )}
 
+            {/* Group Selection - only show for group tasks */}
+            {taskType === "group" && (
                 <FormField
                   control={form.control}
-                  name="title"
+                name="selectedGroup"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-foreground">
-                        Task Title
+                      Select Group
                       </FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter task title..." 
-                          className="bg-background border-border focus:border-primary"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        Description
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Add task description..." 
-                          className="bg-background border-border focus:border-primary min-h-[100px]"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isRepetitive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm font-medium text-foreground">
-                          Repetitive Task
-                        </FormLabel>
-                        <p className="text-xs text-muted-foreground">
-                          Automatically create future tasks when this one is completed or becomes overdue
-                        </p>
+                    <div className="space-y-2">
+                      {selectedGroup && (
+                        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                            {selectedGroup.avatar}
                       </div>
-                    </FormItem>
-                  )}
-                />
-
-                {watchIsRepetitive && (
-                  <div className="space-y-4 pl-6 border-l-2 border-muted">
-                    <FormField
-                      control={form.control}
-                      name="repetitiveFrequency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-foreground">
-                            Frequency
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-background border-border">
-                                <SelectValue placeholder="Select frequency" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Weekly</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="repetitiveCount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-foreground">
-                            Number of Repetitions
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              max="50"
-                              placeholder="Enter number of repetitions..." 
-                              className="bg-background border-border focus:border-primary"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                            />
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">
-                            How many times should this task be repeated? (1-50)
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="bg-muted/50 p-3 rounded-lg">
-                      <p className="text-sm text-foreground font-medium">Next Due Date</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(getNextDueDate(), "PPP")}
-                      </p>
-                    </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">{selectedGroup.name}</p>
+                            <p className="text-xs text-muted-foreground">{selectedGroup.memberCount} members</p>
+                          </div>
+                          <X 
+                            className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
+                            onClick={handleGroupRemove}
+                          />
                   </div>
                 )}
-
-                {!watchIsRepetitive && (
-                  <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-sm font-medium text-foreground">
-                          Due Date
-                        </FormLabel>
-                        <Popover>
+                      <Popover open={groupSearchOpen} onOpenChange={setGroupSearchOpen}>
                           <PopoverTrigger asChild>
-                            <FormControl>
                               <Button
                                 variant="outline"
-                                className={cn(
-                                  "pl-3 text-left font-normal bg-background border-border hover:bg-muted",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            role="combobox"
+                            aria-expanded={groupSearchOpen}
+                            className="w-full justify-between bg-background border-border hover:bg-muted"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Search className="h-4 w-4" />
+                              {!selectedGroup 
+                                ? "Search and select a group..." 
+                                : selectedGroup.name
+                              }
+                            </div>
                               </Button>
-                            </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
+                        <PopoverContent className="w-[400px] p-0">
+                          <div className="p-3 space-y-2">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                                placeholder="Search groups..."
+                                value={groupSearchQuery}
+                                onChange={(e) => setGroupSearchQuery(e.target.value)}
+                                className="pl-9"
+                              />
+                      </div>
+                            <div className="max-h-[200px] overflow-y-auto space-y-1">
+                              {groupsLoading ? (
+                                <div className="text-sm text-muted-foreground p-2 text-center">
+                                  Loading groups...
+                                </div>
+                              ) : groupsError ? (
+                                <div className="text-sm text-destructive p-2 text-center">
+                                  Error loading groups: {groupsError}
+                                </div>
+                              ) : filteredGroups.length === 0 ? (
+                                <div className="text-sm text-muted-foreground p-2 text-center">
+                                  No groups found
+                                </div>
+                              ) : (
+                                filteredGroups.map((group) => (
+                              <Button
+                                    key={group.id}
+                                    variant="ghost"
+                                    className="w-full justify-start h-auto p-3"
+                                    onClick={() => handleGroupSelect(group.id)}
+                                  >
+                                    <div className="flex items-center gap-3 w-full">
+                                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                                        {group.avatar}
+                                      </div>
+                                      <div className="flex-1 text-left">
+                                        <p className="font-medium">{group.name}</p>
+                                        <p className="text-xs text-muted-foreground">{group.memberCount} members</p>
+                                      </div>
+                                    </div>
+                                  </Button>
+                                ))
+                              )}
+                            </div>
+                          </div>
                           </PopoverContent>
                         </Popover>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Select a group to assign this task to all group members
+                    </p>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
-              </TabsContent>
 
-              <TabsContent value="group" className="space-y-6 mt-0">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        Task Title
-                      </FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Enter group task title..." 
-                          className="bg-background border-border focus:border-primary"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
-                        Description
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe what group members need to do..." 
-                          className="bg-background border-border focus:border-primary min-h-[100px]"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isRepetitive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm font-medium text-foreground">
-                          Repetitive Task
-                        </FormLabel>
-                        <p className="text-xs text-muted-foreground">
-                          Automatically create future tasks when this one is completed or becomes overdue
-                        </p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                {watchIsRepetitive && (
-                  <div className="space-y-4 pl-6 border-l-2 border-muted">
-                    <FormField
-                      control={form.control}
-                      name="repetitiveFrequency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-foreground">
-                            Frequency
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-background border-border">
-                                <SelectValue placeholder="Select frequency" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Weekly</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="repetitiveCount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium text-foreground">
-                            Number of Repetitions
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              min="1"
-                              max="50"
-                              placeholder="Enter number of repetitions..." 
-                              className="bg-background border-border focus:border-primary"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                            />
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">
-                            How many times should this task be repeated? (1-50)
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="bg-muted/50 p-3 rounded-lg">
-                      <p className="text-sm text-foreground font-medium">Next Due Date</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(getNextDueDate(), "PPP")}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {!watchIsRepetitive && (
-                  <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-sm font-medium text-foreground">
-                          Due Date
-                        </FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "pl-3 text-left font-normal bg-background border-border hover:bg-muted",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                              className="pointer-events-auto"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </TabsContent>
+            {/* Common form fields */}
+            {renderFormFields()}
 
               <div className="flex justify-end gap-3 pt-4 border-t border-border">
                 <Button 
@@ -1337,14 +656,13 @@ export function CreateTaskDialog({
                 </Button>
                 <Button 
                   type="submit"
-                  className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all"
+                  className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all"
                 >
                   Create Task
                 </Button>
               </div>
             </form>
           </Form>
-        </Tabs>
       </DialogContent>
     </Dialog>
   );

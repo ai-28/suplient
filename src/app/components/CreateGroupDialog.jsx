@@ -9,20 +9,10 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Badge } from "@/app/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
-import { X, Users, Calendar, Clock, MapPin } from "lucide-react";
+import { X, Users, Calendar, Clock, MapPin, Loader2 } from "lucide-react";
+import { useClients } from "@/app/hooks/useClients";
 
-const availableClients = [
-  { id: 1, name: "John Anderson", initials: "JA" },
-  { id: 2, name: "Sarah Wilson", initials: "SW" },
-  { id: 3, name: "Michael Brown", initials: "MB" },
-  { id: 4, name: "Emily Davis", initials: "ED" },
-  { id: 5, name: "Robert Johnson", initials: "RJ" },
-  { id: 6, name: "Lisa Garcia", initials: "LG" },
-  { id: 7, name: "David Miller", initials: "DM" },
-  { id: 8, name: "Jessica Taylor", initials: "JT" },
-];
-
-export function CreateGroupDialog({ open, onOpenChange }) {
+export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -33,6 +23,10 @@ export function CreateGroupDialog({ open, onOpenChange }) {
     focusArea: "",
   });
   const [selectedMembers, setSelectedMembers] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Fetch real clients from database
+  const { availableClients, loading: clientsLoading, error: clientsError } = useClients();
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -49,34 +43,69 @@ export function CreateGroupDialog({ open, onOpenChange }) {
     setSelectedMembers(prev => prev.filter(m => m.id !== clientId));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (!formData.name || !formData.focusArea) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
+      alert("Please fill in all required fields (Group Name and Focus Area).");
       return;
     }
 
-    toast({
-      title: "Group Created Successfully",
-      description: `${formData.name} has been created with ${selectedMembers.length} members.`,
-    });
+    setIsLoading(true);
     
-    // Reset form
-    setFormData({
-      name: "",
-      description: "",
-      capacity: "",
-      frequency: "",
-      duration: "",
-      location: "",
-      focusArea: "",
-    });
-    setSelectedMembers([]);
-    onOpenChange(false);
+    try {
+      const response = await fetch("/api/groups", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          capacity: formData.capacity,
+          frequency: formData.frequency,
+          duration: formData.duration,
+          location: formData.location,
+          focusArea: formData.focusArea,
+          selectedMembers: selectedMembers.map(member => member.id), // Include selected member IDs
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create group");
+      }
+
+      console.log("Group created successfully:", result.group);
+      
+      // Show success message
+      alert(`Group "${formData.name}" has been created successfully!`);
+      
+      // Reset form
+      setFormData({
+        name: "",
+        description: "",
+        capacity: "",
+        frequency: "",
+        duration: "",
+        location: "",
+        focusArea: "",
+      });
+      setSelectedMembers([]);
+      onOpenChange(false);
+      
+      // Call callback to refresh groups list
+      if (onGroupCreated) {
+        onGroupCreated(result.group);
+      }
+      
+    } catch (error) {
+      console.error("Error creating group:", error);
+      alert(`Error creating group: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -207,20 +236,34 @@ export function CreateGroupDialog({ open, onOpenChange }) {
             
             <div className="space-y-2">
               <Label>Select Clients</Label>
-              <Select onValueChange={addMember}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose clients to add" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableClients
-                    .filter(client => !selectedMembers.find(m => m.id === client.id))
-                    .map((client) => (
-                    <SelectItem key={client.id} value={client.id.toString()}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {clientsLoading ? (
+                <div className="flex items-center justify-center p-4">
+                  <div className="text-muted-foreground">Loading clients...</div>
+                </div>
+              ) : clientsError ? (
+                <div className="flex items-center justify-center p-4">
+                  <div className="text-destructive">Error loading clients: {clientsError}</div>
+                </div>
+              ) : availableClients.length === 0 ? (
+                <div className="flex items-center justify-center p-4">
+                  <div className="text-muted-foreground">No clients available</div>
+                </div>
+              ) : (
+                <Select onValueChange={addMember}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose clients to add" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableClients
+                      .filter(client => !selectedMembers.find(m => m.id === client.id))
+                      .map((client) => (
+                      <SelectItem key={client.id} value={client.id.toString()}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {selectedMembers.length > 0 && (
@@ -259,15 +302,27 @@ export function CreateGroupDialog({ open, onOpenChange }) {
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              className="disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-primary text-white hover:shadow-medium"
+              disabled={isLoading}
+              className="bg-gradient-primary text-white hover:shadow-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Users className="h-4 w-4 mr-2" />
-              Create Group
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating Group...
+                </>
+              ) : (
+                <>
+                  <Users className="h-4 w-4 mr-2" />
+                  Create Group
+                </>
+              )}
             </Button>
           </div>
         </form>

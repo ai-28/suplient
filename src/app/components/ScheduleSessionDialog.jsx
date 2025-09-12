@@ -12,60 +12,126 @@ import { Badge } from "@/app/components/ui/badge";
 import { Calendar as CalendarIcon, Clock, MapPin, Users, AlertCircle, Bell } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/app/lib/utils";
-
+import { toast } from 'sonner';
+import { useClients } from "@/app/hooks/useClients";
+import { useGroups } from "@/app/hooks/useGroups";
 
 
 export function ScheduleSessionDialog({ 
   open, 
   onOpenChange, 
+  onSessionCreated,
   groupName, 
   groupMembers 
 }) {
   const [date, setDate] = useState();
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  
+  // Fetch real data
+  const { availableClients, loading: clientsLoading } = useClients();
+  const { groups, loading: groupsLoading } = useGroups();
+  
   const [formData, setFormData] = useState({
     title: "",
     time: "",
-    duration: "90",
+    duration: "60",
     location: "",
     sessionType: "",
     notes: "",
     reminderTime: "24",
-    maxAttendees: groupMembers.toString(),
+    maxAttendees: groupMembers?.toString() || "8",
   });
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
     if (!date || !formData.time || !formData.sessionType) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in the date, time, and session type.",
-        variant: "destructive",
-      });
+      toast.error("Please fill in the date, time, and session type.");
       return;
     }
 
-    toast({
-      title: "Session Scheduled Successfully",
-      description: `${formData.title || "Group session"} scheduled for ${format(date, "PPP")} at ${formData.time}.`,
-    });
+    if (formData.sessionType === 'individual' && !selectedClient) {
+      toast.error("Please select a client for individual sessions.");
+      return;
+    }
+
+    if (formData.sessionType === 'group' && !selectedGroup) {
+      toast.error("Please select a group for group sessions.");
+      return;
+    }
+
+    setIsLoading(true);
     
-    // Reset form
-    setDate(undefined);
-    setFormData({
-      title: "",
-      time: "",
-      duration: "90",
-      location: "",
-      sessionType: "",
-      notes: "",
-      reminderTime: "24",
-      maxAttendees: groupMembers.toString(),
-    });
-    onOpenChange(false);
+    try {
+      // Prepare session data
+      const sessionData = {
+        title: formData.title || (formData.sessionType === 'individual' ? `${selectedClient.name} Session` : `${selectedGroup.name} Session`),
+        description: formData.notes || null,
+        sessionDate: date.toISOString().split('T')[0], // YYYY-MM-DD format
+        sessionTime: formData.time,
+        duration: parseInt(formData.duration),
+        sessionType: formData.sessionType,
+        clientId: formData.sessionType === 'individual' ? selectedClient.id : null,
+        groupId: formData.sessionType === 'group' ? selectedGroup.id : null,
+        location: formData.location || null,
+        meetingLink: null, // Could be added later
+        status: 'scheduled',
+        mood: 'neutral',
+        notes: formData.notes || null
+      };
+
+      // Create session via API
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sessionData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create session');
+      }
+
+      const result = await response.json();
+      
+      toast.success("Session scheduled successfully!");
+      
+      // Reset form
+      setDate(undefined);
+      setSelectedClient(null);
+      setSelectedGroup(null);
+      setFormData({
+        title: "",
+        time: "",
+        duration: "60",
+        location: "",
+        sessionType: "",
+        notes: "",
+        reminderTime: "24",
+        maxAttendees: groupMembers?.toString() || "8",
+      });
+      
+      // Notify parent component
+      if (onSessionCreated) {
+        onSessionCreated();
+      }
+      
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating session:', error);
+      toast.error(error.message || 'Failed to schedule session');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const timeSlots = [
@@ -101,20 +167,78 @@ export function ScheduleSessionDialog({
 
             <div className="space-y-2">
               <Label htmlFor="sessionType">Session Type *</Label>
-              <Select onValueChange={(value) => handleInputChange("sessionType", value)}>
+              <Select onValueChange={(value) => {
+                handleInputChange("sessionType", value);
+                setSelectedClient(null);
+                setSelectedGroup(null);
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select session type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="regular">Regular Group Session</SelectItem>
-                  <SelectItem value="assessment">Assessment Session</SelectItem>
-                  <SelectItem value="workshop">Workshop/Activity</SelectItem>
-                  <SelectItem value="check-in">Check-in Session</SelectItem>
-                  <SelectItem value="closure">Closure Session</SelectItem>
-                  <SelectItem value="intake">New Member Intake</SelectItem>
+                  <SelectItem value="individual">Individual Session</SelectItem>
+                  <SelectItem value="group">Group Session</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Client Selection for Individual Sessions */}
+            {formData.sessionType === 'individual' && (
+              <div className="space-y-2">
+                <Label htmlFor="client">Select Client *</Label>
+                <Select onValueChange={(value) => {
+                  if (value === "loading" || value === "no-clients") return;
+                  const client = availableClients.find(c => c.id === value);
+                  setSelectedClient(client);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientsLoading ? (
+                      <SelectItem value="loading" disabled>Loading clients...</SelectItem>
+                    ) : availableClients.length === 0 ? (
+                      <SelectItem value="no-clients" disabled>No clients available</SelectItem>
+                    ) : (
+                      availableClients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Group Selection for Group Sessions */}
+            {formData.sessionType === 'group' && (
+              <div className="space-y-2">
+                <Label htmlFor="group">Select Group *</Label>
+                <Select onValueChange={(value) => {
+                  if (value === "loading" || value === "no-groups") return;
+                  const group = groups.find(g => g.id === value);
+                  setSelectedGroup(group);
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groupsLoading ? (
+                      <SelectItem value="loading" disabled>Loading groups...</SelectItem>
+                    ) : groups.length === 0 ? (
+                      <SelectItem value="no-groups" disabled>No groups available</SelectItem>
+                    ) : (
+                      groups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name} ({group.memberCount} members)
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* Date & Time */}
@@ -288,10 +412,11 @@ export function ScheduleSessionDialog({
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-primary text-white hover:shadow-medium"
+              disabled={isLoading}
+              className="bg-gradient-primary text-[#1A2D4D] hover:shadow-medium"
             >
               <CalendarIcon className="h-4 w-4 mr-2" />
-              Schedule Session
+              {isLoading ? "Scheduling..." : "Schedule Session"}
             </Button>
           </div>
         </form>

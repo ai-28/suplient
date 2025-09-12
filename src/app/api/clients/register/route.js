@@ -49,9 +49,14 @@ export async function POST(request) {
 
         // Create the client user
         const [newUser] = await sql`
-      INSERT INTO "User" (name, email, password, salt, phone, role, "createdAt", "isActive", "dateofBirth", address,"referralSource", "primaryConcerns", "coachId")
-      VALUES (${name}, ${email}, ${hashedPassword}, ${salt}, ${phone}, 'client', NOW(), true, ${dateOfBirth}, ${address}, ${referralSource}, ${concerns}, ${session.user.id})
+      INSERT INTO "User" (name, email, password, salt, phone, role, "createdAt", "isActive", "dateofBirth", address, "coachId")
+      VALUES (${name}, ${email}, ${hashedPassword}, ${salt}, ${phone}, 'client', NOW(), true, ${dateOfBirth}, ${address}, ${session.user.id})
       RETURNING id, name, email, phone, role
+    `;
+    const [newClient] = await sql`
+      INSERT INTO "Client" ("userId", "coachId","name","email","referralSource", "primaryConcerns", "createdAt", "updatedAt")
+      VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${referralSource}, ${concerns}, NOW(), NOW())
+      RETURNING id, name, email
     `;
 
         return Response.json({

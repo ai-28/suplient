@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, UserPlus, Phone, Mail, MapPin, Calendar as CalendarIcon2, User, Briefcase } from "lucide-react";
+import { CalendarIcon, UserPlus, Phone, Mail, MapPin, Calendar as CalendarIcon2, User, Briefcase, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +55,7 @@ const getFormSchema = () => z.object({
 
 export function CreateClientDialog() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const formSchema = getFormSchema();
 
   const form = useForm({
@@ -70,6 +71,7 @@ export function CreateClientDialog() {
   });
 
   const onSubmit = async (data) => {
+    setIsLoading(true);
     try {
       const response = await fetch("/api/clients/register", {
         method: "POST",
@@ -107,6 +109,8 @@ export function CreateClientDialog() {
     } catch (error) {
       console.error("Error creating client:", error);
       alert(`Error creating client: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -326,16 +330,27 @@ export function CreateClientDialog() {
                 type="button" 
                 variant="outline" 
                 onClick={() => setIsOpen(false)}
-                className="border-border hover:bg-muted"
+                disabled={isLoading}
+                className="border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all"
+                disabled={isLoading}
+                className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong border-border transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Client
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating Client...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Client
+                  </>
+                )}
               </Button>
             </div>
           </form>

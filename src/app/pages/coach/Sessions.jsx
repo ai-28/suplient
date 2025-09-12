@@ -7,9 +7,11 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { PageHeader } from "@/app/components/PageHeader";
+import { useSessions } from "@/app/hooks/useSessions";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { ScheduleSessionDialog } from "@/app/components/ScheduleSessionDialog";
+import { EditSessionDialog } from "@/app/components/EditSessionDialog";
 import { 
   Calendar, 
   Clock, 
@@ -27,119 +29,7 @@ import {
   ArrowDown
 } from "lucide-react";
 
-const upcomingSessions = [
-  { 
-    id: 1, 
-    date: "13 Jan 14:00", 
-    group: "Group 3", 
-    type: "Group",
-    mood: "😊", 
-    actions: ["view", "edit", "message"] 
-  },
-  { 
-    id: 2, 
-    date: "5 May 10:00", 
-    client: "John Doe", 
-    type: "1-1",
-    mood: "😐", 
-    actions: ["view", "edit", "message"] 
-  },
-  { 
-    id: 3, 
-    date: "6 Aug 14:00", 
-    client: "Alex Bob", 
-    type: "1-1",
-    mood: "😊", 
-    actions: ["view", "edit", "message"] 
-  },
-  { 
-    id: 4, 
-    date: "6 May 14:00", 
-    client: "Sarah Connor", 
-    type: "1-1",
-    mood: "😊", 
-    actions: ["view", "edit", "message"] 
-  },
-  { 
-    id: 5, 
-    date: "6 May 16:00", 
-    group: "Group 2", 
-    type: "Group",
-    mood: "😊", 
-    actions: ["view", "edit", "message"] 
-  }
-];
 
-// Calendar days with proper layout - starting from Monday (May 5, 2025)
-const calendarDays = [
-  { day: 5, isEmpty: false, hasSession: true }, // Mon
-  { day: 6, isEmpty: false, hasSession: true }, // Tue
-  { day: 7, isEmpty: false }, // Wed
-  { day: 8, isEmpty: false }, // Thu
-  { day: 9, isEmpty: false }, // Fri
-  { day: 10, isEmpty: false }, // Sat
-  { day: 11, isEmpty: false }, // Sun
-  
-  { day: 12, isEmpty: false }, // Mon
-  { day: 13, isEmpty: false, hasSession: true }, // Tue
-  { day: 14, isEmpty: false }, // Wed
-  { day: 15, isEmpty: false }, // Thu
-  { day: 16, isEmpty: false }, // Fri
-  { day: 17, isEmpty: false }, // Sat
-  { day: 18, isEmpty: false }, // Sun
-  
-  { day: 19, isEmpty: false }, // Mon
-  { day: 20, isEmpty: false }, // Tue
-  { day: 21, isEmpty: false }, // Wed
-  { day: 22, isEmpty: false }, // Thu
-  { day: 23, isEmpty: false }, // Fri
-  { day: 24, isEmpty: false }, // Sat
-  { day: 25, isEmpty: false }, // Sun
-  
-  { day: 26, isEmpty: false }, // Mon
-  { day: 27, isEmpty: false }, // Tue
-  { day: 28, isEmpty: false }, // Wed
-  { day: 29, isEmpty: false }, // Thu
-  { day: 30, isEmpty: false }, // Fri
-  { day: 31, isEmpty: false }, // Sat
-  { day: "", isEmpty: true }, // Sun
-];
-
-// Week view data - 7 days starting Monday
-const weekDays = [
-  { day: 5, date: "May 5", isEmpty: false, hasSession: true },
-  { day: 6, date: "May 6", isEmpty: false, hasSession: true },
-  { day: 7, date: "May 7", isEmpty: false },
-  { day: 8, date: "May 8", isEmpty: false },
-  { day: 9, date: "May 9", isEmpty: false },
-  { day: 10, date: "May 10", isEmpty: false },
-  { day: 11, date: "May 11", isEmpty: false },
-];
-
-// Day view data - hourly slots
-const dayHours = [
-  { hour: "08:00", isEmpty: false },
-  { hour: "09:00", isEmpty: false },
-  { hour: "10:00", isEmpty: false, hasSession: true, session: { client: "John Doe", type: "1-1" } },
-  { hour: "11:00", isEmpty: false },
-  { hour: "12:00", isEmpty: false },
-  { hour: "13:00", isEmpty: false },
-  { hour: "14:00", isEmpty: false, hasSession: true, session: { client: "Alex Bob", type: "1-1" } },
-  { hour: "15:00", isEmpty: false },
-  { hour: "16:00", isEmpty: false, hasSession: true, session: { group: "Group 2", type: "Group" } },
-  { hour: "17:00", isEmpty: false },
-  { hour: "18:00", isEmpty: false },
-];
-
-// Session details for specific days - now supporting multiple sessions per day
-const sessionDetails = {
-  5: [{ time: "10:00", client: "John Doe", type: "1-1", mood: "😐" }],
-  6: [
-    { time: "14:00", client: "Alex Bob", type: "1-1", mood: "😊" },
-    { time: "16:00", group: "Group 2", type: "Group", mood: "😊" }
-  ],
-  13: [{ time: "14:00", group: "Group 3", type: "Group", mood: "😊" }]
-};
 
 export default function Sessions() {
   const router = useRouter();
@@ -155,14 +45,160 @@ export default function Sessions() {
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('asc');
 
+  // Use real data from database
+  const { 
+    sessions, 
+    loading, 
+    error, 
+    refetchSessions,
+    createSession,
+    updateSession,
+    deleteSession
+  } = useSessions();
+
+  // Generate calendar data from real sessions
+  const generateCalendarDays = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0-based
+    
+    // Get first day of month and last day of month
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // Get the Monday of the week containing the first day
+    const startDate = new Date(firstDay);
+    const dayOfWeek = firstDay.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Sunday = 0, Monday = 1
+    startDate.setDate(firstDay.getDate() + mondayOffset);
+    
+    // Generate 42 days (6 weeks)
+    const calendarDays = [];
+    for (let i = 0; i < 42; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      
+      const day = currentDate.getDate();
+      const isCurrentMonth = currentDate.getMonth() === month;
+      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Check if there are sessions on this date
+      const daySessions = sessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate.toISOString().split('T')[0] === dateStr;
+      });
+      
+      calendarDays.push({
+        day: isCurrentMonth ? day : '',
+        isEmpty: !isCurrentMonth,
+        hasSession: daySessions.length > 0,
+        date: dateStr,
+        sessions: daySessions
+      });
+    }
+    
+    return calendarDays;
+  };
+
+  const generateWeekDays = () => {
+    const today = new Date();
+    const currentWeekStart = new Date(today);
+    const dayOfWeek = today.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    currentWeekStart.setDate(today.getDate() + mondayOffset);
+    
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(currentWeekStart);
+      currentDate.setDate(currentWeekStart.getDate() + i);
+      
+      const day = currentDate.getDate();
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const formattedDate = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      // Check if there are sessions on this date
+      const daySessions = sessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate.toISOString().split('T')[0] === dateStr;
+      });
+      
+      weekDays.push({
+        day,
+        date: formattedDate,
+        isEmpty: false,
+        hasSession: daySessions.length > 0,
+        dateStr,
+        sessions: daySessions
+      });
+    }
+    
+    return weekDays;
+  };
+
+  const generateDayHours = () => {
+    const selectedDateObj = new Date(selectedDate);
+    const dateStr = selectedDateObj.toISOString().split('T')[0];
+    
+    // Get sessions for the selected date
+    const daySessions = sessions.filter(session => {
+      const sessionDate = new Date(session.sessionDate);
+      return sessionDate.toISOString().split('T')[0] === dateStr;
+    });
+    
+    // Generate hourly slots from 8 AM to 8 PM
+    const hours = [];
+    for (let hour = 8; hour <= 20; hour++) {
+      const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+      
+      // Find session at this hour
+      const sessionAtHour = daySessions.find(session => {
+        const sessionTime = session.sessionTime.substring(0, 5); // Get HH:MM
+        return sessionTime === timeStr;
+      });
+      
+      hours.push({
+        hour: timeStr,
+        isEmpty: false,
+        hasSession: !!sessionAtHour,
+        session: sessionAtHour ? {
+          client: sessionAtHour.client,
+          group: sessionAtHour.group,
+          type: sessionAtHour.type,
+          title: sessionAtHour.title
+        } : null
+      });
+    }
+    
+    return hours;
+  };
+
+  // Generate session details for calendar clicks
+  const getSessionDetailsForDate = (dateStr) => {
+    const daySessions = sessions.filter(session => {
+      const sessionDate = new Date(session.sessionDate);
+      return sessionDate.toISOString().split('T')[0] === dateStr;
+    });
+    
+    return daySessions.map(session => ({
+      time: session.sessionTime.substring(0, 5), // HH:MM format
+      client: session.client,
+      group: session.group,
+      type: session.type,
+      mood: session.mood,
+      moodEmoji: session.moodEmoji,
+      title: session.title,
+      id: session.id
+    }));
+  };
+
   const handleDayClick = (day) => {
-    if (day.hasSession && sessionDetails[day.day]) {
-      const sessions = sessionDetails[day.day];
+    if (day.hasSession && day.sessions && day.sessions.length > 0) {
+      const sessionDetails = getSessionDetailsForDate(day.date);
       setSelectedSessionDetail({
-        ...sessions[0],
-        date: `${day.day} May`,
+        ...sessionDetails[0],
+        date: day.date,
         day: day.day,
-        allSessions: sessions
+        allSessions: sessionDetails
       });
       setIsSessionDetailOpen(true);
     }
@@ -207,7 +243,7 @@ export default function Sessions() {
     }
   };
 
-  const sortedSessions = [...upcomingSessions].sort((a, b) => {
+  const sortedSessions = [...sessions].sort((a, b) => {
     let aValue;
     let bValue;
     
@@ -234,6 +270,10 @@ export default function Sessions() {
   });
 
   const renderCalendarView = () => {
+    const calendarDays = generateCalendarDays();
+    const weekDays = generateWeekDays();
+    const dayHours = generateDayHours();
+    
     switch (calendarView) {
       case 'month':
         return (
@@ -271,7 +311,7 @@ export default function Sessions() {
                       {dayObj.hasSession && (
                         <div className="flex-1 flex items-center justify-center">
                           <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                            {sessionDetails[dayObj.day]?.length || 0}
+                            {dayObj.sessions?.length || 0}
                           </div>
                         </div>
                       )}
@@ -311,9 +351,9 @@ export default function Sessions() {
                 >
                   {dayObj.hasSession && (
                     <div className="space-y-1">
-                      {sessionDetails[dayObj.day]?.map((session, idx) => (
+                      {dayObj.sessions?.map((session, idx) => (
                         <div key={idx} className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-                          {session.time}
+                          {session.sessionTime.substring(0, 5)}
                         </div>
                       ))}
                     </div>
@@ -348,7 +388,7 @@ export default function Sessions() {
                   {hour.hasSession && hour.session && (
                     <div className="flex-1 flex items-center gap-2 ml-4">
                       <div className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm">
-                        {hour.session.client || hour.session.group}
+                        {hour.session.client || hour.session.group || hour.session.title}
                       </div>
                       <Badge variant="outline" className="text-xs">
                         {hour.session.type}
@@ -374,7 +414,7 @@ export default function Sessions() {
         subtitle={"Manage your sessions"}
       >
         <Button 
-          className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all"
+          className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all"
           onClick={() => setIsScheduleDialogOpen(true)}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -486,7 +526,20 @@ export default function Sessions() {
                 
                 {/* Sessions List */}
                 <div className="space-y-4">
-                  {sortedSessions.map((session) => (
+                  {loading ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">Loading sessions...</div>
+                    </div>
+                  ) : error ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-destructive">Error loading sessions: {error}</div>
+                    </div>
+                  ) : sortedSessions.length === 0 ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">No sessions found</div>
+                    </div>
+                  ) : (
+                    sortedSessions.map((session) => (
                   <div 
                     key={session.id} 
                     className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all border border-transparent hover:border-border hover:shadow-sm"
@@ -529,7 +582,7 @@ export default function Sessions() {
                         </Badge>
                         
                         <div className="flex items-center gap-1">
-                          <span className="text-lg">{session.mood}</span>
+                          <span className="text-lg">{session.moodEmoji}</span>
                           <Badge variant="secondary" className="text-xs">
                             {session.type === 'Group' ? '45 min' : '60 min'}
                           </Badge>
@@ -540,7 +593,7 @@ export default function Sessions() {
                     <div className="flex gap-2">
                       <Button 
                         size="sm"
-                        className="bg-gradient-primary text-white hover:shadow-md transition-all"
+                        className="bg-gradient-primary text-[#1A2D4D] hover:shadow-md transition-all"
                         onClick={() => handleViewSession(session)}
                       >
                         <Video className="h-4 w-4 mr-2" />
@@ -564,7 +617,8 @@ export default function Sessions() {
                       </Button>
                     </div>
                   </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </div>
             ) : (
@@ -596,6 +650,7 @@ export default function Sessions() {
       <ScheduleSessionDialog
         open={isScheduleDialogOpen}
         onOpenChange={setIsScheduleDialogOpen}
+        onSessionCreated={refetchSessions}
         groupName="General Group"
         groupMembers={8}
       />
@@ -639,7 +694,7 @@ export default function Sessions() {
                     <Badge variant="outline" className="border-primary text-primary">
                       {selectedSessionDetail.type}
                     </Badge>
-                    <span className="text-lg">{selectedSessionDetail.mood}</span>
+                    <span className="text-lg">{selectedSessionDetail.moodEmoji}</span>
                   </div>
                 </div>
               </div>
@@ -656,7 +711,7 @@ export default function Sessions() {
                         <span className="text-sm">{session.group || session.client}</span>
                         <Badge variant="outline" className="text-xs">{session.type}</Badge>
                       </div>
-                      <span className="text-sm">{session.mood}</span>
+                      <span className="text-sm">{session.moodEmoji}</span>
                     </div>
                   ))}
                 </div>
@@ -682,66 +737,12 @@ export default function Sessions() {
       </Dialog>
 
       {/* Edit Session Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit className="h-5 w-5 text-primary" />
-              Edit Session
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedSession && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Date</label>
-                  <div className="p-2 border rounded bg-muted/30">
-                    {selectedSession.date.split(' ')[0]}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Time</label>
-                  <div className="p-2 border rounded bg-muted/30">
-                    {selectedSession.date.split(' ')[1]}
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium">
-                  {selectedSession.group ? "Group" : "Client"}
-                </label>
-                <div className="p-2 border rounded bg-muted/30">
-                  {selectedSession.group || selectedSession.client}
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium">Type</label>
-                <div className="p-2 border rounded bg-muted/30">
-                  {selectedSession.type}
-                </div>
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <Button 
-                  className="flex-1" 
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
-                    Save Changes
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EditSessionDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        session={selectedSession}
+        onSessionUpdated={refetchSessions}
+      />
     </div>
   );
 }

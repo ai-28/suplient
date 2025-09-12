@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useGroups } from "@/app/hooks/useGroups";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -64,83 +65,10 @@ const groupPipelineStages = [
   }
 ];
 
-const groups = [
-  { 
-    id: 1, 
-    name: "Anxiety Support Circle", 
-    members: 8, 
-    nextSession: "01/06 14:30",
-    avatars: ["AS", "JD", "MR", "LK", "TS"],
-    stage: "ongoing",
-    description: "Weekly anxiety support sessions",
-    startDate: "March 2024",
-    unreadMessages: 3,
-    lastComment: "I've been feeling much better lately thanks to the breathing exercises we practiced last week."
-  },
-  { 
-    id: 2, 
-    name: "Depression Recovery", 
-    members: 6, 
-    nextSession: "15/06 16:00",
-    avatars: ["DR", "KM", "RT", "TC", "CM"],
-    stage: "ongoing",
-    description: "Bi-weekly depression recovery group",
-    startDate: "February 2024",
-    unreadMessages: 7,
-    lastComment: "The journaling activity really helped me understand my thought patterns better."
-  },
-  { 
-    id: 3, 
-    name: "Mindfulness Meditation", 
-    members: 10, 
-    nextSession: "30/06 10:00",
-    avatars: ["MM", "SW", "BL", "ED", "CW"],
-    stage: "upcoming",
-    description: "Starting meditation group",
-    startDate: "July 2024",
-    unreadMessages: 0,
-    lastComment: "Looking forward to starting our journey together next week."
-  },
-  { 
-    id: 4, 
-    name: "Stress Management", 
-    members: 12, 
-    nextSession: "Completed",
-    avatars: ["SM", "JB", "AR", "MT", "NW"],
-    stage: "completed",
-    description: "8-week stress management program",
-    startDate: "January 2024",
-    unreadMessages: 0,
-    lastComment: "Thank you all for making this journey so meaningful and transformative."
-  },
-  { 
-    id: 5, 
-    name: "Teen Support Group", 
-    members: 5, 
-    nextSession: "On Hold",
-    avatars: ["TS", "PJ", "LG", "DL"],
-    stage: "inactive",
-    description: "Teen mental health support",
-    startDate: "April 2024",
-    unreadMessages: 0,
-    lastComment: "We'll resume sessions when everyone is ready to participate again."
-  },
-  { 
-    id: 6, 
-    name: "Trauma Recovery", 
-    members: 7, 
-    nextSession: "05/07 11:15",
-    avatars: ["TR", "MK", "RL", "TF", "CN"],
-    stage: "upcoming",
-    description: "Trauma-informed recovery group",
-    startDate: "July 2024",
-    unreadMessages: 1,
-    lastComment: "Excited to begin this important work in a safe and supportive environment."
-  }
-];
 
 export default function Groups() {
   const router = useRouter();
+  const { groups, loading, error, refetchGroups, updateGroupStage } = useGroups();
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
@@ -171,11 +99,16 @@ export default function Groups() {
     setGroupSettingsOpen(true);
   };
 
-  const handleStageMove = (groupId, newStage) => {
-    console.log(`Moving group ${groupId} to stage ${newStage}`);
-    // Handle stage transition logic
+  const handleStageMove = async (groupId, newStage) => {
+    try {
+      console.log(`Moving group ${groupId} to stage ${newStage}`);
+      await updateGroupStage(groupId, newStage);
+    } catch (error) {
+      console.error('Error updating group stage:', error);
+      // You could add a toast notification here to show the error to the user
+    }
   };
-
+  console.log("groups",groups)
   const filteredAndSortedGroups = groups
     .filter(group => {
       if (filterBy === 'all') return true;
@@ -378,7 +311,7 @@ export default function Groups() {
         </div>
         
         <Button 
-          className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all"
+          className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all"
           onClick={() => setCreateGroupOpen(true)}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -386,7 +319,47 @@ export default function Groups() {
         </Button>
       </PageHeader>
 
-      {/* Controls */}
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading groups...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Error loading groups: {error}</p>
+            <Button onClick={refetchGroups} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && groups.length === 0 && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <Users2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No groups yet</h3>
+            <p className="text-muted-foreground mb-4">Create your first group to get started</p>
+            <Button onClick={() => setCreateGroupOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Group
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      {!loading && !error && groups.length > 0 && (
+        <>
+          {/* Controls */}
       <div className="flex items-center gap-3 pt-4 border-t border-border">
         {/* Filter & Columns Dropdown */}
         <DropdownMenu>
@@ -656,9 +629,13 @@ export default function Groups() {
       )}
 
       {/* Dialogs */}
+        </>
+      )}
+
       <CreateGroupDialog 
         open={createGroupOpen} 
-        onOpenChange={setCreateGroupOpen} 
+        onOpenChange={setCreateGroupOpen}
+        onGroupCreated={refetchGroups}
       />
       
       {selectedGroup && (
