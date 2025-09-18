@@ -53,7 +53,7 @@ const getFormSchema = () => z.object({
   referralSource: z.string().min(1, "Please select how you heard about us"),
 });
 
-export function CreateClientDialog() {
+export function CreateClientDialog({ onClientCreated }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const formSchema = getFormSchema();
@@ -103,8 +103,10 @@ export function CreateClientDialog() {
       setIsOpen(false);
       form.reset();
       
-      // Optionally refresh the client list or trigger a callback
-      // if (onClientCreated) onClientCreated(result.client);
+      // Refresh the client list
+      if (onClientCreated) {
+        onClientCreated(result.client);
+      }
       
     } catch (error) {
       console.error("Error creating client:", error);

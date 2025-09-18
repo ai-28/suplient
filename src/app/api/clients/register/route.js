@@ -53,9 +53,9 @@ export async function POST(request) {
       VALUES (${name}, ${email}, ${hashedPassword}, ${salt}, ${phone}, 'client', NOW(), true, ${dateOfBirth}, ${address}, ${session.user.id})
       RETURNING id, name, email, phone, role
     `;
-    const [newClient] = await sql`
-      INSERT INTO "Client" ("userId", "coachId","name","email","referralSource", "primaryConcerns", "createdAt", "updatedAt")
-      VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${referralSource}, ${concerns}, NOW(), NOW())
+        const [newClient] = await sql`
+      INSERT INTO "Client" ("userId", "coachId","name","email","type","referralSource", "primaryConcerns", "createdAt", "updatedAt")
+      VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${'personal'}, ${referralSource}, ${concerns}, NOW(), NOW())
       RETURNING id, name, email
     `;
 

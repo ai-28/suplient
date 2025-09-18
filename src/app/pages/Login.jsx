@@ -163,14 +163,26 @@ export default function Login() {
         {/* Left Side - Branding */}
         <div className="hidden lg:flex flex-col justify-center space-y-8 pl-8">
           <div className="space-y-6">
+            
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center">
-                <Brain className="h-7 w-7 text-white" />
+                <Brain className="h-7 w-7" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Mental Coach</h1>
                 <p className="text-muted-foreground">Professional Mental Health Platform</p>
               </div>
+            </div>
+
+            {/* Login Image */}
+            <div className="relative w-full max-w-md mx-auto">
+              <img 
+                src="/assets/login.jpg" 
+                alt="Mental Health Support" 
+                className="w-full h-auto rounded-2xl shadow-lg object-cover"
+                style={{ maxHeight: '400px' }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl"></div>
             </div>
             
             <div className="space-y-6">

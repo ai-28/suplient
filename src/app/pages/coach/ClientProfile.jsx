@@ -35,7 +35,8 @@ import {
   Users,
   MapPin,
   Pause,
-  Play
+  Play,
+  Loader2
 } from 'lucide-react';
 import { ProgramTimelineView } from '@/app/components/ProgramTimelineView';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
@@ -55,18 +56,9 @@ import { CreateTaskDialog } from "@/app/components/CreateTaskDialog";
 import { LibraryPickerModal } from "@/app/components/LibraryPickerModal";
 
 import { EnrollClientDialog } from "@/app/components/EnrollClientDialog";
+import { CreateNoteDialog } from "@/app/components/CreateNoteDialog";
 
-const moodProgressData = [
-  { week: "Week 1", mood: 4.2 },
-  { week: "Week 2", mood: 5.1 },
-  { week: "Week 3", mood: 5.8 },
-  { week: "Week 4", mood: 6.2 },
-  { week: "Week 5", mood: 7.1 },
-  { week: "Week 6", mood: 7.8 },
-  { week: "Week 7", mood: 8.2 },
-  { week: "Week 8", mood: 8.5 }
-];
-
+// Demo data for files (these will be replaced with real data later)
 const files = [
   { 
     id: 1, 
@@ -94,55 +86,6 @@ const files = [
   }
 ];
 
-const initialClientTasks = [
-  { id: 1, text: "Complete daily mood check-in", completed: false, date: "Today", priority: "High" },
-  { id: 2, text: "Practice breathing exercises", completed: true, date: "Yesterday", priority: "Medium" },
-  { id: 3, text: "Journal about today's emotions", completed: false, date: "Today", priority: "Low" },
-  { id: 4, text: "Read assigned chapter", completed: true, date: "2 days ago", priority: "Medium" }
-];
-
-const recentActivity = [
-  { type: "journal", description: "Added new journal entry about anxiety", time: "2 hours ago" },
-  { type: "task", description: "Completed breathing exercises", time: "5 hours ago" },
-  { type: "session", description: "Attended weekly coaching session", time: "1 day ago" },
-  { type: "message", description: "Sent message to coach", time: "2 days ago" }
-];
-
-const notes = [
-  { id: 1, title: "Session Notes", content: "Client showed improvement...", date: "Today" },
-  { id: 2, title: "Progress Update", content: "Discussed coping strategies...", date: "Yesterday" }
-];
-
-// Client's group memberships data
-const clientGroups = [
-  {
-    id: 1,
-    name: "Anxiety Support Circle",
-    description: "A supportive space for managing anxiety together",
-    members: 8,
-    maxMembers: 12,
-    joinedDate: "Feb 2024",
-    nextSession: "Today, 3:00 PM",
-    sessionFrequency: "Weekly",
-    status: "Active",
-    attendance: 85,
-    role: "Member"
-  },
-  {
-    id: 2,
-    name: "Morning Meditation Group",
-    description: "Start your day with guided meditation and mindfulness",
-    members: 6,
-    maxMembers: 10,
-    joinedDate: "Jan 2024",
-    nextSession: "Tomorrow, 8:00 AM",
-    sessionFrequency: "Daily",
-    status: "Active",
-    attendance: 92,
-    role: "Member"
-  }
-];
-
 export default function ClientProfile() {
   const { id } = useParams();
   const router = useRouter();
@@ -153,35 +96,89 @@ export default function ClientProfile() {
     return <div>Loading...</div>;
   }
   
+  // State for UI
   const [activeTab, setActiveTab] = useState("overview");
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [shareFilesOpen, setShareFilesOpen] = useState(false);
   const [fileToRemove, setFileToRemove] = useState(null);
-  const [clientFiles, setClientFiles] = useState(files);
-  const [clientTasks, setClientTasks] = useState(initialClientTasks);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
+  
+  // State for real client data
+  const [clientData, setClientData] = useState(null);
+  const [clientTasks, setClientTasks] = useState([]);
+  const [clientSessions, setClientSessions] = useState([]);
+  const [clientGroups, setClientGroups] = useState([]);
+  const [clientFiles, setClientFiles] = useState(files);
+  const [clientNotes, setClientNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // State for programs
   const [clientPrograms, setClientPrograms] = useState([]);
-
-  const [localClientPrograms, setLocalClientPrograms] = useState(clientPrograms);
+  const [localClientPrograms, setLocalClientPrograms] = useState([]);
+  
   // Get programs and client programs data
-const programs = [
-  {
-    id: 1,
-    name: "Program 1",
-    elements: [
-      { id: 1, title: "Element 1", type: "task" },
-      { id: 2, title: "Element 2", type: "content" },
-      { id: 3, title: "Element 3", type: "checkin" }
-    ]
-  },
-  
-];
+  const programs = [
+    {
+      id: 1,
+      name: "Program 1",
+      elements: [
+        { id: 1, title: "Element 1", type: "task" },
+        { id: 2, title: "Element 2", type: "content" },
+        { id: 3, title: "Element 3", type: "checkin" }
+      ]
+    },
+  ];
 
-  
-  // Local state for client programs to handle pause/resume
+  // Fetch client data on component mount
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(`/api/clients/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch client data');
+        }
+        
+        const result = await response.json();
+        const data = result.data;
+        
+        setClientData(data.client);
+        setClientTasks(data.tasks);
+        setClientSessions(data.sessions);
+        setClientGroups(data.groupMemberships);
+        
+        // Fetch notes for this client
+        await fetchClientNotes(id);
+        
+      } catch (err) {
+        console.error('Error fetching client data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchClientData();
+  }, [id]);
+  
+  // Fetch client notes
+  const fetchClientNotes = async (clientId) => {
+    try {
+      const response = await fetch(`/api/notes?clientId=${clientId}`);
+      if (response.ok) {
+        const result = await response.json();
+        setClientNotes(result.notes || []);
+      }
+    } catch (err) {
+      console.error('Error fetching notes:', err);
+    }
+  };
   
   // Update local state when clientPrograms change
   useEffect(() => {
@@ -229,11 +226,13 @@ const programs = [
   };
 
   const markElementComplete = (clientProgramId, elementId) => {
-    updateProgress(clientProgramId, elementId);
+    // TODO: Implement updateProgress API call
+    console.log('Marking element complete:', clientProgramId, elementId);
   };
 
   const enrollInProgram = async (programId) => {
-    await enrollClient(programId, id || 'client-1');
+    // TODO: Implement enrollClient API call
+    console.log('Enrolling client in program:', programId, id);
   };
 
   const pauseProgram = (clientProgramId) => {
@@ -258,23 +257,60 @@ const programs = [
 
 
   // Generate client progress data
-  // Find client name dynamically
-  const clients = [
-    { id: 1, name: "John Doe" },
-    { id: 2, name: "Alex Bob" },
-    { id: 3, name: "Sarah Wilson" },
-    { id: 4, name: "Mike Johnson" },
-    { id: 5, name: "Emma Davis" },
-    // Add other clients as needed
-  ];
-  const currentClient = clients.find(c => c.id === parseInt(id || '1'));
-  const clientName = currentClient?.name || 'Unknown Client';
-  
+  const clientName = clientData?.name || 'Loading...';
   const clientProgressData = generateTherapeuticProgressData(
     id || 'client-1',
     clientName,
-    'Active'
+    clientData?.status || 'Active'
   );
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Loading client data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 mb-4">Error loading client data: {error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show not found state
+  if (!clientData) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+          <div className="text-center">
+            <User className="h-8 w-8 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">Client not found</p>
+            <Button onClick={() => router.push('/coach/clients')}>
+              Back to Clients
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleBack = () => {
     if (!searchParams) {
@@ -326,25 +362,86 @@ const programs = [
 
   const handleTaskCreated = (taskData) => {
     const newTask = {
-      id: clientTasks.length + 1,
-      text: taskData.title,
+      id: taskData.id || `temp-${Date.now()}`,
+      title: taskData.title,
+      description: taskData.description,
+      dueDate: taskData.dueDate,
+      status: 'pending',
+      taskType: 'client',
       completed: false,
-      date: "Today",
-      priority: "Medium"
+      createdAt: new Date().toISOString()
     };
     
     setClientTasks(prev => [newTask, ...prev]);
     console.log("Created task for client:", taskData);
   };
 
-  const handleTaskToggle = (taskId ) => {
+  const handleTaskToggle = (taskId) => {
     setClientTasks(prev => 
       prev.map(task => 
         task.id === taskId 
-          ? { ...task, completed: !task.completed }
+          ? { 
+              ...task, 
+              completed: !task.completed,
+              status: !task.completed ? 'completed' : 'pending'
+            }
           : task
       )
     );
+  };
+
+  // Note management functions
+
+  const handleUpdateNote = async (noteId, noteData) => {
+    try {
+      const response = await fetch(`/api/notes/${noteId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: noteData.title,
+          description: noteData.description
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setClientNotes(prev => 
+          prev.map(note => 
+            note.id === noteId ? result.note : note
+          )
+        );
+        console.log('Note updated successfully:', result.note);
+      } else {
+        throw new Error('Failed to update note');
+      }
+    } catch (error) {
+      console.error('Error updating note:', error);
+      alert('Failed to update note');
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    if (!confirm('Are you sure you want to delete this note?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/notes/${noteId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setClientNotes(prev => prev.filter(note => note.id !== noteId));
+        console.log('Note deleted successfully');
+      } else {
+        throw new Error('Failed to delete note');
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      alert('Failed to delete note');
+    }
   };
 
   const getFileIcon = (type) => {
@@ -403,30 +500,46 @@ const programs = [
                     <div className="text-center space-y-4">
                       <Avatar className="h-20 w-20 mx-auto">
                         <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                          SJ
+                          {clientData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="text-xl font-semibold">Sarah Johnson</h3>
-                        <p className="text-sm text-gray-500">Last login 2 days ago</p>
+                        <h3 className="text-xl font-semibold">{clientData.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          Last active: {clientData.lastActive 
+                            ? new Date(clientData.lastActive).toLocaleDateString()
+                            : 'Never'
+                          }
+                        </p>
                       </div>
                       <div className="space-y-2 text-left">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <span>+45 12345678</span>
-                        </div>
+                        {clientData.phone && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            <span>{clientData.phone}</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 text-sm">
                           <Mail className="h-4 w-4 text-gray-400" />
-                          <span>sarah@example.com</span>
+                          <span>{clientData.email}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <User className="h-4 w-4 text-gray-400" />
-                          <span>Type: Personal</span>
+                          <span>Type: {clientData.type || 'Personal'}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <span>Next session: Tomorrow 2:00 PM</span>
-                        </div>
+                        {clientData.nextSession && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <span>Next session: {new Date(clientData.nextSession).toLocaleString()}</span>
+                          </div>
+                        )}
+                        {clientData.status && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant={clientData.status === 'active' ? 'default' : 'secondary'}>
+                              {clientData.status}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -437,8 +550,8 @@ const programs = [
                   <CardHeader className="flex flex-row items-center justify-between pb-3">
                     <CardTitle className="text-sm">Tasks</CardTitle>
                     <CreateTaskDialog 
-                      clientId="sarah-johnson"
-                      clientName="Sarah Johnson"
+                      clientId={clientData.id}
+                      clientName={clientData.name}
                       hideGroupTasks={true}
                       defaultTab="client"
                       preSelectClient={true}
@@ -452,20 +565,28 @@ const programs = [
                   <CardContent>
                     <ScrollArea className="h-[300px]">
                       <div className="space-y-3">
-                        {clientTasks.map((task) => (
-                          <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <Checkbox 
-                              checked={task.completed}
-                              onCheckedChange={() => handleTaskToggle(task.id)}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                                {task.text}
-                              </p>
-                              <span className="text-xs text-gray-500">{task.date}</span>
+                        {clientTasks.length > 0 ? (
+                          clientTasks.map((task) => (
+                            <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                              <Checkbox 
+                                checked={task.completed}
+                                onCheckedChange={() => handleTaskToggle(task.id)}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                                  {task.title}
+                                </p>
+                                <span className="text-xs text-gray-500">
+                                  {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
+                                </span>
+                              </div>
                             </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p>No tasks assigned yet</p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -478,10 +599,10 @@ const programs = [
                   <CardContent className="p-0">
                     <div className="h-[600px]">
                       <ClientChatInterface 
-                        clientName="Sarah Johnson" 
-                        clientInitials="SJ" 
-                        clientType="personal"
-                        clientId="sarah-johnson"
+                        clientName={clientData.name} 
+                        clientInitials={clientData.name.split(' ').map(n => n[0]).join('').toUpperCase()} 
+                        clientType={clientData.type || "personal"}
+                        clientId={clientData.id}
                       />
                     </div>
                   </CardContent>
@@ -494,20 +615,72 @@ const programs = [
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3">
                     <CardTitle className="text-sm">Notes</CardTitle>
-                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                      <Plus className="h-3 w-3" />
-                    </Button>
+                    <CreateNoteDialog 
+                      clientId={id}
+                      onNoteCreated={(newNote) => {
+                        setClientNotes(prev => [newNote, ...prev]);
+                      }}
+                    >
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </CreateNoteDialog>
                   </CardHeader>
                   <CardContent>
                     <ScrollArea className="h-[250px]">
                       <div className="space-y-2">
-                        {notes.map((note) => (
-                          <div key={note.id} className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-                            <h4 className="text-xs font-medium truncate">{note.title}</h4>
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{note.content}</p>
-                            <p className="text-xs text-gray-500 mt-1">{note.date}</p>
+                        {clientNotes.length > 0 ? (
+                          clientNotes.map((note) => (
+                            <div key={note.id} className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-xs font-medium truncate">{note.title}</h4>
+                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                    {note.description || 'No description'}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(note.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="flex gap-1 ml-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="h-5 w-5 p-0"
+                                    onClick={() => {
+                                      const newTitle = prompt('Edit title:', note.title);
+                                      if (newTitle !== null) {
+                                        const newDescription = prompt('Edit description:', note.description || '');
+                                        if (newDescription !== null) {
+                                          handleUpdateNote(note.id, { 
+                                            title: newTitle, 
+                                            description: newDescription 
+                                          });
+                                        }
+                                      }
+                                    }}
+                                    title="Edit note"
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="h-5 w-5 p-0 text-red-500 hover:text-red-600"
+                                    onClick={() => handleDeleteNote(note.id)}
+                                    title="Delete note"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p>No notes yet</p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </ScrollArea>
                   </CardContent>
@@ -705,7 +878,7 @@ const programs = [
                   Group Memberships ({clientGroups.length})
                 </CardTitle>
                 <CardDescription>
-                  Groups that {searchParams && searchParams.get('memberName') ? searchParams.get('memberName') : 'Sarah'} is currently participating in
+                  Groups that {clientData.name} is currently participating in
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -717,8 +890,8 @@ const programs = [
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-medium">{group.name}</h3>
-                              <Badge variant={group.status === 'Active' ? 'default' : 'secondary'}>
-                                {group.status}
+                              <Badge variant={group.stage === 'ongoing' ? 'default' : 'secondary'}>
+                                {group.stage}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mb-3">{group.description}</p>
@@ -728,7 +901,9 @@ const programs = [
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div>
                                   <p className="font-medium">Joined</p>
-                                  <p className="text-muted-foreground">{group.joinedDate}</p>
+                                  <p className="text-muted-foreground">
+                                    {new Date(group.joinedDate).toLocaleDateString()}
+                                  </p>
                                 </div>
                               </div>
                               
@@ -736,7 +911,7 @@ const programs = [
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                                 <div>
                                   <p className="font-medium">Frequency</p>
-                                  <p className="text-muted-foreground">{group.sessionFrequency}</p>
+                                  <p className="text-muted-foreground">{group.frequency || 'Not specified'}</p>
                                 </div>
                               </div>
                               
@@ -744,15 +919,17 @@ const programs = [
                                 <Users className="h-4 w-4 text-muted-foreground" />
                                 <div>
                                   <p className="font-medium">Members</p>
-                                  <p className="text-muted-foreground">{group.members}/{group.maxMembers}</p>
+                                  <p className="text-muted-foreground">
+                                    {group.memberCount}/{group.capacity || 'No limit'}
+                                  </p>
                                 </div>
                               </div>
                               
                               <div className="flex items-center gap-2">
                                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                  <p className="font-medium">Attendance</p>
-                                  <p className="text-muted-foreground">{group.attendance}%</p>
+                                  <p className="font-medium">Status</p>
+                                  <p className="text-muted-foreground capitalize">{group.stage}</p>
                                 </div>
                               </div>
                             </div>
@@ -761,8 +938,8 @@ const programs = [
                         
                         <div className="flex items-center justify-between pt-3 border-t">
                           <div className="text-sm">
-                            <span className="font-medium">Next session: </span>
-                            <span className="text-muted-foreground">{group.nextSession}</span>
+                            <span className="font-medium">Group ID: </span>
+                            <span className="text-muted-foreground">{group.id}</span>
                           </div>
                           <div className="flex gap-2">
                             <Button 
@@ -917,25 +1094,31 @@ const programs = [
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3 pb-4 border-b last:border-b-0">
-                      <div className={`p-2 rounded-full ${
-                        activity.type === 'journal' ? 'bg-purple-100 text-purple-600' :
-                        activity.type === 'task' ? 'bg-green-100 text-green-600' :
-                        activity.type === 'session' ? 'bg-blue-100 text-blue-600' :
-                        'bg-orange-100 text-orange-600'
-                      }`}>
-                        {activity.type === 'journal' ? <FileText className="h-4 w-4" /> :
-                         activity.type === 'task' ? <CheckCircle2 className="h-4 w-4" /> :
-                         activity.type === 'session' ? <Calendar className="h-4 w-4" /> :
-                         <MessageCircle className="h-4 w-4" />}
+                  {clientSessions.length > 0 ? (
+                    clientSessions.slice(0, 5).map((session, index) => (
+                      <div key={session.id} className="flex items-start gap-3 pb-4 border-b last:border-b-0">
+                        <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                          <Calendar className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{session.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(session.sessionDate).toLocaleDateString()} at {session.sessionTime}
+                          </p>
+                          {session.status && (
+                            <Badge variant={session.status === 'completed' ? 'default' : 'secondary'} className="mt-1">
+                              {session.status}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{activity.description}</p>
-                        <p className="text-xs text-gray-500">{activity.time}</p>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No recent activity found</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -971,7 +1154,7 @@ const programs = [
         <ScheduleSessionDialog
           open={isScheduleDialogOpen}
           onOpenChange={setIsScheduleDialogOpen}
-          groupName="Individual Session with Sarah Johnson"
+          groupName={`Individual Session with ${clientData.name}`}
           groupMembers={1}
         />
 
@@ -979,7 +1162,7 @@ const programs = [
         <EnrollClientDialog
           open={enrollDialogOpen}
           onOpenChange={setEnrollDialogOpen}
-          clientName="Sarah Johnson"
+          clientName={clientData.name}
           availablePrograms={getAvailablePrograms()}
           onEnroll={enrollInProgram}
         />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Label } from "@/app/components/ui/label";
@@ -25,6 +25,8 @@ export function AddElementDialog({
   const [selectedWeek, setSelectedWeek] = useState(preselectedWeek || defaultWeek);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(preselectedDay || 1);
   const [selectedTime, setSelectedTime] = useState('09:00');
+  const [libraryFiles, setLibraryFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
   
   // Update state when props change
   useEffect(() => {
@@ -85,13 +87,32 @@ export function AddElementDialog({
     { id: 'sounds', name: 'Audio', icon: Music, color: 'bg-orange-500' }
   ];
 
-  const mockFiles = [
-    { id: '1', name: 'Anxiety Techniques.pdf', type: 'pdf', category: 'articles', size: '2.1 MB' },
-    { id: '2', name: 'Breathing Exercises.pdf', type: 'pdf', category: 'articles', size: '1.8 MB' },
-    { id: '3', name: 'Mindfulness Guide.pdf', type: 'pdf', category: 'articles', size: '3.2 MB' },
-    { id: '4', name: 'Relaxation Audio.mp3', type: 'audio', category: 'sounds', size: '15.3 MB' },
-    { id: '5', name: 'Meditation Video.mp4', type: 'video', category: 'videos', size: '45.7 MB' }
-  ];
+  // Fetch library files from API
+  const fetchLibraryFiles = useCallback(async () => {
+    if (elementType === 'content') {
+      try {
+        setLoadingFiles(true);
+        const response = await fetch('/api/library/all');
+        const data = await response.json();
+        
+        if (data.status) {
+          setLibraryFiles(data.resources || []);
+        } else {
+          console.error('Failed to fetch library files:', data.message);
+          setLibraryFiles([]);
+        }
+      } catch (error) {
+        console.error('Error fetching library files:', error);
+        setLibraryFiles([]);
+      } finally {
+        setLoadingFiles(false);
+      }
+    }
+  }, [elementType]);
+
+  useEffect(() => {
+    fetchLibraryFiles();
+  }, [fetchLibraryFiles]);
 
   const getFileIcon = (type) => {
     switch (type) {
@@ -281,30 +302,48 @@ export function AddElementDialog({
             
             <ScrollArea className="h-64">
               <div className="space-y-2">
-                {mockFiles
-                  .filter(file => file.category === selectedCategory)
-                  .map(file => (
-                    <div
-                      key={file.id}
-                      className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent cursor-pointer"
-                      onClick={() => toggleFileSelection(file)}
-                    >
-                      <Checkbox
-                        checked={selectedFiles.some(f => f.id === file.id)}
-                        onChange={() => toggleFileSelection(file)}
-                      />
-                      <div className="flex items-center gap-2">
-                        {getFileIcon(file.type)}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{file.name}</p>
-                          <p className="text-xs text-muted-foreground">{file.size}</p>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {file.type}
-                      </Badge>
+                {loadingFiles ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                      <p className="text-sm text-muted-foreground">Loading files...</p>
                     </div>
-                  ))}
+                  </div>
+                ) : libraryFiles
+                  .filter(file => file.category === selectedCategory)
+                  .length === 0 ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="text-center">
+                      <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No files found in this category</p>
+                    </div>
+                  </div>
+                ) : (
+                  libraryFiles
+                    .filter(file => file.category === selectedCategory)
+                    .map(file => (
+                      <div
+                        key={file.id}
+                        className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent cursor-pointer"
+                        onClick={() => toggleFileSelection(file)}
+                      >
+                        <Checkbox
+                          checked={selectedFiles.some(f => f.id === file.id)}
+                          onChange={() => toggleFileSelection(file)}
+                        />
+                        <div className="flex items-center gap-2">
+                          {getFileIcon(file.type)}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">{file.size}</p>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {file.type}
+                        </Badge>
+                      </div>
+                    ))
+                )}
               </div>
             </ScrollArea>
             

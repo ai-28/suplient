@@ -62,7 +62,7 @@ const Layout = ({ children }) => {
               <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 shadow-soft">
                 <div className="flex items-center">
                   <div className="ml-4">
-                    <h1 className="text-xl font-semibold text-foreground">common:platform.name</h1>
+                    <h1 className="text-xl font-semibold text-foreground">Mental Coach Platform</h1>
                   </div>
                 </div>
                 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -36,27 +36,11 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 
-const clients = [
-  { id: 1, name: "John Doe", type: "Personal", status: "Active", lastActive: "16/01 14:30", created: "01/01 09:00", mood: "😊", stage: "light", scheduledSession: "18/01 15:30", unreadMessages: 2, lastMessage: "Thanks for the session today. Looking forward to our next meeting.", lastNote: "Client is making excellent progress with anxiety management techniques. We discussed breathing exercises and he's been practicing regularly. Plans to increase meditation time to 15 minutes daily." },
-  { id: 2, name: "Alex Bob", type: "Group", status: "Active", lastActive: "15/01 16:45", created: "15/12 10:30", mood: "😐", stage: "group", scheduledSession: "19/01 10:00", unreadMessages: 0, lastMessage: "See you in the group session tomorrow.", lastNote: "Shows good participation in group settings. Sometimes hesitant to share personal experiences but is opening up gradually. Responds well to peer feedback and validation." },
-  { id: 3, name: "Sarah Wilson", type: "Personal", status: "Active", lastActive: "16/01 11:20", created: "05/01 14:00", mood: "😊", stage: "personal", scheduledSession: null, unreadMessages: 1, lastMessage: "I've been practicing the mindfulness techniques we discussed.", lastNote: "Significant improvement in stress management. Sarah has been consistently applying mindfulness techniques in work situations. Considering introducing more advanced relaxation methods next session." },
-  { id: 4, name: "Mike Johnson", type: "Group", status: "Inactive", lastActive: "13/01 09:15", created: "20/11 08:45", mood: "😔", stage: "inactive", scheduledSession: null, unreadMessages: 0, lastMessage: "Thank you for all your help during my difficult time.", lastNote: "Client completed therapy program successfully. Made substantial progress in dealing with grief and loss. Developed strong coping mechanisms and support network. Ready for independent management." },
-  { id: 5, name: "Emma Davis", type: "Personal", status: "Active", lastActive: "16/01 13:10", created: "02/01 16:20", mood: "😊", stage: "light", scheduledSession: "20/01 14:15", unreadMessages: 3, lastMessage: "I have some questions about the homework assignment you gave me.", lastNote: "Very motivated client. Completes all assigned exercises and asks thoughtful questions. Working on building self-confidence and assertiveness skills. Homework includes daily affirmations and social interaction goals." },
-  { id: 6, name: "David Lee", type: "Group", status: "Active", lastActive: "14/01 17:30", created: "10/12 11:15", mood: "😊", stage: "group", scheduledSession: null, unreadMessages: 0, lastMessage: "Great group session yesterday! Really helpful insights.", lastNote: "Natural leader in group sessions. Provides excellent support to other members while working on his own communication patterns. Consider transitioning to personal sessions for deeper work." },
-  { id: 7, name: "Lisa Chen", type: "Personal", status: "Active", lastActive: "16/01 15:45", created: "30/11 13:30", mood: "😊", stage: "completed", scheduledSession: "17/01 16:45", unreadMessages: 1, lastMessage: "I wanted to update you on my progress with the exercises.", lastNote: "Ready for therapy completion. Has developed excellent self-awareness and coping strategies. Final session scheduled to review progress and create maintenance plan for continued growth." },
-  { id: 8, name: "Tom Brown", type: "Group", status: "Active", lastActive: "15/01 12:20", created: "05/12 09:45", mood: "😊", stage: "personal", scheduledSession: "21/01 11:30", unreadMessages: 0, lastMessage: "Looking forward to transitioning to individual sessions.", lastNote: "Transitioned from group to individual therapy. Focus on career-related stress and perfectionism. Very analytical approach to problem-solving. Needs help with emotional processing techniques." },
-  { id: 9, name: "Anna Rodriguez", type: "Personal", status: "Active", lastActive: "16/01 10:15", created: "03/01 15:00", mood: "😊", stage: "light", scheduledSession: null, unreadMessages: 2, lastMessage: "I found the resources you shared very helpful for my anxiety.", lastNote: "Responding well to cognitive behavioral therapy techniques. Anxiety levels decreasing with exposure therapy. Needs continued support with panic attack management strategies." },
-  { id: 10, name: "Chris Martinez", type: "Group", status: "Active", lastActive: "14/01 14:50", created: "20/12 12:30", mood: "😐", stage: "group", scheduledSession: "22/01 13:00", unreadMessages: 0, lastMessage: "The group dynamics have been really supportive lately.", lastNote: "Benefits greatly from group support but still struggles with trust issues. Making slow but steady progress. Group environment helps him feel less isolated in his experiences." },
-  { id: 11, name: "Jessica Taylor", type: "Personal", status: "Active", lastActive: "16/01 16:05", created: "04/01 10:15", mood: "😊", stage: "personal", scheduledSession: "18/01 09:30", unreadMessages: 1, lastMessage: "I've been journaling daily as we discussed and it's helping.", lastNote: "Excellent progress with journaling exercises. Jessica is gaining insights into her thought patterns and emotional triggers. Ready to explore deeper trauma work in upcoming sessions." },
-  { id: 12, name: "Robert Wilson", type: "Group", status: "Inactive", lastActive: "12/01 11:30", created: "15/11 14:45", mood: "😔", stage: "inactive", scheduledSession: null, unreadMessages: 0, lastMessage: "I appreciate all the support you've provided over the months.", lastNote: "Completed therapy program with positive outcomes. Successfully addressed depression and developed healthy lifestyle habits. Expressed gratitude for support received during difficult period." },
-  { id: 13, name: "Sophie Anderson", type: "Personal", status: "Active", lastActive: "16/01 12:15", created: "06/01 11:00", mood: "😊", stage: "light", scheduledSession: "19/01 13:45", unreadMessages: 1, lastMessage: "I'm feeling more optimistic about therapy after our first session.", lastNote: "New client with mild anxiety symptoms. Very receptive to initial assessment. Plans to start with relaxation techniques and stress management strategies." },
-  { id: 14, name: "Marcus Thompson", type: "Personal", status: "Active", lastActive: "16/01 08:30", created: "07/01 14:20", mood: "😐", stage: "light", scheduledSession: "20/01 16:00", unreadMessages: 0, lastMessage: "Looking forward to learning more coping strategies.", lastNote: "First-time therapy client dealing with work-related stress. Cautious but willing to engage. Needs gentle introduction to therapeutic process and trust-building." },
-  { id: 15, name: "Rachel Green", type: "Group", status: "Active", lastActive: "15/01 19:45", created: "08/01 09:30", mood: "😊", stage: "light", scheduledSession: null, unreadMessages: 2, lastMessage: "The intake questionnaire really made me think about my goals.", lastNote: "Interested in group therapy for social anxiety. Completed comprehensive intake assessment. Good candidate for anxiety support group starting next month." },
-  { id: 16, name: "Kevin Liu", type: "Personal", status: "Active", lastActive: "16/01 07:50", created: "09/01 16:45", mood: "😐", stage: "light", scheduledSession: "18/01 11:15", unreadMessages: 3, lastMessage: "I have questions about the therapy process and what to expect.", lastNote: "New client with perfectionism issues. Asking detailed questions about treatment approach. Needs clear explanation of therapy process to feel comfortable moving forward." },
-  { id: 17, name: "Michelle Park", type: "Personal", status: "Active", lastActive: "16/01 13:25", created: "10/01 12:00", mood: "😊", stage: "light", scheduledSession: "21/01 10:30", unreadMessages: 1, lastMessage: "Thank you for being so welcoming during my first visit.", lastNote: "Very positive first impression of therapy. Dealing with life transitions and relationship changes. Eager to learn healthy communication and boundary-setting skills." }
-];
+// Real data will be fetched from API and stored in clients state
 
 export default function Clients() {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("status.active");  
   const [viewMode, setViewMode] = useState("funnel"); // "list" or "funnel"
   const [visibleColumns, setVisibleColumns] = useState({
@@ -69,6 +53,38 @@ export default function Clients() {
   const [sortBy, setSortBy] = useState("activity"); // "activity", "name", "created", "unread", "session", "oldest", "type"
   const router = useRouter();
 
+  // Fetch clients data from API
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/clients');
+      const data = await response.json();
+      
+      if (data.status) {
+        setClients(data.clients || []);
+      } else {
+        console.error('Failed to fetch clients:', data.message);
+        setClients([]);
+      }
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      setClients([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  // Handle client creation callback
+  const handleClientCreated = (newClient) => {
+    console.log('New client created:', newClient);
+    // Refresh the clients list
+    fetchClients();
+  };
+console.log("clients",clients)
   const funnelStages = [
     { 
       id: "light", 
@@ -153,6 +169,19 @@ export default function Clients() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading clients...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <TooltipProvider>
       <div className="page-container">
@@ -182,7 +211,7 @@ export default function Clients() {
               {"Cards"}
             </Button>
           </div>
-          <CreateClientDialog />
+          <CreateClientDialog onClientCreated={handleClientCreated} />
         </PageHeader>
 
       {/* Controls */}

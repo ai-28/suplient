@@ -22,7 +22,7 @@ export async function POST(request) {
 
         // Fetch clients assigned to this coach
         const clients = await sql`
-            SELECT u.id, u.name, u.email, u.phone, u.role, u."isActive",
+            SELECT c.id, u.name, u.email, u.phone, u.role, u."isActive",
                    c."referralSource", c."primaryConcerns"
             FROM "User" u
             LEFT JOIN "Client" c ON u.id = c."userId"

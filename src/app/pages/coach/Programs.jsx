@@ -207,8 +207,8 @@ export default function Programs() {
         title={"Programs"} 
         subtitle={"Manage your programs"}
       >
-        <Button onClick={() => router.push('/coach/programs/create')} className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all flex items-center gap-2">
-          <Plus className="h-4 w-4" />
+        <Button onClick={() => router.push('/coach/programs/create')} className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center gap-2">
+          <Plus className="h-4 w-4 text-[#1A2D4D]"/>
           Create New Program
         </Button>
       </PageHeader>

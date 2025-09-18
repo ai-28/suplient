@@ -119,6 +119,24 @@ export async function seedTask() {
       );
     `;
 
+    await sql`
+    CREATE TABLE IF NOT EXISTS "Client" (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+      "name" VARCHAR(255) NOT NULL,
+      "email" VARCHAR(255) NOT NULL,
+      type VARCHAR(255),
+      status VARCHAR(50),
+      mood VARCHAR(50),
+      "lastActive" TIMESTAMP,
+      "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+      "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
+      "referralSource" VARCHAR(255),
+      "primaryConcerns" TEXT,
+      "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
 
     // Create Task table
     await sql`
@@ -129,7 +147,7 @@ export async function seedTask() {
         "dueDate" TIMESTAMP,
         "taskType" VARCHAR(20) NOT NULL CHECK ("taskType" IN ('personal', 'client', 'group')),
         "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-        "clientId" UUID REFERENCES "User"(id) ON DELETE CASCADE,
+        "clientId" UUID REFERENCES "Client"(id) ON DELETE CASCADE,
         "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
         "isRepetitive" BOOLEAN DEFAULT FALSE,
         "repetitiveFrequency" VARCHAR(20) CHECK ("repetitiveFrequency" IN ('daily', 'weekly', 'monthly')),
@@ -151,7 +169,7 @@ export async function seedTask() {
         duration INTEGER DEFAULT 60 CHECK (duration > 0 AND duration <= 480),
         "sessionType" VARCHAR(20) NOT NULL CHECK ("sessionType" IN ('individual', 'group')),
         "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-        "clientId" UUID REFERENCES "User"(id) ON DELETE CASCADE,
+        "clientId" UUID REFERENCES "Client"(id) ON DELETE CASCADE,
         "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
         location VARCHAR(255),
         "meetingLink" VARCHAR(500),
@@ -165,6 +183,9 @@ export async function seedTask() {
 
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_group_coach_id ON "Group"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_user_id ON "Client"("userId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_coach_id ON "Client"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_group_id ON "Client"("groupId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_task_coach_id ON "Task"("coachId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_task_client_id ON "Task"("clientId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_task_group_id ON "Task"("groupId")`;
@@ -215,34 +236,62 @@ export async function seedTask() {
   }
 }
 
-export async function seedClient() {
+
+// Create Resource table for all library items
+export async function createResourceTable() {
   try {
-    // Create Client table if it doesn't exist
     await sql`
-      CREATE TABLE IF NOT EXISTS "Client" (
+      CREATE TABLE IF NOT EXISTS "Resource" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-        "name" VARCHAR(255) NOT NULL,
-        "email" VARCHAR(255) NOT NULL,
-        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-        "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
-        "referralSource" VARCHAR(255),
-        "primaryConcerns" TEXT,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        "resourceType" VARCHAR(50) NOT NULL CHECK ("resourceType" IN ('video', 'image', 'article', 'sound')),
+        url VARCHAR(500) NOT NULL,
+        "fileName" VARCHAR(255) NOT NULL,
+        "fileSize" BIGINT,
+        "fileType" VARCHAR(100),
+        author VARCHAR(255),
+        "coachId" UUID REFERENCES "User"(id) ON DELETE CASCADE,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
 
     // Create indexes for better performance
-    await sql`CREATE INDEX IF NOT EXISTS idx_client_user_id ON "Client"("userId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_client_coach_id ON "Client"("coachId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_client_group_id ON "Client"("groupId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_type ON "Resource"("resourceType")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_coach_id ON "Resource"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_created_at ON "Resource"("createdAt")`;
+
+    console.log('Resource table created successfully');
   } catch (error) {
-    console.error('Error creating client table:', error);
+    console.error('Error creating Resource table:', error);
     throw error;
   }
 }
+export async function seedNote() {
+  try {
+    // Create Note table if it doesn't exist
+    await sql`
+      CREATE TABLE IF NOT EXISTS "Note" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
 
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_note_client_id ON "Note"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_note_created_at ON "Note"("createdAt")`;
+
+    console.log('Note table created successfully');
+  } catch (error) {
+    console.error('Error creating Note table:', error);
+    throw error;
+  }
+}
 
 export async function GET() {
   try {
@@ -251,13 +300,13 @@ export async function GET() {
     await seedUser();
     await createProgramTable();
     await seedTask(); // Create Group table first
-    await seedClient(); // Then create Client table that references Group
-
+    await createResourceTable(); // Create Resource table for library
+    await seedNote();
     console.log('Database seeded successfully');
 
     return new Response(JSON.stringify({
       message: 'Database seeded successfully',
-      details: 'User, Program, Group, Task, and Client tables created with sample data'
+      details: 'User, Program, Group, Task, Client, Resource, and Note tables created with sample data'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

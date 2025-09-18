@@ -8,7 +8,8 @@ import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Upload, X, File, Image, Video, Music, FileText, FileImage, BookOpen } from "lucide-react";
+import { Upload, X, File, Image, Video, Music, FileText, FileImage, BookOpen, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const categoryIcons = {
   videos: Video,
@@ -20,12 +21,21 @@ const categoryIcons = {
 };
 
 const acceptedFormats = {
-  videos: ".mp4,.mov,.avi,.mkv",
-  images: ".jpg,.jpeg,.png,.gif,.webp",
+  videos: ".mp4,.mov,.avi,.mkv,.webm",
+  images: ".jpg,.jpeg,.png,.gif,.webp,.svg",
   articles: ".pdf,.doc,.docx,.txt",
-  sounds: ".mp3,.wav,.m4a,.ogg",
+  sounds: ".mp3,.wav,.m4a,.ogg,.aac",
   templates: ".docx,.xlsx,.pptx,.pdf",
   programs: ".zip,.pdf,.docx"
+};
+
+const fileFieldNames = {
+  videos: 'video',
+  images: 'image',
+  articles: 'article',
+  sounds: 'sound',
+  templates: 'template',
+  programs: 'program'
 };
 
 export function FileUploadDialog({ category, onUploadComplete, children }) {
@@ -34,7 +44,7 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
+  const [author, setAuthor] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const IconComponent = categoryIcons[category] || File;
@@ -67,46 +77,92 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
     }
   };
 
+  const handleSelectFileClick = () => {
+    const fileInput = document.getElementById('file-upload');
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
   const handleUpload = async () => {
-    if (!selectedFile || !title.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please select a file and provide a title.",
-        variant: "destructive"
+    console.log('Upload attempt:', { 
+      selectedFile: !!selectedFile, 
+      title: title.trim(), 
+      description: description.trim() 
+    });
+    
+    // Check for missing fields and show comprehensive error message
+    const missingFields = [];
+    
+    if (!selectedFile) {
+      missingFields.push("File selection");
+    }
+    
+    if (!title.trim()) {
+      missingFields.push("Title");
+    }
+    
+    if (!description.trim()) {
+      missingFields.push("Description");
+    }
+    
+    if (missingFields.length > 0) {
+      const errorMessage = missingFields.length === 1 
+        ? `Please fill in: ${missingFields[0]}`
+        : `Please fill in the following fields: ${missingFields.join(", ")}`;
+        
+      toast.error("Missing Required Information", {
+        description: errorMessage
       });
       return;
     }
 
     setUploading(true);
     
-    // Simulate upload process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const newFile = {
-      id: Date.now(),
-      title: title.trim(),
-      description: description.trim(),
-      fileName: selectedFile.name,
-      fileSize: selectedFile.size,
-      uploadDate: new Date().toISOString(),
-      tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
-      category
-    };
+    try {
+      const formData = new FormData();
+      formData.append(fileFieldNames[category], selectedFile);
+      formData.append('title', title.trim());
+      formData.append('description', description.trim());
+      formData.append('role', 'coach');
+      
+      if (category === 'articles' && author.trim()) {
+        formData.append('author', author.trim());
+      }
 
-    onUploadComplete?.(newFile);
-    
-    toast({
-      title: "Upload Successful",
-      description: `${title} has been uploaded to ${category}.`
-    });
+      const response = await fetch(`/api/library/${category}`, {
+        method: 'POST',
+        body: formData,
+      });
 
-    // Reset form
-    setSelectedFile(null);
-    setTitle("");
-    setDescription("");
-    setTags("");
-    setUploading(false);
-    setOpen(false);
+      const result = await response.json();
+
+      if (result.status) {
+        toast.success("Upload Successful", {
+          description: `${title} has been uploaded to ${category}.`
+        });
+        
+        onUploadComplete?.(result.data);
+        
+        // Reset form
+        setSelectedFile(null);
+        setTitle("");
+        setDescription("");
+        setAuthor("");
+        setOpen(false);
+      } else {
+        toast.error("Upload Failed", {
+          description: result.message || "Failed to upload file"
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error("Upload Failed", {
+        description: "An error occurred while uploading the file"
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -126,7 +182,11 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
           {/* File Upload Area */}
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"
+              dragActive 
+                ? "border-primary bg-primary/5" 
+                : !selectedFile 
+                  ? "border-red-300 bg-red-50/50" 
+                  : "border-muted-foreground/25"
             }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -158,6 +218,7 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
                   <p className="text-sm text-muted-foreground">
                     Accepted formats: {acceptedFormats[category]}
                   </p>
+                  <p className="text-xs text-red-500 mt-2">⚠️ Please select a file to upload</p>
                 </div>
                 <Input
                   type="file"
@@ -166,11 +227,13 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
                   className="hidden"
                   id="file-upload"
                 />
-                <Label htmlFor="file-upload">
-                  <Button variant="outline" className="cursor-pointer">
-                    Select File
-                  </Button>
-                </Label>
+                <Button 
+                  variant="outline" 
+                  className="w-full cursor-pointer"
+                  onClick={handleSelectFileClick}
+                >
+                  Select File
+                </Button>
               </div>
             )}
           </div>
@@ -184,29 +247,40 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter file title"
+                className={!title.trim() ? "border-red-500 focus:border-red-500" : ""}
               />
+              {!title.trim() && (
+                <p className="text-xs text-red-500">Title is required</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe the content and purpose of this file"
                 rows={3}
+                required
+                className={!description.trim() ? "border-red-500" : ""}
               />
+              <div className="text-xs text-muted-foreground">
+                {description.length} characters {!description.trim() && "(Required)"}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags (comma-separated)</Label>
-              <Input
-                id="tags"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="anxiety, breathing, beginner"
-              />
-            </div>
+            {category === 'articles' && (
+              <div className="space-y-2">
+                <Label htmlFor="author">Author</Label>
+                <Input
+                  id="author"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                  placeholder="Enter author name"
+                />
+              </div>
+            )}
           </div>
 
           {/* Upload Button */}
@@ -215,7 +289,17 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
               Cancel
             </Button>
             <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
-              {uploading ? "Uploading..." : "Upload File"}
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload File
+                </>
+              )}
             </Button>
           </div>
         </div>
