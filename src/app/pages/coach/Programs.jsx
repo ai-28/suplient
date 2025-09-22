@@ -35,6 +35,8 @@ export default function Programs() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [enrolledClients, setEnrolledClients] = useState({});
+  const [loadingClients, setLoadingClients] = useState({});
 
   // Fetch programs data
   const fetchPrograms = async () => {
@@ -42,7 +44,7 @@ export default function Programs() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/programs');
+      const response = await fetch('/api/temp_programs');
       if (!response.ok) {
         throw new Error('Failed to fetch programs');
       }
@@ -71,7 +73,7 @@ export default function Programs() {
 
   const duplicateProgram = async (programId, newName) => {
     try {
-      const response = await fetch(`/api/programs/${programId}/duplicate`, {
+      const response = await fetch(`/api/temp_programs/${programId}/duplicate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +116,7 @@ export default function Programs() {
 
   const deleteProgram = async (programId) => {
     try {
-      const response = await fetch(`/api/programs/${programId}`, {
+      const response = await fetch(`/api/temp_programs/${programId}`, {
         method: 'DELETE',
       });
 
@@ -155,49 +157,47 @@ export default function Programs() {
     }
   };
 
-  // Mock enrolled clients data - in real app this would come from the backend
-  const getEnrolledClients = (programId) => {
-    return [
-      {
-        id: '1',
-        name: 'Sarah Johnson',
-        email: 'sarah.johnson@email.com',
-        avatar: '',
-        enrolledDate: new Date('2024-01-15'),
-        progress: {
-          completedElements: 8,
-          totalElements: 20,
-          currentDay: 12,
-          status: 'on-track'
-        }
-      },
-      {
-        id: '2',
-        name: 'Michael Chen',
-        email: 'michael.chen@email.com',
-        avatar: '',
-        enrolledDate: new Date('2024-01-20'),
-        progress: {
-          completedElements: 15,
-          totalElements: 20,
-          currentDay: 18,
-          status: 'ahead'
-        }
-      },
-      {
-        id: '3',
-        name: 'Emily Davis',
-        email: 'emily.davis@email.com',
-        avatar: '',
-        enrolledDate: new Date('2024-01-10'),
-        progress: {
-          completedElements: 5,
-          totalElements: 20,
-          currentDay: 15,
-          status: 'behind'
-        }
+  // Fetch enrolled clients for a specific program
+  const fetchEnrolledClients = async (programId) => {
+    try {
+      setLoadingClients(prev => ({ ...prev, [programId]: true }));
+      
+      const response = await fetch(`/api/programs/${programId}/enrolled-clients`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch enrolled clients');
       }
-    ];
+      
+      const data = await response.json();
+      
+      setEnrolledClients(prev => ({
+        ...prev,
+        [programId]: data.clients || []
+      }));
+      
+    } catch (error) {
+      console.error('Error fetching enrolled clients:', error);
+      toast.error('Failed to fetch enrolled clients');
+      
+      // Set empty array on error
+      setEnrolledClients(prev => ({
+        ...prev,
+        [programId]: []
+      }));
+    } finally {
+      setLoadingClients(prev => ({ ...prev, [programId]: false }));
+    }
+  };
+
+  // Get enrolled clients (with caching)
+  const getEnrolledClients = (programId) => {
+    // If we haven't fetched clients for this program yet, fetch them
+    if (!enrolledClients[programId] && !loadingClients[programId]) {
+      fetchEnrolledClients(programId);
+      return []; // Return empty array while loading
+    }
+    
+    return enrolledClients[programId] || [];
   };
 
   return (
@@ -312,7 +312,9 @@ export default function Programs() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Enrolled</p>
-                    <p className="text-sm font-semibold">{clientCount}</p>
+                    <p className="text-sm font-semibold">
+                      {loadingClients[program.id] ? '...' : clientCount}
+                    </p>
                   </div>
                 </div>
 
@@ -340,6 +342,7 @@ export default function Programs() {
                     size="sm"
                     variant="outline"
                     className="shrink-0"
+                    disabled={loadingClients[program.id]}
                     onClick={() => {
                       const enrolledClients = getEnrolledClients(program.id);
                       setSelectedProgram(program);
@@ -347,6 +350,7 @@ export default function Programs() {
                     }}
                   >
                     <Users className="h-3 w-3" />
+                    {loadingClients[program.id] && <span className="ml-1">...</span>}
                   </Button>
                   
                   <Dialog>

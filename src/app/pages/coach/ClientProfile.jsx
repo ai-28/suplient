@@ -36,11 +36,13 @@ import {
   MapPin,
   Pause,
   Play,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import { ProgramTimelineView } from '@/app/components/ProgramTimelineView';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { generateTherapeuticProgressData } from '@/app/utils/progressCalculations';
+import { toast } from 'sonner';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -59,32 +61,6 @@ import { EnrollClientDialog } from "@/app/components/EnrollClientDialog";
 import { CreateNoteDialog } from "@/app/components/CreateNoteDialog";
 
 // Demo data for files (these will be replaced with real data later)
-const files = [
-  { 
-    id: 1, 
-    name: "Assessment Form.pdf", 
-    type: "PDF", 
-    size: "245 KB", 
-    sharedDate: "2 days ago",
-    sharedBy: "Dr. Sarah Johnson"
-  },
-  { 
-    id: 2, 
-    name: "Session Recording.mp4", 
-    type: "Video", 
-    size: "15 MB", 
-    sharedDate: "1 week ago",
-    sharedBy: "Dr. Sarah Johnson"
-  },
-  { 
-    id: 3, 
-    name: "Progress Chart.jpg", 
-    type: "Image", 
-    size: "89 KB", 
-    sharedDate: "2 weeks ago",
-    sharedBy: "Dr. Sarah Johnson"
-  }
-];
 
 export default function ClientProfile() {
   const { id } = useParams();
@@ -98,7 +74,6 @@ export default function ClientProfile() {
   
   // State for UI
   const [activeTab, setActiveTab] = useState("overview");
-  const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [shareFilesOpen, setShareFilesOpen] = useState(false);
   const [fileToRemove, setFileToRemove] = useState(null);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
@@ -109,27 +84,52 @@ export default function ClientProfile() {
   const [clientTasks, setClientTasks] = useState([]);
   const [clientSessions, setClientSessions] = useState([]);
   const [clientGroups, setClientGroups] = useState([]);
-  const [clientFiles, setClientFiles] = useState(files);
+  const [clientFiles, setClientFiles] = useState([]);
   const [clientNotes, setClientNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // State for programs
-  const [clientPrograms, setClientPrograms] = useState([]);
-  const [localClientPrograms, setLocalClientPrograms] = useState([]);
+  // Preview states
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewType, setPreviewType] = useState(null);
   
-  // Get programs and client programs data
-  const programs = [
-    {
-      id: 1,
-      name: "Program 1",
-      elements: [
-        { id: 1, title: "Element 1", type: "task" },
-        { id: 2, title: "Element 2", type: "content" },
-        { id: 3, title: "Element 3", type: "checkin" }
-      ]
-    },
-  ];
+  // State for programs
+  const [programTemplates, setProgramTemplates] = useState([]);
+  const [programsLoading, setProgramsLoading] = useState(true);
+  const [clientRealPrograms, setClientRealPrograms] = useState([]);
+
+  // Fetch program templates
+  const fetchProgramTemplates = async () => {
+    try {
+      setProgramsLoading(true);
+      const response = await fetch('/api/temp_programs');
+      if (response.ok) {
+        const result = await response.json();
+        setProgramTemplates(result.programs || []);
+      } else {
+        console.error('Failed to fetch program templates');
+      }
+    } catch (err) {
+      console.error('Error fetching program templates:', err);
+    } finally {
+      setProgramsLoading(false);
+    }
+  };
+
+  // Fetch client's enrolled programs
+  const fetchClientEnrolledPrograms = async () => {
+    try {
+      const response = await fetch(`/api/programs/client/${id}`);
+      if (response.ok) {
+        const result = await response.json();
+        setClientRealPrograms(result.programs || []);
+      } else {
+        console.error('Failed to fetch client enrolled programs');
+      }
+    } catch (err) {
+      console.error('Error fetching client enrolled programs:', err);
+    }
+  };
 
   // Fetch client data on component mount
   useEffect(() => {
@@ -153,8 +153,9 @@ export default function ClientProfile() {
         setClientSessions(data.sessions);
         setClientGroups(data.groupMemberships);
         
-        // Fetch notes for this client
+        // Fetch notes and resources for this client
         await fetchClientNotes(id);
+        await fetchClientResources(id);
         
       } catch (err) {
         console.error('Error fetching client data:', err);
@@ -165,6 +166,8 @@ export default function ClientProfile() {
     };
 
     fetchClientData();
+    fetchProgramTemplates();
+    fetchClientEnrolledPrograms();
   }, [id]);
   
   // Fetch client notes
@@ -179,80 +182,413 @@ export default function ClientProfile() {
       console.error('Error fetching notes:', err);
     }
   };
+
+  const fetchClientResources = async (clientId) => {
+    try {
+      const response = await fetch(`/api/resources/client/${clientId}`);
+      if (response.ok) {
+        const result = await response.json();
+        setClientFiles(result.resources || []);
+      }
+    } catch (err) {
+      console.error('Error fetching client resources:', err);
+    }
+  };
+
+  const handlePreview = (file) => {
+    console.log('Preview file:', file);
+    console.log('File URL:', file.url);
+    
+    const directUrl = file.url;
+    console.log('Using direct URL:', directUrl);
+    
+    // Determine file type based on resourceType or file extension
+    const fileName = file.fileName || file.url.split('/').pop() || '';
+    const fileExtension = fileName.split('.').pop()?.toLowerCase();
+    
+    console.log('File extension:', fileExtension);
+    console.log('Resource type:', file.resourceType);
+    
+    // Set preview type based on resourceType or file extension
+    if (file.resourceType === 'image' || fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png' || fileExtension === 'gif' || fileExtension === 'webp') {
+      setPreviewType('images');
+    } else if (file.resourceType === 'video' || fileExtension === 'mp4' || fileExtension === 'avi' || fileExtension === 'mov' || fileExtension === 'wmv') {
+      setPreviewType('videos');
+    } else if (file.resourceType === 'sound' || fileExtension === 'mp3' || fileExtension === 'wav' || fileExtension === 'ogg' || fileExtension === 'm4a') {
+      setPreviewType('sounds');
+    } else if (fileExtension === 'pdf') {
+      setPreviewType('pdf');
+    } else if (['doc', 'docx', 'txt', 'rtf'].includes(fileExtension)) {
+      setPreviewType('document');
+    } else {
+      setPreviewType('document'); // Default fallback
+    }
+    
+    setPreviewUrl(directUrl);
+  };
   
-  // Update local state when clientPrograms change
-  useEffect(() => {
-    setLocalClientPrograms(clientPrograms);
-  }, [clientPrograms]);
 
-  // Filter client programs for this specific client
-  const currentClientPrograms = localClientPrograms.filter(cp => cp.clientId === id);
-
+  // Use real program data from database
+  const currentClientPrograms = clientRealPrograms;
+console.log("currentClientPrograms",currentClientPrograms)
   // Helper functions to work with current client's programs
-  const getProgramById = (programId) => programs.find(p => p.id === programId);
+  const getProgramById = (programId) => clientRealPrograms.find(p => p.id === programId);
   
   const calculateProgramProgress = (clientProgram) => {
-    const program = getProgramById(clientProgram.programId);
-    if (!program) return { programId: clientProgram.programId, clientId: clientProgram.clientId, totalElements: 0, completedElements: 0, completionRate: 0, currentWeek: 1, wellbeingScores: [], engagementScore: 0 };
     
-    const totalElements = program.elements.length;
-    const completedElements = clientProgram.progress.completedElements.length;
-    const completionRate = totalElements > 0 ? (completedElements / totalElements) * 100 : 0;
-    const currentWeek = Math.ceil(clientProgram.progress.currentDay / 7);
+    // Validate input
+    if (!clientProgram || !clientProgram.id) {
+      console.error('Invalid clientProgram:', clientProgram);
+      return { 
+        programId: null, 
+        clientId: null, 
+        totalElements: 0, 
+        completedElements: 0, 
+        completionRate: 0, 
+        currentDay: 0,
+        currentWeek: 0, 
+        wellbeingScores: [], 
+        engagementScore: 0 
+      };
+    }
     
+    const program = getProgramById(clientProgram.id);
+    if (!program) {
+      console.error('Program not found for ID:', clientProgram.id);
     return {
-      programId: clientProgram.programId,
+        programId: clientProgram.id, 
+        clientId: clientProgram.clientId, 
+        totalElements: 0, 
+        completedElements: 0, 
+        completionRate: 0, 
+        currentDay: 0,
+        currentWeek: 0, 
+        wellbeingScores: [], 
+        engagementScore: 0 
+      };
+    }
+    
+    const totalElements = program.elements?.length || 0;
+    const completedElementsCount = clientProgram.completedElements?.length || 0;
+    const completedElementsArray = clientProgram.completedElements || [];
+    
+    // Handle programs that haven't started yet
+    if (!clientProgram.startDate) {
+      return {
+        programId: clientProgram.id,
       clientId: clientProgram.clientId,
       totalElements,
-      completedElements,
+        completedElements: completedElementsCount,
+        completedElementsArray,
+        completionRate: 0,
+        currentDay: 0,
+        currentWeek: 0,
+        wellbeingScores: [],
+        engagementScore: 0
+      };
+    }
+
+    // Calculate current day from start date
+    const startDate = new Date(clientProgram.startDate);
+    const today = new Date();
+    
+    // Convert local today to UTC for consistent comparison
+    const todayUTC = new Date(today.getTime() + (today.getTimezoneOffset() * 60000));
+    
+    // Handle edge cases
+    if (startDate > todayUTC) {
+      // Program hasn't started yet (shouldn't happen for active programs)
+      return {
+        programId: clientProgram.id,
+        clientId: clientProgram.clientId,
+        totalElements,
+        completedElements: completedElementsCount,
+        completionRate: 0,
+        currentDay: 0,
+        currentWeek: 0,
+        wellbeingScores: [],
+        engagementScore: 0
+      };
+    }
+
+    const daysSinceStart = Math.floor((todayUTC - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const currentDay = Math.max(1, daysSinceStart);
+    const currentWeek = Math.ceil(currentDay / 7);
+    // Check if program should be completed based on duration
+    const maxDays = program.duration * 7; // Convert weeks to days
+    const isOverdue = currentDay > maxDays;
+    const completionRate = totalElements > 0 ? (completedElementsCount / totalElements) * 100 : 0;
+    
+    return {
+      programId: clientProgram.id,
+      clientId: clientProgram.clientId,
+      totalElements,
+      completedElements: completedElementsCount,
+      completedElementsArray,
       completionRate,
+      currentDay,
       currentWeek,
+      maxDays,
+      isOverdue,
       wellbeingScores: [],
       engagementScore: Math.min(completionRate, 100)
     };
   };
 
+  const getEnrolledPrograms = () => currentClientPrograms.filter(cp => cp.status === 'enrolled');
   const getActivePrograms = () => currentClientPrograms.filter(cp => cp.status === 'active');
-  const getCompletedPrograms = () => currentClientPrograms.filter(cp => cp.status === 'completed');
-  const getPausedPrograms = () => currentClientPrograms.filter(cp => cp.status === 'paused');
   const getHistoryPrograms = () => currentClientPrograms.filter(cp => cp.status === 'completed' || cp.status === 'paused');
-  const getAvailablePrograms = () => programs.filter(p => !currentClientPrograms.some(cp => cp.programId === p.id));
+  const getAvailablePrograms = () => {
+    // Filter out templates that the client is already enrolled in
+    return programTemplates.filter(template => 
+      !clientRealPrograms.some(enrolledProgram => 
+        enrolledProgram.name === template.name && enrolledProgram.duration === template.duration
+      )
+    );
+  };
 
   const getNextUpcomingElement = (clientProgram) => {
-    const program = getProgramById(clientProgram.programId);
-    if (!program) return null;
+    const program = getProgramById(clientProgram.id);
+    if (!program || !program.elements) return null;
     
-    return program.elements.find(el => !clientProgram.progress.completedElements.includes(el.id));
+    return program.elements.find(el => !clientProgram.completedElements?.includes(el.id));
   };
 
-  const markElementComplete = (clientProgramId, elementId) => {
-    // TODO: Implement updateProgress API call
+  const markElementComplete = async (clientProgramId, elementId) => {
+    try {
     console.log('Marking element complete:', clientProgramId, elementId);
+      
+      const response = await fetch(`/api/programs/${clientProgramId}/progress`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'markElementComplete',
+          elementId: elementId
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Element marked complete:', result);
+        
+        // Check if program should be auto-completed (before refreshing)
+        await checkAndCompleteProgram(clientProgramId);
+        
+        // Refresh the client's enrolled programs to update progress
+        await fetchClientEnrolledPrograms();
+        
+        // Show success message
+        toast.success('Element marked as complete');
+      } else {
+        const error = await response.json();
+        console.error('Failed to mark element complete:', error);
+        toast.error(error.error || 'Failed to mark element as complete');
+      }
+    } catch (error) {
+      console.error('Error marking element complete:', error);
+      toast.error('Error marking element as complete');
+    }
   };
 
-  const enrollInProgram = async (programId) => {
-    // TODO: Implement enrollClient API call
-    console.log('Enrolling client in program:', programId, id);
+  const checkAndCompleteProgram = async (clientProgramId) => {
+    try {
+      // Get fresh program data after the element was marked complete
+      const response = await fetch(`/api/programs/client/${id}`);
+      if (!response.ok) return;
+      
+      const result = await response.json();
+      const freshPrograms = result.programs || [];
+      
+      // Find the program in fresh data
+      const clientProgram = freshPrograms.find(p => p.id === clientProgramId);
+      if (!clientProgram || clientProgram.status !== 'active') return;
+
+      const program = getProgramById(clientProgramId);
+      if (!program || !program.elements) return;
+
+      const totalElements = program.elements.length;
+      const completedElements = clientProgram.completedElements?.length || 0;
+      const completionRate = totalElements > 0 ? (completedElements / totalElements) * 100 : 0;
+
+      console.log('Checking completion:', {
+        clientProgramId,
+        totalElements,
+        completedElements,
+        completionRate,
+        status: clientProgram.status
+      });
+
+      // If program is 100% complete, mark it as completed
+      if (completionRate >= 100) {
+        console.log('Program completed! Marking as completed:', clientProgramId);
+        
+        const updateResponse = await fetch(`/api/programs/${clientProgramId}/progress`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'updateStatus',
+            status: 'completed'
+          }),
+        });
+
+        if (updateResponse.ok) {
+          // Refresh programs to show updated status
+          await fetchClientEnrolledPrograms();
+          toast.success('🎉 Program completed! Congratulations!');
+        } else {
+          console.error('Failed to mark program as completed');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking program completion:', error);
+    }
   };
 
-  const pauseProgram = (clientProgramId) => {
-    setClientPrograms(prev => 
-      prev.map(cp => 
-        cp.id === clientProgramId 
-          ? { ...cp, status: 'paused' }
-          : cp
-      )
-    );
+  const enrollInProgram = async (templateId) => {
+    try {
+      console.log('Enrolling client in program:', templateId, id);
+      
+      const response = await fetch('/api/programs/enroll', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          templateId: templateId,
+          clientId: id
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Client enrolled successfully:', result);
+        
+        // Refresh the client's enrolled programs to update available programs
+        await fetchClientEnrolledPrograms();
+        
+        // Show success message
+        toast.success(`${clientData.name} has been enrolled in the program successfully`);
+        
+        // Close the dialog
+        setEnrollDialogOpen(false);
+      } else {
+        const error = await response.json();
+        console.error('Failed to enroll client:', error);
+        toast.error(error.error || 'Failed to enroll client in program');
+      }
+    } catch (error) {
+      console.error('Error enrolling client:', error);
+      toast.error('Error enrolling client in program');
+    }
   };
 
-  const resumeProgram = (clientProgramId) => {
-    setClientPrograms(prev => 
-      prev.map(cp => 
-        cp.id === clientProgramId 
-          ? { ...cp, status: 'active' }
-          : cp
-      )
-    );
+  const startProgram = async (programId) => {
+    try {
+      console.log('Starting program:', programId);
+      
+      const response = await fetch(`/api/programs/${programId}/start`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Program started successfully:', result);
+        
+        // Refresh the client's programs to update the status
+        await fetchClientEnrolledPrograms();
+        
+        // Show success message
+        toast.success('Program started successfully!');
+      } else {
+        const error = await response.json();
+        console.error('Failed to start program:', error);
+        toast.error(error.error || 'Failed to start program');
+      }
+    } catch (error) {
+      console.error('Error starting program:', error);
+      toast.error('Error starting program');
+    }
+  };
+
+  const pauseProgram = async (clientProgramId) => {
+    try {
+      const response = await fetch(`/api/programs/${clientProgramId}/progress`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'updateStatus',
+          status: 'paused'
+        }),
+      });
+
+      if (response.ok) {
+        await fetchClientEnrolledPrograms();
+        toast.success('Program paused');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to pause program');
+      }
+    } catch (error) {
+      console.error('Error pausing program:', error);
+      toast.error('Error pausing program');
+    }
+  };
+
+  const resumeProgram = async (clientProgramId) => {
+    try {
+      const response = await fetch(`/api/programs/${clientProgramId}/progress`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'updateStatus',
+          status: 'active'
+        }),
+      });
+
+      if (response.ok) {
+        await fetchClientEnrolledPrograms();
+        toast.success('Program resumed');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to resume program');
+      }
+    } catch (error) {
+      console.error('Error resuming program:', error);
+      toast.error('Error resuming program');
+    }
+  };
+
+  const restartProgram = async (clientProgramId) => {
+    try {
+      const response = await fetch(`/api/programs/${clientProgramId}/restart`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        await fetchClientEnrolledPrograms();
+        toast.success('🎉 Program restarted successfully! Ready to begin again.');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to restart program');
+      }
+    } catch (error) {
+      console.error('Error restarting program:', error);
+      toast.error('Error restarting program');
+    }
   };
 
 
@@ -313,6 +649,7 @@ export default function ClientProfile() {
   }
 
   const handleBack = () => {
+    // If searchParams is not available, just go back to clients
     if (!searchParams) {
       router.push('/coach/clients');
       return;
@@ -329,38 +666,101 @@ export default function ClientProfile() {
     }
   };
 
-  const handleShareFiles = (selectedFiles) => {
-    const newFiles = selectedFiles.map((file, index) => ({
-      id: clientFiles.length + index + 1,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      sharedDate: "Just now",
-      sharedBy: "Dr. Sarah Johnson"
-    }));
-    
-    setClientFiles(prev => [...newFiles, ...prev]);
-    console.log("Shared files with client:", selectedFiles);
-  };
+  const handleShareFiles = async (selectedFiles) => {
+    try {
+      // Share each selected file with the client
+      for (const file of selectedFiles) {
+        const response = await fetch('/api/resources/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resourceId: file.id,
+            clientIds: [id] // Use the current client ID
+          }),
+        });
 
-  const handleViewFile = (fileId) => {
-    const file = clientFiles.find(f => f.id === fileId);
-    console.log("Viewing file:", file?.name);
+        if (!response.ok) {
+          throw new Error(`Failed to share ${file.name}`);
+        }
+      }
+
+      // Refresh the client files list
+      await fetchClientResources(id);
+      console.log("Shared files with client:", selectedFiles);
+    } catch (error) {
+      console.error('Error sharing files:', error);
+      alert(`Error sharing files: ${error.message}`);
+    }
   };
 
   const handleRemoveFileClick = (file) => {
+    console.log('🔍 handleRemoveFileClick called with file:', file);
+    console.log('🔍 Current clientData:', clientData);
     setFileToRemove(file);
   };
 
-  const handleConfirmRemove = () => {
-    if (fileToRemove) {
-      setClientFiles(prev => prev.filter(f => f.id !== fileToRemove.id));
-      console.log("Removed file with ID:", fileToRemove.id);
+  const handleConfirmRemove = async () => {
+    console.log('🔍 handleConfirmRemove called');
+    console.log('fileToRemove:', fileToRemove);
+    console.log('clientData:', clientData);
+    console.log('URL id (client ID):', id);
+    
+    if (fileToRemove && id) {
+      console.log('📤 Sending request to remove client from resource:', {
+        resourceId: fileToRemove.id,
+        clientId: id  // Use the client ID from URL params, not user ID
+      });
+      
+      try {
+        const response = await fetch('/api/resources/remove-client', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resourceId: fileToRemove.id,
+            clientId: id  // Use the client ID from URL params
+          }),
+        });
+
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response ok:', response.ok);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Client removed from resource:', result.message);
+          console.log('✅ Updated resource:', result.resource);
+          
+          // Refresh the files list to reflect the change
+          await fetchClientResources(id);  // Use client ID from URL params
+          
+          // Show success message
+          toast.success('File removed from client successfully');
+        } else {
+          const error = await response.json();
+          console.error('❌ Failed to remove client from resource:', error.error);
+          console.error('❌ Full error response:', error);
+          toast.error('Failed to remove file from client');
+        }
+      } catch (error) {
+        console.error('❌ Error removing client from resource:', error);
+        toast.error('Error removing file from client');
+      }
+      
       setFileToRemove(null);
+    } else {
+      console.error('❌ Missing required data:', {
+        fileToRemove: !!fileToRemove,
+        clientId: id
+      });
     }
   };
 
   const handleTaskCreated = (taskData) => {
+    console.log("handleTaskCreated called with:", taskData);
+    
     const newTask = {
       id: taskData.id || `temp-${Date.now()}`,
       title: taskData.title,
@@ -372,8 +772,8 @@ export default function ClientProfile() {
       createdAt: new Date().toISOString()
     };
     
+    console.log("Adding new task to state:", newTask);
     setClientTasks(prev => [newTask, ...prev]);
-    console.log("Created task for client:", taskData);
   };
 
   const handleTaskToggle = (taskId) => {
@@ -717,7 +1117,7 @@ export default function ClientProfile() {
                                 size="sm" 
                                 variant="ghost" 
                                 className="h-6 w-6 p-0"
-                                onClick={() => handleViewFile(file.id)}
+                                onClick={() => handlePreview(file)}
                                 title="Preview file"
                               >
                                 <Eye className="h-3 w-3" />
@@ -745,6 +1145,57 @@ export default function ClientProfile() {
           <TabsContent value="programs" className="space-y-6">
             
               <div className="space-y-6">
+                {/* Enrolled Programs (Not Started) */}
+                {getEnrolledPrograms().length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        Enrolled Programs ({getEnrolledPrograms().length})
+                      </CardTitle>
+                      <CardDescription>
+                        Programs enrolled but not yet started
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {getEnrolledPrograms().map((clientProgram) => {
+                          const program = getProgramById(clientProgram.id);
+                          
+                          if (!program) return null;
+                          
+                          return (
+                            <Card key={clientProgram.id} className="border-l-4 border-l-blue-500">
+                              <CardContent className="pt-6">
+                                <div className="flex items-center justify-between">
+                                  <div className="space-y-2">
+                                    <h4 className="font-semibold">{program.name}</h4>
+                                    <p className="text-sm text-muted-foreground">{program.description}</p>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                      <span>{program.duration} weeks</span>
+                                      <span>{program.elements?.length || 0} elements</span>
+                                      <span>Enrolled: {new Date(clientProgram.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button 
+                                      onClick={() => startProgram(clientProgram.id)}
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      <Play className="h-4 w-4 mr-2" />
+                                      Start Program
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Active Programs */}
                 <Card>
                   <CardHeader>
@@ -759,21 +1210,20 @@ export default function ClientProfile() {
                   <CardContent>
                     <div className="space-y-4">
                       {getActivePrograms().map((clientProgram) => {
-                        const program = getProgramById(clientProgram.programId);
                         const progress = calculateProgramProgress(clientProgram);
                         const nextElement = getNextUpcomingElement(clientProgram);
                         
-                        if (!program) return null;
+                        if (!clientProgram || !progress) return null;
                         
                         return (
                            <ProgramTimelineView
                              key={clientProgram.id}
-                             program={program}
                              clientProgram={clientProgram}
                              progress={progress}
                              onMarkComplete={(elementId) => markElementComplete(clientProgram.id, elementId)}
                              onPauseResume={() => clientProgram.status === 'active' ? pauseProgram(clientProgram.id) : resumeProgram(clientProgram.id)}
-                             onViewProgram={() => router.push(`/coach/programs/${program.id}/edit`)}
+                             onViewProgram={() => router.push(`/coach/programs/${clientProgram.programTemplateId}/edit`)}
+                             onRestart={() => restartProgram(clientProgram.id)}
                            />
                         );
                       })}
@@ -796,37 +1246,73 @@ export default function ClientProfile() {
                   </CardContent>
                 </Card>
 
-                {/* Program History (Completed and Paused) */}
-                {getHistoryPrograms().length > 0 && (
+                {/* Completed Programs */}
+                {getHistoryPrograms().filter(cp => cp.status === 'completed').length > 0 && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5" />
-                        Program History ({getHistoryPrograms().length})
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        Completed Programs ({getHistoryPrograms().filter(cp => cp.status === 'completed').length})
                       </CardTitle>
                       <CardDescription>
-                        Completed and paused programs
+                        Programs successfully completed by this client
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {getHistoryPrograms().map((clientProgram) => {
-                          const program = getProgramById(clientProgram.programId);
+                        {getHistoryPrograms().filter(cp => cp.status === 'completed').map((clientProgram) => {
+                          const program = getProgramById(clientProgram.id);
                           const progress = calculateProgramProgress(clientProgram);
                           
-                          if (!program) return null;
+                          if (!program || !progress) return null;
                           
                           return (
-                            <Card key={clientProgram.id} className={`border-l-4 ${clientProgram.status === 'completed' ? 'border-l-green-500' : 'border-l-yellow-500'}`}>
+                            <ProgramTimelineView
+                              key={clientProgram.id}
+                              clientProgram={clientProgram}
+                              progress={progress}
+                              onMarkComplete={() => {}} // Disabled for completed programs
+                              onPauseResume={() => {}} // Disabled for completed programs
+                              onViewProgram={() => router.push(`/coach/programs/${clientProgram.programTemplateId}/edit`)}
+                              onRestart={() => restartProgram(clientProgram.id)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Paused Programs */}
+                {getHistoryPrograms().filter(cp => cp.status === 'paused').length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Pause className="h-5 w-5 text-yellow-600" />
+                        Paused Programs ({getHistoryPrograms().filter(cp => cp.status === 'paused').length})
+                      </CardTitle>
+                      <CardDescription>
+                        Programs that have been paused
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {getHistoryPrograms().filter(cp => cp.status === 'paused').map((clientProgram) => {
+                          const program = getProgramById(clientProgram.id);
+                          const progress = calculateProgramProgress(clientProgram);
+                          
+                          if (!program || !progress) return null;
+                          
+                          return (
+                            <Card key={clientProgram.id} className="border-l-4 border-l-yellow-500">
                               <CardContent className="p-3">
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-medium">{program.name}</h4>
-                                    <Badge variant={clientProgram.status === 'completed' ? 'default' : 'secondary'}>
-                                      {clientProgram.status === 'completed' ? 'Completed' : 'Paused'}
+                                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                                      ⏸️ Paused
                                     </Badge>
                                   </div>
-                                  {clientProgram.status === 'paused' && (
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -836,7 +1322,6 @@ export default function ClientProfile() {
                                       <Play className="h-4 w-4" />
                                       Resume
                                     </Button>
-                                  )}
                                 </div>
                                 <div className="space-y-2">
                                   <p className="text-xs text-muted-foreground line-clamp-2">
@@ -844,13 +1329,13 @@ export default function ClientProfile() {
                                   </p>
                                   <div className="flex items-center justify-between">
                                     <p className="text-xs text-muted-foreground">
-                                      Completed: {Math.round(progress.completionRate)}% • Duration: {program.duration} weeks
+                                      Progress: {Math.round(progress.completionRate)}% • Duration: {program.duration} weeks
                                     </p>
                                     <div className="flex gap-1">
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => router.push(`/coach/programs/${program.id}/edit`)}
+                                        onClick={() => router.push(`/coach/programs/${clientProgram.programTemplateId}/edit`)}
                                         title="View Program Details"
                                       >
                                         <Eye className="h-4 w-4" />
@@ -1165,7 +1650,197 @@ export default function ClientProfile() {
           clientName={clientData.name}
           availablePrograms={getAvailablePrograms()}
           onEnroll={enrollInProgram}
+          loading={programsLoading}
         />
+
+        {/* Preview Modal */}
+        {previewUrl && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="text-lg font-semibold">Preview</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setPreviewUrl(null);
+                    setPreviewType(null);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="p-4">
+                {previewType === 'images' ? (
+                  <div>
+                    <img 
+                      src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
+                      alt="Preview"
+                      className="max-w-full max-h-[70vh] object-contain mx-auto"
+                      onLoad={(e) => {
+                        console.log('✅ Image loaded successfully via API');
+                        console.log('Image dimensions:', e.target.naturalWidth, 'x', e.target.naturalHeight);
+                      }}
+                      onError={(e) => {
+                        console.error('❌ API image failed to load');
+                        e.target.style.display = 'none';
+                        // Show fallback message
+                        const fallback = document.createElement('div');
+                        fallback.className = 'text-center py-8';
+                        fallback.innerHTML = `
+                          <p class="text-muted-foreground mb-4">Preview failed to load</p>
+                          <p class="text-xs text-red-500 mb-2">URL: ${previewUrl}</p>
+                          <button 
+                            class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                            onclick="window.open('${previewUrl}', '_blank')"
+                          >
+                            Open in New Tab
+                          </button>
+                        `;
+                        e.target.parentNode.appendChild(fallback);
+                      }}
+                    />
+                  </div>
+                ) : previewType === 'videos' ? (
+                  <video 
+                    src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
+                    controls
+                    className="max-w-full max-h-[70vh] mx-auto"
+                    onLoadStart={() => {
+                      console.log('✅ Video started loading via API');
+                    }}
+                    onError={(e) => {
+                      console.error('❌ API video failed to load');
+                      e.target.style.display = 'none';
+                      const fallback = document.createElement('div');
+                      fallback.className = 'text-center py-8';
+                      fallback.innerHTML = `
+                        <p class="text-muted-foreground mb-4">Video failed to load</p>
+                        <p class="text-xs text-red-500 mb-2">URL: ${previewUrl}</p>
+                        <button 
+                          class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                          onclick="window.open('${previewUrl}', '_blank')"
+                        >
+                          Open in New Tab
+                        </button>
+                      `;
+                      e.target.parentNode.appendChild(fallback);
+                    }}
+                  />
+                ) : previewType === 'sounds' ? (
+                  <audio 
+                    src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
+                    controls
+                    className="w-full"
+                    onLoadStart={() => {
+                      console.log('✅ Audio started loading via API');
+                    }}
+                    onError={(e) => {
+                      console.error('❌ API audio failed to load');
+                      e.target.style.display = 'none';
+                      const fallback = document.createElement('div');
+                      fallback.className = 'text-center py-8';
+                      fallback.innerHTML = `
+                        <p class="text-muted-foreground mb-4">Audio failed to load</p>
+                        <p class="text-xs text-red-500 mb-2">URL: ${previewUrl}</p>
+                        <button 
+                          class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                          onclick="window.open('${previewUrl}', '_blank')"
+                        >
+                          Open in New Tab
+                        </button>
+                      `;
+                      e.target.parentNode.appendChild(fallback);
+                    }}
+                  />
+                ) : previewType === 'pdf' ? (
+                  <div>
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium mb-2">PDF Preview</h4>
+                      <iframe
+                        src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
+                        className="w-full h-[60vh] border rounded"
+                        title="PDF Preview"
+                        onLoad={() => {
+                          console.log('✅ PDF loaded successfully via API');
+                        }}
+                        onError={() => {
+                          console.error('❌ PDF failed to load via API');
+                        }}
+                      />
+                    </div>
+                    <div className="text-center">
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => {
+                          const apiUrl = `/api/library/preview?path=${encodeURIComponent(previewUrl)}`;
+                          window.open(apiUrl, '_blank');
+                        }}
+                      >
+                        Open in New Tab
+                      </Button>
+                    </div>
+                  </div>
+                ) : previewType === 'document' ? (
+                  <div>
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium mb-2">Document Preview</h4>
+                      <div className="w-full h-[60vh] border rounded bg-gray-50 flex items-center justify-center">
+                        <div className="text-center p-8">
+                          <div className="mb-4">
+                            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Document Preview</h3>
+                          <p className="text-sm text-gray-500 mb-6">
+                            This document type cannot be previewed directly in the browser. 
+                            Please download the file to view it in a compatible application.
+                          </p>
+                          <div className="space-y-3">
+                            <Button 
+                              variant="outline" 
+                              className="w-full"
+                              onClick={() => {
+                                const apiUrl = `/api/library/preview?path=${encodeURIComponent(previewUrl)}`;
+                                window.open(apiUrl, '_blank');
+                              }}
+                            >
+                              Open in New Tab
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="w-full"
+                              onClick={() => {
+                                window.open(previewUrl, '_blank');
+                              }}
+                            >
+                              Open Original URL
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">Preview not available for this file type</p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        window.open(previewUrl, '_blank');
+                      }}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

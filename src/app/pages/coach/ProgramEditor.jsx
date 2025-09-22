@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Label } from "@/app/components/ui/label";
+import { Badge } from "@/app/components/ui/badge";
 import { ArrowLeft, CheckSquare, MessageSquare, Upload, AlertTriangle } from "lucide-react";
 import { AddElementDialog } from "@/app/components/AddElementDialog";
 import { EditElementDialog } from "@/app/components/EditElementDialog";
@@ -22,6 +23,7 @@ export default function ProgramEditor() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [isProgram, setIsProgram] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -48,13 +50,23 @@ export default function ProgramEditor() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/programs/${id}`);
+      // Try to fetch as program first, then fallback to template
+      let response = await fetch(`/api/programs/${id}`);
+      let isProgram = response.ok;
+      
+      if (!response.ok) {
+        // Fallback to template if not found as program
+        response = await fetch(`/api/temp_programs/${id}`);
+        isProgram = false;
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to fetch program');
       }
       
       const data = await response.json();
       setProgram(data.program);
+      setIsProgram(isProgram);
       
       setFormData({
         name: data.program.name || "",
@@ -168,7 +180,10 @@ export default function ProgramEditor() {
     try {
       setSaving(true);
       
-      const response = await fetch(`/api/programs/${id}`, {
+      // Use the correct API endpoint based on whether it's a program or template
+      const apiEndpoint = isProgram ? `/api/programs/${id}` : `/api/temp_programs/${id}`;
+      
+      const response = await fetch(apiEndpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +201,7 @@ export default function ProgramEditor() {
         throw new Error(errorData.error || 'Failed to update program');
       }
 
-      toast.success('Program updated successfully!');
+      toast.success(isProgram ? 'Program updated successfully!' : 'Program template updated successfully!');
       router.push('/coach/programs');
     } catch (error) {
       console.error('Failed to update program:', error);
@@ -206,8 +221,15 @@ export default function ProgramEditor() {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Edit Program</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              {isProgram ? 'View Program' : 'Edit Program Template'}
+            </h1>
             <p className="text-muted-foreground">{formData.name}</p>
+            {isProgram && (
+              <Badge variant="secondary" className="mt-2">
+                Active Program Instance
+              </Badge>
+            )}
           </div>
         </div>
         
@@ -215,7 +237,7 @@ export default function ProgramEditor() {
           {saving && (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           )}
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Saving...' : (isProgram ? 'Update Program' : 'Save Template')}
         </Button>
       </div>
 

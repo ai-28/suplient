@@ -19,6 +19,24 @@ export const noteRepo = {
         }
     },
 
+    // Create a new group note
+    async createGroupNote(noteData) {
+        try {
+            const { title, description, groupId } = noteData;
+
+            const result = await sql`
+                INSERT INTO "Note" (title, description, "groupId", "createdAt", "updatedAt")
+                VALUES (${title}, ${description}, ${groupId}, NOW(), NOW())
+                RETURNING *
+            `;
+
+            return result[0];
+        } catch (error) {
+            console.error('Error creating group note:', error);
+            throw error;
+        }
+    },
+
     // Get notes by client ID
     async getNotesByClientId(clientId) {
         try {
@@ -38,6 +56,29 @@ export const noteRepo = {
             return notes;
         } catch (error) {
             console.error('Error fetching notes by client ID:', error);
+            throw error;
+        }
+    },
+
+    // Get notes by group ID
+    async getNotesByGroupId(groupId) {
+        try {
+            const notes = await sql`
+                SELECT 
+                    n.id,
+                    n.title,
+                    n.description,
+                    n."groupId",
+                    n."createdAt",
+                    n."updatedAt"
+                FROM "Note" n
+                WHERE n."groupId" = ${groupId}
+                ORDER BY n."createdAt" DESC
+            `;
+
+            return notes;
+        } catch (error) {
+            console.error('Error fetching notes by group ID:', error);
             throw error;
         }
     },

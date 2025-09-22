@@ -10,14 +10,14 @@ import { User, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const getStatusColor = (status) => {
   switch (status) {
-    case 'on-track':
-      return 'bg-green-500/10 text-green-600 border-green-200';
-    case 'behind':
-      return 'bg-red-500/10 text-red-600 border-red-200';
-    case 'ahead':
+    case 'enrolled':
+      return 'bg-gray-500/10 text-gray-600 border-gray-200';
+    case 'active':
       return 'bg-blue-500/10 text-blue-600 border-blue-200';
+    case 'paused':
+      return 'bg-yellow-500/10 text-yellow-600 border-yellow-200';
     case 'completed':
-      return 'bg-purple-500/10 text-purple-600 border-purple-200';
+      return 'bg-green-500/10 text-green-600 border-green-200';
     default:
       return 'bg-gray-500/10 text-gray-600 border-gray-200';
   }
@@ -25,12 +25,12 @@ const getStatusColor = (status) => {
 
 const getStatusIcon = (status) => {
   switch (status) {
-    case 'on-track':
+    case 'enrolled':
+      return <User className="h-3 w-3" />;
+    case 'active':
       return <Clock className="h-3 w-3" />;
-    case 'behind':
+    case 'paused':
       return <AlertCircle className="h-3 w-3" />;
-    case 'ahead':
-      return <CheckCircle2 className="h-3 w-3" />;
     case 'completed':
       return <CheckCircle2 className="h-3 w-3" />;
     default:
@@ -71,35 +71,36 @@ export default function EnrolledMembersDialog({
               </p>
             </div>
           ) : (
-            enrolledClients.map((client) => {
-              const completionRate = (client.progress.completedElements / client.progress.totalElements) * 100;
+            enrolledClients.map((client, index) => {
+              const completedElements = client.progress?.completedElements || 0;
+              const totalElements = client.progress?.totalElements || 0;
+              const completionRate = totalElements > 0 ? (completedElements / totalElements) * 100 : 0;
               
               return (
                 <div 
-                  key={client.id} 
+                  key={client.enrollmentId || client.id || `enrolled-client-${index}`} 
                   className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                   onClick={() => handleClientClick(client.id)}
                 >
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={client.avatar} alt={client.name} />
                     <AvatarFallback>
-                      {client.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-semibold">{client.name}</h4>
-                        <p className="text-sm text-muted-foreground">{client.email}</p>
+                        <h4 className="font-semibold">{client.name || 'Unknown Client'}</h4>
+                        <p className="text-sm text-muted-foreground">{client.email || 'No email'}</p>
                       </div>
                       <Badge 
                         variant="outline" 
-                        className={getStatusColor(client.progress.status)}
+                        className={getStatusColor(client.progress?.status || 'unknown')}
                       >
-                        {getStatusIcon(client.progress.status)}
+                        {getStatusIcon(client.progress?.status || 'unknown')}
                         <span className="ml-1 capitalize">
-                          {client.progress.status.replace('-', ' ')}
+                          {(client.progress?.status || 'unknown').replace('-', ' ')}
                         </span>
                       </Badge>
                     </div>
@@ -107,17 +108,17 @@ export default function EnrolledMembersDialog({
                     <div className="space-y-1">
                       <div className="flex justify-between text-sm">
                         <span>Progress</span>
-                        <span>{client.progress.completedElements}/{client.progress.totalElements} elements</span>
+                        <span>{client.progress?.completedElements || 0}/{client.progress?.totalElements || 0} elements</span>
                       </div>
                       <Progress value={completionRate} className="h-2" />
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Day {client.progress.currentDay}</span>
+                        <span>Day {client.progress?.currentDay || 0}</span>
                         <span>{Math.round(completionRate)}% complete</span>
                       </div>
                     </div>
                     
                     <p className="text-xs text-muted-foreground">
-                      Enrolled on {client.enrolledDate.toLocaleDateString()}
+                      Enrolled on {client.enrolledDate ? new Date(client.enrolledDate).toLocaleDateString() : 'Unknown date'}
                     </p>
                   </div>
                 </div>

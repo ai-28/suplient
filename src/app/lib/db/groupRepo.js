@@ -3,6 +3,7 @@ import { sql } from './postgresql';
 export const groupRepo = {
     createGroup,
     getGroupsByCoach,
+    getGroupById,
     updateGroup,
     deleteGroup,
 };
@@ -13,9 +14,6 @@ async function createGroup(groupData) {
             name,
             description,
             capacity,
-            frequency,
-            duration,
-            location,
             focusArea,
             coachId,
             selectedMembers = [],
@@ -28,9 +26,6 @@ async function createGroup(groupData) {
                 name,
                 description,
                 capacity,
-                frequency,
-                duration,
-                location,
                 "focusArea",
                 "coachId",
                 "selectedMembers",
@@ -43,9 +38,6 @@ async function createGroup(groupData) {
                 ${name},
                 ${description || null},
                 ${capacity || null},
-                ${frequency || null},
-                ${duration || null},
-                ${location || null},
                 ${focusArea || null},
                 ${coachId},
                 ${selectedMembers.length > 0 ? selectedMembers : []},
@@ -79,6 +71,135 @@ async function getGroupsByCoach(coachId) {
     }
 }
 
+async function getGroupById(groupId, coachId) {
+    try {
+        // Get group basic info
+        const groupResult = await sql`
+            SELECT *
+            FROM "Group"
+            WHERE id = ${groupId} AND "coachId" = ${coachId}
+        `;
+
+        if (groupResult.length === 0) {
+            return null;
+        }
+
+        const group = groupResult[0];
+
+        // Get group members with their details
+        const membersResult = await sql`
+            SELECT 
+                c.id,
+                c.name,
+                c.email,
+                c.status,
+                c."lastActive",
+                c."createdAt" as "joinDate",
+                u.name as "userName"
+            FROM "Client" c
+            LEFT JOIN "User" u ON c."userId" = u.id
+            WHERE c.id = ANY(${group.selectedMembers})
+            ORDER BY c."createdAt" ASC
+        `;
+
+        // Get sessions for this group
+        const sessionsResult = await sql`
+            SELECT 
+                s.id,
+                s.title,
+                s.description,
+                s."sessionDate",
+                s."sessionTime",
+                s.duration,
+                s.location,
+                s.status,
+                s.mood,
+                s.notes,
+                s."createdAt"
+            FROM "Session" s
+            WHERE s."groupId" = ${groupId}
+            ORDER BY s."sessionDate" DESC, s."sessionTime" DESC
+        `;
+        // Calculate attendance for each member
+        const membersWithAttendance = await Promise.all(
+            membersResult.map(async (member) => {
+                // Get attendance data for this member
+                const attendanceResult = await sql`
+                    SELECT 
+                        COUNT(*) as "totalSessions",
+                        COUNT(CASE WHEN s.status = 'completed' THEN 1 END) as "attendedSessions"
+                    FROM "Session" s
+                    WHERE s."groupId" = ${groupId}
+                    AND s."sessionDate" <= NOW()
+                `;
+
+                const attendance = attendanceResult[0];
+                const attendanceRate = attendance.totalSessions > 0
+                    ? Math.round((attendance.attendedSessions / attendance.totalSessions) * 100)
+                    : 0;
+
+                // Generate initials from name
+                const initials = member.name
+                    ? member.name.split(' ').map(n => n[0]).join('').toUpperCase()
+                    : 'U';
+
+                return {
+                    id: member.id,
+                    name: member.name,
+                    email: member.email,
+                    initials,
+                    status: member.status || 'active',
+                    joinDate: member.joinDate,
+                    attendance: `${attendanceRate}%`,
+                    attendanceRate,
+                    lastActive: member.lastActive
+                };
+            })
+        );
+
+        // Get next session
+        const nextSessionResult = await sql`
+            SELECT 
+                s."sessionDate",
+                s."sessionTime",
+                s.title,
+                s.duration,
+                s.location
+            FROM "Session" s
+            WHERE s."groupId" = ${groupId}
+            AND s."sessionDate" >= CURRENT_DATE
+            AND s.status = 'scheduled'
+            ORDER BY s."sessionDate" ASC, s."sessionTime" ASC
+            LIMIT 1
+        `;
+
+        const nextSession = nextSessionResult.length > 0 ? nextSessionResult[0] : null;
+
+        // Calculate group statistics
+        const totalSessions = sessionsResult.length;
+        const completedSessions = sessionsResult.filter(s => s.status === 'completed').length;
+        console.log(group)
+        return {
+            ...group,
+            members: membersWithAttendance,
+            sessions: sessionsResult,
+            nextSession: nextSession ? {
+                date: nextSession.sessionDate,
+                time: nextSession.sessionTime,
+                title: nextSession.title,
+                duration: nextSession.duration,
+                location: nextSession.location
+            } : null,
+            totalSessions,
+            completedSessions,
+            memberCount: membersWithAttendance.length
+        };
+    } catch (error) {
+        console.error("Get group by ID error:", error);
+        throw error;
+    }
+}
+
 async function updateGroup(groupId, updateData) {
     try {
         // Build dynamic SET clause based on provided fields
@@ -100,9 +221,6 @@ async function updateGroup(groupId, updateData) {
         addField('name', updateData.name);
         addField('description', updateData.description);
         addField('capacity', updateData.capacity);
-        addField('frequency', updateData.frequency);
-        addField('duration', updateData.duration);
-        addField('location', updateData.location);
         addField('focusArea', updateData.focusArea, 'focusArea');
         addField('stage', updateData.stage);
         addField('selectedMembers', updateData.selectedMembers, 'selectedMembers');

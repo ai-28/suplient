@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
@@ -8,82 +8,49 @@ import { TaskCompletionModal } from "@/app/components/TaskCompletionModal";
 import { 
   Plus,
   Calendar,
-  Users
+  Users,
+  Loader2
 } from "lucide-react";
 
 export function GroupTasksPanel({ groupId, memberCount }) {
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: "Complete Anxiety Assessment",
-      description: "Fill out the weekly anxiety tracking form",
-      dueDate: "Today",
-      assignedCount: memberCount,
-      completedCount: 5,
-      completions: [
-        { memberId: 1, memberName: "John Anderson", memberInitials: "JA", completed: true, completedAt: "2024-01-14" },
-        { memberId: 2, memberName: "Alice Rodriguez", memberInitials: "AR", completed: true, completedAt: "2024-01-14" },
-        { memberId: 3, memberName: "Michael Thompson", memberInitials: "MT", completed: false },
-        { memberId: 4, memberName: "Sarah Williams", memberInitials: "SW", completed: true, completedAt: "2024-01-13" },
-        { memberId: 5, memberName: "Benjamin Lee", memberInitials: "BL", completed: true, completedAt: "2024-01-14" },
-        { memberId: 6, memberName: "Emma Davis", memberInitials: "ED", completed: false },
-        { memberId: 7, memberName: "Christopher Wilson", memberInitials: "CW", completed: true, completedAt: "2024-01-14" },
-        { memberId: 8, memberName: "Jessica Brown", memberInitials: "JB", completed: false },
-      ]
-    },
-    {
-      id: 2,
-      title: "Practice Breathing Exercise",
-      description: "Complete 10-minute daily breathing practice",
-      dueDate: "Tomorrow",
-      assignedCount: memberCount,
-      completedCount: 3,
-      completions: [
-        { memberId: 1, memberName: "John Anderson", memberInitials: "JA", completed: true, completedAt: "2024-01-13" },
-        { memberId: 2, memberName: "Alice Rodriguez", memberInitials: "AR", completed: false },
-        { memberId: 3, memberName: "Michael Thompson", memberInitials: "MT", completed: false },
-        { memberId: 4, memberName: "Sarah Williams", memberInitials: "SW", completed: true, completedAt: "2024-01-14" },
-        { memberId: 5, memberName: "Benjamin Lee", memberInitials: "BL", completed: false },
-        { memberId: 6, memberName: "Emma Davis", memberInitials: "ED", completed: false },
-        { memberId: 7, memberName: "Christopher Wilson", memberInitials: "CW", completed: true, completedAt: "2024-01-13" },
-        { memberId: 8, memberName: "Jessica Brown", memberInitials: "JB", completed: false },
-      ]
-    },
-    {
-      id: 3,
-      title: "Read Chapter 3",
-      description: "Review coping strategies material",
-      dueDate: "June 5",
-      assignedCount: memberCount,
-      completedCount: 2,
-      completions: [
-        { memberId: 1, memberName: "John Anderson", memberInitials: "JA", completed: false },
-        { memberId: 2, memberName: "Alice Rodriguez", memberInitials: "AR", completed: true, completedAt: "2024-01-12" },
-        { memberId: 3, memberName: "Michael Thompson", memberInitials: "MT", completed: false },
-        { memberId: 4, memberName: "Sarah Williams", memberInitials: "SW", completed: true, completedAt: "2024-01-13" },
-        { memberId: 5, memberName: "Benjamin Lee", memberInitials: "BL", completed: false },
-        { memberId: 6, memberName: "Emma Davis", memberInitials: "ED", completed: false },
-        { memberId: 7, memberName: "Christopher Wilson", memberInitials: "CW", completed: false },
-        { memberId: 8, memberName: "Jessica Brown", memberInitials: "JB", completed: false },
-      ]
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch group tasks
+  const fetchGroupTasks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/groups/${groupId}/tasks`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch group tasks');
+      }
+      
+      const result = await response.json();
+      setTasks(result.tasks || []);
+    } catch (err) {
+      console.error('Error fetching group tasks:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  // Fetch tasks on component mount
+  useEffect(() => {
+    if (groupId) {
+      fetchGroupTasks();
+    }
+  }, [groupId]);
 
   const [selectedTask, setSelectedTask] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleTaskCreated = (taskData) => {
-    const newTask = {
-      id: Date.now(),
-      title: taskData.title,
-      description: taskData.description || "",
-      dueDate: taskData.dueDate ? new Date(taskData.dueDate).toLocaleDateString() : "No due date",
-      assignedCount: memberCount,
-      completedCount: 0,
-      completions: []
-    };
-    
-    setTasks(prev => [newTask, ...prev]);
+    // Refresh the tasks list to get the real data from the database
+    fetchGroupTasks();
   };
 
   const handleTaskClick = (task) => {
@@ -115,8 +82,31 @@ export function GroupTasksPanel({ groupId, memberCount }) {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[300px]">
-            <div className="space-y-3">
-              {tasks.map((task) => (
+            {loading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Loading tasks...</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  <p className="text-sm text-destructive mb-2">Error: {error}</p>
+                  <Button size="sm" variant="outline" onClick={fetchGroupTasks}>
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">No tasks assigned yet</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tasks.map((task) => (
                 <div 
                   key={task.id}
                   onClick={() => handleTaskClick(task)}
@@ -155,8 +145,9 @@ export function GroupTasksPanel({ groupId, memberCount }) {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </ScrollArea>
         </CardContent>
       </Card>

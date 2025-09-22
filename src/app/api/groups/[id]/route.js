@@ -3,6 +3,42 @@ import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
 import { groupRepo } from '@/app/lib/db/groupRepo';
 
+// GET /api/groups/[id] - Get group by ID with members and sessions
+export async function GET(request, { params }) {
+    try {
+        const session = await getServerSession(authOptions);
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { id } = await params;
+
+        if (!id) {
+            return NextResponse.json({ error: 'Group ID is required' }, { status: 400 });
+        }
+
+        // Get group with members and sessions
+        const group = await groupRepo.getGroupById(id, session.user.id);
+
+        if (!group) {
+            return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({
+            message: 'Group data fetched successfully',
+            group: group
+        });
+
+    } catch (error) {
+        console.error('Get group by ID error:', error);
+        return NextResponse.json(
+            { error: 'Failed to get group data' },
+            { status: 500 }
+        );
+    }
+}
+
 // PUT /api/groups/[id] - Update a group
 export async function PUT(request, { params }) {
     try {
@@ -37,22 +73,6 @@ export async function PUT(request, { params }) {
                 min: 1,
                 max: 100,
                 transform: (value) => parseInt(value)
-            },
-            frequency: {
-                type: 'string',
-                maxLength: 50,
-                transform: (value) => value?.trim() || null
-            },
-            duration: {
-                type: 'number',
-                min: 1,
-                max: 480,
-                transform: (value) => parseInt(value)
-            },
-            location: {
-                type: 'string',
-                maxLength: 255,
-                transform: (value) => value?.trim() || null
             },
             focusArea: {
                 type: 'string',

@@ -17,9 +17,6 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
     name: "",
     description: "",
     capacity: "",
-    frequency: "",
-    duration: "",
-    location: "",
     focusArea: "",
   });
   const [selectedMembers, setSelectedMembers] = useState([]);
@@ -63,9 +60,6 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
           name: formData.name,
           description: formData.description,
           capacity: formData.capacity,
-          frequency: formData.frequency,
-          duration: formData.duration,
-          location: formData.location,
           focusArea: formData.focusArea,
           selectedMembers: selectedMembers.map(member => member.id), // Include selected member IDs
         }),
@@ -87,9 +81,6 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
         name: "",
         description: "",
         capacity: "",
-        frequency: "",
-        duration: "",
-        location: "",
         focusArea: "",
       });
       setSelectedMembers([]);
@@ -186,47 +177,6 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="frequency">Frequency</Label>
-                <Select onValueChange={(value) => handleInputChange("frequency", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="How often?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="duration">Session Duration</Label>
-                <Select onValueChange={(value) => handleInputChange("duration", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="60">60 minutes</SelectItem>
-                    <SelectItem value="90">90 minutes</SelectItem>
-                    <SelectItem value="120">120 minutes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Location
-              </Label>
-              <Input
-                id="location"
-                placeholder="e.g., Room 201, Virtual (Zoom), etc."
-                value={formData.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
-              />
             </div>
           </div>
 

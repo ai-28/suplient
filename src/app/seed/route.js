@@ -54,11 +54,11 @@ async function seedUser() {
   }
 
 }
-// Create Program table if it doesn't exist
-export async function createProgramTable() {
+// Create ProgramTemplate table if it doesn't exist
+export async function createProgramTemplateTable() {
   try {
     await sql`
-    CREATE TABLE IF NOT EXISTS "Program" (
+    CREATE TABLE IF NOT EXISTS "ProgramTemplate" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       name VARCHAR(255) NOT NULL,
       description TEXT,
@@ -69,11 +69,11 @@ export async function createProgramTable() {
     );
   `;
 
-    // Create ProgramElement table for program elements
+    // Create ProgramTemplateElement table for program template elements
     await sql`
-    CREATE TABLE IF NOT EXISTS "ProgramElement" (
+    CREATE TABLE IF NOT EXISTS "ProgramTemplateElement" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      "programId" UUID NOT NULL REFERENCES "Program"(id) ON DELETE CASCADE,
+      "programTemplateId" UUID NOT NULL REFERENCES "ProgramTemplate"(id) ON DELETE CASCADE,
       type VARCHAR(50) NOT NULL CHECK (type IN ('session', 'exercise', 'assessment', 'homework', 'content', 'task', 'message')),
       title VARCHAR(255) NOT NULL,
       week INTEGER NOT NULL,
@@ -86,13 +86,40 @@ export async function createProgramTable() {
   `;
 
     // Create indexes for better performance
-    await sql`CREATE INDEX IF NOT EXISTS idx_programs_coachId ON "Program"("coachId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_program_elements_programId ON "ProgramElement"("programId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_program_elements_type ON "ProgramElement"(type)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_program_templates_coachId ON "ProgramTemplate"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_program_template_elements_programTemplateId ON "ProgramTemplateElement"("programTemplateId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_program_template_elements_type ON "ProgramTemplateElement"(type)`;
 
-    console.log('Program tables created successfully');
+    console.log('ProgramTemplate tables created successfully');
   } catch (error) {
-    console.error('Error creating program tables:', error);
+    console.error('Error creating program template tables:', error);
+    throw error;
+  }
+}
+
+export async function createProgramEnrollmentTable() {
+  try {
+    await sql`
+    CREATE TABLE IF NOT EXISTS "ProgramEnrollment" (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      "programTemplateId" UUID NOT NULL REFERENCES "ProgramTemplate"(id),
+      "clientId" UUID NOT NULL REFERENCES "Client"(id),
+      "coachId" UUID NOT NULL REFERENCES "User"(id),
+      status VARCHAR(20) DEFAULT 'enrolled' CHECK (status IN ('enrolled', 'active', 'paused', 'completed', 'cancelled')),
+      "completedElements" UUID[] DEFAULT '{}',
+      "startDate" TIMESTAMP DEFAULT NULL,
+      "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_program_enrollment_clientId ON "ProgramEnrollment"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_program_enrollment_templateId ON "ProgramEnrollment"("programTemplateId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_program_enrollment_coachId ON "ProgramEnrollment"("coachId")`;
+
+    console.log('ProgramEnrollment tables created successfully');
+  } catch (error) {
+    console.error('Error creating programEnrollment tables:', error);
     throw error;
   }
 }
@@ -107,9 +134,6 @@ export async function seedTask() {
         description TEXT,
         "memberCount" INTEGER DEFAULT 0,
         capacity INTEGER,
-        frequency VARCHAR(50),
-        duration VARCHAR(50),
-        location VARCHAR(255),
         "focusArea" VARCHAR(255),
         "selectedMembers" UUID[] DEFAULT '{}',
         stage VARCHAR(20) DEFAULT 'upcoming' CHECK (stage IN ('upcoming', 'ongoing', 'completed', 'inactive')),
@@ -158,6 +182,18 @@ export async function seedTask() {
       );
     `;
 
+    // Create TaskCompletion table to track individual member completions for group tasks
+    await sql`
+      CREATE TABLE IF NOT EXISTS "TaskCompletion" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "taskId" UUID NOT NULL REFERENCES "Task"(id) ON DELETE CASCADE,
+        "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
+        "completedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("taskId", "clientId")
+      );
+    `;
+
     // Create Session table
     await sql`
       CREATE TABLE IF NOT EXISTS "Session" (
@@ -196,6 +232,8 @@ export async function seedTask() {
     await sql`CREATE INDEX IF NOT EXISTS idx_task_type ON "Task"("taskType")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_task_status ON "Task"(status)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_task_due_date ON "Task"("dueDate")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_task_completion_task_id ON "TaskCompletion"("taskId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_task_completion_client_id ON "TaskCompletion"("clientId")`;
 
     // Add constraints to ensure data integrity (only if they don't exist)
     try {
@@ -252,6 +290,8 @@ export async function createResourceTable() {
         "fileType" VARCHAR(100),
         author VARCHAR(255),
         "coachId" UUID REFERENCES "User"(id) ON DELETE CASCADE,
+        "clientIds" UUID[] DEFAULT '{}',
+        "groupIds" UUID[] DEFAULT '{}',
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -260,6 +300,8 @@ export async function createResourceTable() {
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_type ON "Resource"("resourceType")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_coach_id ON "Resource"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_client_ids ON "Resource" USING GIN("clientIds")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_group_ids ON "Resource" USING GIN("groupIds")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_created_at ON "Resource"("createdAt")`;
 
     console.log('Resource table created successfully');
@@ -276,14 +318,17 @@ export async function seedNote() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title VARCHAR(255) NOT NULL,
         description TEXT,
-        "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
+        "clientId" UUID REFERENCES "Client"(id) ON DELETE CASCADE,
+        "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CHECK (("clientId" IS NOT NULL AND "groupId" IS NULL) OR ("clientId" IS NULL AND "groupId" IS NOT NULL))
       );
     `;
 
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_note_client_id ON "Note"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_note_group_id ON "Note"("groupId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_note_created_at ON "Note"("createdAt")`;
 
     console.log('Note table created successfully');
@@ -298,7 +343,8 @@ export async function GET() {
     console.log('Starting database seeding...');
 
     await seedUser();
-    await createProgramTable();
+    await createProgramTemplateTable();
+    await createProgramEnrollmentTable();
     await seedTask(); // Create Group table first
     await createResourceTable(); // Create Resource table for library
     await seedNote();
@@ -306,7 +352,7 @@ export async function GET() {
 
     return new Response(JSON.stringify({
       message: 'Database seeded successfully',
-      details: 'User, Program, Group, Task, Client, Resource, and Note tables created with sample data'
+      details: 'User, ProgramTemplate, Group, Task, Client, Resource, and Note tables created with sample data'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

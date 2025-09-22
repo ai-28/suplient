@@ -68,16 +68,27 @@ const taskSchema = z.object({
 
 export function CreateTaskDialog({ 
   children, 
-  onTaskCreated 
+  onTaskCreated,
+  clientId,
+  clientName,
+  hideGroupTasks = false,
+  mode = null,
+  groupId = null,
+  memberCount = 0
   }) {
   const [open, setOpen] = useState(false);
   
   // Fetch real data from database
   const { availableClients, loading: clientsLoading, error: clientsError } = useClients();
   const { groups, loading: groupsLoading, error: groupsError } = useGroupsForTasks();
-  const [taskType, setTaskType] = useState("personal");
-  const [selectedClients, setSelectedClients] = useState([]);
-  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [taskType, setTaskType] = useState(
+    mode === "group" ? "group" : 
+    clientId ? "client" : "personal"
+  );
+  const [selectedClients, setSelectedClients] = useState(clientId ? [clientId] : []);
+  const [selectedGroup, setSelectedGroup] = useState(
+    mode === "group" && groupId ? { id: groupId, memberCount } : null
+  );
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [groupSearchOpen, setGroupSearchOpen] = useState(false);
@@ -89,8 +100,8 @@ export function CreateTaskDialog({
       title: "",
       description: "",
       assignedTo: "",
-      selectedClients: [],
-      selectedGroup: "",
+      selectedClients: clientId ? [clientId] : [],
+      selectedGroup: mode === "group" && groupId ? groupId : "",
       isRepetitive: false,
       repetitiveFrequency: "weekly",
       repetitiveCount: 1,
@@ -125,11 +136,17 @@ export function CreateTaskDialog({
           name: selectedGroup.name,
           memberCount: selectedGroup.memberCount
         } : null,
-        selectedClients: selectedClients.length > 0 ? selectedClients : null
+        selectedClients: selectedClients.length > 0 ? selectedClients : (clientId ? [clientId] : null)
       };
 
-      // Send to backend API
-      const response = await fetch('/api/tasks', {
+      console.log('Creating task with data:', taskData);
+
+      // Send to backend API - use group tasks API when in group mode
+      const apiUrl = mode === "group" && groupId 
+        ? `/api/groups/${groupId}/tasks`
+        : '/api/tasks';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,8 +161,15 @@ export function CreateTaskDialog({
 
       const result = await response.json();
     
+    // Handle different response formats
     if (onTaskCreated) {
-        onTaskCreated(result.tasks);
+      if (mode === "group" && result.task) {
+        // Group tasks API returns { task: {...} }
+        onTaskCreated(result.task);
+      } else if (result.tasks && result.tasks.length > 0) {
+        // Regular tasks API returns { tasks: [...] }
+        onTaskCreated(result.tasks[0]);
+      }
     }
     
     setOpen(false);
@@ -407,42 +431,44 @@ export function CreateTaskDialog({
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Task Type Selection */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-foreground">Task Type</label>
-              <div className="grid grid-cols-3 gap-3">
-                            <Button
-                  type="button"
-                  variant={taskType === "personal" ? "default" : "outline"}
-                  onClick={() => setTaskType("personal")}
-                  className="justify-start"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  My Tasks
-                            </Button>
-                <Button 
-                  type="button" 
-                  variant={taskType === "client" ? "default" : "outline"}
-                  onClick={() => setTaskType("client")}
-                  className="justify-start"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Client Task
-                </Button>
-                <Button 
-                  type="button"
-                  variant={taskType === "group" ? "default" : "outline"}
-                  onClick={() => setTaskType("group")}
-                  className="justify-start"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Group Task
-          </Button>
-                      </div>
-                    </div>
+            {/* Task Type Selection - hide when in client context or group mode */}
+            {!hideGroupTasks && mode !== "group" && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground">Task Type</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <Button
+                    type="button"
+                    variant={taskType === "personal" ? "default" : "outline"}
+                    onClick={() => setTaskType("personal")}
+                    className="justify-start"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    My Tasks
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant={taskType === "client" ? "default" : "outline"}
+                    onClick={() => setTaskType("client")}
+                    className="justify-start"
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Client Task
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant={taskType === "group" ? "default" : "outline"}
+                    onClick={() => setTaskType("group")}
+                    className="justify-start"
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Group Task
+                  </Button>
+                </div>
+              </div>
+            )}
 
-            {/* Client Selection - only show for client tasks */}
-            {taskType === "client" && (
+            {/* Client Selection - only show for client tasks and when not in client context */}
+            {taskType === "client" && !hideGroupTasks && (
                 <FormField
                   control={form.control}
                   name="selectedClients"
@@ -541,6 +567,21 @@ export function CreateTaskDialog({
                 />
             )}
 
+            {/* Show selected client when in client context */}
+            {hideGroupTasks && clientId && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Assign to Client
+                </label>
+                <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                    {clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase() : 'C'}
+                  </div>
+                  <span className="font-medium">{clientName || 'Selected Client'}</span>
+                </div>
+              </div>
+            )}
+
             {/* Group Selection - only show for group tasks */}
             {taskType === "group" && (
                 <FormField
@@ -549,25 +590,28 @@ export function CreateTaskDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-foreground">
-                      Select Group
+                      {mode === "group" ? "Selected Group" : "Select Group"}
                       </FormLabel>
                     <div className="space-y-2">
                       {selectedGroup && (
                         <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                            {selectedGroup.avatar}
+                            {selectedGroup.avatar || 'G'}
                       </div>
                           <div className="flex-1">
                             <p className="text-sm font-medium text-foreground">{selectedGroup.name}</p>
                             <p className="text-xs text-muted-foreground">{selectedGroup.memberCount} members</p>
                           </div>
-                          <X 
-                            className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
-                            onClick={handleGroupRemove}
-                          />
+                          {mode !== "group" && (
+                            <X 
+                              className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
+                              onClick={handleGroupRemove}
+                            />
+                          )}
                   </div>
                 )}
-                      <Popover open={groupSearchOpen} onOpenChange={setGroupSearchOpen}>
+                      {mode !== "group" && (
+                        <Popover open={groupSearchOpen} onOpenChange={setGroupSearchOpen}>
                           <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
@@ -632,9 +676,13 @@ export function CreateTaskDialog({
                           </div>
                           </PopoverContent>
                         </Popover>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Select a group to assign this task to all group members
+                      {mode === "group" 
+                        ? "This task will be assigned to all group members" 
+                        : "Select a group to assign this task to all group members"
+                      }
                     </p>
                         <FormMessage />
                       </FormItem>

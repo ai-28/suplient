@@ -38,112 +38,58 @@ import { GroupFilesPanel } from "@/app/components/GroupFilesPanel";
 import { AddMemberToGroupDialog } from "@/app/components/AddMemberToGroupDialog";
 import { getGroupProgressData } from '@/app/utils/progressCalculations';
 
-const groupsData = [
-  { 
-    id: 1, 
-    name: "Anxiety Support Group", 
-    members: 8, 
-    nextSession: "1 June",
-    avatars: ["AS", "JD", "MR", "LK", "TS", "NK", "CW", "JB"],
-    description: "A supportive environment for individuals dealing with anxiety disorders to share experiences and coping strategies.",
-    frequency: "Weekly",
-    duration: "90 minutes",
-    location: "Room 101",
-    capacity: "8-10 members",
-    startDate: "March 2024",
-    totalSessions: 12,
-    completedSessions: 8,
-    detailedMembers: [
-      { id: 1, name: "John Anderson", initials: "JA", status: "active", joinDate: "March 2024", attendance: "92%", color: "hsl(var(--chart-1))" },
-      { id: 2, name: "Alice Rodriguez", initials: "AR", status: "active", joinDate: "March 2024", attendance: "85%", color: "hsl(var(--chart-2))" },
-      { id: 3, name: "Michael Thompson", initials: "MT", status: "active", joinDate: "April 2024", attendance: "78%", color: "hsl(var(--chart-3))" },
-      { id: 4, name: "Sarah Williams", initials: "SW", status: "active", joinDate: "March 2024", attendance: "96%", color: "hsl(var(--chart-4))" },
-      { id: 5, name: "Benjamin Lee", initials: "BL", status: "active", joinDate: "April 2024", attendance: "88%", color: "hsl(var(--chart-5))" },
-      { id: 6, name: "Emma Davis", initials: "ED", status: "on-hold", joinDate: "March 2024", attendance: "45%", color: "hsl(var(--muted))" },
-      { id: 7, name: "Christopher Wilson", initials: "CW", status: "active", joinDate: "May 2024", attendance: "91%", color: "hsl(var(--chart-1))" },
-      { id: 8, name: "Jessica Brown", initials: "JB", status: "active", joinDate: "April 2024", attendance: "83%", color: "hsl(var(--chart-2))" },
-    ]
-  },
-  { 
-    id: 2, 
-    name: "Depression Recovery Circle", 
-    members: 8, 
-    nextSession: "15 June",
-    avatars: ["LG", "KM", "RT", "TC", "CM", "DR", "NW", "PJ"],
-    description: "A compassionate space for those working through depression to find hope and healing together.",
-    frequency: "Bi-weekly",
-    duration: "120 minutes",
-    location: "Room 102",
-    capacity: "6-8 members",
-    startDate: "February 2024",
-    totalSessions: 16,
-    completedSessions: 10,
-    detailedMembers: [
-      { id: 9, name: "Lisa Garcia", initials: "LG", status: "active", joinDate: "February 2024", attendance: "94%", color: "hsl(var(--chart-1))" },
-      { id: 10, name: "Kevin Martinez", initials: "KM", status: "active", joinDate: "February 2024", attendance: "87%", color: "hsl(var(--chart-2))" },
-      { id: 11, name: "Rachel Taylor", initials: "RT", status: "active", joinDate: "March 2024", attendance: "79%", color: "hsl(var(--chart-3))" },
-      { id: 12, name: "Thomas Clark", initials: "TC", status: "active", joinDate: "February 2024", attendance: "92%", color: "hsl(var(--chart-4))" },
-      { id: 13, name: "Caroline Miller", initials: "CM", status: "active", joinDate: "April 2024", attendance: "85%", color: "hsl(var(--chart-5))" },
-      { id: 14, name: "Daniel Rodriguez", initials: "DR", status: "inactive", joinDate: "March 2024", attendance: "88%", color: "hsl(var(--muted))" },
-      { id: 15, name: "Natalie Wilson", initials: "NW", status: "on-hold", joinDate: "February 2024", attendance: "52%", color: "hsl(var(--chart-1))" },
-      { id: 16, name: "Patrick Johnson", initials: "PJ", status: "active", joinDate: "April 2024", attendance: "90%", color: "hsl(var(--chart-2))" },
-    ]
-  },
-  {
-    id: 3,
-    name: "Stress Management Workshop",
-    members: 5,
-    nextSession: "10 June",
-    avatars: ["JS", "MK", "AL", "RB", "TN"],
-    description: "Learning effective techniques for managing stress and building resilience.",
-    frequency: "Weekly",
-    duration: "60 minutes",
-    location: "Room 105",
-    capacity: "5-7 members",
-    startDate: "April 2024",
-    totalSessions: 8,
-    completedSessions: 3,
-    detailedMembers: [
-      { id: 23, name: "John Smith", initials: "JS", status: "active", joinDate: "April 2024", attendance: "100%", color: "hsl(var(--chart-1))" },
-      { id: 24, name: "Maria Kelly", initials: "MK", status: "active", joinDate: "April 2024", attendance: "87%", color: "hsl(var(--chart-2))" },
-      { id: 25, name: "Alex Liu", initials: "AL", status: "active", joinDate: "April 2024", attendance: "93%", color: "hsl(var(--chart-3))" },
-      { id: 26, name: "Rebecca Brown", initials: "RB", status: "active", joinDate: "April 2024", attendance: "80%", color: "hsl(var(--chart-4))" },
-      { id: 27, name: "Thomas Nixon", initials: "TN", status: "on-hold", joinDate: "April 2024", attendance: "60%", color: "hsl(var(--chart-5))" },
-    ]
-  },
-  {
-    id: 6,
-    name: "Mindfulness & Meditation Group",
-    members: 6,
-    nextSession: "20 June",
-    avatars: ["AW", "BH", "CD", "EF", "GH", "IJ"],
-    description: "Exploring mindfulness practices and meditation techniques for mental wellness.",
-    frequency: "Weekly",
-    duration: "75 minutes",
-    location: "Room 103",
-    capacity: "6-8 members",
-    startDate: "May 2024",
-    totalSessions: 10,
-    completedSessions: 4,
-    detailedMembers: [
-      { id: 17, name: "Anna Williams", initials: "AW", status: "active", joinDate: "May 2024", attendance: "95%", color: "hsl(var(--chart-1))" },
-      { id: 18, name: "Brian Hill", initials: "BH", status: "active", joinDate: "May 2024", attendance: "89%", color: "hsl(var(--chart-2))" },
-      { id: 19, name: "Catherine Davis", initials: "CD", status: "active", joinDate: "May 2024", attendance: "92%", color: "hsl(var(--chart-3))" },
-      { id: 20, name: "Elena Foster", initials: "EF", status: "active", joinDate: "May 2024", attendance: "87%", color: "hsl(var(--chart-4))" },
-      { id: 21, name: "Gabriel Hughes", initials: "GH", status: "on-hold", joinDate: "May 2024", attendance: "65%", color: "hsl(var(--chart-5))" },
-      { id: 22, name: "Isabella Jones", initials: "IJ", status: "active", joinDate: "May 2024", attendance: "93%", color: "hsl(var(--muted))" },
-    ]
-  }
-];
+// Helper function to format date for display
+const formatDate = (dateString) => {
+  if (!dateString) return 'No date';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { 
+    month: 'long', 
+    day: 'numeric' 
+  });
+};
+
+// Helper function to format time for display
+const formatTime = (timeString) => {
+  if (!timeString) return '';
+  const [hours, minutes] = timeString.split(':');
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
+};
 
 export default function GroupDetail() {
   const { id } = useParams();
   const router = useRouter();
-  const [searchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [enrollClientOpen, setEnrollClientOpen] = useState(false);
+  const [groupData, setGroupData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Fetch group data
+  const fetchGroupData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/groups/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch group data');
+      }
+      
+      const result = await response.json();
+      setGroupData(result.group);
+    } catch (err) {
+      console.error('Error fetching group data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Handle tab from URL parameters
   useEffect(() => {
@@ -153,8 +99,121 @@ export default function GroupDetail() {
     }
   }, [searchParams]);
   
-  const group = groupsData.find(g => g.id === parseInt(id || "1")) || groupsData[0];
+  // Fetch group data on component mount
+  useEffect(() => {
+    if (id) {
+      fetchGroupData();
+    }
+  }, [id]);
+  
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading group data...</p>
+        </div>
+      </div>
+    );
+  }
 
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-destructive mb-4">Error: {error}</p>
+          <Button onClick={fetchGroupData}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show not found state
+  if (!groupData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Group not found</p>
+          <Button onClick={() => router.push('/coach/groups')}>Back to Groups</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Get session-based data (frequency, duration, location)
+  const getSessionBasedData = () => {
+    if (!groupData.sessions || groupData.sessions.length === 0) {
+      return {
+        frequency: 'Not specified',
+        duration: 'Not specified',
+        location: 'Not specified'
+      };
+    }
+
+    // Get most common values from sessions
+    const sessions = groupData.sessions;
+    const durations = sessions.map(s => s.duration).filter(Boolean);
+    const locations = sessions.map(s => s.location).filter(Boolean);
+    
+    // Calculate frequency based on session dates
+    const sessionDates = sessions.map(s => new Date(s.sessionDate)).sort();
+    let frequency = 'Not specified';
+    if (sessionDates.length > 1) {
+      const avgDaysBetween = (sessionDates[sessionDates.length - 1] - sessionDates[0]) / (sessionDates.length - 1) / (1000 * 60 * 60 * 24);
+      if (avgDaysBetween <= 7) frequency = 'Weekly';
+      else if (avgDaysBetween <= 14) frequency = 'Bi-weekly';
+      else if (avgDaysBetween <= 30) frequency = 'Monthly';
+      else frequency = 'Irregular';
+    }
+
+    // Use next session's duration and location if available, otherwise fall back to most common
+    let duration = 'Not specified';
+    let location = 'Not specified';
+
+    if (groupData.nextSession) {
+      duration = groupData.nextSession.duration ? `${groupData.nextSession.duration} minutes` : 'Not specified';
+      location = groupData.nextSession.location || 'Not specified';
+    } 
+
+    return {
+      frequency,
+      duration,
+      location
+    };
+  };
+
+  const sessionData = getSessionBasedData();
+
+  // Transform group data to match expected format
+  const group = {
+    id: groupData.id,
+    name: groupData.name,
+    members: groupData.memberCount,
+    nextSession: groupData.nextSession ? formatDate(groupData.nextSession.date) : 'No upcoming session',
+    avatars: groupData.members?.map(member => member.initials) || [],
+    description: groupData.description || 'No description available',
+    frequency: sessionData.frequency,
+    duration: sessionData.duration,
+    location: sessionData.location,
+    capacity: groupData.capacity ? `${groupData.capacity} members` : 'Not specified',
+    startDate: groupData.createdAt ? formatDate(groupData.createdAt) : 'Not specified',
+    totalSessions: groupData.totalSessions || 0,
+    completedSessions: groupData.completedSessions || 0,
+    detailedMembers: groupData.members?.map((member, index) => ({
+      id: member.id,
+      name: member.name,
+      initials: member.initials,
+      status: member.status,
+      joinDate: formatDate(member.joinDate),
+      attendance: member.attendance,
+      color: `hsl(var(--chart-${(index % 5) + 1}))`
+    })) || []
+  };
+
+  console.log("group",groupData)
+  console.log("nextSession data:", groupData.nextSession)
   // Generate unified progress data
   const groupProgressData = getGroupProgressData(
     group.id.toString(),
@@ -263,7 +322,7 @@ export default function GroupDetail() {
 
               {/* Right Column */}
               <div className="space-y-6">
-                <GroupNotesPanel />
+                <GroupNotesPanel groupId={group.id} />
                 <GroupFilesPanel groupId={group.id} />
               </div>
             </div>

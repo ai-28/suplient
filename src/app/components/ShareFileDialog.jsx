@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -9,22 +9,9 @@ import { Checkbox } from "@/app/components/ui/checkbox";
 import { Badge } from "@/app/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Share2, Search, Users, User, UserCheck, MessageSquare } from "lucide-react";
+import { Share2, Search, Users, User, UserCheck, MessageSquare, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
-// Mock data for clients and groups
-const mockClients = [
-  { id: 1, name: "John Doe", email: "john@example.com", type: "personal", status: "active" },
-  { id: 2, name: "Jane Smith", email: "jane@example.com", type: "group", status: "active" },
-  { id: 3, name: "Mike Johnson", email: "mike@example.com", type: "personal", status: "inactive" },
-  { id: 4, name: "Sarah Wilson", email: "sarah@example.com", type: "personal", status: "active" },
-  { id: 5, name: "Tom Brown", email: "tom@example.com", type: "group", status: "active" },
-];
-
-const mockGroups = [
-  { id: 1, name: "Anxiety Support Group", members: 8, type: "therapy" },
-  { id: 2, name: "Mindfulness Circle", members: 12, type: "wellness" },
-  { id: 3, name: "Teen Support Group", members: 6, type: "youth" },
-];
 
 
 export function ShareFileDialog({ file, files, onShare, children }) {
@@ -35,14 +22,68 @@ export function ShareFileDialog({ file, files, onShare, children }) {
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [shareMessage, setShareMessage] = useState("");
   const [sharing, setSharing] = useState(false);
+  
+  // Real data states
+  const [clients, setClients] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [error, setError] = useState(null);
 
+  // Fetch clients and groups when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchClients();
+      fetchGroups();
+    }
+  }, [open]);
 
-  const filteredClients = mockClients.filter(client =>
+  const fetchClients = async () => {
+    try {
+      setLoadingClients(true);
+      setError(null);
+      const response = await fetch('/api/clients');
+      const result = await response.json();
+      
+      if (result.status) {
+        setClients(result.clients || []);
+      } else {
+        setError(result.message || 'Failed to fetch clients');
+      }
+    } catch (err) {
+      console.error('Error fetching clients:', err);
+      setError('Failed to fetch clients');
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      setLoadingGroups(true);
+      setError(null);
+      const response = await fetch('/api/groups');
+      const result = await response.json();
+      
+      if (result.groups) {
+        setGroups(result.groups || []);
+      } else {
+        setError(result.error || 'Failed to fetch groups');
+      }
+    } catch (err) {
+      console.error('Error fetching groups:', err);
+      setError('Failed to fetch groups');
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const filteredGroups = mockGroups.filter(group =>
+  const filteredGroups = groups.filter(group =>
     group.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -65,13 +106,13 @@ export function ShareFileDialog({ file, files, onShare, children }) {
   const handleQuickSelect = (type) => {
     switch (type) {
       case "all-active":
-        setSelectedClients(mockClients.filter(c => c.status === "active").map(c => c.id));
+        setSelectedClients(clients.filter(c => c.status === "Active").map(c => c.id));
         break;
       case "all-clients":
-        setSelectedClients(mockClients.map(c => c.id));
+        setSelectedClients(clients.map(c => c.id));
         break;
       case "all-groups":
-        setSelectedGroups(mockGroups.map(g => g.id));
+        setSelectedGroups(groups.map(g => g.id));
         break;
       case "clear":
         setSelectedClients([]);
@@ -82,50 +123,72 @@ export function ShareFileDialog({ file, files, onShare, children }) {
 
   const handleShare = async () => {
     if (selectedClients.length === 0 && selectedGroups.length === 0) {
-      toast({
-        title: "No Recipients Selected",
-        description: "Please select at least one client or group to share with.",
-        variant: "destructive"
-      });
+      toast.error("Please select at least one client or group to share with.");
       return;
     }
 
     setSharing(true);
     
-    // Simulate sharing process
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const filesToShare = files || (file ? [file] : []);
-    
-    const shareData = {
-      files: filesToShare,
-      clients: selectedClients,
-      groups: selectedGroups,
-      message: shareMessage,
-      sharedAt: new Date().toISOString()
-    };
+    try {
+      const filesToShare = files || (file ? [file] : []);
+      
+      // Share each file individually
+      const sharePromises = filesToShare.map(async (fileItem) => {
+        const response = await fetch('/api/resources/share', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resourceId: fileItem.id,
+            clientIds: selectedClients,
+            groupIds: selectedGroups,
+            message: shareMessage
+          })
+        });
 
-    onShare?.(shareData);
-    
-    const totalRecipients = selectedClients.length + selectedGroups.reduce((sum, groupId) => {
-      const group = mockGroups.find(g => g.id === groupId);
-      return sum + (group?.members || 0);
-    }, 0);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to share resource');
+        }
 
-    const fileCount = filesToShare.length;
-    const fileText = fileCount === 1 ? "file" : "files";
-    
-    toast({
-      title: "Files Shared Successfully",
-      description: `${fileCount} ${fileText} shared with ${totalRecipients} recipients.`
-    });
+        return response.json();
+      });
 
-    // Reset form
-    setSelectedClients([]);
-    setSelectedGroups([]);
-    setShareMessage("");
-    setSharing(false);
-    setOpen(false);
+      await Promise.all(sharePromises);
+      
+      const shareData = {
+        files: filesToShare,
+        clients: selectedClients,
+        groups: selectedGroups,
+        message: shareMessage,
+        sharedAt: new Date().toISOString()
+      };
+
+      onShare?.(shareData);
+      
+      const totalRecipients = selectedClients.length + selectedGroups.reduce((sum, groupId) => {
+        const group = groups.find(g => g.id === groupId);
+        return sum + (group?.memberCount || 0);
+      }, 0);
+
+      const fileCount = filesToShare.length;
+      const fileText = fileCount === 1 ? "file" : "files";
+      
+      toast.success(`${fileCount} ${fileText} shared with ${totalRecipients} recipients.`);
+
+      // Reset form
+      setSelectedClients([]);
+      setSelectedGroups([]);
+      setShareMessage("");
+      setOpen(false);
+      
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error(error.message || 'Failed to share files');
+    } finally {
+      setSharing(false);
+    }
   };
 
   return (
@@ -210,60 +273,90 @@ export function ShareFileDialog({ file, files, onShare, children }) {
             
             <TabsContent value="individuals" className="space-y-3">
               <div className="max-h-64 overflow-y-auto space-y-2">
-                {filteredClients.map((client) => (
-                  <Card key={client.id} className="cursor-pointer hover:bg-muted/50">
-                    <CardContent className="p-3">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          checked={selectedClients.includes(client.id)}
-                          onCheckedChange={() => handleClientToggle(client.id)}
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{client.name}</p>
-                              <p className="text-sm text-muted-foreground">{client.email}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Badge variant={client.type === "personal" ? "default" : "secondary"}>
-                                {client.type}
-                              </Badge>
-                              <Badge variant={client.status === "active" ? "default" : "secondary"}>
-                                {client.status}
-                              </Badge>
+                {loadingClients ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span className="text-muted-foreground">Loading clients...</span>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center py-8">
+                    <span className="text-destructive">{error}</span>
+                  </div>
+                ) : filteredClients.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <span className="text-muted-foreground">No clients found</span>
+                  </div>
+                ) : (
+                  filteredClients.map((client) => (
+                    <Card key={client.id} className="cursor-pointer hover:bg-muted/50">
+                      <CardContent className="p-3">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox
+                            checked={selectedClients.includes(client.id)}
+                            onCheckedChange={() => handleClientToggle(client.id)}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{client.name}</p>
+                                <p className="text-sm text-muted-foreground">{client.email || 'No email'}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Badge variant={client.type?.toLowerCase() === "personal" ? "default" : "secondary"}>
+                                  {client.type || 'Personal'}
+                                </Badge>
+                                <Badge variant={client.status === "Active" ? "default" : "secondary"}>
+                                  {client.status || 'Active'}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </TabsContent>
             
             <TabsContent value="groups" className="space-y-3">
               <div className="max-h-64 overflow-y-auto space-y-2">
-                {filteredGroups.map((group) => (
-                  <Card key={group.id} className="cursor-pointer hover:bg-muted/50">
-                    <CardContent className="p-3">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          checked={selectedGroups.includes(group.id)}
-                          onCheckedChange={() => handleGroupToggle(group.id)}
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{group.name}</p>
-                              <p className="text-sm text-muted-foreground">{group.members} members</p>
+                {loadingGroups ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span className="text-muted-foreground">Loading groups...</span>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center py-8">
+                    <span className="text-destructive">{error}</span>
+                  </div>
+                ) : filteredGroups.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <span className="text-muted-foreground">No groups found</span>
+                  </div>
+                ) : (
+                  filteredGroups.map((group) => (
+                    <Card key={group.id} className="cursor-pointer hover:bg-muted/50">
+                      <CardContent className="p-3">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox
+                            checked={selectedGroups.includes(group.id)}
+                            onCheckedChange={() => handleGroupToggle(group.id)}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{group.name}</p>
+                                <p className="text-sm text-muted-foreground">{group.memberCount || 0} members</p>
+                              </div>
+                              <Badge variant="outline">{group.focusArea || 'General'}</Badge>
                             </div>
-                            <Badge variant="outline">{group.type}</Badge>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -298,10 +391,10 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                     <p className="text-sm font-medium mb-1">Individual Clients ({selectedClients.length})</p>
                     <div className="flex flex-wrap gap-1">
                       {selectedClients.map(clientId => {
-                        const client = mockClients.find(c => c.id === clientId);
+                        const client = clients.find(c => c.id === clientId);
                         return (
                           <Badge key={clientId} variant="secondary">
-                            {client?.name}
+                            {client?.name || 'Unknown Client'}
                           </Badge>
                         );
                       })}
@@ -313,10 +406,10 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                     <p className="text-sm font-medium mb-1">Groups ({selectedGroups.length})</p>
                     <div className="flex flex-wrap gap-1">
                       {selectedGroups.map(groupId => {
-                        const group = mockGroups.find(g => g.id === groupId);
+                        const group = groups.find(g => g.id === groupId);
                         return (
                           <Badge key={groupId} variant="secondary">
-                            {group?.name} ({group?.members} members)
+                            {group?.name || 'Unknown Group'} ({group?.memberCount || 0} members)
                           </Badge>
                         );
                       })}

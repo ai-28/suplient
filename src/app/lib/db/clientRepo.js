@@ -5,7 +5,7 @@ export async function getClientById(clientId, coachId) {
         // Fetch client data with user information
         const clientData = await sql`
             SELECT 
-                u.id,
+                c.id,
                 u.name,
                 u.email,
                 u.phone,
@@ -27,7 +27,7 @@ export async function getClientById(clientId, coachId) {
                 (
                     SELECT (s."sessionDate" + s."sessionTime") as "scheduledDate"
                     FROM "Session" s
-                    WHERE s."clientId" = u.id 
+                    WHERE s."clientId" = c.id 
                     AND s.status = 'scheduled'
                     AND (s."sessionDate" + s."sessionTime") > NOW()
                     ORDER BY (s."sessionDate" + s."sessionTime") ASC
@@ -96,8 +96,7 @@ export async function getClientById(clientId, coachId) {
                 g.stage,
                 g."createdAt" as "joinedDate"
             FROM "Group" g
-            INNER JOIN "Client" c ON g.id = c."groupId"
-            WHERE c."userId" = ${clientId}
+            WHERE ${clientId} = ANY(g."selectedMembers")
             AND g.stage IN ('ongoing', 'upcoming')
         `;
 

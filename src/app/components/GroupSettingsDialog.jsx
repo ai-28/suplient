@@ -33,8 +33,6 @@ const membersList = [
 export function GroupSettingsDialog({ open, onOpenChange, group }) {
   const [groupName, setGroupName] = useState(group?.name || "");
   const [description, setDescription] = useState("");
-  const [frequency, setFrequency] = useState("weekly");
-  const [duration, setDuration] = useState("60");
   const [capacity, setCapacity] = useState("12");
   const [members, setMembers] = useState(membersList);
   const [showAddMember, setShowAddMember] = useState(false);
@@ -154,38 +152,6 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="frequency">Session Frequency</Label>
-                    <Select value={frequency} onValueChange={setFrequency}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select frequency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="custom">Custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="duration">Session Duration (minutes)</Label>
-                    <Select value={duration} onValueChange={setDuration}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Duration" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="30">30 minutes</SelectItem>
-                        <SelectItem value="45">45 minutes</SelectItem>
-                        <SelectItem value="60">60 minutes</SelectItem>
-                        <SelectItem value="90">90 minutes</SelectItem>
-                        <SelectItem value="120">120 minutes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
                 <div>
                   <Label htmlFor="capacity">Maximum Capacity</Label>

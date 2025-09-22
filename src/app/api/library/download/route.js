@@ -57,6 +57,11 @@ export async function GET(request) {
                 // The key should be: library/images/filename.jpg
                 key = pathParts.join('/');
 
+                // Ensure the key starts with 'library/' for consistency
+                if (!key.startsWith('library/')) {
+                    key = `library/${key}`;
+                }
+
             } catch (error) {
                 console.error('Download - URL parsing error:', error);
                 return NextResponse.json({ message: "Invalid URL format" }, { status: 400 });
@@ -87,7 +92,9 @@ export async function GET(request) {
             const alternativeKeys = [
                 key.replace('library/', ''), // Remove library prefix
                 key.split('/').slice(1).join('/'), // Remove first part
-                key.split('/').pop() // Just the filename
+                key.split('/').pop(), // Just the filename
+                `library/${key.split('/').pop()}`, // Add library prefix to filename
+                key.replace(/^library\/[^\/]+\//, 'library/') // Fix double library prefix
             ];
 
             console.log('Download - Trying alternative keys:', alternativeKeys);

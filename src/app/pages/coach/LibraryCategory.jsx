@@ -22,7 +22,8 @@ import {
   Square,
   Grid3X3,
   List,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { FileUploadDialog } from "@/app/components/FileUploadDialog";
 import { ShareFileDialog } from "@/app/components/ShareFileDialog";
@@ -33,111 +34,22 @@ const categoryData = {
   videos: {
     title: "Videos",
     icon: Video,
-    color: "bg-primary",
-    items: [
-      {
-        id: 1,
-        title: "Introduction to Mindfulness",
-        description: "A comprehensive guide to mindfulness techniques for beginners",
-        duration: "15:30",
-        format: "MP4",
-        size: "45 MB",
-        thumbnail: "/placeholder.svg"
-      },
-      {
-        id: 2,
-        title: "Breathing Exercises",
-        description: "Guided breathing exercises for anxiety relief",
-        duration: "12:45",
-        format: "MP4",
-        size: "38 MB",
-        thumbnail: "/placeholder.svg"
-      },
-      {
-        id: 3,
-        title: "Progressive Muscle Relaxation",
-        description: "Step-by-step muscle relaxation technique",
-        duration: "20:15",
-        format: "MP4",
-        size: "62 MB",
-        thumbnail: "/placeholder.svg"
-      }
-    ]
+    color: "bg-primary"
   },
   images: {
     title: "Images",
     icon: Image,
-    color: "bg-accent",
-    items: [
-      {
-        id: 1,
-        title: "Emotion Wheel",
-        description: "Visual representation of different emotions",
-        format: "PNG",
-        size: "2.1 MB",
-        dimensions: "1920x1080",
-        thumbnail: "/placeholder.svg"
-      },
-      {
-        id: 2,
-        title: "Mindfulness Poster",
-        description: "Educational poster about mindfulness benefits",
-        format: "JPG",
-        size: "1.8 MB",
-        dimensions: "1080x1350",
-        thumbnail: "/placeholder.svg"
-      }
-    ]
+    color: "bg-accent"
   },
   articles: {
     title: "Articles",
     icon: FileText,
-    color: "bg-secondary",
-    items: [
-      {
-        id: 1,
-        title: "Understanding Anxiety Disorders",
-        description: "Comprehensive research on anxiety and treatment approaches",
-        author: "Dr. Sarah Johnson",
-        pages: 12,
-        format: "PDF",
-        size: "1.2 MB"
-      },
-      {
-        id: 2,
-        title: "Cognitive Behavioral Therapy Basics",
-        description: "Introduction to CBT techniques and applications",
-        author: "Dr. Michael Chen",
-        pages: 8,
-        format: "PDF",
-        size: "950 KB"
-      }
-    ]
+    color: "bg-secondary"
   },
   sounds: {
     title: "Sounds",
     icon: Music,
-    color: "bg-blue-teal",
-    items: [
-      {
-        id: 1,
-        title: "Ocean Waves",
-        description: "Calming ocean sounds for relaxation",
-        duration: "30:00",
-        format: "MP3",
-        size: "28 MB",
-        bitrate: "320 kbps"
-      },
-      {
-        id: 2,
-        title: "Forest Ambience",
-        description: "Natural forest sounds with birds",
-        duration: "45:00",
-        format: "MP3",
-        size: "42 MB",
-        bitrate: "320 kbps"
-      }
-    ]
+    color: "bg-blue-teal"
   },
 };
 
@@ -152,6 +64,7 @@ export default function LibraryCategory() {
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewType, setPreviewType] = useState(null);
+  const [downloadingItemId, setDownloadingItemId] = useState(null);
 
   // Fetch items from API
   useEffect(() => {
@@ -265,14 +178,19 @@ export default function LibraryCategory() {
 
   const handleDownload = async (item) => {
     try {
-      const response = await fetch(`/api/library/download?path=${encodeURIComponent(item.url)}&filename=${encodeURIComponent(item.title)}`);
+      setDownloadingItemId(item.id);
+      
+      // Use fileName if available, otherwise fall back to title with proper extension
+      const filename = item.fileName || item.title || 'download';
+      
+      const response = await fetch(`/api/library/download?path=${encodeURIComponent(item.url)}&filename=${encodeURIComponent(filename)}`);
       
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = item.title || 'download';
+        a.download = item.title;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -280,11 +198,15 @@ export default function LibraryCategory() {
         
         toast.success("Download started");
       } else {
-        toast.error("Download failed");
+        const errorData = await response.json();
+        console.error('Download failed:', errorData);
+        toast.error(`Download failed: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Download error:', error);
       toast.error("Download failed");
+    } finally {
+      setDownloadingItemId(null);
     }
   };
   
@@ -521,9 +443,14 @@ export default function LibraryCategory() {
                     variant="outline" 
                     title="Download" 
                     className="px-3"
+                    disabled={downloadingItemId === item.id}
                     onClick={() => handleDownload(item)}
                   >
-                    <Download className="h-4 w-4" />
+                    {downloadingItemId === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
                   </Button>
                   <ShareFileDialog
                     file={item}
@@ -601,9 +528,14 @@ export default function LibraryCategory() {
                         variant="outline" 
                         title="Download" 
                         className="px-3"
+                        disabled={downloadingItemId === item.id}
                         onClick={() => handleDownload(item)}
                       >
-                        <Download className="h-4 w-4" />
+                        {downloadingItemId === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
                       </Button>
                       <ShareFileDialog
                         file={item}

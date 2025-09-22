@@ -79,7 +79,7 @@ export default function ProgramBuilder() {
         })
       };
 
-      const response = await fetch('/api/programs', {
+      const response = await fetch('/api/temp_programs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

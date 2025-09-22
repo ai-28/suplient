@@ -1,50 +1,42 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { Textarea } from "@/app/components/ui/textarea";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
-import { 
-  Plus,
-  Save,
-  X
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { CreateGroupNoteDialog } from "./CreateGroupNoteDialog";
 
-export function GroupNotesPanel() {
-  const [notes, setNotes] = useState([
-    {
-      id: 1,
-      title: "Session 24 Observations",
-      content: "Great participation from all members. John showed significant improvement in sharing personal experiences.",
-      date: "2 hours ago",
-      category: "session"
-    },
-    {
-      id: 2,
-      title: "Future Planning",
-      content: "Plan to introduce mindfulness exercises in next session. Emma might benefit from individual follow-up.",
-      date: "1 day ago",
-      category: "plan"
+export function GroupNotesPanel({ groupId }) {
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchGroupNotes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`/api/groups/${groupId}/notes`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch group notes');
+      }
+      const result = await response.json();
+      setNotes(result.notes || []);
+    } catch (err) {
+      console.error('Error fetching group notes:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const [editingNote, setEditingNote] = useState(null);
-  const [newNoteContent, setNewNoteContent] = useState("");
-  const [showNewNote, setShowNewNote] = useState(false);
-
-  const handleAddNote = () => {
-    if (newNoteContent.trim()) {
-      const newNote = {
-        id: Date.now(),
-        title: `Note ${notes.length + 1}`,
-        content: newNoteContent,
-        date: "Just now",
-        category: "other"
-      };
-      setNotes([newNote, ...notes]);
-      setNewNoteContent("");
-      setShowNewNote(false);
+  useEffect(() => {
+    if (groupId) {
+      fetchGroupNotes();
     }
+  }, [groupId]);
+
+  const handleNoteCreated = (newNote) => {
+    setNotes(prev => [newNote, ...prev]);
   };
 
   return (
@@ -52,47 +44,57 @@ export function GroupNotesPanel() {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-foreground text-sm">Notes</CardTitle>
-          <Button 
-            size="sm" 
-            variant="ghost"
-            className="h-6 w-6 p-0"
-            onClick={() => setShowNewNote(!showNewNote)}
+          <CreateGroupNoteDialog 
+            groupId={groupId}
+            onNoteCreated={handleNoteCreated}
           >
-            {showNewNote ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-          </Button>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </Button>
+          </CreateGroupNoteDialog>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {showNewNote && (
-          <div className="p-3 bg-muted/30 rounded-lg space-y-3">
-            <Textarea
-              placeholder="Write your note here..."
-              value={newNoteContent}
-              onChange={(e) => setNewNoteContent(e.target.value)}
-              className="min-h-[60px] text-sm"
-            />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleAddNote} className="text-xs">
-                <Save className="h-3 w-3 mr-1" />
-                Save
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowNewNote(false)} className="text-xs">
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-        
+      <CardContent>
         <ScrollArea className="h-[250px]">
-          <div className="space-y-2">
-            {notes.map((note) => (
-              <div key={note.id} className="p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-                <h4 className="text-xs font-medium text-foreground truncate">{note.title}</h4>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{note.content}</p>
-                <p className="text-xs text-muted-foreground mt-1">{note.date}</p>
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-center">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading notes...</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-center">
+                <p className="text-sm text-destructive mb-2">Error: {error}</p>
+                <Button size="sm" variant="outline" onClick={fetchGroupNotes}>
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          ) : notes.length === 0 ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">No notes yet</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {notes.map((note) => (
+                <div key={note.id} className="p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
+                  <h4 className="text-xs font-medium text-foreground truncate">{note.title}</h4>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {note.description || 'No description'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(note.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </ScrollArea>
       </CardContent>
     </Card>
