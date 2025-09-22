@@ -243,6 +243,13 @@ export function CreateClientDialog({ onClientCreated }) {
                             }
                             initialFocus
                             className="rounded-md border"
+                            captionLayout="dropdown"
+                            fromYear={1900}
+                            toYear={new Date().getFullYear()}
+                            formatters={{
+                              formatYearDropdown: (date) => date.getFullYear().toString(),
+                              formatMonthDropdown: (date) => date.toLocaleString("default", { month: "long" }),
+                            }}
                           />
                         </PopoverContent>
                       </Popover>
