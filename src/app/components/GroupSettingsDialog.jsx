@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { Button } from "@/app/components/ui/button";
@@ -19,39 +19,79 @@ import {
   UserMinus,
   Calendar,
   Settings,
-  UserPlus
+  UserPlus,
+  Loader2
 } from "lucide-react";
-
-const membersList = [
-  { id: 1, name: "John Smith", initial: "J", status: "active", joinDate: "2024-01-15" },
-  { id: 2, name: "Alice Johnson", initial: "A", status: "active", joinDate: "2024-01-20" },
-  { id: 3, name: "Mike Brown", initial: "M", status: "inactive", joinDate: "2024-02-01" },
-  { id: 4, name: "Sarah Davis", initial: "S", status: "active", joinDate: "2024-02-10" },
-  { id: 5, name: "Bob Wilson", initial: "B", status: "active", joinDate: "2024-02-15" },
-];
+import { toast } from "sonner";
 
 export function GroupSettingsDialog({ open, onOpenChange, group }) {
   const [groupName, setGroupName] = useState(group?.name || "");
   const [description, setDescription] = useState("");
   const [capacity, setCapacity] = useState("12");
-  const [members, setMembers] = useState(membersList);
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
 
+  // Fetch group members when dialog opens
+  useEffect(() => {
+    const fetchGroupMembers = async () => {
+      if (!open || !group?.id) return;
+      
+      setMembersLoading(true);
+      try {
+        const response = await fetch(`/api/groups/${group.id}/members`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch group members');
+        }
+        
+        const data = await response.json();
+        setMembers(data.members || []);
+      } catch (error) {
+        console.error('Error fetching group members:', error);
+        toast.error('Failed to load group members');
+        setMembers([]);
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+
+    fetchGroupMembers();
+  }, [open, group?.id]);
+
   const handleSave = () => {
-    toast({
-      title: "Group Updated",
-      description: `${groupName} has been successfully updated.`,
-    });
+    toast.success(`${groupName} has been successfully updated.`);
     onOpenChange(false);
   };
 
-  const handleRemoveMember = (memberId, memberName) => {
-    setMembers(members.filter(member => member.id !== memberId));
-    toast({
-      title: "Member Removed",
-      description: `${memberName} has been removed from the group.`,
-    });
+  const handleRemoveMember = async (memberId, memberName) => {
+    try {
+      // Call the API to remove the member from the group
+      const response = await fetch(`/api/groups/${group.id}/members`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientIds: [memberId]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove member from group');
+      }
+
+      const result = await response.json();
+      
+      // Update local state to reflect the removal
+      setMembers(members.filter(member => member.id !== memberId));
+      toast.success(`${memberName} has been removed from the group.`);
+    } catch (error) {
+      console.error('Error removing member from group:', error);
+      toast.error(error.message || "Failed to remove member from group");
+    }
   };
 
   const handleAddMember = () => {
@@ -218,11 +258,25 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                   <Users2 className="h-5 w-5 text-primary" />
-                  Members ({members.length})
+                  Members ({membersLoading ? "..." : members.length})
                 </h3>
 
                 <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                  {members.map((member) => (
+                  {membersLoading ? (
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      <span className="text-muted-foreground">Loading members...</span>
+                    </div>
+                  ) : members.length === 0 ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-center">
+                        <Users2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground font-medium">No members yet</p>
+                        <p className="text-sm text-muted-foreground mt-1">Add members to get started</p>
+                      </div>
+                    </div>
+                  ) : (
+                    members.map((member) => (
                     <div key={member.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-lg">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -271,7 +325,8 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                         </AlertDialog>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
                 {/* Add Member Form */}
@@ -353,7 +408,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-gradient-primary text-white">
+            <Button onClick={handleSave} className="bg-gradient-primary text-black hover:text-white">
               <Save className="h-4 w-4 mr-2" />
               Save Changes
             </Button>

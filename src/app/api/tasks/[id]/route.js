@@ -77,15 +77,19 @@ export async function PUT(request, { params }) {
             repetitiveCount
         } = body;
 
-        const updateData = {
-            title,
-            description,
-            dueDate: dueDate ? new Date(dueDate) : null,
-            status,
-            isRepetitive,
-            repetitiveFrequency,
-            repetitiveCount
-        };
+        // Only update fields that are provided in the request
+        const updateData = {};
+
+        if (title !== undefined) updateData.title = title;
+        if (description !== undefined) updateData.description = description;
+        if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+        if (status !== undefined) updateData.status = status;
+        if (isRepetitive !== undefined) updateData.isRepetitive = isRepetitive;
+        if (repetitiveFrequency !== undefined) updateData.repetitiveFrequency = repetitiveFrequency;
+        if (repetitiveCount !== undefined) updateData.repetitiveCount = repetitiveCount;
+
+        // Always update the updatedAt timestamp
+        updateData.updatedAt = new Date();
 
         const updatedTask = await taskRepo.updateTask(taskId, updateData);
 

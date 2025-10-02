@@ -66,6 +66,7 @@ const authOptions = {
                 session.user.email = token.email;
                 session.user.role = token.role;
                 session.user.phone = token.phone;
+                session.accessToken = token.accessToken;
             }
             return session;
         },

@@ -1,69 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
-import { groupRepo } from '@/app/lib/db/groupRepo';
+import { sql } from '@/app/lib/db/postgresql';
 
-// POST /api/groups - Create a new group
-export async function POST(request) {
-    try {
-        const session = await getServerSession(authOptions);
-
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const body = await request.json();
-        const {
-            name,
-            description,
-            capacity,
-            frequency,
-            duration,
-            location,
-            focusArea,
-            selectedMembers
-        } = body;
-
-        // Validate required fields
-        if (!name) {
-            return NextResponse.json(
-                { error: 'Group name is required' },
-                { status: 400 }
-            );
-        }
-
-        const coachId = session.user.id;
-
-        // Create group
-        const groupData = {
-            name,
-            description: description || null,
-            capacity: capacity ? parseInt(capacity) : null,
-            frequency: frequency || null,
-            duration: duration || null,
-            location: location || null,
-            focusArea: focusArea || null,
-            stage: 'upcoming', // Always set new groups to upcoming
-            coachId,
-            selectedMembers: selectedMembers || []
-        };
-
-        const group = await groupRepo.createGroup(groupData);
-
-        return NextResponse.json({
-            message: 'Group created successfully',
-            group: group
-        });
-    } catch (error) {
-        console.error('Create group error:', error);
-        return NextResponse.json(
-            { error: 'Failed to create group' },
-            { status: 500 }
-        );
-    }
-}
-
-// GET /api/groups - Get groups by coach
 export async function GET(request) {
     try {
         const session = await getServerSession(authOptions);
@@ -72,17 +11,115 @@ export async function GET(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const coachId = session.user.id;
-        const groups = await groupRepo.getGroupsByCoach(coachId);
+        // Get groups based on user role
+        let groups;
+
+        if (session.user.role === 'coach') {
+            // Coach sees all groups they manage
+            groups = await sql`
+        SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g."memberCount",
+          g.capacity,
+          g."focusArea",
+          g.stage,
+          g."coachId",
+          g."createdAt",
+          g."selectedMembers",
+          array_length(g."selectedMembers", 1) as "actualMemberCount"
+        FROM "Group" g
+        WHERE g."coachId" = ${session.user.id}
+        ORDER BY g."createdAt" DESC
+      `;
+        } else if (session.user.role === 'client') {
+            // Client sees all available groups (both joined and available to join)
+            console.log('🔍 Fetching all groups for client:', session.user.id);
+
+            // Get the client record for this user to get the clientId
+            const clientRecord = await sql`SELECT id as "clientId", "userId" FROM "Client" WHERE "userId" = ${session.user.id}`;
+            console.log('🔍 Client record for user:', clientRecord);
+
+            const clientId = clientRecord.length > 0 ? clientRecord[0].clientId : null;
+            console.log('🔍 Using clientId:', clientId);
+
+            if (clientId) {
+                // Check if current client is in any groups
+                const clientInGroups = await sql`SELECT id, name, "selectedMembers" FROM "Group" WHERE ${clientId} = ANY("selectedMembers")`;
+                console.log('🔍 Groups client is member of:', clientInGroups);
+            }
+
+            groups = await sql`
+        SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g."memberCount",
+          g.capacity,
+          g."focusArea",
+          g.stage,
+          g."coachId",
+          g."createdAt",
+          g."selectedMembers",
+          array_length(g."selectedMembers", 1) as "actualMemberCount",
+          CASE 
+            WHEN ${clientId} = ANY(g."selectedMembers") THEN true 
+            ELSE false 
+          END as "isJoined"
+        FROM "Group" g
+        ORDER BY g."createdAt" DESC
+      `;
+            console.log('🔍 All groups found:', groups);
+        } else {
+            // Admin sees all groups
+            groups = await sql`
+        SELECT 
+          g.id,
+          g.name,
+          g.description,
+          g."memberCount",
+          g.capacity,
+          g."focusArea",
+          g.stage,
+          g."coachId",
+          g."createdAt",
+          g."selectedMembers",
+          array_length(g."selectedMembers", 1) as "actualMemberCount"
+        FROM "Group" g
+        ORDER BY g."createdAt" DESC
+      `;
+        }
+
+        // Format the response
+        const formattedGroups = groups.map(group => ({
+            id: group.id,
+            name: group.name,
+            description: group.description,
+            members: group.actualMemberCount || 0,
+            maxMembers: group.capacity,
+            focusArea: group.focusArea,
+            stage: group.stage,
+            coachId: group.coachId,
+            createdAt: group.createdAt,
+            isJoined: group.isJoined || false,
+            unreadMessages: 0,
+            groupType: 'open',
+            frequency: 'weekly',
+            duration: '60',
+            location: 'Online',
+            avatars: [],
+            lastComment: null // TODO: Implement last comment fetching
+        }));
 
         return NextResponse.json({
-            message: 'Groups fetched successfully',
-            groups: groups
+            success: true,
+            groups: formattedGroups
         });
     } catch (error) {
-        console.error('Get groups error:', error);
+        console.error('Error fetching groups:', error);
         return NextResponse.json(
-            { error: 'Failed to get groups' },
+            { error: 'Failed to fetch groups' },
             { status: 500 }
         );
     }

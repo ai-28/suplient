@@ -4,73 +4,151 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
-import { Search, BookOpen, Play, Download, Heart, Star, Filter } from "lucide-react";
+import { Search, BookOpen, Play, Download, Star, Filter, X, Eye, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const categories = ["Videos", "Images", "Articles", "Sounds"];
 
-const resources = [
-  {
-    id: 1,
-    title: "Understanding Anxiety",
-    description: "Learn about the causes and symptoms of anxiety disorders.",
-    type: "Article",
-    category: "Articles",
-    duration: "5 min read",
-    rating: 4.8,
-    liked: true,
-    completed: true
-  },
-  {
-    id: 2,
-    title: "Deep Breathing Exercise",
-    description: "A guided breathing exercise to help reduce stress and anxiety.",
-    type: "Exercise",
-    category: "Exercises",
-    duration: "10 min",
-    rating: 4.9,
-    liked: false,
-    completed: false
-  },
-  {
-    id: 3,
-    title: "Mindfulness Meditation",
-    description: "Introduction to mindfulness meditation practices.",
-    type: "Video",
-    category: "Videos",
-    duration: "15 min",
-    rating: 4.7,
-    liked: true,
-    completed: true
-  },
-  {
-    id: 4,
-    title: "Daily Mood Tracker",
-    description: "Track your daily mood and identify patterns.",
-    type: "Worksheet",
-    category: "Worksheets",
-    duration: "Daily use",
-    rating: 4.6,
-    liked: false,
-    completed: false
-  },
-  {
-    id: 5,
-    title: "Sleep Meditation Audio",
-    description: "Relaxing audio to help you fall asleep peacefully.",
-    type: "Audio",
-    category: "Audio",
-    duration: "20 min",
-    rating: 4.8,
-    liked: true,
-    completed: false
-  }
-];
+// Real useResources hook with API calls
+const useResources = () => {
+  const [resources, setResources] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewType, setPreviewType] = useState(null);
+  
+  // Fetch resources from API
+  const fetchResources = async () => {
+    try {
+      console.log('Fetching resources...');
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/resources');
+      console.log('Resources API response:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Resources API error:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch resources');
+      }
+      
+      const data = await response.json();
+      console.log('Resources data:', data);
+      setResources(data.resources || []);
+    } catch (err) {
+      console.error('Error fetching resources:', err);
+      setError(err.message);
+      setResources([]); // Fallback to empty array
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Fetch resources on component mount
+  useEffect(() => {
+    fetchResources();
+  }, []);
+  
+  // Handle resource preview (Play/Read)
+  const handleResourcePreview = async (resource) => {
+    try {
+      const response = await fetch(`/api/resources/${resource.id}/access?action=access`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to access resource');
+      }
+      
+      const data = await response.json();
+      
+      // Determine preview type based on resource type
+      let previewType = 'document';
+      if (resource.type === 'Video') {
+        previewType = 'video';
+      } else if (resource.type === 'Image') {
+        previewType = 'image';
+      } else if (resource.type === 'Audio' || resource.type === 'Sound') {
+        previewType = 'audio';
+      } else if (resource.type === 'Article') {
+        // Check if it's a PDF
+        const fileName = resource.fileName || resource.title || '';
+        const fileExtension = fileName.split('.').pop()?.toLowerCase();
+        previewType = fileExtension === 'pdf' ? 'pdf' : 'document';
+      }
+      
+      // Set preview data
+      setPreviewUrl(data.resource.url);
+      setPreviewType(previewType);
+      
+      toast.success(`Opening ${resource.type.toLowerCase()} preview...`);
+    } catch (error) {
+      console.error('Error accessing resource:', error);
+      toast.error(error.message || 'Failed to access resource');
+    }
+  };
+  
+  // Handle resource download
+  const handleResourceDownload = async (resource) => {
+    try {
+      const response = await fetch(`/api/resources/${resource.id}/access?action=download`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to download resource');
+      }
+      
+      const data = await response.json();
+      
+      // Create a temporary link to download the file
+      const link = document.createElement('a');
+      link.href = data.resource.url;
+      link.download = data.resource.fileName || resource.title;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Downloading ${resource.title}...`);
+    } catch (error) {
+      console.error('Error downloading resource:', error);
+      toast.error(error.message || 'Failed to download resource');
+    }
+  };
+  
+  return { 
+    resources, 
+    isLoading, 
+    error,
+    previewUrl,
+    previewType,
+    setPreviewUrl,
+    setPreviewType,
+    handleResourcePreview,
+    handleResourceDownload,
+    refetch: fetchResources 
+  };
+};
 
 export default function ClientResources() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Videos");
   const [isMobile, setIsMobile] = useState(false);
+  
+  const { 
+    resources, 
+    isLoading, 
+    error, 
+    previewUrl, 
+    previewType, 
+    setPreviewUrl, 
+    setPreviewType, 
+    handleResourcePreview, 
+    handleResourceDownload 
+  } = useResources();
 
   // Detect mobile screen size
   useEffect(() => {
@@ -117,7 +195,38 @@ export default function ClientResources() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading resources...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="container mx-auto px-4 py-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Error loading resources</h3>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()} variant="outline">
+                  Try Again
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Main Content - only show when not loading and no error */}
+      {!isLoading && !error && (
+        <>
+          <div className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}>
         <div>
           <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>Resources</h1>
           <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
@@ -200,17 +309,19 @@ export default function ClientResources() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Button size="sm" className="flex-1 h-9">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 h-9"
+                      onClick={() => handleResourcePreview(resource)}
+                    >
                       {resource.type === 'Video' || resource.type === 'Audio' ? 'Play' : 'Read'}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-9 w-9 ${resource.liked ? "text-red-500" : ""}`}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-9 w-9"
+                      onClick={() => handleResourceDownload(resource)}
                     >
-                      <Heart className={`h-4 w-4 ${resource.liked ? "fill-current" : ""}`} />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-9 w-9">
                       <Download className="h-4 w-4" />
                     </Button>
                   </div>
@@ -234,13 +345,6 @@ export default function ClientResources() {
                       <CardTitle className="text-lg">{resource.title}</CardTitle>
                       <CardDescription>{resource.description}</CardDescription>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={resource.liked ? "text-red-500" : ""}
-                    >
-                      <Heart className={`h-4 w-4 ${resource.liked ? "fill-current" : ""}`} />
-                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -253,10 +357,18 @@ export default function ClientResources() {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button size="sm" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleResourcePreview(resource)}
+                    >
                       {resource.type === 'Video' || resource.type === 'Audio' ? 'Play' : 'Read'}
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleResourceDownload(resource)}
+                    >
                       <Download className="h-4 w-4" />
                     </Button>
                   </div>
@@ -281,7 +393,169 @@ export default function ClientResources() {
           </CardContent>
         </Card>
       )}
-      </div>
+          </div>
+        </>
+      )}
+
+      {/* Preview Modal */}
+      {previewUrl && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Preview</h3>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setPreviewUrl(null);
+                  setPreviewType(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4">
+              {previewType === 'image' ? (
+                <div>
+                  <img 
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-w-full max-h-[70vh] object-contain mx-auto"
+                    onError={(e) => {
+                      console.error('❌ Image failed to load');
+                      e.target.style.display = 'none';
+                      const fallback = document.createElement('div');
+                      fallback.className = 'text-center py-8';
+                      fallback.innerHTML = `
+                        <p class="text-muted-foreground mb-4">Preview failed to load</p>
+                        <button 
+                          class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                          onclick="window.open('${previewUrl}', '_blank')"
+                        >
+                          Open in New Tab
+                        </button>
+                      `;
+                      e.target.parentNode.appendChild(fallback);
+                    }}
+                  />
+                </div>
+              ) : previewType === 'video' ? (
+                <video 
+                  src={previewUrl}
+                  controls
+                  className="max-w-full max-h-[70vh] mx-auto"
+                  onError={(e) => {
+                    console.error('❌ Video failed to load');
+                    e.target.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = 'text-center py-8';
+                    fallback.innerHTML = `
+                      <p class="text-muted-foreground mb-4">Video failed to load</p>
+                      <button 
+                        class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                        onclick="window.open('${previewUrl}', '_blank')"
+                      >
+                        Open in New Tab
+                      </button>
+                    `;
+                    e.target.parentNode.appendChild(fallback);
+                  }}
+                />
+              ) : previewType === 'audio' ? (
+                <audio 
+                  src={previewUrl}
+                  controls
+                  className="w-full"
+                  onError={(e) => {
+                    console.error('❌ Audio failed to load');
+                    e.target.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = 'text-center py-8';
+                    fallback.innerHTML = `
+                      <p class="text-muted-foreground mb-4">Audio failed to load</p>
+                      <button 
+                        class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                        onclick="window.open('${previewUrl}', '_blank')"
+                      >
+                        Open in New Tab
+                      </button>
+                    `;
+                    e.target.parentNode.appendChild(fallback);
+                  }}
+                />
+              ) : previewType === 'pdf' ? (
+                <div>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium mb-2">PDF Preview</h4>
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-[60vh] border rounded"
+                      title="PDF Preview"
+                      onError={() => {
+                        console.error('❌ PDF failed to load');
+                      }}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => {
+                        window.open(previewUrl, '_blank');
+                      }}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium mb-2">Document Preview</h4>
+                    <div className="w-full h-[60vh] border rounded bg-gray-50 flex items-center justify-center">
+                      <div className="text-center p-8">
+                        <div className="mb-4">
+                          <FileText className="h-12 w-12 text-gray-400 mx-auto" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Document Preview</h3>
+                        <p className="text-sm text-gray-500 mb-6">
+                          This document type cannot be previewed directly in the browser. 
+                          Please download the file to view it in a compatible application.
+                        </p>
+                        <div className="space-y-3">
+                          <Button 
+                            variant="default" 
+                            className="w-full"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = previewUrl;
+                              link.download = previewUrl.split('/').pop() || 'document';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                          >
+                            Download Document
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                            onClick={() => {
+                              window.open(previewUrl, '_blank');
+                            }}
+                          >
+                            Open in New Tab
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

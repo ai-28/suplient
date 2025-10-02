@@ -6,14 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { PageHeader } from "@/app/components/PageHeader";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { 
   Users, 
   TrendingUp, 
   CheckCircle,
-  BarChart3
+  BarChart3,
+  Loader2
 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+import { toast } from "sonner";
 
 
 const earningsData = [
@@ -32,6 +36,18 @@ const earningsData = [
 
 export default function Dashboard() {
   const router = useRouter();
+  const [tasks, setTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [taskUpdating, setTaskUpdating] = useState(null);
+  const [clientStats, setClientStats] = useState({
+    activeClients: 0,
+    newClientsThisMonth: 0,
+    churnedClientsThisMonth: 0,
+    totalClients: 0
+  });
+  
+  console.log("clientStas", clientStats)
+  const [clientStatsLoading, setClientStatsLoading] = useState(true);
 
   const activities = [
     { name: "John", action: "completedTask", time: `5 minAgo`, type: "success" },
@@ -39,13 +55,107 @@ export default function Dashboard() {
     { name: "Bob", action: "loggedInAfter2Weeks", time: `1 dayAgo`, type: "login" }
   ];
 
-  const tasks = [
-    { id: 1, text: "Call Henry - Ask about work progress", completed: false },
-    { id: 2, text: "Invoice pending - Send reminder to client", completed: false }
-  ];
+  // Fetch today's tasks when component mounts
+  useEffect(() => {
+    const fetchTodayTasks = async () => {
+      setTasksLoading(true);
+      try {
+        const response = await fetch('/api/coach/tasks/today');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch today\'s tasks');
+        }
+        
+        const data = await response.json();
+        setTasks(data.tasks || []);
+      } catch (error) {
+        console.error('Error fetching today\'s tasks:', error);
+        toast.error('Failed to load today\'s tasks');
+        setTasks([]);
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+
+    fetchTodayTasks();
+  }, []);
+
+  // Fetch client statistics when component mounts
+  useEffect(() => {
+    const fetchClientStats = async () => {
+      setClientStatsLoading(true);
+      try {
+        const response = await fetch('/api/coach/clients/stats');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch client statistics');
+        }
+        
+        const data = await response.json();
+        setClientStats({
+          activeClients: data.activeClients || 0,
+          newClientsThisMonth: data.newClientsThisMonth || 0,
+          churnedClientsThisMonth: data.churnedClientsThisMonth || 0,
+          totalClients: data.totalClients || 0
+        });
+      } catch (error) {
+        console.error('Error fetching client statistics:', error);
+        toast.error('Failed to load client statistics');
+        setClientStats({
+          activeClients: 0,
+          newClientsThisMonth: 0,
+          churnedClientsThisMonth: 0,
+          totalClients: 0
+        });
+      } finally {
+        setClientStatsLoading(false);
+      }
+    };
+
+    fetchClientStats();
+  }, []);
 
   const handleViewAllTasks = () => {
-    router.push('/tasks');
+    router.push('/coach/tasks');
+  };
+
+  const handleTaskCompletion = async (taskId, taskText, completed) => {
+    setTaskUpdating(taskId);
+    try {
+      const response = await fetch('/api/coach/tasks/today', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId,
+          completed
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update task');
+      }
+
+      const result = await response.json();
+      
+      // Update local state
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskId 
+            ? { ...task, completed, status: completed ? 'completed' : 'pending' }
+            : task
+        )
+      );
+      
+      toast.success(result.message);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error(error.message || "Failed to update task");
+    } finally {
+      setTaskUpdating(null);
+    }
   };
 
   return (
@@ -67,22 +177,78 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {tasks.map((task) => (
-              <div key={task.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                <Checkbox id={`task-${task.id}`} />
-                <label htmlFor={`task-${task.id}`} className="text-sm text-foreground flex-1 cursor-pointer">
-                  {task.text}
-                </label>
+            {tasksLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Loading tasks...</span>
               </div>
-            ))}
+            ) : tasks.length === 0 ? (
+              <div className="text-center p-4">
+                <CheckCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No tasks for today</p>
+              </div>
+            ) : (
+              tasks.map((task) => (
+                <div key={task.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <div className="flex items-center space-x-3 flex-1 cursor-pointer">
+                        <Checkbox 
+                          id={`task-${task.id}`} 
+                          checked={task.completed}
+                          disabled={taskUpdating === task.id}
+                        />
+                        <label 
+                          htmlFor={`task-${task.id}`} 
+                          className={`text-sm flex-1 cursor-pointer ${
+                            task.completed ? 'line-through text-muted-foreground' : 'text-foreground'
+                          }`}
+                        >
+                          {task.text}
+                        </label>
+                        {taskUpdating === task.id && (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        )}
+                      </div>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {task.completed ? 'Mark as Pending?' : 'Mark as Completed?'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {task.completed 
+                            ? `Are you sure you want to mark "${task.text}" as pending?`
+                            : `Are you sure you want to mark "${task.text}" as completed?`
+                          }
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleTaskCompletion(task.id, task.text, !task.completed)}
+                          className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                          {task.completed ? 'Mark as Pending' : 'Mark as Completed'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ))
+            )}
             <div className="pt-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-foreground">• {"Todays Tasks"}</span>
-                <Badge variant="secondary" className="bg-primary text-primary-foreground">2</Badge>
+                <span className="text-foreground">• {"Today's Tasks"}</span>
+                <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                  {tasksLoading ? "..." : tasks.length}
+                </Badge>
               </div>
               <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-foreground">• {"Overdue Tasks"}</span>
-                <Badge variant="secondary" className="bg-accent text-accent-foreground">8</Badge>
+                <span className="text-foreground">• {"Completed"}</span>
+                <Badge variant="secondary" className="bg-green-500 text-white">
+                  {tasksLoading ? "..." : tasks.filter(t => t.completed).length}
+                </Badge>
               </div>
               <Button 
                 variant="outline" 
@@ -104,18 +270,39 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-              <span className="text-foreground font-medium">{"Active Clients"}</span>
-              <Badge className="bg-primary text-primary-foreground text-lg px-3 py-1">64</Badge>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-              <span className="text-foreground font-medium">{"New Clients Month"}</span>
-              <Badge className="bg-accent text-accent-foreground text-lg px-3 py-1">35</Badge>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-              <span className="text-foreground font-medium">{"Churned Clients Month"}</span>
-              <Badge className="bg-secondary text-secondary-foreground text-lg px-3 py-1">4</Badge>
-            </div>
+            {clientStatsLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Loading client stats...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                  <span className="text-foreground font-medium">{"Active Clients"}</span>
+                  <Badge className="bg-primary text-primary-foreground text-lg px-3 py-1">
+                    {clientStats.activeClients}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                  <span className="text-foreground font-medium">{"New Clients This Month"}</span>
+                  <Badge className="bg-accent text-accent-foreground text-lg px-3 py-1">
+                    {clientStats.newClientsThisMonth}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                  <span className="text-foreground font-medium">{"Churned Clients This Month"}</span>
+                  <Badge className="bg-secondary text-secondary-foreground text-lg px-3 py-1">
+                    {clientStats.churnedClientsThisMonth}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                  <span className="text-foreground font-medium">{"Total Clients"}</span>
+                  <Badge className="bg-muted text-muted-foreground text-lg px-3 py-1">
+                    {clientStats.totalClients}
+                  </Badge>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

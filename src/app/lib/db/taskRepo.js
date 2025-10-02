@@ -3,6 +3,7 @@ import { sql } from './postgresql';
 export const taskRepo = {
     createTask,
     getTasksByCoach,
+    getTasksByClientId,
     updateTask,
     deleteTask,
     getTaskById,
@@ -62,6 +63,50 @@ async function createTask(taskData) {
         return result[0];
     } catch (error) {
         console.error("Create task error:", error);
+        throw error;
+    }
+}
+
+async function getTasksByClientId(clientId) {
+    try {
+        const result = await sql`
+            SELECT 
+                t.id,
+                t.title,
+                t.description,
+                t."dueDate",
+                t.status,
+                t."taskType",
+                t."isRepetitive",
+                t."repetitiveFrequency",
+                t."repetitiveCount",
+                t."createdAt",
+                t."updatedAt",
+                tc."completedAt",
+                CASE 
+                    WHEN tc."completedAt" IS NOT NULL THEN true
+                    ELSE false
+                END as "isCompleted"
+            FROM "Task" t
+            LEFT JOIN "TaskCompletion" tc ON t.id = tc."taskId" AND tc."clientId" = ${clientId}
+            WHERE (
+                t."clientId" = ${clientId} 
+                OR (t."groupId" IS NOT NULL AND ${clientId} = ANY(
+                    SELECT unnest(g."selectedMembers")
+                    FROM "Group" g
+                    WHERE g.id = t."groupId"
+                ))
+            )
+            AND t.status != 'deleted'
+            ORDER BY 
+                CASE WHEN tc."completedAt" IS NULL THEN 0 ELSE 1 END,
+                t."dueDate" ASC NULLS LAST,
+                t."createdAt" DESC
+        `;
+
+        return result;
+    } catch (error) {
+        console.error("Get tasks by client ID error:", error);
         throw error;
     }
 }

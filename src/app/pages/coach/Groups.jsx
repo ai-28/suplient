@@ -239,8 +239,14 @@ export default function Groups() {
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">
-                  {group.lastComment.split(' ').slice(0, 15).join(' ')}
-                  {group.lastComment.split(' ').length > 15 && '...'}
+                  {group.lastComment ? (
+                    <>
+                      {group.lastComment.split(' ').slice(0, 15).join(' ')}
+                      {group.lastComment.split(' ').length > 15 && '...'}
+                    </>
+                  ) : (
+                    'No recent messages'
+                  )}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -260,8 +266,14 @@ export default function Groups() {
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">
-                  {group.lastComment.split(' ').slice(0, 15).join(' ')}
-                  {group.lastComment.split(' ').length > 15 && '...'}
+                  {group.lastComment ? (
+                    <>
+                      {group.lastComment.split(' ').slice(0, 15).join(' ')}
+                      {group.lastComment.split(' ').length > 15 && '...'}
+                    </>
+                  ) : (
+                    'No recent messages'
+                  )}
                 </p>
               </TooltipContent>
             </Tooltip>

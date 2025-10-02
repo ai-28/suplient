@@ -30,13 +30,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { GroupSettingsDialog } from "@/app/components/GroupSettingsDialog";
 import { ScheduleSessionDialog } from "@/app/components/ScheduleSessionDialog";
 import { GroupChatInterface } from "@/app/components/GroupChatInterface";
+import { useSession } from "next-auth/react";
 import { GroupInfoPanel } from "@/app/components/GroupInfoPanel";
 import { GroupMembersPanel } from "@/app/components/GroupMembersPanel";
 import { GroupTasksPanel } from "@/app/components/GroupTasksPanel";
 import { GroupNotesPanel } from "@/app/components/GroupNotesPanel";
 import { GroupFilesPanel } from "@/app/components/GroupFilesPanel";
 import { AddMemberToGroupDialog } from "@/app/components/AddMemberToGroupDialog";
-import { getGroupProgressData } from '@/app/utils/progressCalculations';
+import { useGroupProgress } from '@/app/hooks/useGroupProgress';
 
 // Helper function to format date for display
 const formatDate = (dateString) => {
@@ -62,6 +63,7 @@ export default function GroupDetail() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -69,6 +71,9 @@ export default function GroupDetail() {
   const [groupData, setGroupData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Get real group progress data
+  const { progressData, loading: progressLoading, error: progressError } = useGroupProgress(id);
   
   // Fetch group data
   const fetchGroupData = async () => {
@@ -214,17 +219,18 @@ export default function GroupDetail() {
 
   console.log("group",groupData)
   console.log("nextSession data:", groupData.nextSession)
-  // Generate unified progress data
-  const groupProgressData = getGroupProgressData(
-    group.id.toString(),
-    group.name,
-    group.detailedMembers.map(member => ({
-      id: member.id?.toString() || member.name.replace(/\s+/g, '').toLowerCase(),
-      name: member.name,
-      status: member.status === "on-hold" || member.status === "inactive" ? "Inactive" : "Active",
-    }))
-  );
-
+  
+  // Use real data if available, otherwise show empty state
+  const groupProgressData = progressData ? {
+    ...progressData,
+    weeklyAverages: progressData.weeklyAverages || [],
+    members: progressData.members || []
+  } : {
+    weeklyAverages: [],
+    members: [],
+    stats: { totalMembers: 0, activeMembers: 0, totalCheckIns: 0, totalTasksCompleted: 0, totalSessionsAttended: 0, totalSessionsScheduled: 0 }
+  };
+console.log(groupProgressData)
   const handleMemberOverviewClick = (memberId, memberName) => {
     // Navigate to member's profile overview from member name/avatar clicks
     router.push(`/coach/clients/${memberId}?from=group&groupId=${id}&groupTab=${activeTab}&tab=overview&memberName=${encodeURIComponent(memberName)}`);
@@ -253,7 +259,8 @@ export default function GroupDetail() {
 
   const handleMemberAdded = (memberData) => {
     console.log(`Added member: ${memberData.name} (${memberData.email}) via ${memberData.type}`);
-    // Here you would typically update the group data or refetch from API
+    // Refresh the group data to show the new member
+    fetchGroupData();
   };
 
   return (
@@ -354,50 +361,79 @@ export default function GroupDetail() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={groupProgressData.weeklyAverages}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="week" />
-                          <YAxis domain={[0, 10]} />
-                          <Tooltip 
-                            content={({ active, payload, label }) => {
-                              if (active && payload && payload.length) {
-                                const data = payload[0].payload;
-                                return (
-                                   <div className="bg-white p-3 border rounded-lg shadow-lg">
-                                     <p className="font-medium">{label}</p>
-                                     <p className="text-blue-600">
-                                       {"Performance"}: {data.performance}
-                                     </p>
-                                     <p className="text-green-600">
-                                       {"Wellbeing"}: {data.wellbeing}
-                                     </p>
-                                     <p className="text-sm text-gray-500 mt-1">
-                                       {"Based on members"}: {data.memberCount}
-                                     </p>
-                                   </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Legend />
-                          <Line 
-                            type="monotone" 
-                            dataKey="performance" 
-                            stroke="#3b82f6" 
-                            strokeWidth={3}
-                            name={"Group Performance"}
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="wellbeing" 
-                            stroke="#10b981" 
-                            strokeWidth={3}
-                            name={"Group Wellbeing"}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      {progressLoading ? (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Loading progress data...</p>
+                          </div>
+                        </div>
+                      ) : progressError ? (
+                        <div className="flex items-center justify-center h-full text-red-500">
+                          <div className="text-center">
+                            <div className="text-red-500 mb-2">⚠️</div>
+                            <p className="font-medium">Error loading progress data</p>
+                            <p className="text-sm text-gray-500 mt-1">{progressError}</p>
+                          </div>
+                        </div>
+                      ) : !progressData ? (
+                        <div className="flex items-center justify-center h-full text-gray-500">
+                          <div className="text-center">
+                            <TrendingUp className="h-8 w-8 mx-auto mb-2" />
+                            <p className="font-medium">No progress data available</p>
+                            <p className="text-sm text-gray-400 mt-1">Group needs activity to see progress</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={groupProgressData.weeklyAverages}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="week" 
+                              tick={{ fontSize: 12 }}
+                              interval={0}
+                            />
+                            <YAxis domain={[0, 10]} />
+                            <Tooltip 
+                              content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                  const data = payload[0].payload;
+                                  return (
+                                     <div className="bg-white p-3 border rounded-lg shadow-lg">
+                                       <p className="font-medium">{label}</p>
+                                       <p className="text-blue-600">
+                                         {"Performance"}: {data.performance}
+                                       </p>
+                                       <p className="text-green-600">
+                                         {"Wellbeing"}: {data.wellbeing}
+                                       </p>
+                                       <p className="text-sm text-gray-500 mt-1">
+                                         {"Based on members"}: {data.memberCount}
+                                       </p>
+                                     </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Legend />
+                            <Line 
+                              type="monotone" 
+                              dataKey="performance" 
+                              stroke="#3b82f6" 
+                              strokeWidth={3}
+                              name={"Group Performance"}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="wellbeing" 
+                              stroke="#10b981" 
+                              strokeWidth={3}
+                              name={"Group Wellbeing"}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -497,6 +533,7 @@ export default function GroupDetail() {
         onOpenChange={setEnrollClientOpen}
         groupName={group.name}
         onAddMember={handleMemberAdded}
+        groupId={group.id}
       />
     </div>
   );

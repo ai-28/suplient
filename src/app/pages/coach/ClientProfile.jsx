@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -41,7 +41,8 @@ import {
 } from 'lucide-react';
 import { ProgramTimelineView } from '@/app/components/ProgramTimelineView';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { generateTherapeuticProgressData } from '@/app/utils/progressCalculations';
+import { useClientProgress } from '@/app/hooks/useClientProgress';
+import { useConversationId } from '@/app/hooks/useConversationId';
 import { toast } from 'sonner';
 import { 
   AlertDialog,
@@ -53,7 +54,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/app/components/ui/alert-dialog";
-import ClientChatInterface from "@/app/components/ClientChatInterface";
+import { UniversalChatInterface } from "@/app/components/UniversalChatInterface";
+import { useSession } from "next-auth/react";
 import { CreateTaskDialog } from "@/app/components/CreateTaskDialog";
 import { LibraryPickerModal } from "@/app/components/LibraryPickerModal";
 
@@ -66,6 +68,7 @@ export default function ClientProfile() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   
   // Safety check to ensure searchParams is available
   if (!searchParams) {
@@ -88,6 +91,17 @@ export default function ClientProfile() {
   const [clientNotes, setClientNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Get conversation ID for chat - memoize to prevent unnecessary re-renders
+  const conversationParams = useMemo(() => ({
+    clientId: clientData?.userId,
+    coachId: session?.user?.id
+  }), [clientData?.userId, session?.user?.id]);
+
+  const { conversationId: chatConversationId, loading: conversationLoading } = useConversationId(
+    conversationParams.clientId,
+    conversationParams.coachId
+  );
   
   // Preview states
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -592,13 +606,21 @@ console.log("currentClientPrograms",currentClientPrograms)
   };
 
 
-  // Generate client progress data
+  // Get real client progress data - use clientData.id (the actual client ID)
+  const clientId = clientData?.id;
+  const { progressData, loading: progressLoading, error: progressError } = useClientProgress(clientId);
+
+  // Use real data if available, otherwise show empty state
   const clientName = clientData?.name || 'Loading...';
-  const clientProgressData = generateTherapeuticProgressData(
-    id || 'client-1',
-    clientName,
-    clientData?.status || 'Active'
-  );
+  const clientProgressData = progressData ? {
+    ...progressData,
+    weeklyData: progressData.weeklyData || [],
+    currentMetrics: progressData.currentMetrics || { performance: 0, wellbeing: 0 }
+  } : {
+    weeklyData: [],
+    currentMetrics: { performance: 0, wellbeing: 0 },
+    stats: { journalCompletionRate: 0, sessionAttendanceRate: 0 }
+  };
 
   // Show loading state
   if (loading) {
@@ -998,12 +1020,26 @@ console.log("currentClientPrograms",currentClientPrograms)
                 <Card>
                   <CardContent className="p-0">
                     <div className="h-[600px]">
-                      <ClientChatInterface 
-                        clientName={clientData.name} 
-                        clientInitials={clientData.name.split(' ').map(n => n[0]).join('').toUpperCase()} 
-                        clientType={clientData.type || "personal"}
-                        clientId={clientData.id}
-                      />
+                      {conversationLoading ? (
+                        <div className="flex items-center justify-center h-full">
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                      ) : chatConversationId ? (
+                        <UniversalChatInterface 
+                          chatId={chatConversationId}
+                          chatType="personal"
+                          participantName={clientData.name}
+                          participantInitials={clientData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          currentUserId={session?.user?.id}
+                          currentUserRole="coach"
+                          title={clientData.name}
+                          className="h-full"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          Unable to load chat
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1474,10 +1510,39 @@ console.log("currentClientPrograms",currentClientPrograms)
                 </CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={clientProgressData.weeklyData}>
+                    {progressLoading ? (
+                      <div className="flex items-center justify-center h-full">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <span className="ml-2">Loading progress data...</span>
+                      </div>
+                    ) : progressError ? (
+                      <div className="flex items-center justify-center h-full text-red-500">
+                        <AlertCircle className="h-8 w-8" />
+                        <div className="text-center">
+                          <p className="font-medium">Error loading progress data</p>
+                          <p className="text-sm text-gray-500 mt-1">{progressError}</p>
+                        </div>
+                      </div>
+                    ) : !progressData ? (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        <div className="text-center">
+                          <TrendingUp className="h-8 w-8 mx-auto mb-2" />
+                          <p className="font-medium">No progress data available</p>
+                          <p className="text-sm text-gray-400 mt-1">Client needs to start activities to see progress</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Debug: Log the weekly data */}
+                        {console.log('Weekly data for chart:', clientProgressData.weeklyData)}
+                        <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={clientProgressData.weeklyData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="week" />
+                        <XAxis 
+                          dataKey="week" 
+                          tick={{ fontSize: 12 }}
+                          interval={0}
+                        />
                         <YAxis domain={[0, 10]} />
                         <Tooltip 
                           content={({ active, payload, label }) => {
@@ -1516,6 +1581,8 @@ console.log("currentClientPrograms",currentClientPrograms)
                         />
                       </LineChart>
                     </ResponsiveContainer>
+                    </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1530,25 +1597,25 @@ console.log("currentClientPrograms",currentClientPrograms)
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <div className="text-2xl font-bold text-blue-600">
-                        {clientProgressData.currentMetrics.performance}
+                        {progressData ? clientProgressData.currentMetrics.performance.toFixed(1) : '0.0'}
                       </div>
                       <div className="text-sm text-gray-600">Performance Score</div>
                       <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
                         <div 
                           className="h-full bg-blue-500"
-                          style={{ width: `${clientProgressData.currentMetrics.performance * 10}%` }}
+                          style={{ width: `${(progressData ? clientProgressData.currentMetrics.performance : 0) * 10}%` }}
                         />
                       </div>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg">
                       <div className="text-2xl font-bold text-green-600">
-                        {clientProgressData.currentMetrics.wellbeing}
+                        {progressData ? clientProgressData.currentMetrics.wellbeing.toFixed(1) : '0.0'}
                       </div>
                       <div className="text-sm text-gray-600">Wellbeing Score</div>
                       <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
                         <div 
                           className="h-full bg-green-500"
-                          style={{ width: `${clientProgressData.currentMetrics.wellbeing * 10}%` }}
+                          style={{ width: `${(progressData ? clientProgressData.currentMetrics.wellbeing : 0) * 10}%` }}
                         />
                       </div>
                     </div>
@@ -1557,11 +1624,15 @@ console.log("currentClientPrograms",currentClientPrograms)
                   {/* Additional Stats */}
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">92%</div>
+                      <div className="text-2xl font-bold text-purple-600">
+                        {progressData?.stats?.journalCompletionRate || 0}%
+                      </div>
                       <div className="text-sm text-gray-600">Journal Completion</div>
                     </div>
                     <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">85%</div>
+                      <div className="text-2xl font-bold text-orange-600">
+                        {progressData?.stats?.sessionAttendanceRate || 0}%
+                      </div>
                       <div className="text-sm text-gray-600">Session Attendance</div>
                     </div>
                   </div>

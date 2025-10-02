@@ -1,128 +1,182 @@
 "use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { Badge } from "@/app/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
 import { 
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
-  BarChart3
+  User,
+  LogOut,
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  User as UserIcon
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { GoalAnalyticsChart } from "@/app/components/GoalAnalyticsChart";
 import { StreakCounter } from "@/app/components/StreakCounter";
+import { useAuth } from "@/app/context/AuthContext";
+import { signOut } from "next-auth/react";
 
-// Demo data for goals
-const demoGoals = [
-  { id: 1, title: "Daily Meditation", category: "Mindfulness", target: "10 minutes", progress: 80, color: "bg-blue-500" },
-  { id: 2, title: "Exercise Routine", category: "Fitness", target: "30 minutes", progress: 65, color: "bg-green-500" },
-  { id: 3, title: "Reading Habit", category: "Learning", target: "20 pages", progress: 90, color: "bg-purple-500" },
-  { id: 4, title: "Water Intake", category: "Health", target: "8 glasses", progress: 75, color: "bg-cyan-500" }
-];
 
-// Demo data for daily entries
-const demoEntries = [
-  { date: "2024-01-15", score: 85, goals: [1, 2, 3], habits: [1] },
-  { date: "2024-01-14", score: 92, goals: [1, 2, 3, 4], habits: [] },
-  { date: "2024-01-13", score: 78, goals: [1, 3], habits: [1, 2] },
-  { date: "2024-01-12", score: 88, goals: [1, 2, 4], habits: [1] },
-  { date: "2024-01-11", score: 95, goals: [1, 2, 3, 4], habits: [] },
-  { date: "2024-01-10", score: 82, goals: [1, 3, 4], habits: [1] },
-  { date: "2024-01-09", score: 89, goals: [1, 2, 3], habits: [1] }
-];
+// Custom hooks with real data
+const useGoalTracking = (period) => {
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-// Demo data for bad habits
-const demoBadHabits = [
-  { id: 1, title: "Late Night Snacking", category: "Health", frequency: 3 },
-  { id: 2, title: "Procrastination", category: "Productivity", frequency: 2 }
-];
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/analytics?period=${period}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics data');
+      }
+      const data = await response.json();
+      setAnalyticsData(data);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-// Custom hooks with demo data
-const useGoalTracking = () => {
+  useEffect(() => {
+    fetchAnalytics();
+  }, [period]);
+
+  // Refresh when component becomes visible (after navigation)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchAnalytics();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [period]);
+
   return {
-    getActiveGoals: () => demoGoals,
-    getActiveBadHabits: () => demoBadHabits,
-    calculateOverallScore: () => 87
+    analyticsData,
+    loading,
+    error,
+    refetch: fetchAnalytics
   };
 };
 
-const useDailyTracking = (activeGoals, activeBadHabits) => {
+const useUpcomingSessions = () => {
+  const [sessions, setSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState(null);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        setSessionsLoading(true);
+        const response = await fetch('/api/sessions/upcoming');
+        if (!response.ok) {
+          throw new Error('Failed to fetch upcoming sessions');
+        }
+        const data = await response.json();
+        setSessions(data.upcomingSessions || []);
+      } catch (err) {
+        setSessionsError(err.message);
+        console.error('Error fetching sessions:', err);
+      } finally {
+        setSessionsLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
+
   return {
-    getTodayEntry: () => demoEntries[0],
-    getWeeklyAverage: () => 87,
-    getMonthlyAverage: () => 85,
-    getGoalDistribution: () => demoGoals,
-    currentStreak: 7,
-    calculatePeriodStats: () => ({ completed: 24, total: 28, percentage: 85.7 }),
-    entries: demoEntries
+    sessions,
+    sessionsLoading,
+    sessionsError
   };
 };
 
-// Translation function - replace with your actual translation setup
-const t = (key) => {
-  const translations = {
-    "dashboard.client.title": "Client Dashboard",
-    "dashboard.client.nextSession": "Next Session",
-    "buttons.join": "Join"
-  };
-  return translations[key] || key;
-};
+
+
 
 export default function ClientDashboard() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState("today");
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const {user}=useAuth();
+  const { analyticsData, loading, error, refetch } = useGoalTracking(activeTab);
+  const { sessions: upcomingSessions, sessionsLoading, sessionsError } = useUpcomingSessions();
   
-  const { getActiveGoals, getActiveBadHabits, calculateOverallScore } = useGoalTracking();
-  const activeGoals = getActiveGoals();
-  const activeBadHabits = getActiveBadHabits();
-  const { 
-    getTodayEntry, 
-    getWeeklyAverage, 
-    getMonthlyAverage, 
-    getGoalDistribution,
-    currentStreak,
-    calculatePeriodStats,
-    entries
-  } = useDailyTracking(activeGoals, activeBadHabits);
+  // Memoize gamification calculations
+  const gamification = useMemo(() => {
+    if (!analyticsData) return { streak: 0, totalPoints: 0, level: 1, pointsToNextLevel: 100 };
+    
+    const totalPoints = analyticsData.totalEngagementPoints || 0;
+    const level = Math.floor(totalPoints / 100) + 1;
+    const pointsToNextLevel = (level * 100) - totalPoints;
+    
+    return {
+      streak: analyticsData.dailyStreak || 0,
+      totalPoints,
+      level,
+      pointsToNextLevel
+    };
+  }, [analyticsData]);
 
-  // Get historical data based on selected period
-  const getHistoricalData = (period) => {
-    const now = new Date();
-    const endDate = new Date(now);
-    const startDate = new Date(now);
-    
-    switch (period) {
-      case 'today':
-        startDate.setDate(endDate.getDate());
-        break;
-      case 'week':
-        startDate.setDate(endDate.getDate() - 6);
-        break;
-      case 'month':
-        startDate.setDate(endDate.getDate() - 29);
-        break;
+  // Refresh analytics when dashboard loads (e.g., after check-in from Journal)
+  // Only refetch if we don't have current data or if it's stale
+  useEffect(() => {
+    const shouldRefetch = !analyticsData || 
+                         (analyticsData && new Date() - new Date(analyticsData.updated_at) > 60000); // 1 minute
+    if (shouldRefetch) {
+      refetch();
     }
-    
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
-    
-    return entries.filter(entry => 
-      entry.date >= startDateStr && entry.date <= endDateStr
-    ).sort((a, b) => a.date.localeCompare(b.date));
-  };
+  }, []); // Run once on mount
 
   const handleTimePeriodChange = (period) => {
-    setActiveTab(period);
+    if (period !== activeTab) {
+      setActiveTab(period);
+    }
   };
 
-  const upcomingSessions = [
-    { id: 1, therapist: "Dr. Sarah Johnson", date: "Today", time: "2:00 PM", type: "Individual" },
-    { id: 2, therapist: "Group Session", date: "Tomorrow", time: "10:00 AM", type: "Group" },
-  ];
+  const handleSignOut = async () => {
+    try {
+      await signOut({ callbackUrl: '/' });
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleViewSession = (session) => {
+    setSelectedSession(session);
+    setIsDialogOpen(true);
+  };
+
+  const handleJoinSession = (session) => {
+    if (session.meetingLink) {
+      window.open(session.meetingLink, '_blank', 'noopener,noreferrer');
+    }
+    };
 
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -136,7 +190,32 @@ export default function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Date Navigation */}
+      {/* Header with Profile */}
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <h1 className="text-xl font-semibold text-foreground">Mental Health</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback>                    
+                  {user?.name ? user.name.slice(0, 2).toUpperCase() : "U"}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => router.push('/client/profile')}>
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <div className="flex items-center justify-center p-4 bg-card border-b border-border">
         <Button variant="ghost" size="icon" onClick={() => navigateDate('prev')}>
           <ChevronLeft className="h-4 w-4" />
@@ -154,30 +233,80 @@ export default function ClientDashboard() {
                   
         
         {/* Analytics Chart */}
-        <GoalAnalyticsChart 
-          data={getGoalDistribution()}
-          historicalData={getHistoricalData(activeTab)}
-          onTimePeriodChange={handleTimePeriodChange}
-        />  
+        {loading ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center">Loading analytics...</div>
+            </CardContent>
+          </Card>
+        ) : error ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center text-red-500">Error loading analytics: {error}</div>
+            </CardContent>
+          </Card>
+        ) : (
+          <GoalAnalyticsChart 
+            data={analyticsData?.goalDistribution || []}
+            historicalData={analyticsData?.historicalData || []}
+            onTimePeriodChange={handleTimePeriodChange}
+            selectedPeriod={activeTab}
+          />
+        )}  
 
         {/* Next Session */}
-        {upcomingSessions.length > 0 && (
+        {sessionsLoading ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center">Loading upcoming sessions...</div>
+            </CardContent>
+          </Card>
+        ) : sessionsError ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center text-red-500">Error loading sessions: {sessionsError}</div>
+            </CardContent>
+          </Card>
+        ) : upcomingSessions.length > 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">{t("dashboard.client.nextSession")}</CardTitle>
+              <CardTitle className="text-lg">Next Session</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-4">
                 <Avatar>
-                  <AvatarFallback>SJ</AvatarFallback>
+                  <AvatarFallback>
+                    {upcomingSessions[0].therapist.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <p className="font-medium">{upcomingSessions[0].therapist}</p>
                   <p className="text-sm text-muted-foreground">
                     {upcomingSessions[0].date} at {upcomingSessions[0].time}
                   </p>
+                  {upcomingSessions[0].title && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {upcomingSessions[0].title}
+                    </p>
+                  )}
                 </div>
-                <Button size="sm">{t("buttons.join")}</Button>
+                <Button 
+                  size="sm"
+                  onClick={() => upcomingSessions[0].meetingLink 
+                    ? handleJoinSession(upcomingSessions[0])
+                    : handleViewSession(upcomingSessions[0])
+                  }
+                >
+                  {upcomingSessions[0].meetingLink ? 'Join' : 'View'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center text-muted-foreground">
+                No upcoming sessions scheduled
               </div>
             </CardContent>
           </Card>
@@ -185,13 +314,95 @@ export default function ClientDashboard() {
 
         {/* Streak Counter */}
         <StreakCounter
-          streak={currentStreak}
-          totalPoints={currentStreak * 10}
-          level={Math.floor(currentStreak / 7) + 1}
-          pointsToNextLevel={((Math.floor(currentStreak / 7) + 1) * 70) - (currentStreak * 10)}
+          streak={gamification.streak}
+          totalPoints={gamification.totalPoints}
+          level={gamification.level}
+          pointsToNextLevel={gamification.pointsToNextLevel}
         />
       </div>
 
+      {/* Session Details Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedSession?.type === 'Group' ? (
+                <Users className="h-5 w-5" />
+              ) : (
+                <UserIcon className="h-5 w-5" />
+              )}
+              {selectedSession?.title || 'Session Details'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedSession?.type} session with {selectedSession?.therapist}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSession && (
+            <div className="space-y-4">
+              {/* Session Info */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{selectedSession.date}</p>
+                    <p className="text-xs text-muted-foreground">Session Date</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{selectedSession.time}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Duration: {selectedSession.duration} minutes
+                    </p>
+                  </div>
+                </div>
+                
+                {selectedSession.location && (
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{selectedSession.location}</p>
+                      <p className="text-xs text-muted-foreground">Location</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              {selectedSession.description && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedSession.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                {selectedSession.meetingLink && (
+                  <Button 
+                    onClick={() => handleJoinSession(selectedSession)}
+                    className="flex-1"
+                  >
+                    Join Session
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

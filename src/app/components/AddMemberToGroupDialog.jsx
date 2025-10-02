@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,28 +12,50 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { UserPlus, Mail } from "lucide-react";
+import { UserPlus, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-// Mock available clients that could be added to groups
-const availableClients = [
-  { id: 1, name: "David Wilson", email: "david.wilson@email.com" },
-  { id: 2, name: "Sophie Andersen", email: "sophie.andersen@email.com" },
-  { id: 3, name: "Michael Brown", email: "michael.brown@email.com" },
-  { id: 4, name: "Emily Davis", email: "emily.davis@email.com" },
-  { id: 5, name: "James Miller", email: "james.miller@email.com" },
-];
 
 export function AddMemberToGroupDialog({
   open,
   onOpenChange,
   groupName,
   onAddMember,
+  groupId, // Add groupId prop to exclude existing members
   }) {
   const [selectedClient, setSelectedClient] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [addMethod, setAddMethod] = useState("existing");
   const [isLoading, setIsLoading] = useState(false);
+  const [availableClients, setAvailableClients] = useState([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+
+  // Fetch available clients when dialog opens
+  useEffect(() => {
+    const fetchAvailableClients = async () => {
+      if (!open) return;
+      
+      setClientsLoading(true);
+      try {
+        const url = groupId ? `/api/clients/available?groupId=${groupId}` : '/api/clients/available';
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch available clients');
+        }
+        
+        const data = await response.json();
+        setAvailableClients(data.clients || []);
+      } catch (error) {
+        console.error('Error fetching available clients:', error);
+        toast.error('Failed to load available clients');
+        setAvailableClients([]);
+      } finally {
+        setClientsLoading(false);
+      }
+    };
+
+    fetchAvailableClients();
+  }, [open, groupId]);
 
   const handleAddExistingClient = async () => {
     if (!selectedClient) {
@@ -45,17 +67,39 @@ export function AddMemberToGroupDialog({
     try {
       const client = availableClients.find(c => c.id.toString() === selectedClient);
       if (client) {
+        // Call the API to add the client to the group
+        const response = await fetch(`/api/groups/${groupId}/members`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            clientIds: [client.id]
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to add client to group');
+        }
+
+        const result = await response.json();
+        
+        // Call the parent callback with the added client info
         onAddMember({
+          id: client.id,
           name: client.name,
           email: client.email,
           type: "existing"
         });
+        
         toast.success(`${client.name} has been added to ${groupName}`);
         onOpenChange(false);
         setSelectedClient("");
       }
     } catch (error) {
-      toast.error("Failed to add member to group");
+      console.error('Error adding client to group:', error);
+      toast.error(error.message || "Failed to add member to group");
     } finally {
       setIsLoading(false);
     }
@@ -137,22 +181,33 @@ export function AddMemberToGroupDialog({
               <Label htmlFor="client-select">Select Client</Label>
               <Select value={selectedClient} onValueChange={setSelectedClient}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a client to add" />
+                  <SelectValue placeholder={clientsLoading ? "Loading clients..." : "Choose a client to add"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableClients.map((client) => (
-                    <SelectItem key={client.id} value={client.id.toString()}>
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">{client.name}</span>
-                        <span className="text-sm text-muted-foreground">{client.email}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {clientsLoading ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm text-muted-foreground">Loading clients...</span>
+                    </div>
+                  ) : availableClients.length === 0 ? (
+                    <div className="flex items-center justify-center p-4">
+                      <span className="text-sm text-muted-foreground">No available clients</span>
+                    </div>
+                  ) : (
+                    availableClients.map((client) => (
+                      <SelectItem key={client.id} value={client.id.toString()}>
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{client.name}</span>
+                          <span className="text-sm text-muted-foreground">{client.email}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               <Button 
                 onClick={handleAddExistingClient} 
-                disabled={!selectedClient || isLoading}
+                disabled={!selectedClient || isLoading || clientsLoading}
                 className="w-full"
               >
                 <UserPlus className="h-4 w-4 mr-2" />

@@ -1,129 +1,31 @@
 "use client"
-// Updated to fix SSR build issues - no more useMembershipRequests hook
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
-import { ArrowLeft, Users, MessageCircle, Calendar, Plus } from "lucide-react";
+import { ArrowLeft, Users, MessageCircle, Calendar, Plus, Loader2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
+import { useGroups } from "@/app/hooks/useGroups";
+import { useSession } from "next-auth/react";
 
-// Mock membership requests data
-const mockMembershipRequests = [
-  {
-    id: 1,
-    userId: "user1",
-    userName: "John Doe",
-    userEmail: "john@example.com",
-    groupId: 1,
-    status: "pending",
-    requestedAt: new Date().toISOString(),
-    message: "I'd like to join this group to work on my anxiety management."
-  }
-];
-
-const groups = [
-  {
-    id: 1,
-    name: "Anxiety Support Circle",
-    description: "A safe space to share experiences and coping strategies for anxiety",
-    members: 12,
-    maxMembers: 15,
-    nextSession: "Today, 3:00 PM",
-    category: "Support",
-    isJoined: true,
-    unreadMessages: 3,
-    groupType: "open",
-    coachId: "coach_1",
-    focusArea: "Anxiety",
-    frequency: "weekly",
-    duration: "60",
-    location: "Online",
-    avatars: []
-  },
-  {
-    id: 2,
-    name: "Mindfulness & Meditation",
-    description: "Weekly guided meditation sessions and mindfulness practices",
-    members: 8,
-    maxMembers: 10,
-    nextSession: "Tomorrow, 10:00 AM",
-    category: "Practice",
-    isJoined: false,
-    unreadMessages: 0,
-    groupType: "invite-only",
-    coachId: "coach_2",
-    focusArea: "Mindfulness",
-    frequency: "weekly",
-    duration: "45",
-    location: "Online",
-    avatars: []
-  },
-  {
-    id: 3,
-    name: "Depression Recovery",
-    description: "Supporting each other through depression recovery journey",
-    members: 15,
-    maxMembers: 20,
-    nextSession: "Wed, 2:00 PM",
-    category: "Support",
-    isJoined: false,
-    unreadMessages: 0,
-    groupType: "open",
-    coachId: "coach_1",
-    focusArea: "Depression",
-    frequency: "weekly",
-    duration: "60",
-    location: "Online",
-    avatars: []
-  },
-  {
-    id: 4,
-    name: "Young Adults Mental Health",
-    description: "For adults aged 18-25 navigating mental health challenges",
-    members: 6,
-    maxMembers: 12,
-    nextSession: "Fri, 4:00 PM",
-    category: "Age-Specific",
-    isJoined: false,
-    unreadMessages: 0,
-    groupType: "open",
-    coachId: "coach_3",
-    focusArea: "General Mental Health",
-    frequency: "weekly",
-    duration: "60",
-    location: "Online",
-    avatars: []
-  }
-];
 
 function ClientGroupsComponent() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [filter, setFilter] = useState("all");
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   
-  // Mock function to get requests by group
-  const getRequestsByGroup = (groupId) => {
-    return mockMembershipRequests.filter(request => request.groupId === groupId);
-  };
-
-  // Mock current user data - in real app this would come from auth context
-  const currentUser = {
-    id: "client_current",
-    name: "Current User",
-    email: "current@example.com"
-  };
-
-  // Check if user has pending request for a group
+  // Get groups from database
+  const { groups, loading: groupsLoading, error: groupsError } = useGroups();
+  
+  // Check if user has pending request for a group (TODO: Implement with real API)
   const hasPendingRequest = (groupId) => {
-    const groupRequests = getRequestsByGroup(groupId);
-    return groupRequests.some(request => 
-      request.clientId === currentUser.id && 
-      request.status === "pending"
-    );
+    // For now, always return false since we don't have real membership request data
+    return false;
   };
 
   const filteredGroups = groups.filter(group => {
@@ -131,6 +33,22 @@ function ClientGroupsComponent() {
     if (filter === "available") return !group.isJoined;
     return true;
   });
+
+  if (groupsLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (groupsError) {
+    return (
+      <div className="flex items-center justify-center h-screen text-muted-foreground">
+        Error loading groups: {groupsError}
+      </div>
+    );
+  }
 
   const handleJoinGroup = (group) => {
     if (group.groupType === "open") {
@@ -212,11 +130,15 @@ function ClientGroupsComponent() {
                     <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        {group.members}/{group.maxMembers} members
+                        {group.members}/{group.maxMembers || '∞'} members
                       </div>
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {group.nextSession}
+                        <Badge variant="outline" className="text-xs">
+                          {group.focusArea || 'General'}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {group.stage}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -224,7 +146,7 @@ function ClientGroupsComponent() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline">{group.category}</Badge>
+                  <Badge variant="outline">{group.focusArea || 'General'}</Badge>
                   <div className="flex space-x-2">
                     {group.isJoined ? (
                       <>
@@ -247,7 +169,7 @@ function ClientGroupsComponent() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Join {group.name} Session</AlertDialogTitle>
                               <AlertDialogDescription>
-                                You're about to join the session scheduled for {group.nextSession}. 
+                                You're about to join a session for {group.name}. 
                                 Make sure you're in a quiet, private space for the best experience.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
@@ -264,16 +186,14 @@ function ClientGroupsComponent() {
                       <Button 
                         size="sm"
                         onClick={() => handleJoinGroup(group)}
-                        disabled={group.members >= group.maxMembers || hasPendingRequest(group.id)}
+                        disabled={group.maxMembers && group.members >= group.maxMembers || hasPendingRequest(group.id)}
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        {group.members >= group.maxMembers 
+                        {group.maxMembers && group.members >= group.maxMembers 
                           ? "Full" 
                           : hasPendingRequest(group.id)
                             ? "Request Pending"
-                            : group.groupType === "open" 
-                              ? "Request to Join" 
-                              : "Invite Only"
+                            : "Request to Join"
                         }
                       </Button>
                     )}
@@ -314,9 +234,9 @@ function ClientGroupsComponent() {
           open={requestDialogOpen}
           onOpenChange={setRequestDialogOpen}
           group={selectedGroup}
-          clientId={currentUser.id}
-          clientName={currentUser.name}
-          clientEmail={currentUser.email}
+          clientId={session?.user?.id}
+          clientName={session?.user?.name}
+          clientEmail={session?.user?.email}
         />
       </div>
     </div>

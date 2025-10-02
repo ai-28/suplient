@@ -44,7 +44,8 @@ export async function POST(request) {
         }
 
         // Generate a temporary password for the client
-        const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+        const tempPassword = 'password123';
+        // const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
         const { hashedPassword, salt } = await hashPasswordAsync(tempPassword);
 
         // Create the client user
@@ -54,8 +55,8 @@ export async function POST(request) {
       RETURNING id, name, email, phone, role
     `;
         const [newClient] = await sql`
-      INSERT INTO "Client" ("userId", "coachId","name","email","type","referralSource", "primaryConcerns", "createdAt", "updatedAt")
-      VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${'personal'}, ${referralSource}, ${concerns}, NOW(), NOW())
+      INSERT INTO "Client" ("userId", "coachId","name","email","type","status","referralSource", "primaryConcerns", "createdAt", "updatedAt")
+      VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${'personal'}, ${'active'}, ${referralSource}, ${concerns}, NOW(), NOW())
       RETURNING id, name, email
     `;
 

@@ -6,6 +6,7 @@ export async function getClientById(clientId, coachId) {
         const clientData = await sql`
             SELECT 
                 c.id,
+                c."userId",
                 u.name,
                 u.email,
                 u.phone,
@@ -104,6 +105,7 @@ export async function getClientById(clientId, coachId) {
         return {
             client: {
                 id: client.id,
+                userId: client.userId,
                 name: client.name,
                 email: client.email,
                 phone: client.phone,

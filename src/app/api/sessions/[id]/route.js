@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
 import { sessionRepo } from '@/app/lib/db/sessionRepo';
+import { userStatsRepo } from '@/app/lib/db/userStatsRepo';
 
 // GET /api/sessions/[id] - Get a specific session
 export async function GET(request, { params }) {
@@ -100,6 +101,57 @@ export async function PUT(request, { params }) {
         };
 
         const updatedSession = await sessionRepo.updateSession(id, updateData);
+
+        // Award points for session completion
+        if (status && status === 'completed' && existingSession.status !== 'completed') {
+            try {
+                // Get the user ID who completed the session (either individual client or group members)
+                let userIds = [];
+
+                if (sessionType === 'individual' && clientId) {
+                    // Individual session - get client's user ID
+                    const { sql } = await import('@/app/lib/db/postgresql');
+                    const clientResult = await sql`
+                        SELECT c."userId"
+                        FROM "Client" c
+                        WHERE c.id = ${clientId}
+                    `;
+                    if (clientResult.length > 0) {
+                        userIds.push(clientResult[0].userId);
+                    }
+                } else if (sessionType === 'group' && groupId) {
+                    // Group session - get all group members' user IDs
+                    const { sql } = await import('@/app/lib/db/postgresql');
+                    const groupResult = await sql`
+                        SELECT unnest(g."selectedMembers") as "clientId"
+                        FROM "Group" g
+                        WHERE g.id = ${groupId}
+                    `;
+
+                    if (groupResult.length > 0) {
+                        for (const clientId of groupResult) {
+                            const clientResult = await sql`
+                                SELECT c."userId"
+                                FROM "Client" c
+                                WHERE c.id = ${clientId.clientId}
+                            `;
+                            if (clientResult.length > 0) {
+                                userIds.push(clientResult[0].userId);
+                            }
+                        }
+                    }
+                }
+
+                // Award points to all participants
+                const today = new Date().toISOString().split('T')[0];
+                for (const userId of userIds) {
+                    await userStatsRepo.addEngagementActivity(userId, 'session', 1, today);
+                }
+            } catch (engagementError) {
+                console.error('Error recording session completion engagement:', engagementError);
+                // Don't fail the session update if engagement tracking fails
+            }
+        }
 
         return NextResponse.json({
             message: 'Session updated successfully',

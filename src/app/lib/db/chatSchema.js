@@ -1,0 +1,449 @@
+import { sql } from './postgresql';
+
+// Helper functions for chat operations
+export const chatRepo = {
+  // Create a personal conversation between coach and client
+  async createPersonalConversation(coachId, clientId) {
+    try {
+      // First, validate that both users exist
+      const users = await sql`
+        SELECT id, role FROM "User" 
+        WHERE id IN (${coachId}, ${clientId}) 
+        AND "isActive" = true
+      `;
+
+      if (users.length !== 2) {
+        const foundIds = users.map(u => u.id);
+        const missingIds = [coachId, clientId].filter(id => !foundIds.includes(id));
+        throw new Error(`Users not found: ${missingIds.join(', ')}`);
+      }
+
+      // Validate roles
+      const coach = users.find(u => u.id === coachId);
+      const client = users.find(u => u.id === clientId);
+
+      if (!coach || coach.role !== 'coach') {
+        throw new Error(`Invalid coach ID: ${coachId}`);
+      }
+
+      if (!client || client.role !== 'client') {
+        throw new Error(`Invalid client ID: ${clientId}`);
+      }
+
+      // Check if conversation already exists
+      const existing = await sql`
+        SELECT c.id 
+        FROM "Conversation" c
+        JOIN "ConversationParticipant" cp1 ON c.id = cp1."conversationId"
+        JOIN "ConversationParticipant" cp2 ON c.id = cp2."conversationId"
+        WHERE c.type = 'personal'
+        AND cp1."userId" = ${coachId}
+        AND cp2."userId" = ${clientId}
+        AND cp1."isActive" = true
+        AND cp2."isActive" = true
+      `;
+
+      if (existing.length > 0) {
+        return existing[0].id;
+      }
+
+      // Create new conversation
+      const [conversation] = await sql`
+        INSERT INTO "Conversation" (type, "createdBy")
+        VALUES ('personal', ${coachId})
+        RETURNING id
+      `;
+
+      // Add participants
+      await sql`
+        INSERT INTO "ConversationParticipant" ("conversationId", "userId", role)
+        VALUES 
+          (${conversation.id}, ${coachId}, 'admin'),
+          (${conversation.id}, ${clientId}, 'member')
+      `;
+
+      return conversation.id;
+    } catch (error) {
+      console.error('Error creating personal conversation:', error);
+      throw error;
+    }
+  },
+
+  // Create a group conversation
+  async createGroupConversation(groupId, coachId) {
+    try {
+      // Check if conversation already exists for this group
+      const existing = await sql`
+        SELECT id FROM "Conversation" 
+        WHERE "groupId" = ${groupId} AND type = 'group'
+      `;
+
+      if (existing.length > 0) {
+        const conversationId = existing[0].id;
+
+        // Ensure coach is a participant
+        const coachParticipant = await sql`
+          SELECT id FROM "ConversationParticipant" 
+          WHERE "conversationId" = ${conversationId} AND "userId" = ${coachId}
+        `;
+
+        if (coachParticipant.length === 0) {
+          await sql`
+            INSERT INTO "ConversationParticipant" ("conversationId", "userId", role)
+            VALUES (${conversationId}, ${coachId}, 'admin')
+          `;
+        }
+
+        return conversationId;
+      }
+
+      // Get group info
+      const [group] = await sql`
+        SELECT name, description FROM "Group" WHERE id = ${groupId}
+      `;
+
+      // Create conversation
+      const [conversation] = await sql`
+        INSERT INTO "Conversation" (type, name, description, "createdBy", "groupId")
+        VALUES ('group', ${group.name}, ${group.description}, ${coachId}, ${groupId})
+        RETURNING id
+      `;
+
+      // Add coach as admin
+      await sql`
+        INSERT INTO "ConversationParticipant" ("conversationId", "userId", role)
+        VALUES (${conversation.id}, ${coachId}, 'admin')
+      `;
+
+      // Add all group members
+      const members = await sql`
+        SELECT "userId" FROM "Client" WHERE "groupId" = ${groupId} AND status = 'active'
+      `;
+
+      if (members.length > 0) {
+        const memberInserts = members.map(member =>
+          sql`INSERT INTO "ConversationParticipant" ("conversationId", "userId", role) VALUES (${conversation.id}, ${member.userId}, 'member')`
+        );
+        await Promise.all(memberInserts);
+      }
+
+      return conversation.id;
+    } catch (error) {
+      console.error('Error creating group conversation:', error);
+      throw error;
+    }
+  },
+
+  // Get group conversation ID by group ID
+  async getGroupConversationId(groupId) {
+    try {
+      const [conversation] = await sql`
+        SELECT id FROM "Conversation" 
+        WHERE "groupId" = ${groupId} AND type = 'group' AND "isActive" = true
+      `;
+
+      return conversation?.id || null;
+    } catch (error) {
+      console.error('Error getting group conversation ID:', error);
+      throw error;
+    }
+  },
+
+  // Get user's conversations
+  async getUserConversations(userId) {
+    try {
+      const conversations = await sql`
+        SELECT 
+          c.id,
+          c.type,
+          c.name,
+          c.description,
+          c."createdAt",
+          c."updatedAt",
+          cp."lastReadAt",
+          cp."joinedAt",
+          -- Get last message
+          (
+            SELECT json_build_object(
+              'id', m.id,
+              'content', m.content,
+              'type', m.type,
+              'createdAt', m."createdAt",
+              'senderId', m."senderId",
+              'senderName', u.name
+            )
+            FROM "Message" m
+            JOIN "User" u ON m."senderId" = u.id
+            WHERE m."conversationId" = c.id
+            AND m."isDeleted" = false
+            ORDER BY m."createdAt" DESC
+            LIMIT 1
+          ) as "lastMessage",
+          -- Get unread count
+          (
+            SELECT COUNT(*)
+            FROM "Message" m
+            WHERE m."conversationId" = c.id
+            AND m."isDeleted" = false
+            AND m."createdAt" > COALESCE(cp."lastReadAt", cp."joinedAt")
+            AND m."senderId" != ${userId}
+          ) as "unreadCount"
+        FROM "Conversation" c
+        JOIN "ConversationParticipant" cp ON c.id = cp."conversationId"
+        WHERE cp."userId" = ${userId}
+        AND cp."isActive" = true
+        AND c."isActive" = true
+        ORDER BY c."updatedAt" DESC
+      `;
+
+      return conversations;
+    } catch (error) {
+      console.error('Error getting user conversations:', error);
+      throw error;
+    }
+  },
+
+  // Get conversation participants
+  async getConversationParticipants(conversationId) {
+    try {
+      const participants = await sql`
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          u.role,
+          cp.role as "conversationRole",
+          cp."joinedAt",
+          cp."lastReadAt"
+        FROM "ConversationParticipant" cp
+        JOIN "User" u ON cp."userId" = u.id
+        WHERE cp."conversationId" = ${conversationId}
+        AND cp."isActive" = true
+        ORDER BY cp."joinedAt" ASC
+      `;
+
+      return participants;
+    } catch (error) {
+      console.error('Error getting conversation participants:', error);
+      throw error;
+    }
+  },
+
+  // Get conversation messages
+  async getConversationMessages(conversationId, limit = 50, offset = 0) {
+    try {
+      const messages = await sql`
+        SELECT 
+          m.id,
+          m.content,
+          m.type,
+          m."replyToId",
+          m."audioUrl",
+          m."audioDuration",
+          m."waveformData",
+          m."createdAt",
+          m."updatedAt",
+          u.id as "senderId",
+          u.name as "senderName",
+          u.role as "senderRole",
+          -- Get read status for this message
+          (
+            SELECT json_agg(
+              json_build_object(
+                'userId', mrs."userId",
+                'readAt', mrs."readAt"
+              )
+            )
+            FROM "MessageReadStatus" mrs
+            WHERE mrs."messageId" = m.id
+          ) as "readBy",
+          -- Get reply message if exists
+          (
+            SELECT json_build_object(
+              'id', rm.id,
+              'content', rm.content,
+              'senderName', ru.name,
+              'type', rm.type
+            )
+            FROM "Message" rm
+            JOIN "User" ru ON rm."senderId" = ru.id
+            WHERE rm.id = m."replyToId"
+          ) as "replyTo",
+          -- Get reactions
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', mr.id,
+                'emoji', mr.emoji,
+                'userId', mr."userId",
+                'userName', ur.name,
+                'createdAt', mr."createdAt"
+              )
+            )
+            FROM "MessageReaction" mr
+            JOIN "User" ur ON mr."userId" = ur.id
+            WHERE mr."messageId" = m.id
+          ) as reactions
+        FROM "Message" m
+        JOIN "User" u ON m."senderId" = u.id
+        WHERE m."conversationId" = ${conversationId}
+        ORDER BY m."createdAt" DESC
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `;
+
+      return messages.reverse(); // Return in chronological order
+    } catch (error) {
+      console.error('Error getting conversation messages:', error);
+      throw error;
+    }
+  },
+
+  // Send a message
+  async sendMessage(conversationId, senderId, content, type = 'text', options = {}) {
+    try {
+      const [message] = await sql`
+        INSERT INTO "Message" (
+          "conversationId", 
+          "senderId", 
+          content, 
+          type,
+          "replyToId",
+          "audioUrl",
+          "audioDuration",
+          "waveformData"
+        )
+        VALUES (
+          ${conversationId},
+          ${senderId},
+          ${content},
+          ${type},
+          ${options.replyToId || null},
+          ${options.audioUrl || null},
+          ${options.audioDuration || null},
+          ${options.waveformData ? JSON.stringify(options.waveformData) : null}
+        )
+        RETURNING id, "createdAt"
+      `;
+
+      // Update conversation's updatedAt
+      await sql`
+        UPDATE "Conversation" 
+        SET "updatedAt" = CURRENT_TIMESTAMP 
+        WHERE id = ${conversationId}
+      `;
+
+      return message;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw error;
+    }
+  },
+
+  // Mark messages as read
+  async markMessagesAsRead(conversationId, userId, messageIds) {
+    try {
+      if (messageIds.length === 0) return;
+
+      const readStatusInserts = messageIds.map(messageId =>
+        sql`
+          INSERT INTO "MessageReadStatus" ("messageId", "userId")
+          VALUES (${messageId}, ${userId})
+          ON CONFLICT ("messageId", "userId") DO NOTHING
+        `
+      );
+
+      await Promise.all(readStatusInserts);
+
+      // Update participant's lastReadAt
+      await sql`
+        UPDATE "ConversationParticipant"
+        SET "lastReadAt" = CURRENT_TIMESTAMP
+        WHERE "conversationId" = ${conversationId}
+        AND "userId" = ${userId}
+      `;
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+      throw error;
+    }
+  },
+
+  // Add reaction to message
+  async addReaction(messageId, userId, emoji) {
+    try {
+      const [reaction] = await sql`
+        INSERT INTO "MessageReaction" ("messageId", "userId", emoji)
+        VALUES (${messageId}, ${userId}, ${emoji})
+        ON CONFLICT ("messageId", "userId", emoji) DO NOTHING
+        RETURNING id, "createdAt"
+      `;
+
+      return reaction;
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      throw error;
+    }
+  },
+
+  // Remove reaction from message
+  async removeReaction(messageId, userId, emoji) {
+    try {
+      await sql`
+        DELETE FROM "MessageReaction"
+        WHERE "messageId" = ${messageId}
+        AND "userId" = ${userId}
+        AND emoji = ${emoji}
+      `;
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+      throw error;
+    }
+  },
+
+
+  // Get conversation by ID
+  async getConversationById(conversationId) {
+    try {
+      const [conversation] = await sql`
+        SELECT 
+          c.id,
+          c.type,
+          c.name,
+          c.description,
+          c."createdBy",
+          c."groupId",
+          c."createdAt",
+          c."updatedAt",
+          g.name as "groupName"
+        FROM "Conversation" c
+        LEFT JOIN "Group" g ON c."groupId" = g.id
+        WHERE c.id = ${conversationId}
+        AND c."isActive" = true
+      `;
+
+      return conversation;
+    } catch (error) {
+      console.error('Error getting conversation by ID:', error);
+      throw error;
+    }
+  },
+
+  // Verify message access
+  async verifyMessageAccess(messageId, userId) {
+    try {
+      const [access] = await sql`
+        SELECT 1
+        FROM "Message" m
+        JOIN "ConversationParticipant" cp ON m."conversationId" = cp."conversationId"
+        WHERE m.id = ${messageId}
+        AND cp."userId" = ${userId}
+        AND cp."isActive" = true
+      `;
+
+      return !!access;
+    } catch (error) {
+      console.error('Error verifying message access:', error);
+      throw error;
+    }
+  }
+};

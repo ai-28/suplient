@@ -310,6 +310,37 @@ export async function createResourceTable() {
     throw error;
   }
 }
+
+// Create ResourceCompletion table for tracking resource interactions
+export async function createResourceCompletionTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ResourceCompletion" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "resourceId" UUID NOT NULL REFERENCES "Resource"(id) ON DELETE CASCADE,
+        "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
+        "completedAt" TIMESTAMP,
+        "likedAt" TIMESTAMP,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        
+        -- Ensure only one completion record per resource per client
+        UNIQUE("resourceId", "clientId")
+      );
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_completion_resource_id ON "ResourceCompletion"("resourceId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_completion_client_id ON "ResourceCompletion"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_completion_completed_at ON "ResourceCompletion"("completedAt")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_resource_completion_liked_at ON "ResourceCompletion"("likedAt")`;
+
+    console.log('ResourceCompletion table created successfully');
+  } catch (error) {
+    console.error('Error creating ResourceCompletion table:', error);
+    throw error;
+  }
+}
 export async function seedNote() {
   try {
     // Create Note table if it doesn't exist
@@ -338,6 +369,169 @@ export async function seedNote() {
   }
 }
 
+export async function createCheckInTable() {
+  try {
+    // Create CheckIn table for daily journal entries
+    await sql`
+      CREATE TABLE IF NOT EXISTS "CheckIn" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
+       
+        -- Goal scores (0-5 scale)
+        "sleepQuality" INTEGER NOT NULL DEFAULT 3 CHECK ("sleepQuality" >= 0 AND "sleepQuality" <= 5),
+        nutrition INTEGER NOT NULL DEFAULT 3 CHECK (nutrition >= 0 AND nutrition <= 5),
+        "physicalActivity" INTEGER NOT NULL DEFAULT 3 CHECK ("physicalActivity" >= 0 AND "physicalActivity" <= 5),
+        learning INTEGER NOT NULL DEFAULT 3 CHECK (learning >= 0 AND learning <= 5),
+        "maintainingRelationships" INTEGER NOT NULL DEFAULT 3 CHECK ("maintainingRelationships" >= 0 AND "maintainingRelationships" <= 5),
+        
+        -- Bad habit scores (0-5 scale)
+        "excessiveSocialMedia" INTEGER NOT NULL DEFAULT 2 CHECK ("excessiveSocialMedia" >= 0 AND "excessiveSocialMedia" <= 5),
+        procrastination INTEGER NOT NULL DEFAULT 2 CHECK (procrastination >= 0 AND procrastination <= 5),
+        "negativeThinking" INTEGER NOT NULL DEFAULT 2 CHECK ("negativeThinking" >= 0 AND "negativeThinking" <= 5),
+        
+        -- Notes
+        notes TEXT,
+        
+        -- Metadata
+        date DATE NOT NULL DEFAULT CURRENT_DATE,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        
+        -- Ensure only one check-in per client per day
+        UNIQUE("clientId", date)
+      );
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_checkin_client_id ON "CheckIn"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_checkin_date ON "CheckIn"(date)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_checkin_created_at ON "CheckIn"("createdAt")`;
+
+    console.log('CheckIn table created successfully');
+  } catch (error) {
+    console.error('Error creating CheckIn table:', error);
+    throw error;
+  }
+}
+
+export async function createUserStatsTable() {
+  try {
+    // Create user_stats table
+    await sql`
+          CREATE TABLE IF NOT EXISTS user_stats (
+              user_id UUID PRIMARY KEY REFERENCES "User"(id) ON DELETE CASCADE,
+              daily_streak INTEGER DEFAULT 0,
+              total_points INTEGER DEFAULT 0,
+              last_checkin_date DATE,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+      `;
+
+    // Create index for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_user_stats_user_id ON user_stats(user_id)`;
+
+    console.log('User stats table created successfully');
+  } catch (error) {
+    console.error('Error creating user stats table:', error);
+    throw error;
+  }
+}
+
+export async function createChatTables() {
+  try {
+    // Create Conversations table (simplified)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "Conversation" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        type VARCHAR(20) NOT NULL CHECK (type IN ('personal', 'group')),
+        name VARCHAR(255),
+        "createdBy" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
+        "isActive" BOOLEAN DEFAULT true,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Create ConversationParticipants table (simplified)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ConversationParticipant" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "conversationId" UUID NOT NULL REFERENCES "Conversation"(id) ON DELETE CASCADE,
+        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "joinedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "isActive" BOOLEAN DEFAULT true,
+        UNIQUE("conversationId", "userId")
+      );
+    `;
+
+    // Create Messages table (simplified - only text and voice)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "Message" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "conversationId" UUID NOT NULL REFERENCES "Conversation"(id) ON DELETE CASCADE,
+        "senderId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        type VARCHAR(20) DEFAULT 'text' CHECK (type IN ('text', 'voice')),
+        "replyToId" UUID REFERENCES "Message"(id) ON DELETE SET NULL,
+        "audioUrl" VARCHAR(500),
+        "audioDuration" INTEGER,
+        "waveformData" JSONB,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Create MessageReactions table (for emoji reactions)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "MessageReaction" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "messageId" UUID NOT NULL REFERENCES "Message"(id) ON DELETE CASCADE,
+        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        emoji VARCHAR(10) NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("messageId", "userId", emoji)
+      );
+    `;
+
+    // Create MessageReadStatus table (for read receipts)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "MessageReadStatus" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "messageId" UUID NOT NULL REFERENCES "Message"(id) ON DELETE CASCADE,
+        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "readAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("messageId", "userId")
+      );
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_conversation_type ON "Conversation"(type)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_conversation_created_by ON "Conversation"("createdBy")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_conversation_group_id ON "Conversation"("groupId")`;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_participant_conversation ON "ConversationParticipant"("conversationId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_participant_user ON "ConversationParticipant"("userId")`;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_message_conversation ON "Message"("conversationId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_message_sender ON "Message"("senderId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_message_created_at ON "Message"("createdAt")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_message_type ON "Message"(type)`;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_reaction_message ON "MessageReaction"("messageId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_reaction_user ON "MessageReaction"("userId")`;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_read_status_message ON "MessageReadStatus"("messageId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_read_status_user ON "MessageReadStatus"("userId")`;
+
+    console.log('Chat tables created successfully (simplified schema)');
+  } catch (error) {
+    console.error('Error creating chat tables:', error);
+    throw error;
+  }
+}
+
 export async function GET() {
   try {
     console.log('Starting database seeding...');
@@ -345,14 +539,18 @@ export async function GET() {
     await seedUser();
     await createProgramTemplateTable();
     await createProgramEnrollmentTable();
+    await createChatTables(); // Create Chat tables
     await seedTask(); // Create Group table first
     await createResourceTable(); // Create Resource table for library
     await seedNote();
+    await createCheckInTable(); // Create CheckIn table for daily journal entries
+    await createUserStatsTable(); // Create user stats table
+    await createResourceCompletionTable(); // Create resource completion table
     console.log('Database seeded successfully');
 
     return new Response(JSON.stringify({
       message: 'Database seeded successfully',
-      details: 'User, ProgramTemplate, Group, Task, Client, Resource, and Note tables created with sample data'
+      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, and CheckIn tables created with sample data'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

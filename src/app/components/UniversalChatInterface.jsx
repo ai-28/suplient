@@ -7,19 +7,18 @@ import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Separator } from "@/app/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip";
-import { Send, Calendar, Clock, Mic, Settings, Info, Video } from "lucide-react";
+import { Send, Calendar, Clock, Mic, Settings, Info, Video, Loader2, Wifi, WifiOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { VoiceRecorder } from "@/app/components/VoiceRecorder";
 import { VoiceMessage } from "@/app/components/VoiceMessage";
 import { ScheduleSessionDialog } from "@/app/components/ScheduleSessionDialog";
 import { EmojiButton } from "@/app/components/EmojiButton";
-import { FileAttachmentButton } from "@/app/components/FileAttachmentButton";
-import { FileAttachmentPreview } from "@/app/components/FileAttachmentPreview";
 import { MessageActions } from "@/app/components/MessageActions";
 import { MessageReactions } from "@/app/components/MessageReactions";
 import { ReplyPreview } from "@/app/components/ReplyPreview";
-import { RepliedMessage } from "@/app/components/RepliedMessage";
 import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTimestamp } from "@/app/utils/timestampGrouping";
+import { useChat } from "@/app/hooks/useChat";
+import { useSession } from "next-auth/react";
 
 // Simple function to get response guarantee text
 const getResponseGuaranteeText = (chatType) => {
@@ -45,7 +44,6 @@ export function UniversalChatInterface({
   allowReactions = true,
   allowReplies = true,
   allowVoiceMessages = true,
-  allowFileUploads = true,
   allowScheduling = false,
   showSystemMessages = true,
   readOnly = false,
@@ -56,177 +54,70 @@ export function UniversalChatInterface({
   activeMembers,
   className = ""
 }) {
+  const router = useRouter();
+  const { data: session } = useSession();
+  
+  // Use the real-time chat hook
+  const {
+    messages,
+    loading,
+    error,
+    sending,
+    typingUsers,
+    onlineUsers,
+    hasMore,
+    isConnected,
+    loadMoreMessages,
+    sendMessage,
+    handleTyping,
+    handleAddReaction,
+    handleRemoveReaction,
+    markAsRead,
+    messagesEndRef
+  } = useChat(chatId);
 
-    const router = useRouter();
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  const [hasAutoMessage, setHasAutoMessage] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [replyToMessage, setReplyToMessage] = useState(null);
-  const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth"
     });
   };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  // Send auto-message on first load if not already sent
-  useEffect(() => {
-    if (!hasAutoMessage && (chatType === "light" || chatType === "group")) {
-      // sendAutoMessage(chatId, chatType);
-      setHasAutoMessage(true);
-    }
-  }, [chatId, chatType, hasAutoMessage]);
-
-  // Add initial messages with demo data
-  useEffect(() => {
-    if (messages.length === 0) {
-      const demoMessages = getDemoMessages();
-      setMessages(demoMessages);
-    }
-  }, [chatType, currentUserRole, showSystemMessages]);
-  const getDemoMessages = () => {
-    const baseTime = new Date();
-    const createMessage = (id, content, isCoach, hoursAgo, type = 'text', isSystemMessage = false) => {
-      // For monitoring mode, use actual participant names
-      let senderName;
-      if (isSystemMessage) {
-        senderName = "System";
-      } else if (chatType === "group" && participantName?.includes(" & ")) {
-        // This is a monitoring conversation with coach & client
-        const participants = participantName.split(" & ");
-        senderName = isCoach ? participants[0] : participants[1];
-      } else {
-        // Regular chat
-        senderName = isCoach ? "Coach Clausen" : "You";
-      }
-
-      return {
-        id,
-        senderId: isSystemMessage ? "system" : isCoach ? "coach1" : currentUserId,
-        senderName,
-        content,
-        timestamp: new Date(baseTime.getTime() - hoursAgo * 60 * 60 * 1000).toISOString(),
-        type,
-        status: "delivered",
-        isCoach,
-        isSystemMessage,
-        systemType: isSystemMessage ? "info" : undefined,
-        canReply: !isSystemMessage
-      };
-    };
-
-    if (chatType === "group" && participantName?.includes(" & ")) {
-      // Monitoring mode - show actual conversation between coach and client
-      const participants = participantName.split(" & ");
-      const coachName = participants[0];
-      const clientName = participants[1];
-      
-      return [
-        createMessage("demo-1", `Good morning! How are you feeling about the progress we made in our last session?`, true, 8),
-        createMessage("demo-2", `Thank you for asking. I've been practicing the mindfulness exercises you recommended. They're really helping with my anxiety.`, false, 6),
-        createMessage("demo-3", `That's wonderful to hear! Which technique has been most effective for you?`, true, 4),
-        createMessage("demo-4", `The breathing exercises before stressful situations have made a huge difference. I used them before my presentation yesterday.`, false, 2),
-        createMessage("demo-5", `Excellent! That shows real progress in applying what we've learned. How did the presentation go?`, true, 1)
-      ];
-    }
-
-    
-    switch (chatType) {
-      case "personal":
-        return [createMessage("system-1", "Personal therapy session chat. You can expect responses within 48 hours.", false, 48, "system", true), createMessage("demo-1", "How are you feeling today? I noticed you completed your mindfulness exercise yesterday - great work!", true, 8), createMessage("demo-2", "Thank you! I felt much calmer after the breathing exercises. I have been struggling with anxiety this week though.", false, 6), createMessage("demo-3", "I understand. Let's explore what might be triggering the anxiety. Can you tell me about specific situations?", true, 4), createMessage("demo-4", "It happens mostly during work meetings and social gatherings.", false, 2)];
-      case "light":
-        return [createMessage("system-1", "Light support chat. Responses within 7 days. Book individual sessions for faster help.", false, 72, "system", true), createMessage("demo-1", "Hi! I've been working on the stress management techniques you shared. They're helping a lot!", false, 24), createMessage("demo-2", "That's wonderful to hear! Which technique has been most effective for you?", true, 12), createMessage("demo-3", "The progressive muscle relaxation before bed has really improved my sleep quality.", false, 8)];
-      case "group":
-        return [createMessage("system-1", "Group therapy chat. Responses within 7 days. Book sessions for individual support.", false, 96, "system", true), createMessage("demo-1", "Welcome everyone! Let's share one positive thing that happened this week.", true, 48), createMessage("demo-2", "I managed to go for a walk every day this week! Small steps but it felt good.", false, 36), createMessage("demo-3", "That's amazing! I started a gratitude journal as we discussed last session.", false, 24), createMessage("demo-4", "Great progress everyone! Remember, consistency is more important than perfection.", true, 12)];
-      default:
-        return [createMessage("system-1", "Chat started. How can we help you today?", false, 1, "system", true)];
-    }
-  };
   const handleSendMessage = () => {
-    if (message.trim() || selectedFile) {
-      let newMessage;
+    if (message.trim()) {
+      const messageData = {
+        content: message.trim(),
+        type: "text",
+        replyToId: replyToMessage?.id
+      };
 
-      const messageContent = message.trim();
-      if (selectedFile) {
-        const fileUrl = URL.createObjectURL(selectedFile);
-        newMessage = {
-          id: Date.now().toString(),
-          senderId: currentUserId,
-          senderName: getCurrentUserName(),
-          content: selectedFile.name,
-          timestamp: new Date().toISOString(),
-          type: selectedFile.type.startsWith('image/') ? "image" : "file",
-          status: "sent",
-          isCoach: currentUserRole === "coach",
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
-          fileUrl: fileUrl,
-          fileType: selectedFile.type,
-          replyTo: replyToMessage?.id,
-          isSystemMessage: false,
-          canReply: true
-        };
-        setSelectedFile(null);
-      } else {
-        newMessage = {
-          id: Date.now().toString(),
-          senderId: currentUserId,
-          senderName: getCurrentUserName(),
-          content: messageContent,
-          timestamp: new Date().toISOString(),
-          type: "text",
-          status: "sent",
-          isCoach: currentUserRole === "coach",
-          replyTo: replyToMessage?.id,
-          isSystemMessage: false,
-          canReply: true
-        };
-      }
-      setMessages([...messages, newMessage]);
+      sendMessage(messageData.content, messageData.type, messageData);
       setMessage("");
       setReplyToMessage(null);
     }
   };
-  const getCurrentUserName = () => {
-    switch (currentUserRole) {
-      case "coach":
-        return "Coach";
-      case "client":
-        return "You";
-      default:
-        return "User";
-    }
-  };
   const handleSendVoiceMessage = (audioUrl, duration, waveformData) => {
-    const voiceMessage = {
-      id: Date.now().toString(),
-      senderId: currentUserId,
-      senderName: getCurrentUserName(),
-      content: "",
-      timestamp: new Date().toISOString(),
-      type: "voice",
-      status: "sent",
-      isCoach: currentUserRole === "coach",
+    sendMessage("", "voice", {
       audioUrl,
-      duration,
-      waveformData,
-      isSystemMessage: false,
-      canReply: true
-    };
-    setMessages(prev => [...prev, voiceMessage]);
+      duration: duration, // Use consistent field name
+      waveformData
+    });
     setShowVoiceRecorder(false);
   };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    } else {
+      handleTyping();
     }
   };
   const handleEmojiSelect = (emoji) => {
@@ -244,40 +135,13 @@ export function UniversalChatInterface({
       setMessage(prev => prev + emoji);
     }
   };
-  const handleFileSelect = (file) => {
-    setSelectedFile(file);
-  };
-  const handleAddReaction = (messageId, emoji) => {
+  const handleAddReactionLocal = (messageId, emoji) => {
     if (!allowReactions) return;
-    setMessages(prev => prev.map(msg => {
-      if (msg.id === messageId && !msg.isSystemMessage) {
-        const existingReaction = msg.reactions?.find(r => r.userId === currentUserId && r.emoji === emoji);
-        if (existingReaction) return msg;
-          const newReaction = {
-          id: Date.now().toString(),
-          userId: currentUserId,
-          userName: getCurrentUserName(),
-          emoji,
-          timestamp: new Date().toISOString()
-        };
-        return {
-          ...msg,
-          reactions: [...(msg.reactions || []), newReaction]
-        };
-      }
-      return msg;
-    }));
+    handleAddReaction(messageId, emoji);
   };
-  const handleRemoveReaction = (messageId, reactionId) => {
-    setMessages(prev => prev.map(msg => {
-      if (msg.id === messageId && msg.reactions) {
-        return {
-          ...msg,
-          reactions: msg.reactions.filter(r => r.id !== reactionId)
-        };
-      }
-      return msg;
-    }));
+
+  const handleRemoveReactionLocal = (messageId, reactionId) => {
+    handleRemoveReaction(messageId, reactionId);
   };
   const handleReplyToMessage = (message) => {
     if (!allowReplies || message.isSystemMessage) return;
@@ -305,7 +169,9 @@ export function UniversalChatInterface({
     if (name === "System") return "🛠️";
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
-    const renderSystemMessage = (msg) => <div className="flex gap-3 justify-start my-3">
+
+  const renderSystemMessage = (msg) => (
+    <div className="flex gap-3 justify-start my-3">
       <Avatar className="h-7 w-7 mt-1">
         <AvatarFallback className="bg-muted text-muted-foreground text-xs">
           <Settings className="h-3 w-3" />
@@ -326,7 +192,63 @@ export function UniversalChatInterface({
           <p className="text-sm leading-relaxed">{msg.content}</p>
         </div>
       </div>
-    </div>;
+    </div>
+  );
+
+  const renderTypingIndicator = () => {
+    if (typingUsers.length === 0) return null;
+
+    return (
+      <div className="flex gap-2 items-start justify-start my-3">
+        <Avatar className="h-8 w-8">
+          <AvatarFallback className="bg-secondary text-secondary-foreground text-sm">
+            ...
+          </AvatarFallback>
+        </Avatar>
+        <div className="bg-secondary text-secondary-foreground p-3 rounded-lg">
+          <div className="flex items-center gap-1">
+            <span className="text-sm">
+              {typingUsers.length === 1 
+                ? `${typingUsers[0].userName} is typing...`
+                : `${typingUsers.length} people are typing...`
+              }
+            </span>
+            <div className="flex gap-1">
+              <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading && messages.length === 0) {
+    return (
+      <div className={`flex flex-col h-full min-h-[60vh] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading messages...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`flex flex-col h-full min-h-[60vh] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Error: {error}</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return <div className={`flex flex-col h-full min-h-[60vh] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
       {/* Chat Header */}
       <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
@@ -337,20 +259,31 @@ export function UniversalChatInterface({
                 {participantInitials}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></div>
+            <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
           </div>
           
           <div className="flex-1 min-w-0">
             <h3 className={`font-medium text-foreground truncate ${currentUserRole === "client" && chatType === "personal" ? "text-sm" : ""}`}>{title || participantName}</h3>
-            {currentUserRole === "client" && chatType === "personal" ? <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            {currentUserRole === "client" && chatType === "personal" ? (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 <span>{getResponseGuaranteeText(chatType)}</span>
-              </div> : <div className="flex items-center gap-2">
-                {chatType !== "personal" && <Badge variant="secondary" className="text-xs">
-                    {chatType === "group" ? `${activeMembers}/${groupMembers} active` : t(`clients.clientTypes.${chatType}`)}
-                  </Badge>}
-                {!(currentUserRole === "client" && chatType === "personal")}
-              </div>}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                {chatType !== "personal" && (
+                  <Badge variant="secondary" className="text-xs">
+                    {chatType === "group" ? `${onlineUsers.length}/${groupMembers} online` : `${activeMembers} active`}
+                  </Badge>
+                )}
+                {!isConnected && (
+                  <Badge variant="destructive" className="text-xs">
+                    <WifiOff className="h-3 w-3 mr-1" />
+                    Offline
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -369,6 +302,16 @@ export function UniversalChatInterface({
       <ScrollArea className="flex-1 p-4">
         <TooltipProvider>
           <div className="space-y-1">
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="flex justify-center py-2">
+                <Button variant="ghost" size="sm" onClick={loadMoreMessages} disabled={loading}>
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Load More Messages
+                </Button>
+              </div>
+            )}
+
             {/* Grouped Messages */}
             {groupMessagesByTime(messages).map((group, groupIndex) => {
             const msg = group.messages[0];
@@ -409,7 +352,7 @@ export function UniversalChatInterface({
                           </Avatar>}
                         
                         {/* Message actions for own messages - positioned on left of bubble */}
-                        {isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} onReaction={allowReactions ? emoji => handleAddReaction(msg.id, emoji) : undefined} className="ml-1" />}
+                        {isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} onReaction={allowReactions ? emoji => handleAddReactionLocal(msg.id, emoji) : undefined} className="ml-1" />}
 
                          <div className={`flex flex-col max-w-[70%] ${isOwnMessage ? "items-end" : "items-start"}`}>
                            {/* Sender name and timestamp - show for all messages in monitoring mode, or first in group for others */}
@@ -417,47 +360,48 @@ export function UniversalChatInterface({
                                <span className="text-sm font-medium text-foreground">
                                  {msg.senderName}
                                </span>
-                               {group.shouldShowTimestamp && <span className="text-xs text-muted-foreground">
+                               <span className="text-xs text-muted-foreground">
                                    {formatTimeOfDay(msg.timestamp)}
-                                 </span>}
+                                 </span>
                              </div>}
 
                           {/* Replied message reference */}
                           {repliedMessage && <RepliedMessage repliedMessage={repliedMessage} onScrollToMessage={scrollToMessage} className="mb-2" />}
 
                           {/* Message content */}
-                          {msg.type === "voice" ? <VoiceMessage audioUrl={msg.audioUrl} duration={msg.duration} waveformData={msg.waveformData || []} isOwnMessage={isOwnMessage} /> : msg.type === "image" ? <div className={`relative rounded-lg overflow-hidden border ${isOwnMessage ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                              <img src={msg.fileUrl} alt={msg.fileName || "Shared image"} className="max-w-xs max-h-64 object-cover" />
-                              {msg.content && <div className="p-3">
-                                  <p className="text-sm">{msg.content}</p>
-                                </div>}
-                            </div> : msg.type === "file" ? <div className={`p-3 rounded-lg border ${isOwnMessage ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                              <div className="flex items-center gap-3">
-                                <div className="flex-shrink-0">
-                                  📎
+                          {msg.type === "voice" ? <VoiceMessage audioUrl={msg.audioUrl} duration={msg.duration} waveformData={msg.waveformData || []} isOwnMessage={isOwnMessage} /> : (
+                            <div className={`p-3 rounded-lg ${isOwnMessage ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"} ${msg.status === 'sending' ? 'opacity-70' : ''} ${msg.status === 'error' ? 'bg-red-100 border-red-300' : ''}`}>
+                              <p className="text-sm leading-relaxed">{msg.content || '[No content]'}</p>
+                              {msg.status === 'sending' && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  <span className="text-xs opacity-70">Sending...</span>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">{msg.fileName}</p>
-                                  <p className="text-xs opacity-70">
-                                    {msg.fileSize ? `${(msg.fileSize / 1024).toFixed(1)} KB` : 'File'}
-                                  </p>
+                              )}
+                              {msg.status === 'error' && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <span className="text-xs text-red-600">Failed to send</span>
                                 </div>
-                              </div>
-                            </div> : <div className={`p-3 rounded-lg ${isOwnMessage ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                              <p className="text-sm leading-relaxed">{msg.content}</p>
-                            </div>}
+                              )}
+                            </div>
+                          )}
 
                           {/* Message reactions */}
-                          {msg.reactions && msg.reactions.length > 0 && <MessageReactions reactions={msg.reactions} onAddReaction={emoji => handleAddReaction(msg.id, emoji)} onRemoveReaction={reactionId => handleRemoveReaction(msg.id, reactionId)} currentUserId={currentUserId} />}
+                          {msg.reactions && msg.reactions.length > 0 && <MessageReactions reactions={msg.reactions} onAddReaction={emoji => handleAddReactionLocal(msg.id, emoji)} onRemoveReaction={reactionId => handleRemoveReactionLocal(msg.id, reactionId)} currentUserId={currentUserId} />}
 
-                          {/* Timestamp for own messages - only show for last in group */}
-                          {isOwnMessage && group.isLastInGroup && group.shouldShowTimestamp && <span className="text-xs text-muted-foreground mt-1">
-                              {formatTimeOfDay(msg.timestamp)}
-                            </span>}
+                                  {/* Timestamp and status for own messages */}
+                                  {isOwnMessage && (
+                                    <div className="flex items-center justify-end gap-1 mt-1">
+                                      {/* Show timestamp for each message */}
+                                      <span className="text-xs text-muted-foreground">
+                                        {formatTimeOfDay(msg.timestamp)}
+                                      </span>
+                                    </div>
+                                  )}
                         </div>
 
                         {/* Message actions for received messages - positioned on right of bubble */}
-                        {!isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} onReaction={allowReactions ? emoji => handleAddReaction(msg.id, emoji) : undefined} className="ml-1" />}
+                        {!isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} onReaction={allowReactions ? emoji => handleAddReactionLocal(msg.id, emoji) : undefined} className="ml-1" />}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs">
@@ -465,7 +409,11 @@ export function UniversalChatInterface({
                     </TooltipContent>
                   </Tooltip>
                 </div>;
-          })}
+            })}
+
+            {/* Typing Indicator */}
+            {renderTypingIndicator()}
+            
             <div ref={messagesEndRef} />
           </div>
         </TooltipProvider>
@@ -476,15 +424,6 @@ export function UniversalChatInterface({
           <VoiceRecorder onSendVoiceMessage={handleSendVoiceMessage} onCancel={() => setShowVoiceRecorder(false)} autoStart={true} />
         </div>}
 
-      {/* File Preview */}
-      {selectedFile && allowFileUploads && <div className="p-4 border-t bg-muted/50">
-          <div className="flex items-center justify-between">
-            <FileAttachmentPreview fileName={selectedFile.name} fileSize={selectedFile.size} fileType={selectedFile.type} showActions={false} className="flex-1" />
-            <Button variant="ghost" size="sm" onClick={() => setSelectedFile(null)} className="ml-2">
-              Cancel
-            </Button>
-          </div>
-        </div>}
 
       {/* Reply Preview */}
       {replyToMessage && allowReplies && <ReplyPreview replyToMessage={replyToMessage} onCancel={handleCancelReply} />}
@@ -493,8 +432,6 @@ export function UniversalChatInterface({
       {!showVoiceRecorder && !hideInput && !readOnly && <div className="p-3 border-t border-border bg-card">
 
           <div className="flex items-end gap-2">
-            {allowFileUploads && <FileAttachmentButton onFileSelect={handleFileSelect} iconType="plus" className="h-10 w-10" />}
-
             <div className="relative flex-1">
               <div className="relative">
                 <Textarea ref={inputRef} value={message} rows={1} onChange={e => {
@@ -514,14 +451,35 @@ export function UniversalChatInterface({
               </div>
             </div>
 
-            <Button variant="default" size="icon" onClick={message.trim() || selectedFile ? handleSendMessage : () => allowVoiceMessages && setShowVoiceRecorder(true)} disabled={!message.trim() && !selectedFile && !allowVoiceMessages} className="h-10 w-10 p-0">
-              {message.trim() || selectedFile ? <Send className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            <Button 
+              variant="default" 
+              size="icon" 
+              onClick={message.trim() ? handleSendMessage : () => allowVoiceMessages && setShowVoiceRecorder(true)} 
+              disabled={(!message.trim() && !allowVoiceMessages) || sending || !isConnected} 
+              className="h-10 w-10 p-0"
+            >
+              {sending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : message.trim() ? (
+                <Send className="h-5 w-5" />
+              ) : (
+                <Mic className="h-5 w-5" />
+              )}
             </Button>
           </div>
 
-          {message.length >= 950 && <div className="flex justify-end mt-2 text-xs text-amber-600">
+          {message.length >= 950 && (
+            <div className="flex justify-end mt-2 text-xs text-amber-600">
               <span>{1000 - message.length} characters remaining</span>
-            </div>}
+            </div>
+          )}
+
+          {!isConnected && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-red-600">
+              <WifiOff className="h-3 w-3" />
+              <span>Connection lost. Messages will be sent when reconnected.</span>
+            </div>
+          )}
         </div>}
 
       {/* Schedule Dialog */}

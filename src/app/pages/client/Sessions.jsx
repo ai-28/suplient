@@ -9,72 +9,90 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UniversalChatInterface } from "@/app/components/UniversalChatInterface";
 import { GroupChatInterface } from "@/app/components/GroupChatInterface";
-
-// Mock groups data - in real app this would come from a proper data source
-const groups = [
-  {
-    id: 1,
-    name: "Anxiety Support Circle",
-    description: "A safe space to share experiences and coping strategies for anxiety",
-    members: 12,
-    maxMembers: 15,
-    nextSession: "Today, 3:00 PM",
-    category: "Support",
-    isJoined: true,
-    unreadMessages: 3,
-    groupType: "open",
-    coachId: "coach_1",
-    focusArea: "Anxiety",
-    frequency: "weekly",
-    duration: "60",
-    location: "Online",
-    avatars: []
-  },
-  {
-    id: 2,
-    name: "Mindfulness & Meditation",
-    description: "Weekly guided meditation sessions and mindfulness practices",
-    members: 8,
-    maxMembers: 10,
-    nextSession: "Tomorrow, 10:00 AM",
-    category: "Practice",
-    isJoined: false,
-    unreadMessages: 0,
-    groupType: "invite-only",
-    coachId: "coach_2",
-    focusArea: "Mindfulness",
-    frequency: "weekly",
-    duration: "45",
-    location: "Online",
-    avatars: []
-  }
-];
+import { useSession } from "next-auth/react";
+import { useClientCoach } from "@/app/hooks/useClientCoach";
+import { useConversationId } from "@/app/hooks/useConversationId";
+import { useGroups } from "@/app/hooks/useGroups";
+import { Loader2 } from "lucide-react";
 
 export default function ClientSessions() {
   const router = useRouter();
+  const { data: session } = useSession();
   
-  // Get joined groups
+  // Get client's coach and conversation ID
+  const { coach, loading: coachLoading } = useClientCoach();
+  const { conversationId, loading: conversationLoading } = useConversationId(
+    session?.user?.id,
+    coach?.id
+  );
+  
+  // Get groups from database
+  const { groups, loading: groupsLoading, error: groupsError } = useGroups();
+  
+  // Get joined groups (only groups the client is actually a member of)
   const joinedGroups = groups.filter(group => group.isJoined);
   
   const handleOpenGroupChat = (groupId, groupName) => {
-    router.push(`/client/group/${groupId}/chat`, { state: { groupName } });
+    router.push(`/client/group/${groupId}?groupName=${encodeURIComponent(groupName)}`);
   };
 
-  const ChatTab = () => (
-    <UniversalChatInterface
-      chatId="client-session-1"
-      chatType="personal"
-      participantName="Coach Clausen"
-      participantInitials="CC"
-      currentUserId="client-1"
-      currentUserRole="client"
-      allowScheduling={true}
-      title="Coach Clausen"
-      className="h-screen rounded-none border-none"
-    />
-  );
+  const ChatTab = () => {
+    if (coachLoading || conversationLoading) {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      );
+    }
+
+    if (!coach) {
+      return (
+        <div className="flex items-center justify-center h-screen text-muted-foreground">
+          No coach assigned
+        </div>
+      );
+    }
+
+    if (!conversationId) {
+      return (
+        <div className="flex items-center justify-center h-screen text-muted-foreground">
+          Unable to load chat
+        </div>
+      );
+    }
+
+    return (
+      <UniversalChatInterface
+        chatId={conversationId}
+        chatType="personal"
+        participantName={coach.name}
+        participantInitials={coach.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+        currentUserId={session?.user?.id}
+        currentUserRole="client"
+        allowScheduling={true}
+        title={coach.name}
+        className="h-screen rounded-none border-none"
+      />
+    );
+  };
 
   const GroupsTab = () => {
+    if (groupsLoading) {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      );
+    }
+
+    if (groupsError) {
+      return (
+        <div className="flex items-center justify-center h-screen text-muted-foreground">
+          Error loading groups: {groupsError}
+        </div>
+      );
+    }
+
     // If user is member of exactly one group, show group chat directly
     if (joinedGroups.length === 1) {
       const group = joinedGroups[0];
@@ -83,7 +101,7 @@ export default function ClientSessions() {
           groupId={group.id}
           groupName={group.name}
           members={group.members}
-          activeMembers={group.members - 2} // Mock active count
+          activeMembers={group.members} // Use actual member count
         />
       );
     }
@@ -125,7 +143,10 @@ export default function ClientSessions() {
                           <p className="text-sm text-muted-foreground">{group.description}</p>
                           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                             <Users className="h-3 w-3" />
-                            {group.members} members
+                            {group.members}/{group.maxMembers || '∞'} members
+                            <Badge variant="outline" className="text-xs">
+                              {group.focusArea || 'General'}
+                            </Badge>
                           </div>
                         </div>
                       </div>

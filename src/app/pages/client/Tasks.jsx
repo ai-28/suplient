@@ -5,11 +5,12 @@ import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
-import { ArrowLeft, CheckCircle, Circle, Clock, Target, Calendar, AlertTriangle, ChevronDown, FileText, Download, Play, Volume2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, CheckCircle, Circle, Clock, Target, Calendar, AlertTriangle, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TaskCelebration } from "@/app/components/TaskCelebration";
 import { StreakCounter } from "@/app/components/StreakCounter";
+import { toast } from "sonner";
 
 // Demo data for tasks
 const demoTasks = [
@@ -45,9 +46,44 @@ const demoTasks = [
   }
 ];
 
-// Mock useClientTasks hook
-const useClientTasks = (clientId) => {
-  const [tasks, setTasks] = useState(demoTasks);
+// Real useClientTasks hook with API calls
+const useClientTasks = () => {
+  const [tasks, setTasks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Fetch tasks from API
+  const fetchTasks = async () => {
+    try {
+      console.log('Fetching tasks...');
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/tasks');
+      console.log('Tasks API response:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Tasks API error:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch tasks');
+      }
+      
+      const data = await response.json();
+      console.log('Tasks data:', data);
+      setTasks(data.tasks || []);
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+      setError(err.message);
+      setTasks([]); // Fallback to empty array
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Fetch tasks on component mount
+  useEffect(() => {
+    fetchTasks();
+  }, []);
   
   const visibleTasks = tasks;
   
@@ -63,41 +99,150 @@ const useClientTasks = (clientId) => {
   };
   
   const toggleTaskCompletion = async (taskId, onComplete) => {
-    setTasks(prev => prev.map(task => 
-      task.id === taskId ? { ...task, isCompleted: !task.isCompleted } : task
-    ));
-    
-    if (onComplete) {
-      await onComplete();
+    try {
+      // Optimistically update the UI first
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return false;
+      
+      const newCompletedState = !task.isCompleted;
+      
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, isCompleted: newCompletedState } : task
+      ));
+      
+      // Call the API to update the database
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId: taskId,
+          isCompleted: newCompletedState
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update task completion');
+      }
+
+      const result = await response.json();
+      console.log('Task completion updated:', result);
+      
+      // Call the completion callback if provided
+      if (onComplete && newCompletedState) {
+        await onComplete();
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error toggling task completion:', error);
+      toast.error(error.message || 'Failed to update task completion');
+      
+      // Revert the optimistic update
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, isCompleted: !task.isCompleted } : task
+      ));
+      
+      return false;
     }
-    return true;
   };
   
   const taskStats = {
     completedTasks: tasks.filter(task => task.isCompleted).length,
     availableTasks: tasks.filter(task => !task.isCompleted).length,
-    completionRate: Math.round((tasks.filter(task => task.isCompleted).length / tasks.length) * 100),
+    completionRate: tasks.length > 0 ? Math.round((tasks.filter(task => task.isCompleted).length / tasks.length) * 100) : 0,
     pendingCount: tasks.filter(task => !task.isCompleted && new Date(task.dueDate) >= new Date()).length,
     overdueCount: tasks.filter(task => !task.isCompleted && new Date(task.dueDate) < new Date()).length
   };
   
-  return { visibleTasks, filterTasks, taskStats, toggleTaskCompletion };
+  return { 
+    visibleTasks, 
+    filterTasks, 
+    taskStats, 
+    toggleTaskCompletion, 
+    isLoading, 
+    error, 
+    refetch: fetchTasks 
+  };
 };
 
-// Mock useClientGamification hook
-const useClientGamification = (clientId) => {
-  const streak = 7;
-  const totalPoints = 1250;
-  const level = 8;
-  const pointsToNextLevel = 250;
-  const activeMilestone = "Week Warrior";
-  
-  const onTaskCompleted = async () => {
-    // Simulate milestone achievement
-    return { milestone: "Task Master!" };
+// Real useClientGamification hook with API data
+const useClientGamification = () => {
+  const [gamificationData, setGamificationData] = useState({
+    streak: 0,
+    totalPoints: 0,
+    level: 0,
+    pointsToNextLevel: 100,
+    activeMilestone: "Getting Started"
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGamificationData = async () => {
+      try {
+        const response = await fetch('/api/analytics?period=today');
+        if (response.ok) {
+          const data = await response.json();
+          const level = Math.floor((data.totalEngagementPoints || 0) / 100) + 1;
+          const pointsToNextLevel = (level * 100) - (data.totalEngagementPoints || 0);
+          
+          setGamificationData({
+            streak: data.dailyStreak || 0,
+            totalPoints: data.totalEngagementPoints || 0,
+            level,
+            pointsToNextLevel,
+            activeMilestone: getMilestoneName(level)
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching gamification data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGamificationData();
+  }, []);
+
+  const getMilestoneName = (level) => {
+    if (level >= 10) return "Master";
+    if (level >= 7) return "Expert";
+    if (level >= 5) return "Advanced";
+    if (level >= 3) return "Intermediate";
+    return "Beginner";
   };
   
-  return { streak, totalPoints, level, pointsToNextLevel, activeMilestone, onTaskCompleted };
+  const onTaskCompleted = async () => {
+    // Refresh gamification data after task completion
+    try {
+      const response = await fetch('/api/analytics?period=today');
+      if (response.ok) {
+        const data = await response.json();
+        const level = Math.floor((data.totalEngagementPoints || 0) / 100) + 1;
+        const pointsToNextLevel = (level * 100) - (data.totalEngagementPoints || 0);
+        
+        setGamificationData({
+          streak: data.dailyStreak || 0,
+          totalPoints: data.totalEngagementPoints || 0,
+          level,
+          pointsToNextLevel,
+          activeMilestone: getMilestoneName(level)
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing gamification data:', error);
+    }
+    
+    return { milestone: "Task completed! +1 point" };
+  };
+  
+  return { 
+    ...gamificationData, 
+    onTaskCompleted, 
+    loading 
+  };
 };
 
 // Mock utility functions
@@ -127,9 +272,7 @@ export default function ClientTasks() {
   const [expandedTasks, setExpandedTasks] = useState(new Set());
   const [showCelebration, setShowCelebration] = useState(false);
   
-  // TODO: Get actual client ID from auth context
-  const clientId = "client_1"; // Placeholder
-  const { visibleTasks, filterTasks, taskStats, toggleTaskCompletion } = useClientTasks(clientId);
+  const { visibleTasks, filterTasks, taskStats, toggleTaskCompletion, isLoading, error } = useClientTasks();
   
   // Gamification system
   const { 
@@ -138,8 +281,9 @@ export default function ClientTasks() {
     level, 
     pointsToNextLevel, 
     activeMilestone, 
-    onTaskCompleted 
-  } = useClientGamification(clientId);
+    onTaskCompleted,
+    loading: gamificationLoading
+  } = useClientGamification();
   
   const [recentMilestone, setRecentMilestone] = useState(null);
   
@@ -153,21 +297,6 @@ export default function ClientTasks() {
   ];
   const todayQuote = motivationalQuotes[new Date().getDay() % motivationalQuotes.length];
   
-  // Mock resources for demonstration
-  const mockResources = [
-    { id: '1', name: 'Anxiety Management Guide.pdf', type: 'pdf', size: '2.3 MB' },
-    { id: '2', name: 'Breathing Exercise Video.mp4', type: 'video', size: '15.2 MB' },
-    { id: '3', name: 'Meditation Audio.mp3', type: 'audio', size: '8.1 MB' }
-  ];
-
-  const getResourceIcon = (type) => {
-    switch (type) {
-      case 'pdf': return FileText;
-      case 'video': return Play;
-      case 'audio': return Volume2;
-      default: return FileText;
-    }
-  };
 
   const handleTaskToggle = async (taskId) => {
     const success = await toggleTaskCompletion(taskId, async () => {
@@ -206,7 +335,38 @@ export default function ClientTasks() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Enhanced Header with Gamification */}
+      {/* Loading State */}
+      {isLoading && (
+        <div className="p-4">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading tasks...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="p-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Error loading tasks</h3>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()} variant="outline">
+                  Try Again
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Main Content - only show when not loading and no error */}
+      {!isLoading && !error && (
+        <>
+          {/* Enhanced Header with Gamification */}
       <div className="p-4 border-b border-border bg-card">
         <div className="flex items-center gap-3 mb-4">
                       <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
@@ -328,34 +488,6 @@ export default function ClientTasks() {
                                 </div>
                               </div>
                               
-                              {/* Enhanced Resources Section */}
-                              <div className="space-y-2">
-                                <p className="text-sm font-medium text-foreground">Resources</p>
-                                <div className="space-y-2">
-                                  {mockResources.slice(0, 2).map((resource) => {
-                                    const Icon = getResourceIcon(resource.type);
-                                    return (
-                                      <div key={resource.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                          <Icon className="h-4 w-4 text-muted-foreground" />
-                                          <div>
-                                            <p className="text-sm font-medium text-foreground">{resource.name}</p>
-                                            <p className="text-xs text-muted-foreground">{resource.size}</p>
-                                          </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                          <Button size="sm" variant="outline" className="h-9 px-4 touch-manipulation">
-                                            {resource.type === 'pdf' ? 'View' : 'Play'}
-                                          </Button>
-                                          <Button size="sm" variant="ghost" className="h-9 w-9 p-0 touch-manipulation">
-                                            <Download className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
                               
                               {/* Progress Note for Completed Tasks */}
                               {task.isCompleted && (
@@ -406,6 +538,9 @@ export default function ClientTasks() {
           recentMilestone={recentMilestone}
         />
       </div>
+      
+        </>
+      )}
       
       <TaskCelebration 
         isVisible={showCelebration} 

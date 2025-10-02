@@ -4,6 +4,7 @@ import { Button } from '@/app/components/ui/button';
 import { Play, Pause } from 'lucide-react';
 import { WaveformVisualizer } from './WaveformVisualizer';
 import { cn } from '@/app/lib/utils';
+import { useAudioPlayer } from '@/app/hooks/useAudioPlayer';
 
 
 
@@ -37,6 +38,11 @@ export function VoiceMessage({
       setIsInitialized(true);
     }
   }, [audioUrl, load, isInitialized]);
+
+  // Reset initialization when audioUrl changes
+  useEffect(() => {
+    setIsInitialized(false);
+  }, [audioUrl]);
 
   const handlePlayPause = () => {
     if (isPlaying) {
@@ -108,7 +114,7 @@ export function VoiceMessage({
       <div className="flex-1 space-y-1">
         <div className="h-8">
           <WaveformVisualizer
-            data={waveformData}
+            data={waveformData || []}
             isPlaying={isPlaying}
             currentTime={currentTime}
             duration={duration}

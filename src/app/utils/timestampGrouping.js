@@ -13,13 +13,13 @@ export function groupMessagesByTime(messages) {
     const currentMsg = messages[i];
     const prevMsg = messages[i - 1];
     const nextMsg = messages[i + 1];
-    
+
     const currentTime = new Date(currentMsg.timestamp);
     const prevTime = prevMsg ? new Date(prevMsg.timestamp) : null;
     const nextTime = nextMsg ? new Date(nextMsg.timestamp) : null;
 
     // Check if this is the start of a new group
-    const isNewGroup = !prevMsg || 
+    const isNewGroup = !prevMsg ||
       prevMsg.senderId !== currentMsg.senderId ||
       prevMsg.type !== currentMsg.type ||
       (prevTime && currentTime.getTime() - prevTime.getTime() > TIME_GROUP_WINDOW) ||
@@ -33,7 +33,7 @@ export function groupMessagesByTime(messages) {
       !isSameDay(currentTime, nextTime);
 
     // Determine if we should show timestamp
-    const shouldShowTimestamp = isNewGroup || 
+    const shouldShowTimestamp = isNewGroup ||
       (prevTime && currentTime.getTime() - prevTime.getTime() > LARGE_GAP_THRESHOLD) ||
       !isSameDay(currentTime, prevTime);
 
@@ -96,8 +96,8 @@ export function formatProgressiveTimestamp(timestamp) {
  */
 function formatTimeSeparator(timestamp, is24Hour = true) {
   // Show time-of-day only to avoid repeating date labels like 'Yesterday'
-  return timestamp.toLocaleTimeString([], { 
-    hour: '2-digit', 
+  return timestamp.toLocaleTimeString([], {
+    hour: '2-digit',
     minute: '2-digit',
     hour12: !is24Hour
   });
@@ -108,8 +108,14 @@ function formatTimeSeparator(timestamp, is24Hour = true) {
  */
 export function formatTimeOfDay(input, is24Hour = true) {
   const date = typeof input === 'string' ? new Date(input) : input;
-  return date.toLocaleTimeString([], { 
-    hour: '2-digit', 
+
+  // Check if date is valid
+  if (!date || isNaN(date.getTime())) {
+    return '--:--';
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: '2-digit',
     minute: '2-digit',
     hour12: !is24Hour
   });
@@ -120,6 +126,12 @@ export function formatTimeOfDay(input, is24Hour = true) {
  */
 export function formatDateSeparator(timestamp) {
   const date = new Date(timestamp);
+
+  // Check if date is valid
+  if (!date || isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -131,8 +143,8 @@ export function formatDateSeparator(timestamp) {
   } else if (diffDays < 7) {
     return date.toLocaleDateString([], { weekday: 'long' });
   } else {
-    return date.toLocaleDateString([], { 
-      month: 'long', 
+    return date.toLocaleDateString([], {
+      month: 'long',
       day: 'numeric',
       ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' })
     });
@@ -144,6 +156,12 @@ export function formatDateSeparator(timestamp) {
  */
 export function getPreciseTimestamp(timestamp, is24Hour = true) {
   const date = new Date(timestamp);
+
+  // Check if date is valid
+  if (!date || isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
   return date.toLocaleString([], {
     weekday: 'short',
     month: 'short',

@@ -8,76 +8,111 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-// Demo data for goals
-const demoGoals = [
+// Fixed goal fields from the image
+const goalFields = [
   {
-    id: "goal_1",
-    name: "Daily Exercise",
+    id: "sleep_quality",
+    name: "Sleep Quality",
+    icon: "🌙",
+    category: "Health"
+  },
+  {
+    id: "nutrition",
+    name: "Nutrition",
+    icon: "🥗",
+    category: "Health"
+  },
+  {
+    id: "physical_activity",
+    name: "Physical Activity",
     icon: "🏃‍♂️",
-    target: 30,
-    unit: "minutes",
-    currentValue: 25,
-    deadline: "2024-12-31"
+    category: "Fitness"
   },
   {
-    id: "goal_2", 
-    name: "Mindfulness Practice",
-    icon: "🧘‍♀️",
-    target: 15,
-    unit: "minutes",
-    currentValue: 10,
-    deadline: "2024-12-31"
-  },
-  {
-    id: "goal_3",
-    name: "Read Books",
+    id: "learning",
+    name: "Learning",
     icon: "📚",
-    target: 20,
-    unit: "pages",
-    currentValue: 15,
-    deadline: "2024-12-31"
+    category: "Education"
+  },
+  {
+    id: "maintaining_relationships",
+    name: "Maintaining Relationships",
+    icon: "❤️",
+    category: "Social"
   }
 ];
 
-// Demo data for bad habits
-const demoBadHabits = [
+// Fixed bad habit fields from the image
+const badHabitFields = [
   {
-    id: "habit_1",
-    name: "Screen Time",
+    id: "excessive_social_media",
+    name: "Excessive Social Media",
     icon: "📱",
-    currentValue: 4,
-    unit: "hours",
-    target: 2
+    category: "Digital"
   },
   {
-    id: "habit_2",
-    name: "Junk Food",
-    icon: "🍔",
-    currentValue: 2,
-    unit: "times",
-    target: 0
+    id: "procrastination",
+    name: "Procrastination",
+    icon: "⏰",
+    category: "Productivity"
+  },
+  {
+    id: "negative_thinking",
+    name: "Negative Thinking",
+    icon: "☁️",
+    category: "Mental"
   }
 ];
 
 // Mock functions to replace missing hooks
-const getActiveGoals = () => demoGoals;
-const getActiveBadHabits = () => demoBadHabits;
+const getActiveGoals = () => goalFields;
+const getActiveBadHabits = () => badHabitFields;
 
-// Mock useDailyTracking hook
+// Real useDailyTracking hook with API calls
 const useDailyTracking = (goals, habits) => {
   const [isLoading, setIsLoading] = useState(false);
   
-  const saveDailyEntry = async (goalScores, badHabitScores, notes) => {
+  const saveDailyEntry = async (formData) => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Saving daily entry:', { goalScores, badHabitScores, notes });
-    setIsLoading(false);
+    try {
+      const response = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save check-in');
+      }
+
+      const result = await response.json();
+      console.log('Check-in saved:', result);
+      return result;
+    } catch (error) {
+      console.error('Error saving check-in:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const getTodayEntry = () => {
-    // Return null to simulate no existing entry
-    return null;
+  const getTodayEntry = async (date) => {
+    try {
+      const response = await fetch(`/api/checkin?date=${date}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch check-in data');
+      }
+
+      const result = await response.json();
+      return result.checkIn;
+    } catch (error) {
+      console.error('Error fetching check-in:', error);
+      return null;
+    }
   };
   
   return { saveDailyEntry, getTodayEntry, isLoading };
@@ -89,45 +124,53 @@ export default function ClientJournal() {
   const activeBadHabits = getActiveBadHabits();
   const { saveDailyEntry, getTodayEntry, isLoading } = useDailyTracking(activeGoals, activeBadHabits);
   
-  const [goalScores, setGoalScores] = useState({});
-  const [badHabitScores, setBadHabitScores] = useState({});
-  const [notes, setNotes] = useState("");
-  
-  // Initialize scores only once when component mounts
-  useEffect(() => {
-    // Initialize with default scores
-    const initialGoalScores = {};
-    const initialBadHabitScores = {};
+  // Single form data object with all fields
+  const [formData, setFormData] = useState({
+    // Goal scores (default to 3 as shown in image)
+    sleepQuality: 3,
+    nutrition: 3,
+    physicalActivity: 3,
+    learning: 3,
+    maintainingRelationships: 3,
     
-    activeGoals.forEach(goal => {
-      initialGoalScores[goal.id] = 3;
-    });
+    // Bad habit scores (default to 2 as shown in image)
+    excessiveSocialMedia: 2,
+    procrastination: 2,
+    negativeThinking: 2,
     
-    activeBadHabits.forEach(habit => {
-      initialBadHabitScores[habit.id] = 2;
-    });
+    // Notes
+    notes: "",
     
-    setGoalScores(initialGoalScores);
-    setBadHabitScores(initialBadHabitScores);
-  }, []); // Empty dependency array - only run once on mount
-
-  const handleGoalScoreChange = (goalId, score) => {
-    setGoalScores(prev => ({ ...prev, [goalId]: Math.max(0, Math.min(5, score)) }));
-  };
-
-  const handleBadHabitScoreChange = (habitId, score) => {
-    setBadHabitScores(prev => ({ ...prev, [habitId]: Math.max(0, Math.min(5, score)) }));
-  };
+    // Metadata
+    date: new Date().toISOString().split('T')[0],
+  });
 
   const handleSave = async () => {
+    if (isLoading) return; // Prevent multiple clicks
+    
     try {
-      await saveDailyEntry(goalScores, badHabitScores, notes);
-      toast.success("Daily tracking saved successfully!");
+      const result = await saveDailyEntry(formData);
+      
+      // Show different messages based on whether it was inserted or updated
+      if (result.isUpdate) {
+        toast.success("Daily tracking updated successfully! +1 point for engagement");
+      } else {
+        toast.success("Daily tracking saved successfully! +1 point for engagement");
+      }
+      
       router.push('/client');
     } catch (error) {
-      toast.error("Failed to save daily tracking");
+      toast.error(error.message || "Failed to save daily tracking");
       console.error('Error saving daily entry:', error);
     }
+  };
+
+  // Helper function to update form data
+  const updateFormData = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const getScoreEmoji = (score) => {
@@ -158,7 +201,7 @@ export default function ClientJournal() {
 
       <div className="p-4 space-y-6">
         {/* Goals */}
-        {activeGoals.length > 0 && (
+        {(
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
@@ -166,41 +209,151 @@ export default function ClientJournal() {
             </div>
             
             <div className="space-y-4">
-              {activeGoals.map((goal) => (
-                <div key={goal.id} className="bg-card/50 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{goal.icon}</span>
-                      <span className="font-medium">{goal.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{getScoreEmoji(goalScores[goal.id] || 3)}</span>
-                      <span className="text-lg font-semibold min-w-[20px]">{goalScores[goal.id] || 3}</span>
-                    </div>
+              {/* Sleep Quality */}
+              <div className="bg-card/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🌙</span>
+                    <span className="font-medium">Sleep Quality</span>
                   </div>
-                  
-                  <div className="px-2">
-                    <Slider
-                      value={[goalScores[goal.id] || 3]}
-                      onValueChange={(value) => handleGoalScoreChange(goal.id, value[0])}
-                      max={5}
-                      min={0}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>Poor</span>
-                      <span>Amazing</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getScoreEmoji(formData.sleepQuality)}</span>
+                    <span className="text-lg font-semibold min-w-[20px]">{formData.sleepQuality}</span>
                   </div>
                 </div>
-              ))}
+                <div className="px-2">
+                  <Slider
+                    value={[formData.sleepQuality]}
+                    onValueChange={(value) => updateFormData('sleepQuality', Math.max(0, Math.min(5, value[0])))}
+                    max={5}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Poor</span>
+                    <span>Amazing</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nutrition */}
+              <div className="bg-card/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🥗</span>
+                    <span className="font-medium">Nutrition</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getScoreEmoji(formData.nutrition)}</span>
+                    <span className="text-lg font-semibold min-w-[20px]">{formData.nutrition}</span>
+                  </div>
+                </div>
+                <div className="px-2">
+                  <Slider
+                    value={[formData.nutrition]}
+                    onValueChange={(value) => updateFormData('nutrition', Math.max(0, Math.min(5, value[0])))}
+                    max={5}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Poor</span>
+                    <span>Amazing</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Physical Activity */}
+              <div className="bg-card/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🏃‍♂️</span>
+                    <span className="font-medium">Physical Activity</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getScoreEmoji(formData.physicalActivity)}</span>
+                    <span className="text-lg font-semibold min-w-[20px]">{formData.physicalActivity}</span>
+                  </div>
+                </div>
+                <div className="px-2">
+                  <Slider
+                    value={[formData.physicalActivity]}
+                    onValueChange={(value) => updateFormData('physicalActivity', Math.max(0, Math.min(5, value[0])))}
+                    max={5}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Poor</span>
+                    <span>Amazing</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Learning */}
+              <div className="bg-card/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📚</span>
+                    <span className="font-medium">Learning</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getScoreEmoji(formData.learning)}</span>
+                    <span className="text-lg font-semibold min-w-[20px]">{formData.learning}</span>
+                  </div>
+                </div>
+                <div className="px-2">
+                  <Slider
+                    value={[formData.learning]}
+                    onValueChange={(value) => updateFormData('learning', Math.max(0, Math.min(5, value[0])))}
+                    max={5}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Poor</span>
+                    <span>Amazing</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Maintaining Relationships */}
+              <div className="bg-card/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">❤️</span>
+                    <span className="font-medium">Maintaining Relationships</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getScoreEmoji(formData.maintainingRelationships)}</span>
+                    <span className="text-lg font-semibold min-w-[20px]">{formData.maintainingRelationships}</span>
+                  </div>
+                </div>
+                <div className="px-2">
+                  <Slider
+                    value={[formData.maintainingRelationships]}
+                    onValueChange={(value) => updateFormData('maintainingRelationships', Math.max(0, Math.min(5, value[0])))}
+                    max={5}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>Poor</span>
+                    <span>Amazing</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Bad Habits */}
-        {activeBadHabits.length > 0 && (
+        {(
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-destructive" />
@@ -208,55 +361,109 @@ export default function ClientJournal() {
             </div>
             
             <div className="space-y-4">
-              {activeBadHabits.map((habit) => (
-                <div key={habit.id} className="bg-card/50 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{habit.icon}</span>
-                      <span className="font-medium">{habit.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{getBadHabitEmoji(badHabitScores[habit.id] || 2)}</span>
-                      <span className="text-lg font-semibold min-w-[20px]">{badHabitScores[habit.id] || 2}</span>
-                    </div>
+              {/* Excessive Social Media */}
+              <div className="bg-card/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📱</span>
+                    <span className="font-medium">Excessive Social Media</span>
                   </div>
-                  
-                  <div className="px-2">
-                    <Slider
-                      value={[badHabitScores[habit.id] || 2]}
-                      onValueChange={(value) => handleBadHabitScoreChange(habit.id, value[0])}
-                      max={5}
-                      min={0}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>None</span>
-                      <span>Overdid it</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getBadHabitEmoji(formData.excessiveSocialMedia)}</span>
+                    <span className="text-lg font-semibold min-w-[20px]">{formData.excessiveSocialMedia}</span>
                   </div>
                 </div>
-              ))}
+                <div className="px-2">
+                  <Slider
+                    value={[formData.excessiveSocialMedia]}
+                    onValueChange={(value) => updateFormData('excessiveSocialMedia', Math.max(0, Math.min(5, value[0])))}
+                    max={5}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>None</span>
+                    <span>Overdid it</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Procrastination */}
+              <div className="bg-card/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">⏰</span>
+                    <span className="font-medium">Procrastination</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getBadHabitEmoji(formData.procrastination)}</span>
+                    <span className="text-lg font-semibold min-w-[20px]">{formData.procrastination}</span>
+                  </div>
+                </div>
+                <div className="px-2">
+                  <Slider
+                    value={[formData.procrastination]}
+                    onValueChange={(value) => updateFormData('procrastination', Math.max(0, Math.min(5, value[0])))}
+                    max={5}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>None</span>
+                    <span>Overdid it</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Negative Thinking */}
+              <div className="bg-card/50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">☁️</span>
+                    <span className="font-medium">Negative Thinking</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{getBadHabitEmoji(formData.negativeThinking)}</span>
+                    <span className="text-lg font-semibold min-w-[20px]">{formData.negativeThinking}</span>
+                  </div>
+                </div>
+                <div className="px-2">
+                  <Slider
+                    value={[formData.negativeThinking]}
+                    onValueChange={(value) => updateFormData('negativeThinking', Math.max(0, Math.min(5, value[0])))}
+                    max={5}
+                    min={0}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>None</span>
+                    <span>Overdid it</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Quick Notes */}
-        {(activeGoals.length > 0 || activeBadHabits.length > 0) && (
+        {(
           <div className="space-y-3">
             <h2 className="font-semibold">How was today?</h2>
             <Textarea
               placeholder="Optional quick note about your day..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={formData.notes}
+              onChange={(e) => updateFormData('notes', e.target.value)}
               className="min-h-[80px] bg-card/50 border-none"
               rows={3}
             />
           </div>
         )}
 
-        {/* Empty State */}
-        {activeGoals.length === 0 && activeBadHabits.length === 0 && (
+        {/* Empty State - This section is now always hidden since we have fixed fields */}
+        {false && (
           <div className="text-center py-8 space-y-4">
             <Target className="h-12 w-12 text-muted-foreground mx-auto" />
             <div>

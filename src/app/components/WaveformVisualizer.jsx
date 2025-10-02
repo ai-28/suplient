@@ -9,7 +9,8 @@ export function WaveformVisualizer({
   onSeek,
   className
 }) {
-  const normalizedData = data.length > 0 ? data : Array(32).fill(0);
+  // Ensure data is always an array
+  const normalizedData = Array.isArray(data) && data.length > 0 ? data : Array(32).fill(0);
   const progress = duration > 0 ? currentTime / duration : 0;
 
   const handleClick = (event) => {
