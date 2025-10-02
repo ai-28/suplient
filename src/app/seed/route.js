@@ -55,7 +55,7 @@ async function seedUser() {
 
 }
 // Create ProgramTemplate table if it doesn't exist
-export async function createProgramTemplateTable() {
+async function createProgramTemplateTable() {
   try {
     await sql`
     CREATE TABLE IF NOT EXISTS "ProgramTemplate" (
@@ -97,7 +97,7 @@ export async function createProgramTemplateTable() {
   }
 }
 
-export async function createProgramEnrollmentTable() {
+async function createProgramEnrollmentTable() {
   try {
     await sql`
     CREATE TABLE IF NOT EXISTS "ProgramEnrollment" (
@@ -124,7 +124,7 @@ export async function createProgramEnrollmentTable() {
   }
 }
 
-export async function seedTask() {
+async function seedTask() {
   try {
     // Create Group table if it doesn't exist
     await sql`
@@ -276,7 +276,7 @@ export async function seedTask() {
 
 
 // Create Resource table for all library items
-export async function createResourceTable() {
+async function createResourceTable() {
   try {
     await sql`
       CREATE TABLE IF NOT EXISTS "Resource" (
@@ -312,7 +312,7 @@ export async function createResourceTable() {
 }
 
 // Create ResourceCompletion table for tracking resource interactions
-export async function createResourceCompletionTable() {
+async function createResourceCompletionTable() {
   try {
     await sql`
       CREATE TABLE IF NOT EXISTS "ResourceCompletion" (
@@ -341,7 +341,7 @@ export async function createResourceCompletionTable() {
     throw error;
   }
 }
-export async function seedNote() {
+async function seedNote() {
   try {
     // Create Note table if it doesn't exist
     await sql`
@@ -369,7 +369,7 @@ export async function seedNote() {
   }
 }
 
-export async function createCheckInTable() {
+async function createCheckInTable() {
   try {
     // Create CheckIn table for daily journal entries
     await sql`
@@ -414,7 +414,7 @@ export async function createCheckInTable() {
   }
 }
 
-export async function createUserStatsTable() {
+async function createUserStatsTable() {
   try {
     // Create user_stats table
     await sql`
@@ -438,7 +438,7 @@ export async function createUserStatsTable() {
   }
 }
 
-export async function createChatTables() {
+async function createChatTables() {
   try {
     // Create Conversations table (simplified)
     await sql`

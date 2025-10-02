@@ -1,12 +1,6 @@
 const { NextRequest } = require('next/server');
 const { getSocketManager } = require('../../lib/socket/SocketManager');
 
-// This will be called from your Next.js server setup
-function initializeSocketIO(server) {
-  const socketManager = getSocketManager();
-  return socketManager.initialize(server);
-}
-
 // Health check endpoint for Socket.IO
 async function GET(request) {
   const socketManager = getSocketManager();
@@ -19,7 +13,6 @@ async function GET(request) {
 }
 
 module.exports = {
-  initializeSocketIO,
   GET
 };
 

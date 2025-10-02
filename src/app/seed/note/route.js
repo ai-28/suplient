@@ -1,5 +1,6 @@
 import { sql } from '../../lib/db/postgresql';
-export async function createChatTables() {
+
+async function createChatTables() {
   try {
     // Create Conversations table
     await sql`
@@ -96,21 +97,21 @@ export async function createChatTables() {
     await sql`CREATE INDEX IF NOT EXISTS idx_conversation_type ON "Conversation"(type)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_conversation_created_by ON "Conversation"("createdBy")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_conversation_group_id ON "Conversation"("groupId")`;
-    
+
     await sql`CREATE INDEX IF NOT EXISTS idx_participant_conversation ON "ConversationParticipant"("conversationId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_participant_user ON "ConversationParticipant"("userId")`;
-    
+
     await sql`CREATE INDEX IF NOT EXISTS idx_message_conversation ON "Message"("conversationId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_message_sender ON "Message"("senderId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_message_created_at ON "Message"("createdAt")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_message_type ON "Message"(type)`;
-    
+
     await sql`CREATE INDEX IF NOT EXISTS idx_reaction_message ON "MessageReaction"("messageId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_reaction_user ON "MessageReaction"("userId")`;
-    
+
     await sql`CREATE INDEX IF NOT EXISTS idx_read_status_message ON "MessageReadStatus"("messageId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_read_status_user ON "MessageReadStatus"("userId")`;
-    
+
     await sql`CREATE INDEX IF NOT EXISTS idx_typing_conversation ON "TypingStatus"("conversationId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_typing_user ON "TypingStatus"("userId")`;
 
