@@ -7,10 +7,14 @@ export function useSocket() {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
+  const [globalOnlineUsers, setGlobalOnlineUsers] = useState([]); // Global online users tracking
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const joinedConversations = useRef(new Set()); // Track joined conversations
+
+  // Add a flag to prevent multiple socket connections
+  const socketInitialized = useRef(false);
 
   // Memoize user data to prevent unnecessary re-renders
   // Use a more stable approach that doesn't change on session refreshes
@@ -68,9 +72,37 @@ export function useSocket() {
       forceNew: false, // Don't force new connections unnecessarily
     });
 
+    // Global online/offline event handlers (always active)
+    const handleGlobalUserOnline = (data) => {
+      console.log('🔥 Global user online event received in useSocket:', data); // Debug log
+      setGlobalOnlineUsers(prev => {
+        const exists = prev.some(user => user.userId === data.userId);
+        if (!exists) {
+          const newList = [...prev, {
+            userId: data.userId,
+            userName: data.userName
+          }];
+          console.log('🔥 Updated global online users list:', newList); // Debug log
+          return newList;
+        }
+        console.log('🔥 User already in online list:', data.userName); // Debug log
+        return prev;
+      });
+    };
+
+    const handleGlobalUserOffline = (data) => {
+      console.log('🔥 Global user offline event received in useSocket:', data); // Debug log
+      setGlobalOnlineUsers(prev => {
+        const newList = prev.filter(user => user.userId !== data.userId);
+        console.log('🔥 Updated global online users list after offline:', newList); // Debug log
+        return newList;
+      });
+    };
+
     // Connection event handlers
     newSocket.on('connect', () => {
       console.log('Socket connected:', newSocket.id);
+      console.log('📨 DEBUG: Socket connected, setting up unread count listener');
       setIsConnected(true);
       setConnectionError(null);
       reconnectAttempts.current = 0;
@@ -141,6 +173,32 @@ export function useSocket() {
       setConnectionError(error.message);
     });
 
+    // Register global online/offline event listeners
+    newSocket.on('user_online_global', handleGlobalUserOnline);
+    newSocket.on('user_offline_global', handleGlobalUserOffline);
+
+    // Test event listener to verify socket is working
+    newSocket.on('test_event', (data) => {
+      console.log('🔥 TEST EVENT RECEIVED:', data); // Debug log
+    });
+
+    // Setup notification events
+    newSocket.on('new_notification', (notification) => {
+      console.log('🔔 New notification received:', notification);
+      console.log('🔔 DEBUG: Notification event listener is working!');
+      // Dispatch custom event for useNotifications hook to listen
+      window.dispatchEvent(new CustomEvent('new_notification', { detail: notification }));
+    });
+
+    newSocket.on('update_unread_count', (data) => {
+      // Dispatch event to components - let them handle the filtering
+      window.dispatchEvent(new CustomEvent('update_unread_count', { detail: data }));
+    });
+
+    // Join notification room when connected
+    newSocket.emit('join_notifications', userData.userId);
+
+
     setSocket(newSocket);
 
     // Cleanup on unmount or dependency change
@@ -153,6 +211,13 @@ export function useSocket() {
       // Clear joined conversations on cleanup
       joinedConversations.current.clear();
 
+      // Remove global event listeners
+      newSocket.off('user_online_global', handleGlobalUserOnline);
+      newSocket.off('user_offline_global', handleGlobalUserOffline);
+      newSocket.off('test_event'); // Clean up test event listener
+      newSocket.off('new_notification'); // Clean up notification event listener
+      newSocket.offAny(); // Clean up the onAny listener
+
       // Only disconnect if this is a real unmount (not just dependency change)
       // We'll let the next useEffect handle reconnection
       if (newSocket && newSocket.connected) {
@@ -162,6 +227,11 @@ export function useSocket() {
       }
     };
   }, [userData?.userId, userData?.userEmail, userData?.userName]); // Depend on all user fields but prevent unnecessary recreations
+
+  // Debug: Log when globalOnlineUsers changes
+  useEffect(() => {
+    console.log('🔥 Global online users updated:', globalOnlineUsers);
+  }, [globalOnlineUsers]);
 
   // Handle browser visibility changes to prevent unnecessary socket recreation
   useEffect(() => {
@@ -233,35 +303,16 @@ export function useSocket() {
     }
   };
 
-  const addReaction = (messageId, emoji) => {
-    if (socket && isConnected) {
-      socket.emit('add_reaction', { messageId, emoji });
-    }
-  };
-
-  const removeReaction = (messageId, emoji) => {
-    if (socket && isConnected) {
-      socket.emit('remove_reaction', { messageId, emoji });
-    }
-  };
-
-  const markMessagesAsRead = (conversationId, messageIds) => {
-    if (socket && isConnected) {
-      socket.emit('mark_messages_read', { conversationId, messageIds });
-    }
-  };
 
   return {
     socket,
     isConnected,
     connectionError,
+    globalOnlineUsers, // Add global online users to return
     joinConversation,
     leaveConversation,
     sendMessage,
     startTyping,
-    stopTyping,
-    addReaction,
-    removeReaction,
-    markMessagesAsRead
+    stopTyping
   };
 }

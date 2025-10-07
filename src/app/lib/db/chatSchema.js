@@ -246,17 +246,6 @@ export const chatRepo = {
           u.id as "senderId",
           u.name as "senderName",
           u.role as "senderRole",
-          -- Get read status for this message
-          (
-            SELECT json_agg(
-              json_build_object(
-                'userId', mrs."userId",
-                'readAt', mrs."readAt"
-              )
-            )
-            FROM "MessageReadStatus" mrs
-            WHERE mrs."messageId" = m.id
-          ) as "readBy",
           -- Get reply message if exists
           (
             SELECT json_build_object(
@@ -268,22 +257,7 @@ export const chatRepo = {
             FROM "Message" rm
             JOIN "User" ru ON rm."senderId" = ru.id
             WHERE rm.id = m."replyToId"
-          ) as "replyTo",
-          -- Get reactions
-          (
-            SELECT json_agg(
-              json_build_object(
-                'id', mr.id,
-                'emoji', mr.emoji,
-                'userId', mr."userId",
-                'userName', ur.name,
-                'createdAt', mr."createdAt"
-              )
-            )
-            FROM "MessageReaction" mr
-            JOIN "User" ur ON mr."userId" = ur.id
-            WHERE mr."messageId" = m.id
-          ) as reactions
+          ) as "replyTo"
         FROM "Message" m
         JOIN "User" u ON m."senderId" = u.id
         WHERE m."conversationId" = ${conversationId}
@@ -333,6 +307,14 @@ export const chatRepo = {
         WHERE id = ${conversationId}
       `;
 
+      // Update sender's lastReadAt to mark their own message as read
+      await sql`
+        UPDATE "ConversationParticipant" 
+        SET "lastReadAt" = CURRENT_TIMESTAMP 
+        WHERE "conversationId" = ${conversationId} 
+        AND "userId" = ${senderId}
+      `;
+
       return message;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -340,66 +322,22 @@ export const chatRepo = {
     }
   },
 
-  // Mark messages as read
-  async markMessagesAsRead(conversationId, userId, messageIds) {
+  // Mark messages as read for a user in a conversation
+  async markMessagesAsRead(conversationId, userId) {
     try {
-      if (messageIds.length === 0) return;
-
-      const readStatusInserts = messageIds.map(messageId =>
-        sql`
-          INSERT INTO "MessageReadStatus" ("messageId", "userId")
-          VALUES (${messageId}, ${userId})
-          ON CONFLICT ("messageId", "userId") DO NOTHING
-        `
-      );
-
-      await Promise.all(readStatusInserts);
-
-      // Update participant's lastReadAt
       await sql`
-        UPDATE "ConversationParticipant"
-        SET "lastReadAt" = CURRENT_TIMESTAMP
-        WHERE "conversationId" = ${conversationId}
+        UPDATE "ConversationParticipant" 
+        SET "lastReadAt" = CURRENT_TIMESTAMP 
+        WHERE "conversationId" = ${conversationId} 
         AND "userId" = ${userId}
       `;
+
+      return { success: true };
     } catch (error) {
       console.error('Error marking messages as read:', error);
       throw error;
     }
   },
-
-  // Add reaction to message
-  async addReaction(messageId, userId, emoji) {
-    try {
-      const [reaction] = await sql`
-        INSERT INTO "MessageReaction" ("messageId", "userId", emoji)
-        VALUES (${messageId}, ${userId}, ${emoji})
-        ON CONFLICT ("messageId", "userId", emoji) DO NOTHING
-        RETURNING id, "createdAt"
-      `;
-
-      return reaction;
-    } catch (error) {
-      console.error('Error adding reaction:', error);
-      throw error;
-    }
-  },
-
-  // Remove reaction from message
-  async removeReaction(messageId, userId, emoji) {
-    try {
-      await sql`
-        DELETE FROM "MessageReaction"
-        WHERE "messageId" = ${messageId}
-        AND "userId" = ${userId}
-        AND emoji = ${emoji}
-      `;
-    } catch (error) {
-      console.error('Error removing reaction:', error);
-      throw error;
-    }
-  },
-
 
   // Get conversation by ID
   async getConversationById(conversationId) {

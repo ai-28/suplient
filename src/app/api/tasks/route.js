@@ -250,6 +250,30 @@ export async function PUT(request) {
                 // Don't fail the task completion if engagement tracking fails
             }
 
+            // Create notification for coach when task is completed
+            try {
+                const { NotificationService } = require('@/app/lib/services/NotificationService');
+
+                // Get task details and coach information
+                const taskDetailsResult = await sql`
+                    SELECT t.title, c."coachId", u.name as coachName, c2.name as clientName
+                    FROM "Task" t
+                    JOIN "Client" c ON c.id = t."clientId"
+                    JOIN "User" u ON u.id = c."coachId"
+                    JOIN "Client" c2 ON c2.id = ${clientId}
+                    WHERE t.id = ${taskId}
+                `;
+
+                if (taskDetailsResult.length > 0) {
+                    const { title: taskTitle, coachId, coachName, clientName } = taskDetailsResult[0];
+                    await NotificationService.notifyTaskCompletion(clientId, coachId, clientName, taskTitle);
+                    console.log('✅ Task completion notification created for coach:', coachName);
+                }
+            } catch (notificationError) {
+                console.error('❌ Error creating task completion notification:', notificationError);
+                // Don't fail the task completion if notification creation fails
+            }
+
             return NextResponse.json({
                 message: 'Task marked as completed',
                 completedAt: completionResult[0].completedAt

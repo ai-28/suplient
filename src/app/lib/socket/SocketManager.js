@@ -65,7 +65,7 @@ class SocketManager {
       this.setupConversationEvents(socket);
       this.setupMessageEvents(socket);
       this.setupTypingEvents(socket);
-      this.setupReactionEvents(socket);
+      this.setupNotificationEvents(socket);
 
       // Handle disconnection
       socket.on('disconnect', () => {
@@ -194,25 +194,6 @@ class SocketManager {
       }
     });
 
-    socket.on('mark_messages_read', async (data) => {
-      try {
-        const { conversationId, messageIds } = data;
-
-        const isParticipant = await this.verifyConversationParticipant(conversationId, socket.userId);
-        if (!isParticipant) return;
-
-        await this.markMessagesAsRead(conversationId, socket.userId, messageIds);
-
-        socket.to(`conversation:${conversationId}`).emit('messages_read', {
-          userId: socket.userId,
-          userName: socket.userName,
-          conversationId,
-          messageIds
-        });
-      } catch (error) {
-        console.error('Error marking messages as read:', error);
-      }
-    });
   }
 
   setupTypingEvents(socket) {
@@ -222,8 +203,6 @@ class SocketManager {
 
         const isParticipant = await this.verifyConversationParticipant(conversationId, socket.userId);
         if (!isParticipant) return;
-
-        await this.updateTypingStatus(conversationId, socket.userId, true);
 
         socket.to(`conversation:${conversationId}`).emit('user_typing', {
           userId: socket.userId,
@@ -243,8 +222,6 @@ class SocketManager {
         const isParticipant = await this.verifyConversationParticipant(conversationId, socket.userId);
         if (!isParticipant) return;
 
-        await this.updateTypingStatus(conversationId, socket.userId, false);
-
         socket.to(`conversation:${conversationId}`).emit('user_typing', {
           userId: socket.userId,
           userName: socket.userName,
@@ -257,61 +234,6 @@ class SocketManager {
     });
   }
 
-  setupReactionEvents(socket) {
-    socket.on('add_reaction', async (data) => {
-      try {
-        const { messageId, emoji } = data;
-
-        const canReact = await this.verifyMessageAccess(messageId, socket.userId);
-        if (!canReact) {
-          socket.emit('error', { message: 'Not authorized to react to this message' });
-          return;
-        }
-
-        const reaction = await this.addReaction(messageId, socket.userId, emoji);
-
-        const message = await this.getMessageById(messageId);
-        if (message) {
-          this.io.to(`conversation:${message.conversationId}`).emit('reaction_added', {
-            messageId,
-            reaction: {
-              ...reaction,
-              userName: socket.userName
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error adding reaction:', error);
-        socket.emit('error', { message: 'Failed to add reaction' });
-      }
-    });
-
-    socket.on('remove_reaction', async (data) => {
-      try {
-        const { messageId, emoji } = data;
-
-        const canReact = await this.verifyMessageAccess(messageId, socket.userId);
-        if (!canReact) {
-          socket.emit('error', { message: 'Not authorized to react to this message' });
-          return;
-        }
-
-        await this.removeReaction(messageId, socket.userId, emoji);
-
-        const message = await this.getMessageById(messageId);
-        if (message) {
-          this.io.to(`conversation:${message.conversationId}`).emit('reaction_removed', {
-            messageId,
-            userId: socket.userId,
-            emoji
-          });
-        }
-      } catch (error) {
-        console.error('Error removing reaction:', error);
-        socket.emit('error', { message: 'Failed to remove reaction' });
-      }
-    });
-  }
 
   handleDisconnection(socket) {
     console.log(`User ${socket.userName} (${socket.userId}) disconnected`);
@@ -398,34 +320,7 @@ class SocketManager {
     `;
   }
 
-  async updateTypingStatus(conversationId, userId, isTyping) {
-    await sql`
-      INSERT INTO "TypingStatus" ("conversationId", "userId", "isTyping", "lastTypingAt")
-      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-      ON CONFLICT ("conversationId", "userId")
-      DO UPDATE SET 
-        "isTyping" = $3,
-        "lastTypingAt" = CURRENT_TIMESTAMP,
-        "updatedAt" = CURRENT_TIMESTAMP
-    `;
-  }
 
-  async addReaction(messageId, userId, emoji) {
-    const result = await sql`
-      INSERT INTO "MessageReaction" ("messageId", "userId", emoji)
-      VALUES ($1, $2, $3)
-      ON CONFLICT ("messageId", "userId", emoji) DO NOTHING
-      RETURNING id, "createdAt"
-    `;
-    return result[0];
-  }
-
-  async removeReaction(messageId, userId, emoji) {
-    await sql`
-      DELETE FROM "MessageReaction"
-      WHERE "messageId" = $1 AND "userId" = $2 AND emoji = $3
-    `;
-  }
 
   async getMessageById(messageId) {
     const result = await sql`
@@ -434,25 +329,6 @@ class SocketManager {
     return result[0];
   }
 
-  async markMessagesAsRead(conversationId, userId, messageIds) {
-    if (messageIds.length === 0) return;
-
-    const readStatusInserts = messageIds.map(messageId =>
-      sql`
-        INSERT INTO "MessageReadStatus" ("messageId", "userId")
-        VALUES ($1, $2)
-        ON CONFLICT ("messageId", "userId") DO NOTHING
-      `
-    );
-
-    await Promise.all(readStatusInserts);
-
-    await sql`
-      UPDATE "ConversationParticipant"
-      SET "lastReadAt" = CURRENT_TIMESTAMP
-      WHERE "conversationId" = $1 AND "userId" = $2
-    `;
-  }
 
   // Health check methods
   getActiveUsersCount() {
@@ -461,6 +337,36 @@ class SocketManager {
 
   getActiveUsers() {
     return Array.from(this.activeUsers.values());
+  }
+
+  setupNotificationEvents(socket) {
+    // Handle joining notification room
+    socket.on('join_notifications', (userId) => {
+      socket.join(`notifications_${userId}`);
+      console.log(`User ${socket.userName} joined notifications room for user ${userId}`);
+    });
+
+    // Handle leaving notification room
+    socket.on('leave_notifications', (userId) => {
+      socket.leave(`notifications_${userId}`);
+      console.log(`User ${socket.userName} left notifications room for user ${userId}`);
+    });
+
+    // Handle creating notifications (for server-side use)
+    socket.on('create_notification', async (data) => {
+      try {
+        const { notificationSchema } = await import('@/app/lib/db/notificationSchema');
+        const result = await notificationSchema.createNotification(data);
+
+        if (result.success) {
+          // Emit notification to the specific user
+          this.io.to(`notifications_${data.userId}`).emit('new_notification', result.data);
+          console.log('✅ Real-time notification sent to user:', data.userId);
+        }
+      } catch (error) {
+        console.error('❌ Error creating real-time notification:', error);
+      }
+    });
   }
 }
 

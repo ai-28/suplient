@@ -9,6 +9,7 @@ import { PageHeader } from "@/app/components/PageHeader";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { 
   Users, 
   TrendingUp, 
@@ -17,7 +18,6 @@ import {
   Loader2
 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { toast } from "sonner";
 
 
 const earningsData = [
@@ -36,6 +36,7 @@ const earningsData = [
 
 export default function Dashboard() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [tasks, setTasks] = useState([]);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [taskUpdating, setTaskUpdating] = useState(null);
@@ -48,12 +49,29 @@ export default function Dashboard() {
   
   console.log("clientStas", clientStats)
   const [clientStatsLoading, setClientStatsLoading] = useState(true);
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
 
-  const activities = [
-    { name: "John", action: "completedTask", time: `5 minAgo`, type: "success" },
-    { name: "Louis", action: "got5DaysStreak", time: `2 hoursAgo`, type: "achievement" },
-    { name: "Bob", action: "loggedInAfter2Weeks", time: `1 dayAgo`, type: "login" }
-  ];
+
+  // Fetch activities
+  const fetchActivities = async () => {
+    try {
+      setActivitiesLoading(true);
+      const response = await fetch(`/api/activities?coachId=${session?.user?.id}&limit=5`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch activities');
+      }
+      
+      const data = await response.json();
+      setActivities(data.activities || []);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      setActivities([]);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
 
   // Fetch today's tasks when component mounts
   useEffect(() => {
@@ -78,7 +96,10 @@ export default function Dashboard() {
     };
 
     fetchTodayTasks();
-  }, []);
+    if (session?.user?.id) {
+      fetchActivities();
+    }
+  }, [session?.user?.id]);
 
   // Fetch client statistics when component mounts
   useEffect(() => {
@@ -372,26 +393,50 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {activities.map((activity, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    {activity.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">
-                    <span className="font-medium">{activity.name}</span> {activity.action}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
-                </div>
-                <div className="flex-shrink-0">
-                  {activity.type === 'success' && <CheckCircle className="h-4 w-4 text-primary" />}
-                  {activity.type === 'achievement' && <TrendingUp className="h-4 w-4 text-accent" />}
-                  {activity.type === 'login' && <Users className="h-4 w-4 text-secondary" />}
-                </div>
+            {activitiesLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Loading activities...</span>
               </div>
-            ))}
+            ) : activities.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No recent activities</p>
+                <p className="text-sm">Activities will appear here as clients engage with the platform</p>
+              </div>
+            ) : (
+              activities.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div className="p-2 rounded-full bg-primary/10 text-primary">
+                    {activity.type === 'signup' && <Users className="h-4 w-4" />}
+                    {activity.type === 'task_completed' && <CheckCircle className="h-4 w-4" />}
+                    {activity.type === 'daily_checkin' && <TrendingUp className="h-4 w-4" />}
+                    {activity.type === 'session_attended' && <BarChart3 className="h-4 w-4" />}
+                    {!['signup', 'task_completed', 'daily_checkin', 'session_attended'].includes(activity.type) && <TrendingUp className="h-4 w-4" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-foreground truncate">
+                        {activity.title}
+                      </h4>
+                      {activity.pointsEarned > 0 && (
+                        <Badge variant="secondary" className="ml-2">
+                          +{activity.pointsEarned} pts
+                        </Badge>
+                      )}
+                    </div>
+                    {activity.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {activity.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

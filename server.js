@@ -27,6 +27,13 @@ app.prepare().then(() => {
     }
   });
 
+  // Set global socket for notifications
+  console.log('🔧 Setting up global socket for notifications...');
+
+  // Set global socket directly
+  global.globalSocketIO = io;
+  console.log('✅ Global socket set directly:', !!global.globalSocketIO);
+
   let onlineUsers = [];
   const pendingNotifications = new Map();
 
@@ -58,6 +65,28 @@ app.prepare().then(() => {
       socket.emit('online_users', onlineUsers);
       socket.broadcast.emit('online_users', onlineUsers);
       console.log('User authenticated:', userName, userEmail);
+
+      // Also broadcast globally so any interface can update the user's status
+      console.log('About to emit user_online_global for:', userName); // Debug log
+      io.emit('user_online_global', {
+        userId: userId,
+        userName: userName
+      });
+      console.log('Emitted user_online_global for:', userName); // Debug log
+
+      // Test event to verify client is receiving events
+      io.emit('test_event', { message: 'Server is working', userName: userName });
+
+      // Join notification room for real-time notifications
+      socket.join(`notifications_${userId}`);
+
+    });
+
+    // Handle join_notifications event
+    socket.on('join_notifications', (userId) => {
+      if (socket.userId && socket.userId === userId) {
+        socket.join(`notifications_${userId}`);
+      }
     });
 
     // Legacy support for old events
@@ -80,6 +109,25 @@ app.prepare().then(() => {
       const { conversationId } = data;
       socket.join(`conversation_${conversationId}`);
       console.log(`User ${socket.userName || socket.id} joined conversation ${conversationId}`);
+
+      // Emit user_online event for chat interface compatibility
+      socket.to(`conversation_${conversationId}`).emit('user_online', {
+        userId: socket.userId,
+        userName: socket.userName,
+        conversationId
+      });
+
+      // Also emit global online event so any interface can update the user's status
+      // Only emit if user is authenticated
+      if (socket.userId && socket.userName) {
+        io.emit('user_online_global', {
+          userId: socket.userId,
+          userName: socket.userName
+        });
+        console.log('Emitted user_online_global on join_conversation for:', socket.userName); // Debug log
+      } else {
+        console.log('Skipping user_online_global - user not authenticated:', socket.userName); // Debug log
+      }
     });
 
     socket.on('leave_conversation', (data) => {
@@ -135,24 +183,6 @@ app.prepare().then(() => {
       });
     });
 
-    socket.on('mark_messages_read', (data) => {
-      const { conversationId, messageIds } = data;
-      console.log(`📖 User ${socket.userName} marked messages as read:`, messageIds);
-
-      // Get all participants in the conversation to verify broadcasting
-      const room = io.sockets.adapter.rooms.get(`conversation_${conversationId}`);
-      const participantCount = room ? room.size : 0;
-      console.log(`📡 Broadcasting read receipt to ${participantCount} participants in conversation_${conversationId}`);
-
-      // Broadcast to all participants in the conversation (including sender)
-      io.to(`conversation_${conversationId}`).emit('messages_read', {
-        userId: socket.userId,
-        userName: socket.userName,
-        conversationId,
-        messageIds,
-        readAt: new Date()
-      });
-    });
 
     socket.on('send-message', (data) => {
       const notificationTimeout = setTimeout(async () => {
@@ -199,11 +229,41 @@ app.prepare().then(() => {
     socket.on('disconnect', (reason) => {
       console.log(`User ${socket.userName || socket.id} disconnected: ${reason}`);
 
+      // Leave notification room
+      if (socket.userId) {
+        socket.leave(`notifications_${socket.userId}`);
+        console.log(`User ${socket.userName} left notifications room for user ${socket.userId}`);
+      }
+
       // Remove user from onlineUsers
       onlineUsers = onlineUsers.filter(user => user.socketId !== socket.id);
 
       // Broadcast updated user list to all remaining users
       io.emit('online_users', onlineUsers);
+
+      // Also emit user_offline events for chat interface compatibility
+      // Find all conversations this user was in and notify them
+      const userRooms = Array.from(socket.rooms).filter(room => room.startsWith('conversation_'));
+      userRooms.forEach(room => {
+        const conversationId = room.replace('conversation_', '');
+        socket.to(room).emit('user_offline', {
+          userId: socket.userId,
+          userName: socket.userName,
+          conversationId
+        });
+      });
+
+      // Also broadcast globally so any interface can update the user's status
+      // Only emit if user is authenticated
+      if (socket.userId && socket.userName) {
+        io.emit('user_offline_global', {
+          userId: socket.userId,
+          userName: socket.userName
+        });
+        console.log('Emitted user_offline_global for:', socket.userName); // Debug log
+      } else {
+        console.log('Skipping user_offline_global - user not authenticated:', socket.userName); // Debug log
+      }
     });
   });
 

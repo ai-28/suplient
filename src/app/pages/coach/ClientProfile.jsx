@@ -37,7 +37,10 @@ import {
   Pause,
   Play,
   Loader2,
-  X
+  X,
+  UserPlus,
+  Heart,
+  Trophy
 } from 'lucide-react';
 import { ProgramTimelineView } from '@/app/components/ProgramTimelineView';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
@@ -89,6 +92,8 @@ export default function ClientProfile() {
   const [clientGroups, setClientGroups] = useState([]);
   const [clientFiles, setClientFiles] = useState([]);
   const [clientNotes, setClientNotes] = useState([]);
+  const [clientActivities, setClientActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -145,6 +150,26 @@ export default function ClientProfile() {
     }
   };
 
+  // Fetch client activities
+  const fetchClientActivities = async () => {
+    try {
+      setActivitiesLoading(true);
+      const response = await fetch(`/api/activities?clientId=${id}&limit=10`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch client activities');
+      }
+      
+      const data = await response.json();
+      setClientActivities(data.activities || []);
+    } catch (error) {
+      console.error('Error fetching client activities:', error);
+      setClientActivities([]);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
   // Fetch client data on component mount
   useEffect(() => {
     const fetchClientData = async () => {
@@ -182,6 +207,7 @@ export default function ClientProfile() {
     fetchClientData();
     fetchProgramTemplates();
     fetchClientEnrolledPrograms();
+    fetchClientActivities();
   }, [id]);
   
   // Fetch client notes
@@ -1648,34 +1674,53 @@ console.log("currentClientPrograms",currentClientPrograms)
                   Recent Activity
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {clientSessions.length > 0 ? (
-                    clientSessions.slice(0, 5).map((session, index) => (
-                      <div key={session.id} className="flex items-start gap-3 pb-4 border-b last:border-b-0">
-                        <div className="p-2 rounded-full bg-blue-100 text-blue-600">
-                          <Calendar className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{session.title}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(session.sessionDate).toLocaleDateString()} at {session.sessionTime}
-                          </p>
-                          {session.status && (
-                            <Badge variant={session.status === 'completed' ? 'default' : 'secondary'} className="mt-1">
-                              {session.status}
+              <CardContent className="space-y-4">
+                {activitiesLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span className="text-sm text-muted-foreground">Loading activities...</span>
+                  </div>
+                ) : clientActivities.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No recent activities</p>
+                    <p className="text-sm">Activities will appear here as the client engages with the platform</p>
+                  </div>
+                ) : (
+                  clientActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="p-2 rounded-full bg-primary/10 text-primary">
+                        {activity.type === 'signup' && <UserPlus className="h-4 w-4" />}
+                        {activity.type === 'task_completed' && <CheckCircle className="h-4 w-4" />}
+                        {activity.type === 'daily_checkin' && <Heart className="h-4 w-4" />}
+                        {activity.type === 'session_attended' && <Calendar className="h-4 w-4" />}
+                        {activity.type === 'goal_achieved' && <Trophy className="h-4 w-4" />}
+                        {activity.type === 'milestone_reached' && <Target className="h-4 w-4" />}
+                        {!['signup', 'task_completed', 'daily_checkin', 'session_attended', 'goal_achieved', 'milestone_reached'].includes(activity.type) && <Activity className="h-4 w-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium text-foreground truncate">
+                            {activity.title}
+                          </h4>
+                          {activity.pointsEarned > 0 && (
+                            <Badge variant="secondary" className="ml-2">
+                              +{activity.pointsEarned} pts
                             </Badge>
                           )}
                         </div>
+                        {activity.description && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {activity.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
+                        </p>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No recent activity found</p>
                     </div>
-                  )}
-                </div>
+                  ))
+                )}
               </CardContent>
             </Card>
           </TabsContent>

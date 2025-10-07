@@ -47,8 +47,19 @@ export async function GET(request) {
                     ORDER BY (s."sessionDate" + s."sessionTime") ASC
                     LIMIT 1
                 ) as "scheduledSession",
-                -- Get unread messages count (placeholder for now)
-                0 as "unreadMessages",
+                -- Get unread messages count (corrected logic)
+                (
+                    SELECT COUNT(*)
+                    FROM "Message" m
+                    JOIN "Conversation" conv ON conv.id = m."conversationId"
+                    JOIN "ConversationParticipant" cp_coach ON cp_coach."conversationId" = conv.id AND cp_coach."userId" = ${coachId}
+                    JOIN "ConversationParticipant" cp_client ON cp_client."conversationId" = conv.id AND cp_client."userId" = c."userId"
+                    WHERE conv.type = 'personal'
+                    AND conv."createdBy" = ${coachId}
+                    AND m."senderId" = c."userId"
+                    AND m."isDeleted" = false
+                    AND m."createdAt" > COALESCE(cp_coach."lastReadAt", cp_coach."joinedAt")
+                ) as "unreadMessages",
                 -- Get last message (placeholder for now)
                 'No recent messages' as "lastMessage",
                 -- Get last note (placeholder for now)
@@ -58,21 +69,24 @@ export async function GET(request) {
             ORDER BY c."lastActive" DESC NULLS LAST, c."createdAt" DESC
         `;
 
+
         // Transform the data to match the expected format
-        const formattedClients = clients.map(client => ({
-            id: client.id,
-            name: client.name,
-            type: client.type || 'Personal',
-            status: client.status || 'Active',
-            lastActive: client.lastActive ? formatDate(client.lastActive) : 'Never',
-            created: formatDate(client.createdAt),
-            mood: client.mood || '😐',
-            stage: determineStage(client.status, client.type),
-            scheduledSession: client.scheduledSession ? formatDate(client.scheduledSession) : null,
-            unreadMessages: client.unreadMessages,
-            lastMessage: client.lastMessage,
-            lastNote: client.lastNote
-        }));
+        const formattedClients = clients.map(client => {
+            return {
+                id: client.id,
+                name: client.name,
+                type: client.type || 'Personal',
+                status: client.status || 'Active',
+                lastActive: client.lastActive ? formatDate(client.lastActive) : 'Never',
+                created: formatDate(client.createdAt),
+                mood: client.mood || '😐',
+                stage: determineStage(client.status, client.type),
+                scheduledSession: client.scheduledSession ? formatDate(client.scheduledSession) : null,
+                unreadMessages: client.unreadMessages,
+                lastMessage: client.lastMessage,
+                lastNote: client.lastNote
+            };
+        });
 
         return NextResponse.json({
             status: true,

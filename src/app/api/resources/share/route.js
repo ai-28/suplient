@@ -55,6 +55,33 @@ export async function POST(request) {
             sharedAt: new Date().toISOString()
         });
 
+        // Create notifications for clients when resource is shared
+        try {
+            const { NotificationService } = require('@/app/lib/services/NotificationService');
+
+            // Get client details for notifications
+            if (clientIds && clientIds.length > 0) {
+                const clientDetails = await sql`
+                    SELECT c.id, c.name, c."userId"
+                    FROM "Client" c
+                    WHERE c.id = ANY(${clientIds})
+                `;
+
+                for (const client of clientDetails) {
+                    await NotificationService.notifyResourceShared(
+                        client.userId,  // Use userId instead of client.id
+                        session.user.id,
+                        session.user.name,
+                        resource.title
+                    );
+                }
+                console.log('✅ Resource sharing notifications created for', clientDetails.length, 'clients');
+            }
+        } catch (notificationError) {
+            console.error('❌ Error creating resource sharing notifications:', notificationError);
+            // Don't fail resource sharing if notification creation fails
+        }
+
         return NextResponse.json({
             message: 'Resource shared successfully',
             resource: updatedResource[0],

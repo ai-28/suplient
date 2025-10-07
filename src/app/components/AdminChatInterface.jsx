@@ -10,7 +10,6 @@ import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Separator } from "@/app/components/ui/separator";
 import { Badge } from "@/app/components/ui/badge";
 import { MessageActions } from "./MessageActions";
-import { MessageReactions } from "./MessageReactions";
 import { EmojiPickerComponent } from "./EmojiPicker";
 import { FileAttachmentButton } from "./FileAttachmentButton";
 import { VoiceRecorder } from "./VoiceRecorder";
@@ -107,33 +106,6 @@ export function AdminChatInterface({
     }
   };
 
-  const handleReaction = (messageId, emoji) => {
-    setMessages(prev => prev.map(msg => {
-      if (msg.id === messageId) {
-        const reactions = msg.reactions || [];
-        const existingReaction = reactions.find(r => r.userId === "admin" && r.emoji === emoji);
-        
-        if (existingReaction) {
-          return {
-            ...msg,
-            reactions: reactions.filter(r => !(r.userId === "admin" && r.emoji === emoji))
-          };
-        } else {
-          return {
-            ...msg,
-            reactions: [...reactions, {
-              id: `reaction-${Date.now()}`,
-              userId: "admin",
-              userName: "Admin",
-              emoji,
-              timestamp: new Date().toISOString()
-            }]
-          };
-        }
-      }
-      return msg;
-    }));
-  };
 
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
@@ -223,25 +195,10 @@ export function AdminChatInterface({
                       )}
                     </Card>
 
-                    {message.reactions && message.reactions.length > 0 && (
-                      <MessageReactions 
-                        reactions={message.reactions}
-                        onAddReaction={(emoji) => handleReaction(message.id, emoji)}
-                        onRemoveReaction={(reactionId) => {
-                          setMessages(prev => prev.map(msg => 
-                            msg.id === message.id 
-                              ? { ...msg, reactions: msg.reactions?.filter(r => r.id !== reactionId) }
-                              : msg
-                          ));
-                        }}
-                        currentUserId="admin"
-                      />
-                    )}
 
                     <MessageActions
                       message={message}
                       onReply={() => setReplyingTo(message)}
-                      onReaction={(emoji) => handleReaction(message.id, emoji)}
                     />
                   </div>
 

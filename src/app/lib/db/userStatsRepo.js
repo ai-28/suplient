@@ -29,14 +29,21 @@ export const userStatsRepo = {
     // Update user stats incrementally
     async updateUserStats(userId, updates) {
         try {
+            // Ensure we have valid values
+            const validUpdates = {
+                daily_streak: updates.daily_streak || 0,
+                total_points: updates.total_points || 0,
+                last_checkin_date: updates.last_checkin_date || null
+            };
+
             const result = await sql`
                 INSERT INTO user_stats (user_id, daily_streak, total_points, last_checkin_date, updated_at)
-                VALUES (${userId}, ${updates.daily_streak || 0}, ${updates.total_points || 0}, ${updates.last_checkin_date || null}, NOW())
+                VALUES (${userId}, ${validUpdates.daily_streak}, ${validUpdates.total_points}, ${validUpdates.last_checkin_date}, NOW())
                 ON CONFLICT (user_id) 
                 DO UPDATE SET
-                    daily_streak = COALESCE(${updates.daily_streak}, user_stats.daily_streak),
-                    total_points = COALESCE(${updates.total_points}, user_stats.total_points),
-                    last_checkin_date = COALESCE(${updates.last_checkin_date}, user_stats.last_checkin_date),
+                    daily_streak = COALESCE(${validUpdates.daily_streak}, user_stats.daily_streak),
+                    total_points = COALESCE(${validUpdates.total_points}, user_stats.total_points),
+                    last_checkin_date = COALESCE(${validUpdates.last_checkin_date}, user_stats.last_checkin_date),
                     updated_at = NOW()
                 RETURNING *
             `;
@@ -51,17 +58,22 @@ export const userStatsRepo = {
     // Add engagement activity
     async addEngagementActivity(userId, activityType, points = 1, date = null) {
         try {
+            // Ensure we have valid values
+            const validPoints = points || 1;
+            const validDate = date || new Date().toISOString().split('T')[0];
+
             // Simply increment total points in user_stats
             await sql`
                 INSERT INTO user_stats (user_id, daily_streak, total_points, last_checkin_date, updated_at)
-                VALUES (${userId}, 0, ${points}, NULL, NOW())
+                VALUES (${userId}, 0, ${validPoints}, ${validDate}, NOW())
                 ON CONFLICT (user_id) 
                 DO UPDATE SET
-                    total_points = user_stats.total_points + ${points},
+                    total_points = user_stats.total_points + ${validPoints},
+                    last_checkin_date = ${validDate},
                     updated_at = NOW()
             `;
 
-            return { userId, activityType, points, date: date || new Date().toISOString().split('T')[0] };
+            return { userId, activityType, points: validPoints, date: validDate };
         } catch (error) {
             console.error('Error adding engagement activity:', error);
             throw error;
@@ -71,6 +83,9 @@ export const userStatsRepo = {
     // Update daily streak when check-in occurs
     async updateDailyStreak(userId, checkinDate) {
         try {
+            // Ensure we have a valid checkin date
+            const validCheckinDate = checkinDate || new Date().toISOString().split('T')[0];
+
             const userStats = await this.getUserStats(userId);
             const lastCheckin = userStats.last_checkin_date;
 
@@ -78,14 +93,14 @@ export const userStatsRepo = {
                 // First check-in
                 await this.updateUserStats(userId, {
                     daily_streak: 1,
-                    last_checkin_date: checkinDate
+                    last_checkin_date: validCheckinDate
                 });
                 return 1;
             }
 
             // Normalize dates to UTC to avoid timezone issues
             const lastCheckinDate = new Date(lastCheckin + 'T00:00:00Z');
-            const currentCheckinDate = new Date(checkinDate + 'T00:00:00Z');
+            const currentCheckinDate = new Date(validCheckinDate + 'T00:00:00Z');
             const daysDiff = Math.floor((currentCheckinDate - lastCheckinDate) / (1000 * 60 * 60 * 24));
 
             let newStreak;
@@ -102,7 +117,7 @@ export const userStatsRepo = {
 
             await this.updateUserStats(userId, {
                 daily_streak: newStreak,
-                last_checkin_date: checkinDate
+                last_checkin_date: validCheckinDate
             });
 
             return newStreak;

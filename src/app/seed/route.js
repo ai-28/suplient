@@ -483,28 +483,6 @@ async function createChatTables() {
       );
     `;
 
-    // Create MessageReactions table (for emoji reactions)
-    await sql`
-      CREATE TABLE IF NOT EXISTS "MessageReaction" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "messageId" UUID NOT NULL REFERENCES "Message"(id) ON DELETE CASCADE,
-        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-        emoji VARCHAR(10) NOT NULL,
-        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE("messageId", "userId", emoji)
-      );
-    `;
-
-    // Create MessageReadStatus table (for read receipts)
-    await sql`
-      CREATE TABLE IF NOT EXISTS "MessageReadStatus" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "messageId" UUID NOT NULL REFERENCES "Message"(id) ON DELETE CASCADE,
-        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-        "readAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE("messageId", "userId")
-      );
-    `;
 
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_conversation_type ON "Conversation"(type)`;
@@ -519,13 +497,68 @@ async function createChatTables() {
     await sql`CREATE INDEX IF NOT EXISTS idx_message_created_at ON "Message"("createdAt")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_message_type ON "Message"(type)`;
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_reaction_message ON "MessageReaction"("messageId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_reaction_user ON "MessageReaction"("userId")`;
+    // Create Activity table for tracking client activities
+    await sql`
+      CREATE TABLE IF NOT EXISTS "Activity" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "clientId" UUID REFERENCES "Client"(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL CHECK (type IN ('signup', 'task_completed', 'daily_checkin', 'session_attended', 'goal_achieved', 'milestone_reached', 'other')),
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        "activityData" JSONB, -- Store additional data like task details, check-in responses, etc.
+        "pointsEarned" INTEGER DEFAULT 0,
+        "isVisible" BOOLEAN DEFAULT true,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        
+        -- Add constraints for data integrity
+        CONSTRAINT chk_activity_points CHECK ("pointsEarned" >= 0),
+        CONSTRAINT chk_activity_type_length CHECK (LENGTH(type) >= 3)
+      );
+    `;
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_read_status_message ON "MessageReadStatus"("messageId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_read_status_user ON "MessageReadStatus"("userId")`;
+    // Create indexes for Activity table
+    await sql`CREATE INDEX IF NOT EXISTS idx_activity_user ON "Activity"("userId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_activity_client ON "Activity"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_activity_type ON "Activity"(type)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_activity_created_at ON "Activity"("createdAt")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_activity_visible ON "Activity"("isVisible")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_activity_user_type ON "Activity"("userId", type)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_activity_client_type ON "Activity"("clientId", type)`;
 
-    console.log('Chat tables created successfully (simplified schema)');
+    // Create Notification table for user notifications
+    await sql`
+      CREATE TABLE IF NOT EXISTS "Notification" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL CHECK (type IN ('client_signup', 'task_completed', 'daily_checkin', 'new_message', 'session_reminder', 'goal_achieved', 'system', 'other')),
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        data JSONB, -- Store additional data like client info, message preview, etc.
+        "isRead" BOOLEAN DEFAULT false,
+        "readAt" TIMESTAMP WITH TIME ZONE,
+        priority VARCHAR(20) DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        
+        -- Add constraints for data integrity
+        CONSTRAINT chk_notification_type_length CHECK (LENGTH(type) >= 3),
+        CONSTRAINT chk_notification_title_length CHECK (LENGTH(title) >= 1),
+        CONSTRAINT chk_notification_message_length CHECK (LENGTH(message) >= 1)
+      );
+    `;
+
+    // Create indexes for Notification table
+    await sql`CREATE INDEX IF NOT EXISTS idx_notification_user ON "Notification"("userId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_notification_type ON "Notification"(type)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_notification_created_at ON "Notification"("createdAt")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_notification_read ON "Notification"("isRead")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_notification_priority ON "Notification"(priority)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_notification_user_read ON "Notification"("userId", "isRead")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_notification_user_type ON "Notification"("userId", type)`;
+
+    console.log('Chat tables, activity table, and notification table created successfully (simplified schema)');
   } catch (error) {
     console.error('Error creating chat tables:', error);
     throw error;

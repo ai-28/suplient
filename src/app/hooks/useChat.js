@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { useSocket } from './useSocket';
+import { useSocket } from '../components/providers/SocketProvider';
 
 export function useChat(conversationId) {
   const { data: session } = useSession();
-  const { socket, isConnected, joinConversation, leaveConversation, sendMessage, startTyping, stopTyping, addReaction, removeReaction, markMessagesAsRead } = useSocket();
+  const { socket, isConnected, globalOnlineUsers, joinConversation, leaveConversation, sendMessage, startTyping, stopTyping } = useSocket();
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [typingUsers, setTypingUsers] = useState([]);
-  const [onlineUsers, setOnlineUsers] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [sending, setSending] = useState(false);
 
@@ -212,36 +211,6 @@ export function useChat(conversationId) {
     }, 2000);
   }, [conversationId, startTyping, stopTyping]);
 
-  // Handle reactions
-  const handleAddReaction = useCallback(async (messageId, emoji) => {
-    try {
-      addReaction(messageId, emoji);
-
-      // Also update via API
-      await fetch(`/api/chat/messages/${messageId}/reactions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ emoji }),
-      });
-    } catch (err) {
-      console.error('Error adding reaction:', err);
-    }
-  }, [addReaction]);
-
-  const handleRemoveReaction = useCallback(async (messageId, emoji) => {
-    try {
-      removeReaction(messageId, emoji);
-
-      // Also update via API
-      await fetch(`/api/chat/messages/${messageId}/reactions?emoji=${encodeURIComponent(emoji)}`, {
-        method: 'DELETE',
-      });
-    } catch (err) {
-      console.error('Error removing reaction:', err);
-    }
-  }, [removeReaction]);
 
   // Socket event handlers
   useEffect(() => {
@@ -304,68 +273,26 @@ export function useChat(conversationId) {
       }
     };
 
-    // Online/offline events
-    const handleUserOnline = (data) => {
-      if (data.conversationId === conversationId) {
-        setOnlineUsers(prev => [...prev.filter(user => user.userId !== data.userId), {
-          userId: data.userId,
-          userName: data.userName
-        }]);
-      }
-    };
+    // Online/offline events are now handled globally in useSocket hook
 
-    const handleUserOffline = (data) => {
-      if (data.conversationId === conversationId) {
-        setOnlineUsers(prev => prev.filter(user => user.userId !== data.userId));
-      }
-    };
+    // Global online/offline events are now handled in useSocket hook
 
-    // Reaction events
-    const handleReactionAdded = (data) => {
-      if (data.conversationId === conversationId) {
-        setMessages(prev => prev.map(msg =>
-          msg.id === data.messageId
-            ? {
-              ...msg,
-              reactions: [...(msg.reactions || []), data.reaction]
-            }
-            : msg
-        ));
-      }
-    };
-
-    const handleReactionRemoved = (data) => {
-      if (data.conversationId === conversationId) {
-        setMessages(prev => prev.map(msg =>
-          msg.id === data.messageId
-            ? {
-              ...msg,
-              reactions: (msg.reactions || []).filter(reaction =>
-                !(reaction.userId === data.userId && reaction.emoji === data.emoji)
-              )
-            }
-            : msg
-        ));
-      }
-    };
 
 
     // Register event listeners
     socket.on('new_message', handleNewMessage);
     socket.on('user_typing', handleUserTyping);
-    socket.on('user_online', handleUserOnline);
-    socket.on('user_offline', handleUserOffline);
-    socket.on('reaction_added', handleReactionAdded);
-    socket.on('reaction_removed', handleReactionRemoved);
+
+    // Test: Listen for any event to see if socket is working
+    socket.onAny((eventName, ...args) => {
+      console.log('Socket received event:', eventName, args); // Debug log
+    });
 
     // Cleanup
     return () => {
       socket.off('new_message', handleNewMessage);
       socket.off('user_typing', handleUserTyping);
-      socket.off('user_online', handleUserOnline);
-      socket.off('user_offline', handleUserOffline);
-      socket.off('reaction_added', handleReactionAdded);
-      socket.off('reaction_removed', handleReactionRemoved);
+      socket.offAny(); // Clean up the onAny listener
 
       if (isConnected) {
         leaveConversation(conversationId);
@@ -402,14 +329,12 @@ export function useChat(conversationId) {
     error,
     sending,
     typingUsers,
-    onlineUsers,
+    onlineUsers: globalOnlineUsers,
     hasMore,
     isConnected,
     loadMoreMessages,
     sendMessage: sendChatMessage,
     handleTyping,
-    handleAddReaction,
-    handleRemoveReaction,
     messagesEndRef
   };
 }

@@ -151,6 +151,31 @@ export default function ClientJournal() {
     try {
       const result = await saveDailyEntry(formData);
       
+      // Create activity for daily check-in
+      try {
+        const activityResponse = await fetch('/api/activities/daily-checkin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            checkinData: {
+              id: result.checkIn?.id || `checkin-${Date.now()}`,
+              responses: formData,
+              mood: formData.notes || 'Daily check-in completed'
+            }
+          }),
+        });
+        
+        if (activityResponse.ok) {
+          console.log('✅ Daily check-in activity created');
+        } else {
+          console.error('❌ Failed to create daily check-in activity');
+        }
+      } catch (activityError) {
+        console.error('❌ Error creating daily check-in activity:', activityError);
+      }
+      
       // Show different messages based on whether it was inserted or updated
       if (result.isUpdate) {
         toast.success("Daily tracking updated successfully! +1 point for engagement");

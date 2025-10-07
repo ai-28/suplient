@@ -82,6 +82,19 @@ export async function POST(request, { params }) {
       waveformData
     });
 
+
+    // Emit real-time update for unread message counts
+    try {
+      const { NotificationService } = await import('@/app/lib/services/NotificationService');
+
+      // Emit to all participants to update their unread counts
+      for (const participant of participants) {
+        await NotificationService.emitUnreadCountUpdate(conversationId, participant.id);
+      }
+    } catch (socketError) {
+      console.error('Error emitting unread count updates:', socketError);
+    }
+
     return NextResponse.json({
       success: true,
       message: {

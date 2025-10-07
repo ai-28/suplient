@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -39,6 +40,7 @@ import { useRouter } from "next/navigation";
 // Real data will be fetched from API and stored in clients state
 
 export default function Clients() {
+  const { data: session } = useSession();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("status.active");  
@@ -56,11 +58,13 @@ export default function Clients() {
   // Fetch clients data from API
   const fetchClients = async () => {
     try {
+      console.log('📨 DEBUG: fetchClients called');
       setLoading(true);
       const response = await fetch('/api/clients');
       const data = await response.json();
       
       if (data.status) {
+        console.log('📨 DEBUG: Clients fetched successfully:', data.clients?.length || 0, 'clients');
         setClients(data.clients || []);
       } else {
         console.error('Failed to fetch clients:', data.message);
@@ -74,6 +78,47 @@ export default function Clients() {
     }
   };
 
+  // Listen for real-time unread count updates
+  useEffect(() => {
+    const handleUnreadCountUpdate = async (event) => {
+      const { conversationId, participantId } = event.detail;
+      
+      // Only update if this event is for the current coach
+      if (participantId === session?.user?.id) {
+        // Fetch updated unread count for this specific conversation
+        try {
+          const response = await fetch(`/api/clients/unread-count?conversationId=${conversationId}`);
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Update the specific client's unread count in state
+            setClients(prevClients => 
+              prevClients.map(client => {
+                if (data.clientId && client.id === data.clientId) {
+                  return {
+                    ...client,
+                    unreadMessages: data.unreadCount
+                  };
+                }
+                return client;
+              })
+            );
+          }
+        } catch (error) {
+          console.error('Error fetching unread count:', error);
+          // Fallback to full refresh if targeted update fails
+          fetchClients();
+        }
+      }
+    };
+
+    window.addEventListener('update_unread_count', handleUnreadCountUpdate);
+    
+    return () => {
+      window.removeEventListener('update_unread_count', handleUnreadCountUpdate);
+    };
+  }, [session?.user?.id]);
+
   useEffect(() => {
     fetchClients();
   }, []);
@@ -84,7 +129,8 @@ export default function Clients() {
     // Refresh the clients list
     fetchClients();
   };
-console.log("clients",clients)
+
+
   const funnelStages = [
     { 
       id: "light", 

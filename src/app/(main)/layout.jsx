@@ -2,7 +2,7 @@
 
 import { AppSidebar } from "@/app/components/AppSidebar";
 import { SidebarProvider } from "@/app/components/ui/sidebar";
-import { NotificationSystem } from "@/app/components/NotificationSystem";
+import { NotificationBell } from "@/app/components/NotificationBell";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { usePathname } from "next/navigation";
 import {
@@ -18,11 +18,15 @@ import { Button } from "@/app/components/ui/button";
 import { Avatar } from "@/app/components/ui/avatar";
 import { BookMarked, LogOut } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
+import { useSocket } from "@/app/hooks/useSocket";
 import { useEffect, useState } from "react";
 
 const Layout = ({ children }) => {
     const pathname = usePathname();
     const { user } = useAuth();
+    
+    // Initialize socket connection for real-time notifications
+    useSocket();
     const [mounted, setMounted] = useState(false);
     
     // Only show sidebar for coach and admin routes, not for client routes
@@ -67,7 +71,7 @@ const Layout = ({ children }) => {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                  <NotificationSystem userRole="coach" />
+                    <NotificationBell userRole="coach" />
                   <ThemeToggle />
                   <DropdownMenu>
             <DropdownMenuTrigger asChild>

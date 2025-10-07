@@ -14,7 +14,6 @@ import { VoiceMessage } from "@/app/components/VoiceMessage";
 import { ScheduleSessionDialog } from "@/app/components/ScheduleSessionDialog";
 import { EmojiButton } from "@/app/components/EmojiButton";
 import { MessageActions } from "@/app/components/MessageActions";
-import { MessageReactions } from "@/app/components/MessageReactions";
 import { ReplyPreview } from "@/app/components/ReplyPreview";
 import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTimestamp } from "@/app/utils/timestampGrouping";
 import { useChat } from "@/app/hooks/useChat";
@@ -41,7 +40,6 @@ export function UniversalChatInterface({
   participantInitials = "U",
   currentUserId,
   currentUserRole,
-  allowReactions = true,
   allowReplies = true,
   allowVoiceMessages = true,
   allowScheduling = false,
@@ -70,9 +68,6 @@ export function UniversalChatInterface({
     loadMoreMessages,
     sendMessage,
     handleTyping,
-    handleAddReaction,
-    handleRemoveReaction,
-    markAsRead,
     messagesEndRef
   } = useChat(chatId);
 
@@ -90,6 +85,26 @@ export function UniversalChatInterface({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Mark messages as read when conversation loads
+  useEffect(() => {
+    if (chatId && session?.user?.id) {
+      const markAsRead = async () => {
+        try {
+          await fetch(`/api/chat/conversations/${chatId}/read`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        } catch (error) {
+          console.error('Error marking messages as read:', error);
+        }
+      };
+      
+      markAsRead();
+    }
+  }, [chatId, session?.user?.id]);
   const handleSendMessage = () => {
     if (message.trim()) {
       const messageData = {
@@ -135,14 +150,6 @@ export function UniversalChatInterface({
       setMessage(prev => prev + emoji);
     }
   };
-  const handleAddReactionLocal = (messageId, emoji) => {
-    if (!allowReactions) return;
-    handleAddReaction(messageId, emoji);
-  };
-
-  const handleRemoveReactionLocal = (messageId, reactionId) => {
-    handleRemoveReaction(messageId, reactionId);
-  };
   const handleReplyToMessage = (message) => {
     if (!allowReplies || message.isSystemMessage) return;
     setReplyToMessage(message);
@@ -168,6 +175,28 @@ export function UniversalChatInterface({
   const getAvatarInitials = (name) => {
     if (name === "System") return "🛠️";
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  // Check if the other participant is online
+  const isOtherParticipantOnline = () => {
+    console.log('Checking online status:', { 
+      chatType, 
+      onlineUsers, 
+      currentUserId, 
+      isConnected 
+    }); // Debug log
+    
+    // For personal chats, we need to check if there are other users online globally
+    if (chatType === "personal") {
+      // Check if there are any online users other than the current user
+      // This now uses global online users from useSocket
+      const hasOtherOnline = onlineUsers.some(user => user.userId !== currentUserId);
+      console.log('Personal chat - has other online:', hasOtherOnline); // Debug log
+      return hasOtherOnline;
+    }
+    // For group chats, show connection status of the current user
+    console.log('Group chat - isConnected:', isConnected); // Debug log
+    return isConnected;
   };
 
   const renderSystemMessage = (msg) => (
@@ -259,7 +288,7 @@ export function UniversalChatInterface({
                 {participantInitials}
               </AvatarFallback>
             </Avatar>
-            <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background ${isOtherParticipantOnline() ? 'bg-green-500' : 'bg-red-500'}`}></div>
           </div>
           
           <div className="flex-1 min-w-0">
@@ -352,7 +381,7 @@ export function UniversalChatInterface({
                           </Avatar>}
                         
                         {/* Message actions for own messages - positioned on left of bubble */}
-                        {isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} onReaction={allowReactions ? emoji => handleAddReactionLocal(msg.id, emoji) : undefined} className="ml-1" />}
+                        {isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} className="ml-1" />}
 
                          <div className={`flex flex-col max-w-[70%] ${isOwnMessage ? "items-end" : "items-start"}`}>
                            {/* Sender name and timestamp - show for all messages in monitoring mode, or first in group for others */}
@@ -386,8 +415,6 @@ export function UniversalChatInterface({
                             </div>
                           )}
 
-                          {/* Message reactions */}
-                          {msg.reactions && msg.reactions.length > 0 && <MessageReactions reactions={msg.reactions} onAddReaction={emoji => handleAddReactionLocal(msg.id, emoji)} onRemoveReaction={reactionId => handleRemoveReactionLocal(msg.id, reactionId)} currentUserId={currentUserId} />}
 
                                   {/* Timestamp and status for own messages */}
                                   {isOwnMessage && (
@@ -401,7 +428,7 @@ export function UniversalChatInterface({
                         </div>
 
                         {/* Message actions for received messages - positioned on right of bubble */}
-                        {!isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} onReaction={allowReactions ? emoji => handleAddReactionLocal(msg.id, emoji) : undefined} className="ml-1" />}
+                        {!isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} className="ml-1" />}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs">

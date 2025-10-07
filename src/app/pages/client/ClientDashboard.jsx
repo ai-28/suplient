@@ -26,12 +26,14 @@ import {
   Users,
   User as UserIcon
 } from "lucide-react";
+import { NotificationBell } from "@/app/components/NotificationBell";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { GoalAnalyticsChart } from "@/app/components/GoalAnalyticsChart";
 import { StreakCounter } from "@/app/components/StreakCounter";
 import { useAuth } from "@/app/context/AuthContext";
 import { signOut } from "next-auth/react";
+import { useSocket } from "@/app/hooks/useSocket";
 
 
 // Custom hooks with real data
@@ -124,6 +126,10 @@ export default function ClientDashboard() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const {user}=useAuth();
+  
+  // Initialize socket connection for real-time notifications
+  useSocket();
+  
   const { analyticsData, loading, error, refetch } = useGoalTracking(activeTab);
   const { sessions: upcomingSessions, sessionsLoading, sessionsError } = useUpcomingSessions();
   
@@ -193,7 +199,11 @@ export default function ClientDashboard() {
       {/* Header with Profile */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h1 className="text-xl font-semibold text-foreground">Mental Health</h1>
-        <DropdownMenu>
+
+        <div className="flex items-center gap-4">
+          <NotificationBell userRole="client" />
+          
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
               <Avatar className="h-8 w-8">
@@ -214,6 +224,7 @@ export default function ClientDashboard() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       <div className="flex items-center justify-center p-4 bg-card border-b border-border">

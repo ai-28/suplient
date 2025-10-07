@@ -5,6 +5,7 @@ import authOptions from '@/app/lib/authoption';
 import { userStatsRepo } from '@/app/lib/db/userStatsRepo';
 
 export async function POST(request) {
+    console.log('🔔 CHECKIN API CALLED - Starting POST request');
     try {
         // Get the current session
         const session = await getServerSession(authOptions);
@@ -139,11 +140,77 @@ export async function POST(request) {
             // Don't fail the check-in if engagement tracking fails
         }
 
+        // Create activity for daily check-in
+        try {
+            const { activityHelpers } = await import('@/app/lib/db/activitySchema');
+            await activityHelpers.createDailyCheckinActivity(session.user.id, clientId, {
+                id: checkInId,
+                responses: {
+                    sleepQuality,
+                    nutrition,
+                    physicalActivity,
+                    learning,
+                    maintainingRelationships,
+                    excessiveSocialMedia,
+                    procrastination,
+                    negativeThinking,
+                    notes
+                },
+                mood: notes || 'Daily check-in completed'
+            });
+            console.log('✅ Daily check-in activity created for client:', session.user.name);
+        } catch (activityError) {
+            console.error('❌ Error creating daily check-in activity:', activityError);
+            // Don't fail the check-in if activity creation fails
+        }
+
+        // Create notification for coach
+        console.log('🔔 STARTING NOTIFICATION CREATION PROCESS');
+        try {
+            // Get the coach's ID from the client record
+            console.log('🔍 DEBUG: Looking for coach for clientId:', clientId);
+
+            const clientResult = await sql`
+                SELECT c."coachId", u.name as coachName
+                FROM "Client" c
+                JOIN "User" u ON u.id = c."coachId"
+                WHERE c.id = ${clientId}
+            `;
+
+            console.log('🔍 DEBUG: Client query result:', clientResult);
+
+            if (clientResult.length > 0) {
+                const coachId = clientResult[0].coachId;
+                const coachName = clientResult[0].coachName;
+
+                console.log('🔍 DEBUG: Found coach:', { coachId, coachName });
+
+                const { NotificationService } = require('@/app/lib/services/NotificationService');
+                await NotificationService.notifyDailyCheckin(clientId, coachId, session.user.name);
+                console.log('✅ Daily check-in notification created for coach:', coachName);
+            } else {
+                console.error('❌ Could not find coach for client:', clientId);
+            }
+        } catch (notificationError) {
+            console.error('❌ Error creating daily check-in notification:', notificationError);
+            console.error('❌ Notification error details:', {
+                message: notificationError.message,
+                stack: notificationError.stack,
+                clientId: clientId,
+                sessionUserId: session.user.id
+            });
+            // Don't fail the check-in if notification creation fails
+        }
+
         return NextResponse.json({
             message: operation === 'inserted' ? 'Check-in saved successfully' : 'Check-in updated successfully',
             checkInId: checkInId,
             isUpdate: operation === 'updated',
-            operation: operation
+            operation: operation,
+            checkIn: {
+                id: checkInId,
+                date: date
+            }
         });
 
     } catch (error) {
