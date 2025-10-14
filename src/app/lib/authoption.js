@@ -1,4 +1,5 @@
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { userRepo } from "@/app/lib/db/userRepo";
 
 const authOptions = {
@@ -34,6 +35,15 @@ const authOptions = {
                     throw new Error(error.message);
                 }
             }
+        }),
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            authorization: {
+                params: {
+                    scope: "openid email profile"
+                }
+            }
         })
     ],
     pages: {
@@ -49,8 +59,12 @@ const authOptions = {
     debug: process.env.NODE_ENV === 'development',
     callbacks: {
         async jwt({ token, account, user }) {
-            if (account && user) {
+            if (account) {
                 token.accessToken = account.access_token;
+                token.refreshToken = account.refresh_token;
+                token.expiresAt = account.expires_at;
+            }
+            if (user) {
                 token.name = user.name;
                 token.email = user.email;
                 token.role = user.role;
@@ -67,6 +81,8 @@ const authOptions = {
                 session.user.role = token.role;
                 session.user.phone = token.phone;
                 session.accessToken = token.accessToken;
+                session.refreshToken = token.refreshToken;
+                session.expiresAt = token.expiresAt;
             }
             return session;
         },

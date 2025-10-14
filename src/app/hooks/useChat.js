@@ -12,6 +12,7 @@ export function useChat(conversationId) {
   const [typingUsers, setTypingUsers] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [sending, setSending] = useState(false);
+  const [pendingMessages, setPendingMessages] = useState(new Set()); // Track pending messages
 
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -75,8 +76,10 @@ export function useChat(conversationId) {
       setError(null);
 
       // Optimistically add message to UI
+      const messageKey = `${session.user.id}-${Date.now()}-${Math.random()}`;
       const tempMessage = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${messageKey}`,
+        messageKey, // Add unique key for tracking
         content,
         type,
         senderId: session.user.id,
@@ -87,7 +90,9 @@ export function useChat(conversationId) {
         ...options
       };
 
+      console.log('📤 Adding temp message:', tempMessage);
       setMessages(prev => [...prev, tempMessage]);
+      setPendingMessages(prev => new Set([...prev, messageKey]));
 
       // Send via socket for real-time delivery
       console.log('Sending socket message:', { conversationId, content, type, ...options }); // Debug log
@@ -118,65 +123,45 @@ export function useChat(conversationId) {
       console.log('API response:', data); // Debug log
 
       if (data.success) {
-        // Replace temp message with real message, or add if not found
+        // Only update existing messages, never add new ones
         setMessages(prev => {
           const tempIndex = prev.findIndex(msg => msg.id === tempMessage.id);
           if (tempIndex !== -1) {
             // Replace temp message with real message
+            console.log('🔄 Replacing temp message with API response');
             const newMessages = [...prev];
             newMessages[tempIndex] = {
               ...data.message,
+              messageKey: tempMessage.messageKey, // Preserve the message key
               status: 'sent',
               timestamp: new Date(data.message.timestamp || data.message.createdAt || new Date()),
-              // Ensure content is preserved from temp message if API response is missing it
               content: data.message.content || tempMessage.content,
-              // Preserve readBy data if it exists
               readBy: data.message.readBy || tempMessage.readBy || []
             };
             return newMessages;
           } else {
-            // Temp message not found (might have been replaced by socket message)
-            // Check if we already have this message from socket
-            const exists = prev.some(msg =>
-              msg.content === data.message.content &&
-              msg.senderId === data.message.senderId &&
-              Math.abs(new Date(msg.timestamp) - new Date(data.message.timestamp || data.message.createdAt)) < 5000
-            );
-
-            if (!exists) {
-              // Add the real message if it doesn't exist
-              return [...prev, {
-                ...data.message,
-                status: 'sent',
-                timestamp: new Date(data.message.timestamp || data.message.createdAt || new Date()),
-                // Ensure content is preserved
-                content: data.message.content || tempMessage.content,
-                // Include readBy data
-                readBy: data.message.readBy || []
-              }];
-            } else {
-              // Update existing socket message with API response data
-              return prev.map(msg => {
-                if (msg.content === data.message.content &&
-                  msg.senderId === data.message.senderId &&
-                  Math.abs(new Date(msg.timestamp) - new Date(data.message.timestamp || data.message.createdAt)) < 5000) {
-                  console.log('🔄 Replacing socket message with database message:', {
-                    socketId: msg.id,
-                    databaseId: data.message.id,
-                    content: msg.content
-                  });
-                  return {
-                    ...data.message, // Use database message as base
-                    status: 'sent',
-                    timestamp: new Date(data.message.timestamp || data.message.createdAt || new Date()),
-                    content: data.message.content || msg.content,
-                    readBy: data.message.readBy || []
-                  };
-                }
-                return msg;
-              });
-            }
+            // Temp message not found - update existing socket message with database data
+            console.log('🔄 Updating existing message with database data');
+            return prev.map(msg => {
+              if (msg.messageKey === tempMessage.messageKey) {
+                console.log('🔄 Found matching message by key, updating with database ID:', data.message.id);
+                return {
+                  ...msg, // Keep socket message as base (preserves real-time timestamp)
+                  id: data.message.id, // Use database ID
+                  status: 'sent',
+                  readBy: data.message.readBy || msg.readBy || []
+                };
+              }
+              return msg;
+            });
           }
+        });
+
+        // Remove from pending messages
+        setPendingMessages(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(tempMessage.messageKey);
+          return newSet;
         });
       }
     } catch (err) {
@@ -189,6 +174,13 @@ export function useChat(conversationId) {
           ? { ...msg, status: 'error' }
           : msg
       ));
+
+      // Remove from pending messages on error
+      setPendingMessages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tempMessage.messageKey);
+        return newSet;
+      });
     } finally {
       setSending(false);
     }
@@ -236,12 +228,35 @@ export function useChat(conversationId) {
           const timeDiff = Math.abs(new Date(msg.timestamp) - new Date(message.timestamp));
           return msg.content === message.content &&
             msg.senderId === message.senderId &&
-            timeDiff < 5000; // Within 5 seconds
+            timeDiff < 10000; // Within 10 seconds (increased from 5)
         });
 
         if (exists) {
           console.log('Message already exists, skipping:', message); // Debug log
           return prev;
+        }
+
+        // For messages sent by current user, check if we have a temp message with same content
+        if (message.senderId === session?.user?.id) {
+          const tempMessageIndex = prev.findIndex(msg =>
+            msg.messageKey &&
+            msg.content === message.content &&
+            msg.senderId === message.senderId &&
+            pendingMessages.has(msg.messageKey)
+          );
+
+          if (tempMessageIndex !== -1) {
+            console.log('🔄 Socket: Replacing temp message with socket message:', message);
+            const newMessages = [...prev];
+            newMessages[tempMessageIndex] = {
+              ...message,
+              messageKey: prev[tempMessageIndex].messageKey, // Preserve the message key
+              status: 'sent',
+              timestamp: new Date(message.timestamp || message.createdAt),
+              content: message.content || message.text || '[Message received]'
+            };
+            return newMessages;
+          }
         }
 
         console.log('Adding new socket message:', message); // Debug log

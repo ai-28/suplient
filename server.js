@@ -4,6 +4,25 @@ const { Server } = require('socket.io');
 const emailjs = require('@emailjs/nodejs');
 require('dotenv').config();
 
+// Import database connection
+const { sql } = require('./src/app/lib/db/postgresql');
+
+// Helper function to get conversation participants
+async function getConversationParticipants(conversationId) {
+  try {
+    const participants = await sql`
+      SELECT u.id, u.name, u.email
+      FROM "ConversationParticipant" cp
+      JOIN "User" u ON cp."userId" = u.id
+      WHERE cp."conversationId" = ${conversationId}
+    `;
+    return participants;
+  } catch (error) {
+    console.error('Error getting conversation participants:', error);
+    return [];
+  }
+}
+
 const dev = process.env.NODE_ENV !== "production";
 const hostname = dev ? "localhost" : (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : "localhost");
 const port = process.env.PORT || 3000;
@@ -108,7 +127,8 @@ app.prepare().then(() => {
     socket.on('join_conversation', (data) => {
       const { conversationId } = data;
       socket.join(`conversation_${conversationId}`);
-      console.log(`User ${socket.userName || socket.id} joined conversation ${conversationId}`);
+      console.log(`🔗 User ${socket.userName || socket.id} joined conversation ${conversationId}`);
+      console.log(`🔗 Socket rooms after join:`, Array.from(socket.rooms));
 
       // Emit user_online event for chat interface compatibility
       socket.to(`conversation_${conversationId}`).emit('user_online', {
@@ -139,7 +159,7 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on('send_message', (data) => {
+    socket.on('send_message', async (data) => {
       const { conversationId, ...messageData } = data;
 
       // Generate a unique ID for the socket message
@@ -155,12 +175,27 @@ app.prepare().then(() => {
         createdAt: new Date()
       };
 
-      console.log('Broadcasting socket message:', socketMessage); // Debug log
+      // Broadcast to all users in the conversation (including sender for confirmation)
+      io.to(`conversation_${conversationId}`).emit('new_message', socketMessage);
 
-      // Broadcast to all users in the conversation
-      socket.to(`conversation_${conversationId}`).emit('new_message', socketMessage);
+      // Also emit unread count update to all participants via their notification rooms
+      console.log('📨 Emitting unread count update for conversation:', conversationId);
 
-      console.log(`Message sent in conversation ${conversationId} by ${socket.userName}`);
+      try {
+        // Get all participants and emit to their individual notification rooms
+        const participants = await getConversationParticipants(conversationId);
+        for (const participant of participants) {
+          io.to(`notifications_${participant.id}`).emit('update_unread_count', {
+            conversationId,
+            participantId: participant.id,
+            messageId: socketMessage.id
+          });
+        }
+      } catch (error) {
+        console.error('Error emitting unread count updates:', error);
+      }
+
+      console.log(`📨 Message sent in conversation ${conversationId} by ${socket.userName}`);
     });
 
     socket.on('typing_start', (data) => {

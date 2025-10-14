@@ -93,7 +93,6 @@ export async function getClientById(clientId, coachId) {
                 g.description,
                 g."memberCount",
                 g.capacity,
-                g.frequency,
                 g.stage,
                 g."createdAt" as "joinedDate"
             FROM "Group" g

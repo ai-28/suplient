@@ -47,8 +47,7 @@ export async function GET(request) {
             JOIN "ConversationParticipant" cp_coach ON cp_coach."conversationId" = conv.id AND cp_coach."userId" = ${coach.userId}
             WHERE conv.id = ${conversationId}
             AND m."senderId" = ${client.userId}
-            AND m."isDeleted" = false
-            AND m."createdAt" > COALESCE(cp_coach."lastReadAt", cp_coach."joinedAt")
+            AND m."createdAt" > COALESCE(cp_coach."lastReadAt", cp_coach."joinedAt", '1970-01-01'::timestamp)
         `;
 
         const unreadCount = parseInt(unreadResult[0]?.unreadCount || 0);

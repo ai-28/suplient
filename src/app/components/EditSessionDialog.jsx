@@ -7,14 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/componen
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Calendar } from "@/app/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
-import { CalendarIcon, Clock, Users, User, Loader2 } from "lucide-react";
+import { CalendarIcon, Clock, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/app/lib/utils";
-import { useClients } from "@/app/hooks/useClients";
-import { useGroups } from "@/app/hooks/useGroups";
 
 export function EditSessionDialog({ 
   open, 
@@ -25,12 +22,6 @@ export function EditSessionDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState("");
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [sessionType, setSessionType] = useState("individual");
-
-  const { availableClients, clientsLoading, clientsError } = useClients();
-  const { groups, groupsLoading, groupsError } = useGroups();
 
   const {
     register,
@@ -49,27 +40,11 @@ export function EditSessionDialog({
       setSelectedDate(sessionDate);
       setSelectedTime(session.sessionTime.substring(0, 5)); // HH:MM format
       
-      // Set session type
-      setSessionType(session.sessionType || "individual");
-      
-      // Set client or group
-      if (session.clientId) {
-        setSelectedClient(session.clientId);
-        setSelectedGroup(null);
-      } else if (session.groupId) {
-        setSelectedGroup(session.groupId);
-        setSelectedClient(null);
-      }
       
       // Set form values
       setValue("title", session.title || "");
       setValue("description", session.description || "");
       setValue("duration", session.duration || 60);
-      setValue("location", session.location || "");
-      setValue("meetingLink", session.meetingLink || "");
-      setValue("status", session.status || "scheduled");
-      setValue("mood", session.mood || "neutral");
-      setValue("notes", session.notes || "");
     }
   }, [session, open, setValue]);
 
@@ -90,15 +65,6 @@ export function EditSessionDialog({
         return;
       }
       
-      if (sessionType === "individual" && !selectedClient) {
-        toast.error("Please select a client");
-        return;
-      }
-      
-      if (sessionType === "group" && !selectedGroup) {
-        toast.error("Please select a group");
-        return;
-      }
 
       // Prepare session data
       const sessionData = {
@@ -106,15 +72,7 @@ export function EditSessionDialog({
         description: data.description,
         sessionDate: selectedDate.toISOString(),
         sessionTime: selectedTime + ":00", // Convert to HH:MM:SS format
-        duration: parseInt(data.duration),
-        sessionType: sessionType,
-        clientId: sessionType === "individual" ? selectedClient : null,
-        groupId: sessionType === "group" ? selectedGroup : null,
-        location: data.location || null,
-        meetingLink: data.meetingLink || null,
-        status: data.status,
-        mood: data.mood,
-        notes: data.notes || null
+        duration: parseInt(data.duration)
       };
 
       // Make API call to update session
@@ -131,7 +89,123 @@ export function EditSessionDialog({
         throw new Error(errorData.error || 'Failed to update session');
       }
 
-      toast.success("Session updated successfully!");
+      // Update calendar integrations and send notifications
+      try {
+        console.log('Updating session integrations and sending notifications...');
+        
+        // Refresh tokens automatically if needed
+        await refreshTokensIfNeeded();
+        
+        // Get attendees for the session using original session data
+        let attendees = [];
+        
+        console.log('Original session clientId:', session.clientId);
+        console.log('Original session groupId:', session.groupId);
+        
+        if (session.clientId) {
+          // Get client email
+          try {
+            console.log('🔍🔍🔍 FETCHING CLIENT DATA 🔍🔍🔍');
+            console.log('🔍 Client ID:', session.clientId);
+            const clientResponse = await fetch(`/api/clients/${session.clientId}`);
+            console.log('🔍 Client API response status:', clientResponse.status);
+            if (clientResponse.ok) {
+              const clientData = await clientResponse.json();
+              console.log('🔍🔍🔍 CLIENT DATA RECEIVED 🔍🔍🔍');
+              console.log('🔍 Full client data:', JSON.stringify(clientData, null, 2));
+              if (clientData.data?.client?.email) {
+                attendees.push(clientData.data.client.email);
+                console.log('🔍✅ ADDED CLIENT EMAIL TO ATTENDEES:', clientData.data.client.email);
+              } else {
+                console.log('🔍❌ NO CLIENT EMAIL FOUND IN RESPONSE');
+                console.log('🔍 Data object:', clientData.data);
+                console.log('🔍 Client object:', clientData.data?.client);
+              }
+            } else {
+              console.log('🔍❌ CLIENT API FAILED:', clientResponse.status, clientResponse.statusText);
+            }
+          } catch (clientError) {
+            console.error('🔍❌ ERROR FETCHING CLIENT:', clientError);
+          }
+        } else if (session.groupId) {
+          // Get group member emails
+          try {
+            console.log('Fetching group members for group:', session.groupId);
+            const groupResponse = await fetch(`/api/groups/${session.groupId}/members`);
+            if (groupResponse.ok) {
+              const groupData = await groupResponse.json();
+              console.log('Group data:', groupData);
+              const groupMembers = groupData.members || [];
+              attendees = groupMembers.map(member => member.email).filter(email => email);
+              console.log('Group member emails:', attendees);
+            } else {
+              console.error('Failed to fetch group members:', groupResponse.status);
+            }
+          } catch (groupError) {
+            console.error('Error fetching group members:', groupError);
+          }
+        }
+        
+        // Add coach's email to attendees list
+        try {
+          const coachResponse = await fetch('/api/user/profile');
+          if (coachResponse.ok) {
+            const coachData = await coachResponse.json();
+            if (coachData.user?.email && !attendees.includes(coachData.user.email)) {
+              attendees.push(coachData.user.email);
+              console.log('Added coach email to attendees:', coachData.user.email);
+            }
+          }
+        } catch (coachError) {
+          console.error('Error fetching coach email:', coachError);
+        }
+        
+        console.log('🔍🔍🔍 FINAL ATTENDEES LIST 🔍🔍🔍');
+        console.log('🔍 Attendees count:', attendees.length);
+        console.log('🔍 Attendees:', JSON.stringify(attendees, null, 2));
+
+        // Update integrations and send notifications
+        console.log('🔄 Updating integrations and sending notifications...');
+        console.log('📧 Attendees for integration update:', attendees);
+        
+        const integrationResponse = await fetch(`/api/sessions/${session.id}/update-integrations`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sessionData: {
+              title: sessionData.title,
+              description: sessionData.description,
+              sessionDate: sessionData.sessionDate,
+              sessionTime: sessionData.sessionTime,
+              duration: sessionData.duration,
+              meetingLink: session.meetingLink, // Use existing meeting link
+              location: sessionData.location
+            },
+            attendees: attendees
+          }),
+        });
+
+        if (integrationResponse.ok) {
+          const integrationResult = await integrationResponse.json();
+          console.log('✅ Integration update result:', integrationResult);
+          
+          if (integrationResult.notificationsSent > 0) {
+            toast.success(`Session updated successfully! ${integrationResult.notificationsSent} attendee(s) notified and calendar events updated.`);
+          } else {
+            toast.success("Session updated successfully! Calendar events updated.");
+          }
+        } else {
+          const errorData = await integrationResponse.json();
+          console.error('❌ Failed to update integrations:', errorData);
+          toast.success("Session updated successfully! (Calendar sync failed)");
+        }
+      } catch (integrationError) {
+        console.error('Error updating integrations:', integrationError);
+        toast.success("Session updated successfully! (Calendar sync failed)");
+      }
+
       onSessionUpdated?.();
       onOpenChange(false);
       
@@ -143,24 +217,80 @@ export function EditSessionDialog({
     }
   };
 
-  const handleClientSelect = (clientId) => {
-    setSelectedClient(clientId);
-    setSelectedGroup(null);
-  };
-
-  const handleGroupSelect = (groupId) => {
-    setSelectedGroup(groupId);
-    setSelectedClient(null);
+  // Handle automatic token refresh
+  const refreshTokensIfNeeded = async () => {
+    try {
+      console.log('Checking if token refresh is needed...');
+      
+      // Get available integrations
+      const integrationsResponse = await fetch('/api/integrations');
+      if (!integrationsResponse.ok) {
+        console.log('No integrations found or failed to fetch');
+        return false;
+      }
+      
+      const integrationsData = await integrationsResponse.json();
+      const integrations = integrationsData.integrations || [];
+      
+      if (integrations.length === 0) {
+        console.log('No integrations found');
+        return false;
+      }
+      
+      // Refresh tokens for each platform
+      const refreshPromises = integrations.map(async (integration) => {
+        try {
+          const refreshResponse = await fetch('/api/integrations/refresh-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              platform: integration.platform
+            }),
+          });
+          
+          if (refreshResponse.ok) {
+            const result = await refreshResponse.json();
+            console.log(`Token refreshed for ${integration.platform}:`, result);
+            return { platform: integration.platform, success: true };
+          } else {
+            const error = await refreshResponse.json();
+            console.error(`Failed to refresh ${integration.platform} token:`, error);
+            return { platform: integration.platform, success: false, error: error.error };
+          }
+        } catch (error) {
+          console.error(`Error refreshing ${integration.platform} token:`, error);
+          return { platform: integration.platform, success: false, error: error.message };
+        }
+      });
+      
+      const results = await Promise.all(refreshPromises);
+      const successful = results.filter(r => r.success);
+      const failed = results.filter(r => !r.success);
+      
+      if (successful.length > 0) {
+        console.log(`Successfully refreshed ${successful.length} token(s): ${successful.map(r => r.platform).join(', ')}`);
+      }
+      
+      if (failed.length > 0) {
+        console.log(`Failed to refresh ${failed.length} token(s): ${failed.map(r => `${r.platform} (${r.error})`).join(', ')}`);
+      }
+      
+      return successful.length > 0;
+      
+    } catch (error) {
+      console.error('Error refreshing tokens:', error);
+      return false;
+    }
   };
 
   const getClientName = (clientId) => {
-    const client = availableClients.find(c => c.id === clientId);
-    return client ? `${client.firstName} ${client.lastName}` : "Unknown Client";
+    return "Client"; // Simplified since we're not showing client selection
   };
 
   const getGroupName = (groupId) => {
-    const group = groups.find(g => g.id === groupId);
-    return group ? group.name : "Unknown Group";
+    return "Group"; // Simplified since we're not showing group selection
   };
 
   if (!session) return null;
@@ -176,97 +306,8 @@ export function EditSessionDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Session Type */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Session Type</label>
-            <Select value={sessionType} onValueChange={setSessionType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select session type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="individual">Individual Session</SelectItem>
-                <SelectItem value="group">Group Session</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
-          {/* Client Selection (for Individual Sessions) */}
-          {sessionType === "individual" && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Select Client
-              </label>
-              <Select value={selectedClient || ""} onValueChange={handleClientSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientsLoading ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading clients...
-                      </div>
-                    </SelectItem>
-                  ) : clientsError ? (
-                    <SelectItem value="error" disabled>
-                      Error loading clients
-                    </SelectItem>
-                  ) : availableClients.length === 0 ? (
-                    <SelectItem value="no-clients" disabled>
-                      No clients available
-                    </SelectItem>
-                  ) : (
-                    availableClients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.firstName} {client.lastName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
-          {/* Group Selection (for Group Sessions) */}
-          {sessionType === "group" && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Select Group
-              </label>
-              <Select value={selectedGroup || ""} onValueChange={handleGroupSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {groupsLoading ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading groups...
-                      </div>
-                    </SelectItem>
-                  ) : groupsError ? (
-                    <SelectItem value="error" disabled>
-                      Error loading groups
-                    </SelectItem>
-                  ) : groups.length === 0 ? (
-                    <SelectItem value="no-groups" disabled>
-                      No groups available
-                    </SelectItem>
-                  ) : (
-                    groups.map((group) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        {group.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {/* Title */}
           <div className="space-y-2">
@@ -349,68 +390,11 @@ export function EditSessionDialog({
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={watch("status")} onValueChange={(value) => setValue("status", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="no_show">No Show</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
-          {/* Location and Meeting Link */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Location</label>
-              <Input
-                {...register("location")}
-                placeholder="Enter location"
-              />
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Meeting Link</label>
-              <Input
-                {...register("meetingLink")}
-                placeholder="Enter meeting link"
-              />
-            </div>
-          </div>
 
-          {/* Mood */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Mood</label>
-            <Select value={watch("mood")} onValueChange={(value) => setValue("mood", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select mood" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="excellent">😊 Excellent</SelectItem>
-                <SelectItem value="good">😐 Good</SelectItem>
-                <SelectItem value="neutral">😑 Neutral</SelectItem>
-                <SelectItem value="poor">😞 Poor</SelectItem>
-                <SelectItem value="terrible">😢 Terrible</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Notes</label>
-            <Textarea
-              {...register("notes")}
-              placeholder="Enter session notes"
-              rows={3}
-            />
-          </div>
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">

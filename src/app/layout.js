@@ -1,30 +1,20 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import AuthSessionProvider from "@/app/components/providers/SessionProvider";
+import { AuthProvider } from "@/app/context/AuthContext";
+import SocketProvider from "@/app/components/providers/SocketProvider";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import AuthSessionProvider from "./components/providers/SessionProvider";
-import { AuthProvider } from "./context/AuthContext";
-import SocketProvider from "./components/providers/SocketProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Mental Coach - Professional Mental Health Platform",
-  description: "Connect with certified mental health professionals for personalized care",
+  title: "Mental Coach Platform",
+  description: "A comprehensive mental coaching platform",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={inter.className}>
         <AuthSessionProvider>
           <AuthProvider>
             <SocketProvider>

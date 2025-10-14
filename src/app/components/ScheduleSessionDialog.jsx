@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/app/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 import { Badge } from "@/app/components/ui/badge";
-import { Calendar as CalendarIcon, Clock, MapPin, Users, AlertCircle, Bell } from "lucide-react";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { useSession } from "next-auth/react";
+import { Alert, AlertDescription } from "@/app/components/ui/alert";
+import { Calendar as CalendarIcon, Clock, Users, AlertCircle, Bell, Video, ExternalLink, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/app/lib/utils";
 import { toast } from 'sonner';
@@ -24,10 +27,14 @@ export function ScheduleSessionDialog({
   groupName, 
   groupMembers 
 }) {
+  const { data: session } = useSession();
   const [date, setDate] = useState();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [fetchedGroupMembers, setFetchedGroupMembers] = useState([]);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState({});
   
   // Fetch real data
   const { availableClients, loading: clientsLoading } = useClients();
@@ -37,15 +44,290 @@ export function ScheduleSessionDialog({
     title: "",
     time: "",
     duration: "60",
-    location: "",
     sessionType: "",
     notes: "",
     reminderTime: "24",
     maxAttendees: groupMembers?.toString() || "8",
+    meetingType: "none",
   });
+
+  // Meeting type options
+  const meetingTypes = [
+    { 
+      id: "none", 
+      name: "No Meeting Link", 
+      description: "Schedule without creating a meeting link",
+      icon: CalendarIcon,
+      color: "text-gray-500"
+    },
+    { 
+      id: "google_meet", 
+      name: "Google Meet", 
+      description: "Create Google Calendar event with Meet link",
+      icon: Video,
+      color: "text-blue-500"
+    },
+    { 
+      id: "zoom", 
+      name: "Zoom Meeting", 
+      description: "Create Zoom meeting with join link",
+      icon: Video,
+      color: "text-blue-600"
+    },
+    { 
+      id: "teams", 
+      name: "Microsoft Teams", 
+      description: "Create Teams meeting with join link",
+      icon: Video,
+      color: "text-purple-500"
+    }
+  ];
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Fetch group members when group is selected
+  const fetchGroupMembers = async (groupId) => {
+    if (!groupId) {
+      setFetchedGroupMembers([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/groups/${groupId}/members`);
+      if (response.ok) {
+        const data = await response.json();
+        setFetchedGroupMembers(data.members || []);
+      } else {
+        console.error('Failed to fetch group members');
+        setFetchedGroupMembers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching group members:', error);
+      setFetchedGroupMembers([]);
+    }
+  };
+
+  // Check if user has existing connections when dialog opens
+  useEffect(() => {
+    if (open) {
+      checkExistingConnections();
+    }
+  }, [open]);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleConnected = urlParams.get('google_connected');
+    const zoomConnected = urlParams.get('zoom_connected');
+    
+    if (googleConnected === 'true') {
+      toast.success('Google Meet connected successfully!');
+      // Immediately update localStorage with Google connection
+      const currentConnections = JSON.parse(localStorage.getItem('integrationConnections') || '{}');
+      currentConnections.google_meet = {
+        connected: true,
+        email: 'Connected', // Will be updated by checkExistingConnections
+        name: 'Google Meet'
+      };
+      localStorage.setItem('integrationConnections', JSON.stringify(currentConnections));
+      checkExistingConnections();
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    if (zoomConnected === 'true') {
+      toast.success('Zoom connected successfully!');
+      // Immediately update localStorage with Zoom connection
+      const currentConnections = JSON.parse(localStorage.getItem('integrationConnections') || '{}');
+      currentConnections.zoom = {
+        connected: true,
+        email: 'Connected', // Will be updated by checkExistingConnections
+        name: 'Zoom'
+      };
+      localStorage.setItem('integrationConnections', JSON.stringify(currentConnections));
+      checkExistingConnections();
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const checkExistingConnections = async () => {
+    try {
+      console.log('Checking existing connections...');
+      
+      // First check localStorage for cached connections
+      const cachedConnections = localStorage.getItem('integrationConnections');
+      let cachedStatus = {};
+      if (cachedConnections) {
+        try {
+          cachedStatus = JSON.parse(cachedConnections);
+          console.log('Found cached connections:', cachedStatus);
+          setConnectionStatus(cachedStatus);
+        } catch (e) {
+          console.warn('Failed to parse cached connections:', e);
+        }
+      }
+
+      // Then fetch from server to get latest data
+      const response = await fetch('/api/integrations');
+      if (response.ok) {
+        const data = await response.json();
+        const integrations = data.integrations || [];
+        console.log('Found integrations from server:', integrations);
+        
+        // Set connection status for each platform
+        const status = {};
+        integrations.forEach(integration => {
+          // Map google_calendar to google_meet for UI consistency
+          const platformKey = integration.platform === 'google_calendar' ? 'google_meet' : integration.platform;
+          status[platformKey] = {
+            connected: true,
+            email: integration.platformEmail,
+            name: integration.platformName
+          };
+        });
+        
+        // Merge with cached status (server data takes precedence)
+        const finalStatus = { ...cachedStatus, ...status };
+        console.log('Final connection status:', finalStatus);
+        setConnectionStatus(finalStatus);
+        
+        // Update localStorage with latest data
+        localStorage.setItem('integrationConnections', JSON.stringify(finalStatus));
+      } else {
+        console.error('Failed to fetch integrations:', response.status);
+        // If server fails, keep using cached data
+      }
+    } catch (error) {
+      console.error('Error checking connections:', error);
+      // If there's an error, try to use cached data
+      const cachedConnections = localStorage.getItem('integrationConnections');
+      if (cachedConnections) {
+        try {
+          const cachedStatus = JSON.parse(cachedConnections);
+          setConnectionStatus(cachedStatus);
+        } catch (e) {
+          console.warn('Failed to use cached connections:', e);
+        }
+      }
+    }
+  };
+
+  const handleConnectPlatform = async (platform) => {
+    setIsConnecting(true);
+    try {
+      if (platform === 'google_meet') {
+        // Redirect to Google OAuth for calendar integration
+        const authUrl = `/api/integrations/oauth/google/authorize?callbackUrl=${encodeURIComponent(window.location.href)}`;
+        window.location.href = authUrl;
+        return;
+      }
+      
+      if (platform === 'zoom') {
+        // Redirect to Zoom OAuth for meeting integration
+        const authUrl = `/api/integrations/oauth/zoom/authorize?callbackUrl=${encodeURIComponent(window.location.href)}`;
+        window.location.href = authUrl;
+        return;
+      }
+      
+      // For Teams, show instructions or implement their OAuth
+      toast.info(`${platform} OAuth integration coming soon`);
+      
+    } catch (error) {
+      console.error('Connection error:', error);
+      toast.error('Failed to connect platform');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleReconnectPlatform = async (platform) => {
+    setIsConnecting(true);
+    try {
+      // Map UI platform names to API platform names
+      const platformMap = {
+        'google_meet': 'google_calendar',
+        'zoom': 'zoom',
+        'teams': 'teams'
+      };
+      
+      const apiPlatform = platformMap[platform] || platform;
+      
+      // Call the reconnect API
+      const response = await fetch('/api/integrations/reconnect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ platform: apiPlatform }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reconnect');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.reconnectUrl) {
+        // Redirect to the reconnect URL
+        window.location.href = result.reconnectUrl;
+      } else {
+        toast.error('Failed to get reconnect URL');
+      }
+      
+    } catch (error) {
+      console.error('Reconnection error:', error);
+      toast.error(`Failed to reconnect ${platform}: ${error.message}`);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnectPlatform = async (platform) => {
+    setIsConnecting(true);
+    try {
+      // Map UI platform names to API platform names
+      const platformMap = {
+        'google_meet': 'google_calendar',
+        'zoom': 'zoom',
+        'teams': 'teams'
+      };
+      
+      const apiPlatform = platformMap[platform] || platform;
+      
+      // Call the disconnect API
+      const response = await fetch('/api/integrations/reconnect', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ platform: apiPlatform }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to disconnect');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(`${platform} integration disconnected successfully`);
+        // Refresh the connection status
+        await checkConnections();
+      } else {
+        toast.error('Failed to disconnect integration');
+      }
+      
+    } catch (error) {
+      console.error('Disconnection error:', error);
+      toast.error(`Failed to disconnect ${platform}: ${error.message}`);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -62,8 +344,9 @@ export function ScheduleSessionDialog({
       return;
     }
 
-    if (formData.sessionType === 'group' && !selectedGroup) {
-      toast.error("Please select a group for group sessions.");
+    // Check if meeting type requires connection
+    if (formData.meetingType !== 'none' && !connectionStatus[formData.meetingType]?.connected) {
+      toast.error(`Please connect ${formData.meetingType === 'google_meet' ? 'Google Meet' : formData.meetingType} first`);
       return;
     }
 
@@ -80,11 +363,15 @@ export function ScheduleSessionDialog({
         sessionType: formData.sessionType,
         clientId: formData.sessionType === 'individual' ? selectedClient.id : null,
         groupId: formData.sessionType === 'group' ? selectedGroup.id : null,
-        location: formData.location || null,
-        meetingLink: null, // Could be added later
+        coachId: session?.user?.id, // Add coachId for integration services
+        meetingLink: null,
         status: 'scheduled',
         mood: 'neutral',
-        notes: formData.notes || null
+        notes: formData.notes || null,
+        meetingType: formData.meetingType,
+        integrationSettings: {
+          reminderTime: formData.reminderTime
+        }
       };
 
       // Create session via API
@@ -103,21 +390,289 @@ export function ScheduleSessionDialog({
 
       const result = await response.json();
       
-      toast.success("Session scheduled successfully!");
+      console.log('🎯 Session created successfully:', result);
+      console.log('🎯 Form meeting type:', formData.meetingType);
+      console.log('🎯 Available integrations:', Object.keys(connectionStatus));
+      console.log('🎯 Connection status details:', connectionStatus);
+      
+      // If meeting type is selected, create external meeting
+      if (formData.meetingType !== 'none') {
+        console.log('🎯 Meeting type selected:', formData.meetingType);
+        console.log('🎯 Connection status:', connectionStatus);
+        console.log('🎯 Session data:', sessionData);
+        
+        try {
+          // Add client email to attendees if it's an individual session
+          if (formData.sessionType === 'individual' && selectedClient?.email) {
+            sessionData.attendees = [selectedClient.email];
+            console.log('📧 Added individual client to attendees:', selectedClient.email);
+          }
+          
+          // Add group member emails to attendees if it's a group session
+          if (formData.sessionType === 'group' && fetchedGroupMembers.length > 0) {
+            sessionData.attendees = fetchedGroupMembers.map(member => member.email).filter(email => email);
+            console.log('📧 Added group members to attendees:', sessionData.attendees);
+            console.log('📧 Group members data:', fetchedGroupMembers);
+          }
+          
+          // Always add coach email to attendees so they receive calendar invitation
+          if (session?.user?.email && sessionData.attendees) {
+            if (!sessionData.attendees.includes(session.user.email)) {
+              sessionData.attendees.push(session.user.email);
+              console.log('📧 Added coach to attendees:', session.user.email);
+            }
+          } else if (session?.user?.email) {
+            sessionData.attendees = [session.user.email];
+            console.log('📧 Added coach as only attendee:', session.user.email);
+          }
+          
+          let integrationResult;
+          
+          // For all meeting types, use the original logic
+          const platformForAPI = formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType;
+          console.log('Creating external meeting with platform:', platformForAPI);
+          integrationResult = await createExternalMeeting(result.session.id, sessionData, platformForAPI);
+          
+          console.log('Final integration result:', integrationResult);
+          console.log('Integration results details:', integrationResult.results);
+          console.log('Zoom result:', integrationResult.results?.zoom);
+          console.log('Google Calendar result:', integrationResult.results?.google_calendar);
+          
+          // Check if any integrations failed due to missing connections
+          const failedIntegrations = Object.entries(integrationResult.results || {})
+            .filter(([platform, result]) => !result.success && result.error?.includes('integration not found'))
+            .map(([platform]) => platform);
+          
+          if (failedIntegrations.length > 0) {
+            const platformNames = failedIntegrations.map(p => p === 'google_calendar' ? 'Google Meet' : p).join(', ');
+            toast.error(`Session created but ${platformNames} integration is not connected. Please connect ${platformNames} first.`);
+          }
+          
+          // Update session with meeting link
+          try {
+            let meetingLinkToSave = null;
+            let locationToSave = null;
+            
+            if (formData.meetingType === 'zoom' && integrationResult.results?.zoom?.meetingLink) {
+              meetingLinkToSave = integrationResult.results.zoom.meetingLink;
+              locationToSave = `Zoom Meeting - Password: ${integrationResult.results.zoom.password || 'No password required'}`;
+            } else if (formData.meetingType === 'google_meet' && integrationResult.results?.google_calendar?.meetingLink) {
+              meetingLinkToSave = integrationResult.results.google_calendar.meetingLink;
+              locationToSave = 'Google Meet';
+            } else if (formData.meetingType === 'teams' && integrationResult.results?.teams?.meetingUrl) {
+              meetingLinkToSave = integrationResult.results.teams.meetingUrl;
+              locationToSave = 'Microsoft Teams';
+            }
+            
+            if (meetingLinkToSave) {
+              console.log('Updating session with meeting link:', meetingLinkToSave);
+              const updateResponse = await fetch(`/api/sessions/${result.session.id}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  updateMeetingLink: meetingLinkToSave,
+                  updateLocation: locationToSave
+                }),
+              });
+              
+              if (updateResponse.ok) {
+                console.log('Session meeting link updated successfully');
+              } else {
+                const errorData = await updateResponse.json();
+                console.error('Failed to update session meeting link:', {
+                  status: updateResponse.status,
+                  statusText: updateResponse.statusText,
+                  error: errorData
+                });
+              }
+            }
+          } catch (updateError) {
+            console.error('Error updating session meeting link:', updateError);
+            // Don't fail the session creation if meeting link update fails
+          }
+          
+          // Show success message with meeting details
+          if (formData.meetingType === 'zoom' && integrationResult.results?.zoom?.meetingLink) {
+            const clientMessage = formData.sessionType === 'individual' && selectedClient ? 
+              `Client ${selectedClient.name} will receive calendar invitation with Zoom meeting link and notification.` : 
+              formData.sessionType === 'group' && fetchedGroupMembers.length > 0 ?
+              `${fetchedGroupMembers.length} group members will receive calendar invitations with Zoom meeting link and notifications.` :
+              'Zoom meeting created and added to your calendar.';
+            
+            toast.success(`Session scheduled successfully!`, {
+              description: `${clientMessage} Zoom link: ${integrationResult.results.zoom.meetingLink}`,
+              duration: 8000,
+            });
+          } else if (integrationResult.results && integrationResult.results[formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType]) {
+            const platformForAPI = formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType;
+            const meetingResult = integrationResult.results[platformForAPI];
+            if (meetingResult.meetingLink) {
+              const clientMessage = formData.sessionType === 'individual' && selectedClient ? 
+                `Client ${selectedClient.name} will receive calendar invitation and notification.` : 
+                formData.sessionType === 'group' && fetchedGroupMembers.length > 0 ?
+                `${fetchedGroupMembers.length} group members will receive calendar invitations and notifications.` :
+                'Google Meet link created and added to your calendar.';
+              
+              toast.success(`Session scheduled successfully!`, {
+                description: `${clientMessage} Meet link: ${meetingResult.meetingLink}`,
+                duration: 8000,
+              });
+            } else {
+              toast.success("Session scheduled successfully! Calendar event created.");
+            }
+          } else {
+            toast.success("Session scheduled successfully! Calendar event created.");
+          }
+        } catch (integrationError) {
+          console.error('Integration error:', integrationError);
+          toast.warning('Session created but meeting link failed');
+        }
+      } else {
+        console.log('🎯 No meeting type selected - skipping integration');
+        toast.success("Session scheduled successfully!");
+      }
+      
+      // Create a notification for the session creation
+      try {
+        console.log('Creating notification for session:', {
+          userId: session?.user?.id,
+          sessionTitle: sessionData.title,
+          sessionDate: sessionData.sessionDate,
+          sessionTime: sessionData.sessionTime
+        });
+        
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+            body: JSON.stringify({
+              userId: session?.user?.id,
+              type: 'system',
+              title: 'Session Scheduled',
+              message: `Your session "${sessionData.title}" has been scheduled for ${sessionData.sessionDate} at ${sessionData.sessionTime}`,
+              data: {
+                sessionId: result.session.id,
+                sessionTitle: sessionData.title,
+                sessionDate: sessionData.sessionDate,
+                sessionTime: sessionData.sessionTime
+              },
+              priority: 'normal'
+            }),
+        });
+        
+        console.log('Notification created successfully');
+      } catch (notificationError) {
+        console.error('Failed to create notification:', notificationError);
+        // Don't fail the session creation if notification fails
+      }
+      
+      // Create notification for client if it's an individual session
+      if (formData.sessionType === 'individual' && selectedClient?.userId) {
+        try {
+          console.log('Creating notification for client:', {
+            userId: selectedClient.userId,
+            sessionTitle: sessionData.title,
+            sessionDate: sessionData.sessionDate,
+            sessionTime: sessionData.sessionTime
+          });
+          
+          await fetch('/api/notifications', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: selectedClient.userId,
+              type: 'system',
+              title: 'New Session Scheduled',
+              message: `Your coach has scheduled a session "${sessionData.title}" for ${sessionData.sessionDate} at ${sessionData.sessionTime}`,
+              data: {
+                sessionId: result.session.id,
+                sessionTitle: sessionData.title,
+                sessionDate: sessionData.sessionDate,
+                sessionTime: sessionData.sessionTime,
+                meetingLink: formData.meetingType !== 'none' ? 'Check your calendar for meeting link' : null
+              },
+              priority: 'high'
+            }),
+          });
+          
+          console.log('Client notification created successfully');
+        } catch (clientNotificationError) {
+          console.error('Failed to create client notification:', clientNotificationError);
+          // Don't fail the session creation if client notification fails
+        }
+      }
+      
+      // Create notifications for all group members if it's a group session
+      if (formData.sessionType === 'group' && fetchedGroupMembers.length > 0) {
+        console.log('Creating notifications for group members:', fetchedGroupMembers.length);
+        
+        // Create notifications for each group member
+        const notificationPromises = fetchedGroupMembers.map(async (member) => {
+          try {
+            // Get the userId for this member
+            const memberResponse = await fetch(`/api/clients/by-user/${member.id}`);
+            if (memberResponse.ok) {
+              const memberData = await memberResponse.json();
+              const userId = memberData.client?.userId;
+              
+              if (userId) {
+                await fetch('/api/notifications', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    userId: userId,
+                    type: 'system',
+                    title: 'New Group Session Scheduled',
+                    message: `Your coach has scheduled a group session "${sessionData.title}" for ${sessionData.sessionDate} at ${sessionData.sessionTime}`,
+                    data: {
+                      sessionId: result.session.id,
+                      sessionTitle: sessionData.title,
+                      sessionDate: sessionData.sessionDate,
+                      sessionTime: sessionData.sessionTime,
+                      groupName: selectedGroup?.name,
+                      meetingLink: formData.meetingType !== 'none' ? 'Check your calendar for meeting link' : null
+                    },
+                    priority: 'high'
+                  }),
+                });
+                console.log(`Notification created for group member: ${member.name}`);
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to create notification for group member ${member.name}:`, error);
+          }
+        });
+        
+        // Wait for all notifications to be created
+        try {
+          await Promise.all(notificationPromises);
+          console.log('All group member notifications created successfully');
+        } catch (error) {
+          console.error('Some group member notifications failed:', error);
+        }
+      }
       
       // Reset form
       setDate(undefined);
       setSelectedClient(null);
       setSelectedGroup(null);
+      setFetchedGroupMembers([]);
       setFormData({
         title: "",
         time: "",
         duration: "60",
-        location: "",
         sessionType: "",
         notes: "",
         reminderTime: "24",
         maxAttendees: groupMembers?.toString() || "8",
+        meetingType: "none",
       });
       
       // Notify parent component
@@ -132,6 +687,43 @@ export function ScheduleSessionDialog({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const createExternalMeeting = async (sessionId, sessionData, platform) => {
+      try {
+        // Convert sessionDate and sessionTime to proper startTime and endTime
+        const sessionDateTime = new Date(`${sessionData.sessionDate}T${sessionData.sessionTime}`);
+        const endDateTime = new Date(sessionDateTime.getTime() + (sessionData.duration * 60000));
+        
+        const formattedSessionData = {
+          ...sessionData,
+          startTime: sessionDateTime.toISOString(),
+          endTime: endDateTime.toISOString()
+        };
+        
+        console.log('Creating external meeting with data:', formattedSessionData);
+        
+        const response = await fetch('/api/sessions/create-with-integration', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sessionId,
+            sessionData: formattedSessionData,
+            platforms: [platform]
+          }),
+        });
+
+        if (!response.ok) {
+        throw new Error(`Failed to create ${platform} meeting`);
+        }
+
+        return await response.json();
+      } catch (error) {
+      console.error(`Error creating ${platform} meeting:`, error);
+        throw error;
+      }
   };
 
   const timeSlots = [
@@ -171,6 +763,7 @@ export function ScheduleSessionDialog({
                 handleInputChange("sessionType", value);
                 setSelectedClient(null);
                 setSelectedGroup(null);
+                setFetchedGroupMembers([]);
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select session type" />
@@ -219,6 +812,7 @@ export function ScheduleSessionDialog({
                   if (value === "loading" || value === "no-groups") return;
                   const group = groups.find(g => g.id === value);
                   setSelectedGroup(group);
+                  fetchGroupMembers(value);
                 }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a group" />
@@ -327,35 +921,14 @@ export function ScheduleSessionDialog({
             </div>
           </div>
 
-          {/* Location & Settings */}
+          {/* Settings */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Location & Settings</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Location
-              </Label>
-              <Select onValueChange={(value) => handleInputChange("location", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="room-101">Room 101 - Main Therapy Room</SelectItem>
-                  <SelectItem value="room-102">Room 102 - Group Activity Room</SelectItem>
-                  <SelectItem value="room-201">Room 201 - Conference Room</SelectItem>
-                  <SelectItem value="virtual-zoom">Virtual - Zoom Meeting</SelectItem>
-                  <SelectItem value="virtual-teams">Virtual - Microsoft Teams</SelectItem>
-                  <SelectItem value="outdoor">Outdoor Space</SelectItem>
-                  <SelectItem value="other">Other (specify in notes)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <h3 className="text-lg font-semibold text-foreground">Settings</h3>
 
             <div className="space-y-2">
               <Label htmlFor="reminderTime" className="flex items-center gap-2">
                 <Bell className="h-4 w-4" />
-                Send Reminder
+                Email Reminder
               </Label>
               <Select onValueChange={(value) => handleInputChange("reminderTime", value)} defaultValue="24">
                 <SelectTrigger>
@@ -367,11 +940,142 @@ export function ScheduleSessionDialog({
                   <SelectItem value="120">2 hours before</SelectItem>
                   <SelectItem value="24">24 hours before</SelectItem>
                   <SelectItem value="48">48 hours before</SelectItem>
-                  <SelectItem value="none">No reminder</SelectItem>
+                  <SelectItem value="none">No email reminder</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Note: A popup reminder will always be sent 10 minutes before the session.
+              </p>
             </div>
           </div>
+
+          {/* Meeting Type Selection */}
+            <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">Meeting Link</h3>
+              
+              <div className="space-y-3">
+              {meetingTypes.map((meetingType) => {
+                const Icon = meetingType.icon;
+                const isConnected = connectionStatus[meetingType.id]?.connected;
+                const isSelected = formData.meetingType === meetingType.id;
+                
+                return (
+                  <div 
+                    key={meetingType.id}
+                    className={cn(
+                      "flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all",
+                      isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() => handleInputChange('meetingType', meetingType.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={cn("h-5 w-5", meetingType.color)} />
+                      <div>
+                        <div className="font-medium">{meetingType.name}</div>
+                        <div className="text-sm text-muted-foreground">{meetingType.description}</div>
+                      </div>
+                </div>
+
+                    <div className="flex items-center gap-2">
+                      {meetingType.id === 'none' ? (
+                        <div className={cn("w-4 h-4 rounded-full border-2", isSelected ? "border-primary bg-primary" : "border-gray-300")} />
+                      ) : (
+                        <>
+                          {isConnected ? (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <span className="text-xs text-green-600">{connectionStatus[meetingType.id]?.email}</span>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReconnectPlatform(meetingType.id);
+                                  }}
+                                  disabled={isConnecting}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  {isConnecting ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    "Reconnect"
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDisconnectPlatform(meetingType.id);
+                                  }}
+                                  disabled={isConnecting}
+                                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                                >
+                                  Disconnect
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleConnectPlatform(meetingType.id);
+                              }}
+                              disabled={isConnecting}
+                            >
+                              {isConnecting ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                "Connect"
+                              )}
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+            {formData.meetingType !== 'none' && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">
+                  A meeting link will be automatically created and added to the session.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+            {/* Info about reconnecting for new permissions */}
+            {formData.meetingType !== 'none' && connectionStatus[formData.meetingType]?.connected && (
+                      <Alert className="border-blue-200 bg-blue-50">
+                        <AlertCircle className="h-4 w-4 text-blue-600" />
+                        <AlertDescription className="text-xs text-blue-700">
+                  <strong>New Feature:</strong> Email invitations and calendar integration are now available! 
+                  Click "Reconnect" to get the latest permissions for enhanced functionality.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+            {/* Zoom-specific configuration info */}
+            {formData.meetingType === 'zoom' && !connectionStatus[formData.meetingType]?.connected && (
+                      <Alert className="border-yellow-200 bg-yellow-50">
+                        <AlertCircle className="h-4 w-4 text-yellow-600" />
+                        <AlertDescription className="text-xs text-yellow-700">
+                  <strong>Zoom App Setup:</strong> To use Zoom integration:
+                  <br />1. Create a Zoom app in Zoom Marketplace or Developer Console
+                  <br />2. Enable "meeting:write" scope (or let Zoom use default scopes)
+                  <br />3. Set redirect URI to: <code>{window.location.origin}/api/integrations/oauth/zoom/callback</code>
+                  <br />4. Add ZOOM_CLIENT_ID and ZOOM_CLIENT_SECRET to environment variables
+                  <br />5. Note: CSP warnings in console are normal and don't affect functionality
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
 
           {/* Additional Notes */}
           <div className="space-y-4">

@@ -1,6 +1,6 @@
   "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -40,10 +40,16 @@ export default function Sessions() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [viewMode, setViewMode] = useState('list');
   const [calendarView, setCalendarView] = useState('month');
-  const [currentMonth, setCurrentMonth] = useState('May 2025');
-  const [selectedDate, setSelectedDate] = useState('May 6, 2025');
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(2024, 0, 1));
+  const [selectedDate, setSelectedDate] = useState(() => new Date(2024, 0, 1));
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('asc');
+
+  // Set current dates after hydration to avoid hydration mismatch
+  useEffect(() => {
+    setCurrentMonth(new Date());
+    setSelectedDate(new Date());
+  }, []);
 
   // Use real data from database
   const { 
@@ -58,9 +64,8 @@ export default function Sessions() {
 
   // Generate calendar data from real sessions
   const generateCalendarDays = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth(); // 0-based
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth(); // 0-based
     
     // Get first day of month and last day of month
     const firstDay = new Date(year, month, 1);
@@ -172,6 +177,45 @@ export default function Sessions() {
     return hours;
   };
 
+  // Calendar navigation handlers
+  const handlePreviousMonth = () => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(newMonth.getMonth() - 1);
+    setCurrentMonth(newMonth);
+  };
+
+  const handleNextMonth = () => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(newMonth.getMonth() + 1);
+    setCurrentMonth(newMonth);
+  };
+
+  const handlePreviousDay = () => {
+    const newDay = new Date(selectedDate);
+    newDay.setDate(newDay.getDate() - 1);
+    setSelectedDate(newDay);
+  };
+
+  const handleNextDay = () => {
+    const newDay = new Date(selectedDate);
+    newDay.setDate(newDay.getDate() + 1);
+    setSelectedDate(newDay);
+  };
+
+  // Format date for display
+  const formatMonthYear = (date) => {
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
   // Generate session details for calendar clicks
   const getSessionDetailsForDate = (dateStr) => {
     const daySessions = sessions.filter(session => {
@@ -187,11 +231,19 @@ export default function Sessions() {
       mood: session.mood,
       moodEmoji: session.moodEmoji,
       title: session.title,
-      id: session.id
+      id: session.id,
+      clientId: session.clientId,
+      groupId: session.groupId,
+      meetingLink: session.meetingLink
     }));
   };
 
   const handleDayClick = (day) => {
+    // Update selected date for day view
+    if (day.date) {
+      setSelectedDate(new Date(day.date));
+    }
+    
     if (day.hasSession && day.sessions && day.sessions.length > 0) {
       const sessionDetails = getSessionDetailsForDate(day.date);
       setSelectedSessionDetail({
@@ -199,6 +251,20 @@ export default function Sessions() {
         date: day.date,
         day: day.day,
         allSessions: sessionDetails
+      });
+      setIsSessionDetailOpen(true);
+    }
+  };
+
+  const handleJoinSession = (session) => {
+    if (session.meetingLink) {
+      window.open(session.meetingLink, '_blank');
+    } else {
+      // Fallback to dialog if no meeting link
+      setSelectedSession(session);
+      setSelectedSessionDetail({
+        ...session,
+        date: session.date
       });
       setIsSessionDetailOpen(true);
     }
@@ -219,18 +285,14 @@ export default function Sessions() {
   };
 
   const handleMessageSession = (session) => {
-    if (session.group) {
-      // Map group names to group IDs - in a real app this would come from the session data
-      const groupId = session.group === "Group 1" ? "1" : 
-                     session.group === "Group 2" ? "2" : 
-                     session.group === "Group 3" ? "3" : "1";
-      router.push(`/coach/group/${groupId}`);
+    if (session.groupId) {
+      // Navigate to group chat using the actual group ID
+      router.push(`/coach/group/${session.groupId}`);
+    } else if (session.clientId) {
+      // Navigate to client chat using the actual client ID
+      router.push(`/coach/clients/${session.clientId}`);
     } else {
-      // Map client names to client IDs - in a real app this would come from the session data
-      const clientId = session.client === "John Doe" ? "1" : 
-                       session.client === "Alex Bob" ? "2" : 
-                       session.client === "Sarah Connor" ? "3" : "1";
-      router.push(`/coach/clients/${clientId}`);
+      console.error('No groupId or clientId found in session:', session);
     }
   };
 
@@ -268,7 +330,6 @@ export default function Sessions() {
     const comparison = aValue.localeCompare(bValue);
     return sortOrder === 'asc' ? comparison : -comparison;
   });
-
   const renderCalendarView = () => {
     const calendarDays = generateCalendarDays();
     const weekDays = generateWeekDays();
@@ -368,7 +429,7 @@ export default function Sessions() {
         return (
           <div className="bg-muted/30 rounded-lg p-4">
                 <div className="text-center mb-4">
-                  <h3 className="text-lg font-semibold">{selectedDate}</h3>
+                  <h3 className="text-lg font-semibold">{formatDate(selectedDate)}</h3>
                 </div>
             <div className="space-y-2">
               {dayHours.map((hour, index) => (
@@ -594,7 +655,7 @@ export default function Sessions() {
                       <Button 
                         size="sm"
                         className="bg-gradient-primary text-[#1A2D4D] hover:shadow-md transition-all"
-                        onClick={() => handleViewSession(session)}
+                        onClick={() => handleJoinSession(session)}
                       >
                         <Video className="h-4 w-4 mr-2" />
                           Join
@@ -626,13 +687,21 @@ export default function Sessions() {
                  {/* Calendar Navigation */}
                  <div className="flex items-center justify-center">
                    <div className="flex items-center gap-2">
-                     <Button size="sm" variant="outline" onClick={() => setCurrentMonth('April 2025')}>
+                     <Button 
+                       size="sm" 
+                       variant="outline" 
+                       onClick={calendarView === 'day' ? handlePreviousDay : handlePreviousMonth}
+                     >
                        <ChevronLeft className="h-4 w-4" />
                      </Button>
                      <h3 className="text-lg font-semibold text-foreground min-w-[120px] text-center">
-                       {calendarView === 'day' ? selectedDate : currentMonth}
+                       {calendarView === 'day' ? formatDate(selectedDate) : formatMonthYear(currentMonth)}
                      </h3>
-                     <Button size="sm" variant="outline" onClick={() => setCurrentMonth('June 2025')}>
+                     <Button 
+                       size="sm" 
+                       variant="outline" 
+                       onClick={calendarView === 'day' ? handleNextDay : handleNextMonth}
+                     >
                        <ChevronRight className="h-4 w-4" />
                      </Button>
                    </div>
@@ -718,15 +787,45 @@ export default function Sessions() {
               )}
               
               <div className="flex gap-2">
-                <Button size="sm" className="flex-1">
+                <Button 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => {
+                    if (selectedSessionDetail?.meetingLink) {
+                      window.open(selectedSessionDetail.meetingLink, '_blank');
+                    }
+                  }}
+                >
                   <Video className="h-4 w-4 mr-2" />
                   Join Session
                 </Button>
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    // Find the full session object from sessions array
+                    const fullSession = sessions.find(session => {
+                      const sessionDate = new Date(session.sessionDate);
+                      const sessionTime = session.sessionTime.substring(0, 5);
+                      return sessionDate.toISOString().split('T')[0] === selectedSessionDetail.date &&
+                             sessionTime === selectedSessionDetail.time;
+                    });
+                    
+                    if (fullSession) {
+                      setSelectedSession(fullSession);
+                      setIsEditDialogOpen(true);
+                      setIsSessionDetailOpen(false);
+                    }
+                  }}
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleMessageSession(selectedSessionDetail)}
+                >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message
                 </Button>

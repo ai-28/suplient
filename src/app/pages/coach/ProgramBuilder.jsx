@@ -10,7 +10,7 @@ import { Label } from "@/app/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { AddElementDialog } from "@/app/components/AddElementDialog";
 import { ProgramFlowChart } from "@/app/components/ProgramFlowChart";
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 
 export default function ProgramBuilder() {

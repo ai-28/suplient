@@ -81,7 +81,10 @@ export async function PUT(request, { params }) {
             meetingLink,
             status,
             mood,
-            notes
+            notes,
+            // Special fields for meeting link updates
+            updateMeetingLink,
+            updateLocation
         } = body;
 
         const updateData = {
@@ -93,8 +96,8 @@ export async function PUT(request, { params }) {
             sessionType,
             clientId,
             groupId,
-            location,
-            meetingLink,
+            location: updateLocation || location,
+            meetingLink: updateMeetingLink || meetingLink,
             status,
             mood,
             notes

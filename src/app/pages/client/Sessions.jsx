@@ -20,7 +20,8 @@ export default function ClientSessions() {
   const { data: session } = useSession();
   
   // Get client's coach and conversation ID
-  const { coach, loading: coachLoading } = useClientCoach();
+  const { coach, loading: coachLoading, error: coachError } = useClientCoach();
+  console.log('🔍 Client Sessions - Coach data:', { coach, coachLoading, coachError });
   const { conversationId, loading: conversationLoading } = useConversationId(
     session?.user?.id,
     coach?.id
@@ -48,7 +49,12 @@ export default function ClientSessions() {
     if (!coach) {
       return (
         <div className="flex items-center justify-center h-screen text-muted-foreground">
-          No coach assigned
+          <div className="text-center">
+            <p>No coach assigned</p>
+            {coachError && (
+              <p className="text-sm text-red-500 mt-2">Error: {coachError}</p>
+            )}
+          </div>
         </div>
       );
     }

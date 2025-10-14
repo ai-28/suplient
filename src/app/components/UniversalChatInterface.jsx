@@ -91,18 +91,31 @@ export function UniversalChatInterface({
     if (chatId && session?.user?.id) {
       const markAsRead = async () => {
         try {
-          await fetch(`/api/chat/conversations/${chatId}/read`, {
+          const response = await fetch(`/api/chat/conversations/${chatId}/read`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
             },
           });
+          
+          if (!response.ok) {
+            console.warn('Failed to mark messages as read:', response.status, response.statusText);
+            return;
+          }
+          
+          const data = await response.json();
+          if (!data.success) {
+            console.warn('Mark as read API returned error:', data.error);
+          }
         } catch (error) {
-          console.error('Error marking messages as read:', error);
+          console.warn('Error marking messages as read:', error.message);
+          // Don't throw the error, just log it as a warning
         }
       };
-      
-      markAsRead();
+
+      // Add a small delay to ensure the conversation is fully loaded
+      const timeoutId = setTimeout(markAsRead, 1000);
+      return () => clearTimeout(timeoutId);
     }
   }, [chatId, session?.user?.id]);
   const handleSendMessage = () => {

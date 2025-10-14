@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -39,13 +40,19 @@ const coaches = [{
 }];
 export default function BookSession() {
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date(2024, 0, 1));
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedCoach, setSelectedCoach] = useState(1);
   const [sessionTopic, setSessionTopic] = useState("");
   const [acceptedConditions, setAcceptedConditions] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
+
+  // Set current date after hydration to avoid hydration mismatch
+  useEffect(() => {
+    setSelectedDate(new Date());
+  }, []);
+
   const handleBookSession = async () => {
     if (!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions) {
       return;

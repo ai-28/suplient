@@ -212,6 +212,9 @@ async function seedTask() {
         status VARCHAR(20) DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show')),
         mood VARCHAR(20) DEFAULT 'neutral' CHECK (mood IN ('excellent', 'good', 'neutral', 'poor', 'terrible')),
         notes TEXT,
+        "integrationPlatform" VARCHAR(50) DEFAULT 'none' CHECK ("integrationPlatform" IN ('google_calendar', 'zoom', 'teams', 'none')),
+        "integrationSettings" JSONB DEFAULT '{}',
+        "autoCreateMeeting" BOOLEAN DEFAULT false,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -438,6 +441,62 @@ async function createUserStatsTable() {
   }
 }
 
+async function createIntegrationTables() {
+  try {
+    // 1. Create CoachIntegration table to store OAuth tokens and settings
+    await sql`
+      CREATE TABLE IF NOT EXISTS "CoachIntegration" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        platform VARCHAR(50) NOT NULL CHECK (platform IN ('google_calendar', 'zoom', 'teams')),
+        "accessToken" TEXT NOT NULL,
+        "refreshToken" TEXT,
+        "tokenExpiresAt" TIMESTAMP WITH TIME ZONE,
+        "scope" TEXT,
+        "platformUserId" VARCHAR(255),
+        "platformEmail" VARCHAR(255),
+        "platformName" VARCHAR(255),
+        "isActive" BOOLEAN DEFAULT true,
+        "settings" JSONB DEFAULT '{}',
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uk_coach_platform UNIQUE("coachId", "platform")
+      )
+    `;
+
+    // 2. Create IntegrationEvent table to track external calendar events
+    await sql`
+      CREATE TABLE IF NOT EXISTS "IntegrationEvent" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "sessionId" UUID NOT NULL REFERENCES "Session"(id) ON DELETE CASCADE,
+        "integrationId" UUID NOT NULL REFERENCES "CoachIntegration"(id) ON DELETE CASCADE,
+        "platformEventId" VARCHAR(255) NOT NULL,
+        "platformMeetingId" VARCHAR(255),
+        "meetingUrl" TEXT,
+        "meetingPassword" VARCHAR(50),
+        "calendarEventId" VARCHAR(255),
+        "status" VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'updated')),
+        "lastSyncAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uk_session_integration UNIQUE("sessionId", "integrationId")
+      )
+    `;
+
+
+    // 3. Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_coach_integration_coach_id ON "CoachIntegration"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_coach_integration_platform ON "CoachIntegration"("platform")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_integration_event_session_id ON "IntegrationEvent"("sessionId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_integration_event_integration_id ON "IntegrationEvent"("integrationId")`;
+
+    console.log('Integration tables created successfully');
+  } catch (error) {
+    console.error('Error creating integration tables:', error);
+    throw error;
+  }
+}
+
 async function createChatTables() {
   try {
     // Create Conversations table (simplified)
@@ -460,7 +519,9 @@ async function createChatTables() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "conversationId" UUID NOT NULL REFERENCES "Conversation"(id) ON DELETE CASCADE,
         "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        role VARCHAR(20) DEFAULT 'member' CHECK (role IN ('admin', 'moderator', 'member')),
         "joinedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "lastReadAt" TIMESTAMP,
         "isActive" BOOLEAN DEFAULT true,
         UNIQUE("conversationId", "userId")
       );
@@ -571,19 +632,20 @@ export async function GET() {
 
     await seedUser();
     await createProgramTemplateTable();
-    await createProgramEnrollmentTable();
+    await seedTask(); // Create Group, Client, Task, Session tables first
+    await createProgramEnrollmentTable(); // Now Client table exists
     await createChatTables(); // Create Chat tables
-    await seedTask(); // Create Group table first
     await createResourceTable(); // Create Resource table for library
     await seedNote();
     await createCheckInTable(); // Create CheckIn table for daily journal entries
     await createUserStatsTable(); // Create user stats table
     await createResourceCompletionTable(); // Create resource completion table
+    await createIntegrationTables(); // Create integration tables
     console.log('Database seeded successfully');
 
     return new Response(JSON.stringify({
       message: 'Database seeded successfully',
-      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, and CheckIn tables created with sample data'
+      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, CheckIn, and Integration tables created with sample data'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

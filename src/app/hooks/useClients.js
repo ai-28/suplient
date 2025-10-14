@@ -25,21 +25,30 @@ export function useClients() {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to fetch clients');
+                const errorText = await response.text();
+                console.warn('Failed to fetch clients:', response.status, response.statusText, errorText);
+                setError(`Failed to fetch clients: ${response.status} ${response.statusText}`);
+                setClients([]); // Set empty array on error
+                return;
             }
 
             const data = await response.json();
             setClients(data.clients || []);
         } catch (err) {
-            console.error('Error fetching clients:', err);
+            console.warn('Error fetching clients:', err.message);
             setError(err.message);
+            setClients([]); // Set empty array on error
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchClients();
+        if (session?.user?.id) {
+            // Add a small delay to ensure the session is fully loaded
+            const timeoutId = setTimeout(fetchClients, 500);
+            return () => clearTimeout(timeoutId);
+        }
     }, [session?.user?.id]);
 
     const refetchClients = () => {
@@ -49,6 +58,7 @@ export function useClients() {
     // Transform clients data for the CreateGroupDialog
     const availableClients = clients.map(client => ({
         id: client.id,
+        userId: client.userId,
         name: client.name,
         initials: client.name.split(' ').map(n => n[0]).join('').toUpperCase(),
         email: client.email,

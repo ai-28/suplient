@@ -14,10 +14,14 @@ export async function PUT(request, { params }) {
         const { id: conversationId } = await params;
 
         // Verify user is participant
+        console.log('🔍 Checking participants for conversation:', conversationId);
         const participants = await chatRepo.getConversationParticipants(conversationId);
+        console.log('🔍 Participants found:', participants);
         const isParticipant = participants.some(p => p.id === session.user.id);
+        console.log('🔍 Is user participant:', isParticipant, 'User ID:', session.user.id);
 
         if (!isParticipant) {
+            console.log('❌ User not authorized to access conversation');
             return NextResponse.json(
                 { error: 'Not authorized to access this conversation' },
                 { status: 403 }
@@ -25,7 +29,9 @@ export async function PUT(request, { params }) {
         }
 
         // Mark messages as read
+        console.log('✅ Marking messages as read for user:', session.user.id);
         await chatRepo.markMessagesAsRead(conversationId, session.user.id);
+        console.log('✅ Messages marked as read successfully');
 
         // Emit real-time update for unread message counts
         try {

@@ -31,7 +31,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { GoalAnalyticsChart } from "@/app/components/GoalAnalyticsChart";
 import { StreakCounter } from "@/app/components/StreakCounter";
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { signOut } from "next-auth/react";
 import { useSocket } from "@/app/hooks/useSocket";
 
@@ -121,14 +121,39 @@ const useUpcomingSessions = () => {
 
 export default function ClientDashboard() {
   const router = useRouter();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    // Initialize with a consistent date to avoid hydration issues
+    return new Date(2024, 0, 1); // Use a fixed date initially
+  });
   const [activeTab, setActiveTab] = useState("today");
   const [selectedSession, setSelectedSession] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
   const {user}=useAuth();
+  
+  // Set current date after hydration to avoid hydration mismatch
+  useEffect(() => {
+    setCurrentDate(new Date());
+  }, []);
   
   // Initialize socket connection for real-time notifications
   useSocket();
+  
+  // Check online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    setIsOnline(navigator.onLine);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   const { analyticsData, loading, error, refetch } = useGoalTracking(activeTab);
   const { sessions: upcomingSessions, sessionsLoading, sessionsError } = useUpcomingSessions();
@@ -182,10 +207,15 @@ export default function ClientDashboard() {
     if (session.meetingLink) {
       window.open(session.meetingLink, '_blank', 'noopener,noreferrer');
     }
-    };
+  };
+
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
   const navigateDate = (direction) => {
@@ -196,12 +226,20 @@ export default function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Offline Indicator */}
+      {!isOnline && (
+        <div className="bg-red-50 border-b border-red-200 p-2 text-center">
+          <p className="text-sm text-red-800">You're offline. Some features may be limited.</p>
+        </div>
+      )}
+      
       {/* Header with Profile */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <h1 className="text-xl font-semibold text-foreground">Mental Health</h1>
 
-        <div className="flex items-center gap-4">
-          <NotificationBell userRole="client" />
+                <div className="flex items-center gap-2">
+                  {/* Notifications */}
+                  <NotificationBell userRole="client" />
           
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -241,7 +279,6 @@ export default function ClientDashboard() {
 
       {/* Main Content */}
       <div className="p-4 space-y-6">
-                  
         
         {/* Analytics Chart */}
         {loading ? (

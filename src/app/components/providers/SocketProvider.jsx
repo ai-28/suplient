@@ -7,7 +7,7 @@ import { io } from 'socket.io-client';
 const SocketContext = createContext(null);
 
 export default function SocketProvider({ children }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
@@ -25,6 +25,11 @@ export default function SocketProvider({ children }) {
   }, [session?.user?.id, session?.user?.email, session?.user?.name]);
 
   useEffect(() => {
+    // Don't initialize socket if session is still loading
+    if (status === 'loading') {
+      return;
+    }
+
     if (!userData) {
       if (socket) {
         console.log('🔥 Disconnecting socket - no user data');
@@ -46,7 +51,7 @@ export default function SocketProvider({ children }) {
     console.log('🔥 Creating global socket connection for:', userData.userName);
     socketInitialized.current = true;
 
-    const newSocket = io({
+    const newSocket = io(window.location.origin, {
       auth: userData,
       autoConnect: true,
       reconnection: true,
@@ -54,6 +59,11 @@ export default function SocketProvider({ children }) {
       reconnectionDelay: 2000,
       reconnectionDelayMax: 10000,
       timeout: 30000,
+      transports: ['polling', 'websocket'], // Try polling first, then websocket
+      forceNew: true, // Force a new connection
+      upgrade: true, // Allow transport upgrades
+      rememberUpgrade: false, // Don't remember failed upgrades
+      withCredentials: true, // Include credentials
     });
 
     // Global event handlers
@@ -97,8 +107,48 @@ export default function SocketProvider({ children }) {
 
     newSocket.on('connect_error', (error) => {
       console.error('🔥 Global socket connection error:', error);
+      console.error('🔥 Error details:', {
+        message: error.message,
+        description: error.description,
+        context: error.context,
+        type: error.type,
+        transport: error.transport
+      });
       setConnectionError(error.message);
       setIsConnected(false);
+      
+      // Reset socket initialization flag on error to allow retry
+      socketInitialized.current = false;
+    });
+
+    // Handle websocket-specific errors
+    newSocket.on('error', (error) => {
+      console.error('🔥 Socket error:', error);
+      setConnectionError(`Socket error: ${error.message || error}`);
+    });
+
+    // Add connection timeout handler
+    const connectionTimeout = setTimeout(() => {
+      if (!newSocket.connected) {
+        console.error('🔥 Socket connection timeout');
+        setConnectionError('Connection timeout - trying polling fallback');
+        setIsConnected(false);
+        socketInitialized.current = false;
+        
+        // Try to reconnect with polling only
+        setTimeout(() => {
+          if (!socketInitialized.current) {
+            console.log('🔥 Attempting fallback connection with polling only');
+            newSocket.io.opts.transports = ['polling'];
+            newSocket.connect();
+          }
+        }, 2000);
+      }
+    }, 10000); // 10 second timeout
+
+    newSocket.on('connect', () => {
+      clearTimeout(connectionTimeout);
+      console.log('🔥 Socket connected successfully with transport:', newSocket.io.engine.transport.name);
     });
 
     // Register global event listeners
@@ -120,7 +170,7 @@ export default function SocketProvider({ children }) {
       newSocket.disconnect();
       socketInitialized.current = false;
     };
-  }, [userData]);
+  }, [userData, status]);
 
   const value = {
     socket,
@@ -137,15 +187,12 @@ export default function SocketProvider({ children }) {
         socket.emit('leave_conversation', { conversationId });
       }
     },
-    sendMessage: (content, type = 'text', additionalData = {}) => {
-      if (socket && isConnected) {
-        const messageData = {
-          content,
-          type,
-          timestamp: new Date(),
-          ...additionalData
-        };
-        socket.emit('send_message', messageData);
+    sendMessage: (conversationId, messageData) => {
+      if (socket && isConnected && conversationId) {
+        socket.emit('send_message', {
+          conversationId,
+          ...messageData
+        });
       }
     },
     startTyping: (conversationId) => {
@@ -167,6 +214,7 @@ export default function SocketProvider({ children }) {
       }
     }
   };
+
 
   return (
     <SocketContext.Provider value={value}>

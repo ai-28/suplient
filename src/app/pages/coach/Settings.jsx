@@ -59,16 +59,10 @@ export default function Settings() {
       <PageHeader 
         title={"Settings"} 
         subtitle={"Manage your settings"}
-      >
-        <div>
-          <h2 className="page-title flex items-center gap-3">
-            <SettingsIcon className="h-8 w-8 text-primary" />
-          </h2>
-        </div>
-      </PageHeader>
+      />
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 bg-muted">
+        <TabsList className="grid w-full grid-cols-4 bg-muted">
           <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             Profile
           </TabsTrigger>
@@ -80,9 +74,6 @@ export default function Settings() {
           </TabsTrigger>
           <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             Pipeline
-          </TabsTrigger>
-          <TabsTrigger value="integrations" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Integrations
           </TabsTrigger>
         </TabsList>
 
@@ -135,7 +126,7 @@ export default function Settings() {
                   <Input id="license" defaultValue="LPC-12345678" />
                 </div>
 
-                  <Button className="w-full">Save Changes</Button>
+                <Button className="w-full">Save Changes</Button>
               </CardContent>
             </Card>
 
@@ -341,7 +332,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
-                        Privacy & Data
+                  Privacy & Data
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -491,7 +482,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users2 className="h-5 w-5 text-primary" />
-                      Group Pipeline Stages
+                  Group Pipeline Stages
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -509,10 +500,10 @@ export default function Settings() {
                   
                   <div className="space-y-3">
                     {[
-                      { id: "upcoming", color: "bg-blue-500" },
-                      { id: "ongoing", color: "bg-green-500" },
-                      { id: "completed", color: "bg-purple-500" },
-                      { id: "inactive", color: "bg-gray-500" }
+                      { id: "upcoming", name: "Upcoming", color: "bg-blue-500", description: "Groups scheduled to start" },
+                      { id: "ongoing", name: "Ongoing", color: "bg-green-500", description: "Active groups" },
+                      { id: "completed", name: "Completed", color: "bg-purple-500", description: "Finished groups" },
+                      { id: "inactive", name: "Inactive", color: "bg-gray-500", description: "Paused groups" }
                     ].map((stage) => (
                       <div key={stage.id} className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                         <div className="flex items-center gap-3">
@@ -554,10 +545,10 @@ export default function Settings() {
                   
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                      { id: "upcoming", color: "bg-blue-500" },
-                      { id: "ongoing", color: "bg-green-500" },
-                      { id: "completed", color: "bg-purple-500" },
-                      { id: "inactive", color: "bg-gray-500" }
+                      { id: "upcoming", name: "Upcoming", color: "bg-blue-500" },
+                      { id: "ongoing", name: "Ongoing", color: "bg-green-500" },
+                      { id: "completed", name: "Completed", color: "bg-purple-500" },
+                      { id: "inactive", name: "Inactive", color: "bg-gray-500" }
                     ].map((stage) => (
                       <div key={stage.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -573,90 +564,6 @@ export default function Settings() {
                 <div className="pt-4">
                   <Button className="w-full">Save</Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Integrations Settings */}
-        <TabsContent value="integrations">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="card-standard">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-primary" />
-                  Connected Services
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <Label>Google Calendar</Label>
-                      <p className="text-sm text-muted-foreground">Connect your Google Calendar to your account</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-green-100 text-green-800">Connected</Badge>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Mail className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <Label>Email Service</Label>
-                      <p className="text-sm text-muted-foreground">Connect your email service to your account</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">Connect</Button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Phone className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <Label>Twilio SMS</Label>
-                      <p className="text-sm text-muted-foreground">Connect your Twilio SMS to your account</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">Connect</Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-standard">
-              <CardHeader>
-                <CardTitle>API Access</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                    <Label>API Key</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Input value="mc_••••••••••••••••••••••••••••••" readOnly />
-                    <Button variant="outline">Copy</Button>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Webhook URL</Label>
-                  <Input placeholder="https://your-app.com/webhook" />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                      <Label>Rate Limiting</Label>
-                    <p className="text-sm text-muted-foreground">Set the rate limiting for your API</p>
-                  </div>
-                  <Badge variant="outline">Standard</Badge>
-                </div>
-
-                <Button className="w-full">Generate Key</Button>
               </CardContent>
             </Card>
           </div>

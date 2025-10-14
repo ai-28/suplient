@@ -17,16 +17,14 @@ import { signOut } from "next-auth/react";
 import { Button } from "@/app/components/ui/button";
 import { Avatar } from "@/app/components/ui/avatar";
 import { BookMarked, LogOut } from "lucide-react";
-import { useAuth } from "@/app/context/AuthContext";
-import { useSocket } from "@/app/hooks/useSocket";
+import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
+import { Toaster } from "@/app/components/ui/sonner";
 
 const Layout = ({ children }) => {
     const pathname = usePathname();
     const { user } = useAuth();
     
-    // Initialize socket connection for real-time notifications
-    useSocket();
     const [mounted, setMounted] = useState(false);
     
     // Only show sidebar for coach and admin routes, not for client routes
@@ -143,6 +141,7 @@ const Layout = ({ children }) => {
             </main>
           </div>
         </div>
+        <Toaster />
       </SidebarProvider>
     )
 }

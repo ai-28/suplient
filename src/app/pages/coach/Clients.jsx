@@ -122,7 +122,6 @@ export default function Clients() {
   useEffect(() => {
     fetchClients();
   }, []);
-
   // Handle client creation callback
   const handleClientCreated = (newClient) => {
     console.log('New client created:', newClient);

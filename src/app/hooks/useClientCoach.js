@@ -33,6 +33,7 @@ export function useClientCoach() {
                 }
             } catch (err) {
                 console.error('Error fetching coach:', err);
+                console.error('Error details:', err.message);
                 setError(err.message);
             } finally {
                 setLoading(false);

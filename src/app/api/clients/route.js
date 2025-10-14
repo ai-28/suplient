@@ -23,7 +23,7 @@ export async function GET(request) {
 
         const coachId = userResult[0].id;
 
-        // Fetch clients with their scheduled sessions
+        // Fetch clients with their scheduled sessions (robust query)
         const clients = await sql`
             SELECT 
                 c.id,
@@ -37,32 +37,32 @@ export async function GET(request) {
                 c."updatedAt",
                 c."referralSource",
                 c."primaryConcerns",
-                -- Get the next scheduled session (combine sessionDate and sessionTime)
-                (
-                    SELECT (s."sessionDate" + s."sessionTime") as "scheduledDate"
-                    FROM "Session" s
-                    WHERE s."clientId" = c.id 
-                    AND s.status = 'scheduled'
-                    AND (s."sessionDate" + s."sessionTime") > NOW()
-                    ORDER BY (s."sessionDate" + s."sessionTime") ASC
-                    LIMIT 1
+                COALESCE(
+                    (
+                        SELECT (s."sessionDate" + s."sessionTime") as "scheduledDate"
+                        FROM "Session" s
+                        WHERE s."clientId" = c.id 
+                        AND s.status = 'scheduled'
+                        AND (s."sessionDate" + s."sessionTime") > NOW()
+                        ORDER BY (s."sessionDate" + s."sessionTime") ASC
+                        LIMIT 1
+                    ), 
+                    NULL
                 ) as "scheduledSession",
-                -- Get unread messages count (corrected logic)
-                (
-                    SELECT COUNT(*)
-                    FROM "Message" m
-                    JOIN "Conversation" conv ON conv.id = m."conversationId"
-                    JOIN "ConversationParticipant" cp_coach ON cp_coach."conversationId" = conv.id AND cp_coach."userId" = ${coachId}
-                    JOIN "ConversationParticipant" cp_client ON cp_client."conversationId" = conv.id AND cp_client."userId" = c."userId"
-                    WHERE conv.type = 'personal'
-                    AND conv."createdBy" = ${coachId}
-                    AND m."senderId" = c."userId"
-                    AND m."isDeleted" = false
-                    AND m."createdAt" > COALESCE(cp_coach."lastReadAt", cp_coach."joinedAt")
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM "Message" m
+                        JOIN "Conversation" conv ON conv.id = m."conversationId"
+                        JOIN "ConversationParticipant" cp_coach ON cp_coach."conversationId" = conv.id AND cp_coach."userId" = ${coachId}
+                        WHERE conv.type = 'personal'
+                        AND conv."createdBy" = ${coachId}
+                        AND m."senderId" = c."userId"
+                        AND m."createdAt" > COALESCE(cp_coach."lastReadAt", cp_coach."joinedAt", '1970-01-01'::timestamp)
+                    ), 
+                    0
                 ) as "unreadMessages",
-                -- Get last message (placeholder for now)
                 'No recent messages' as "lastMessage",
-                -- Get last note (placeholder for now)
                 'No recent notes' as "lastNote"
             FROM "Client" c
             WHERE c."coachId" = ${coachId}
@@ -76,7 +76,7 @@ export async function GET(request) {
                 id: client.id,
                 name: client.name,
                 type: client.type || 'Personal',
-                status: client.status || 'Active',
+                status: client.status ? client.status.charAt(0).toUpperCase() + client.status.slice(1).toLowerCase() : 'Active',
                 lastActive: client.lastActive ? formatDate(client.lastActive) : 'Never',
                 created: formatDate(client.createdAt),
                 mood: client.mood || '😐',

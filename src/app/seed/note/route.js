@@ -1,59 +1,140 @@
 import { sql } from '../../lib/db/postgresql';
 
-async function createChatTables() {
+async function createIntegrationTables() {
   try {
+    // Check if User table exists first
+    const userTableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'User'
+      );
+    `;
+
+    if (!userTableExists[0].exists) {
+      throw new Error('User table does not exist. Please run the main seed first: /api/seed');
+    }
+
+    // 1. Create CoachIntegration table to store OAuth tokens and settings
     await sql`
-    CREATE TABLE IF NOT EXISTS "Notification" (
+      CREATE TABLE IF NOT EXISTS "CoachIntegration" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-      type VARCHAR(50) NOT NULL CHECK (type IN ('client_signup', 'task_completed', 'daily_checkin', 'new_message', 'session_reminder', 'goal_achieved', 'system', 'other')),
-      title VARCHAR(255) NOT NULL,
-      message TEXT NOT NULL,
-      data JSONB, -- Store additional data like client info, message preview, etc.
-      "isRead" BOOLEAN DEFAULT false,
-      "readAt" TIMESTAMP WITH TIME ZONE,
-      priority VARCHAR(20) DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
-      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      
-      -- Add constraints for data integrity
-      CONSTRAINT chk_notification_type_length CHECK (LENGTH(type) >= 3),
-      CONSTRAINT chk_notification_title_length CHECK (LENGTH(title) >= 1),
-      CONSTRAINT chk_notification_message_length CHECK (LENGTH(message) >= 1)
-    );
-  `;
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        platform VARCHAR(50) NOT NULL CHECK (platform IN ('google_calendar', 'zoom', 'teams')),
+        "accessToken" TEXT NOT NULL,
+        "refreshToken" TEXT,
+        "tokenExpiresAt" TIMESTAMP WITH TIME ZONE,
+        "scope" TEXT,
+        "platformUserId" VARCHAR(255), -- External platform user ID
+        "platformEmail" VARCHAR(255), -- External platform email
+        "platformName" VARCHAR(255), -- Display name from platform
+        "isActive" BOOLEAN DEFAULT true,
+        "settings" JSONB DEFAULT '{}', -- Platform-specific settings
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        
+        -- Ensure one integration per platform per coach
+        CONSTRAINT uk_coach_platform UNIQUE("coachId", "platform")
+      );
+    `;
 
-    // Create indexes for Notification table
-    await sql`CREATE INDEX IF NOT EXISTS idx_notification_user ON "Notification"("userId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_notification_type ON "Notification"(type)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_notification_created_at ON "Notification"("createdAt")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_notification_read ON "Notification"("isRead")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_notification_priority ON "Notification"(priority)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_notification_user_read ON "Notification"("userId", "isRead")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_notification_user_type ON "Notification"("userId", type)`;
+    // Check if Session table exists
+    const sessionTableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'Session'
+      );
+    `;
 
+    if (!sessionTableExists[0].exists) {
+      throw new Error('Session table does not exist. Please run the main seed first: /api/seed');
+    }
+
+    // 2. Create IntegrationEvent table to track external calendar events
+    await sql`
+      CREATE TABLE IF NOT EXISTS "IntegrationEvent" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "sessionId" UUID NOT NULL REFERENCES "Session"(id) ON DELETE CASCADE,
+        "integrationId" UUID NOT NULL REFERENCES "CoachIntegration"(id) ON DELETE CASCADE,
+        "platformEventId" VARCHAR(255) NOT NULL, -- External platform event ID
+        "platformMeetingId" VARCHAR(255), -- Meeting ID for video platforms
+        "meetingUrl" TEXT, -- Meeting join URL
+        "meetingPassword" VARCHAR(50), -- Meeting password if required
+        "calendarEventId" VARCHAR(255), -- Google Calendar event ID
+        "status" VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'updated')),
+        "lastSyncAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        
+        -- Ensure one event per session per integration
+        CONSTRAINT uk_session_integration UNIQUE("sessionId", "integrationId")
+      );
+    `;
+
+    // 3. Add integration fields to Session table
+    await sql`
+      ALTER TABLE "Session" 
+      ADD COLUMN IF NOT EXISTS "integrationPlatform" VARCHAR(50) CHECK ("integrationPlatform" IN ('google_calendar', 'zoom', 'teams', 'none')),
+      ADD COLUMN IF NOT EXISTS "integrationSettings" JSONB DEFAULT '{}',
+      ADD COLUMN IF NOT EXISTS "autoCreateMeeting" BOOLEAN DEFAULT false;
+    `;
+
+    // 4. Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_coach_integration_coach_id ON "CoachIntegration"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_coach_integration_platform ON "CoachIntegration"("platform")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_integration_event_session_id ON "IntegrationEvent"("sessionId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_integration_event_integration_id ON "IntegrationEvent"("integrationId")`;
+
+    // 5. Create triggers for updated_at
+    await sql`
+      CREATE OR REPLACE FUNCTION update_integration_updated_at()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW."updatedAt" = CURRENT_TIMESTAMP;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    `;
+
+    await sql`
+      DROP TRIGGER IF EXISTS update_coach_integration_updated_at ON "CoachIntegration";
+      CREATE TRIGGER update_coach_integration_updated_at 
+        BEFORE UPDATE ON "CoachIntegration" 
+        FOR EACH ROW EXECUTE FUNCTION update_integration_updated_at();
+    `;
+
+    await sql`
+      DROP TRIGGER IF EXISTS update_integration_event_updated_at ON "IntegrationEvent";
+      CREATE TRIGGER update_integration_event_updated_at 
+        BEFORE UPDATE ON "IntegrationEvent" 
+        FOR EACH ROW EXECUTE FUNCTION update_integration_updated_at();
+    `;
+
+    console.log('Integration tables created successfully');
   } catch (error) {
-    console.error('Error creating chat tables:', error);
+    console.error('Error creating integration tables:', error);
     throw error;
   }
 }
+
 export async function GET() {
   try {
-    console.log('Starting database seeding...');
-    await createChatTables();
-    console.log('Database seeded successfully');
+    console.log('Starting integration tables seeding...');
+    await createIntegrationTables();
+    console.log('Integration tables seeded successfully');
 
     return new Response(JSON.stringify({
-      message: 'Database seeded successfully',
-      details: 'User, Group, Task, Client  , and Note tables created with sample data'
+      message: 'Integration tables seeded successfully',
+      details: 'CoachIntegration, IntegrationEvent tables created and Session table enhanced with integration fields'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Seeding error:', error);
+    console.error('Integration seeding error:', error);
     return new Response(JSON.stringify({
-      error: error.message || 'Database seeding failed',
+      error: error.message || 'Integration tables seeding failed',
       details: error.stack
     }), {
       status: 500,
