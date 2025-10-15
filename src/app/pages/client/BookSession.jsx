@@ -10,7 +10,6 @@ import { Calendar } from "@/app/components/ui/calendar";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { ArrowLeft, Clock, User, CheckCircle, Video } from "lucide-react";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 const generateTimeSlots = () => {
   const slots = [];
