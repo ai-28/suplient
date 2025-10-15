@@ -1,3 +1,5 @@
-import postgres from 'postgres';
+const postgres = require('postgres');
 
-export const sql = postgres(process.env.POSTGRES_URL);
+const sql = postgres(process.env.POSTGRES_URL);
+
+module.exports = { sql };
