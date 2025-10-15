@@ -9,10 +9,15 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import PWAInstallPrompt from "./PWAInstallPrompt";
+import { useServiceWorker } from "@/app/hooks/useServiceWorker";
 
 export default function ClientLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  
+  // Register service worker for PWA functionality
+  useServiceWorker();
 
   const isActiveRoute = (path) => pathname === path;
 
@@ -22,6 +27,9 @@ export default function ClientLayout({ children }) {
       <div className="flex-1">
         {children}
       </div>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
 
       {/* Bottom Navigation - Fixed */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-50 shadow-lg">
