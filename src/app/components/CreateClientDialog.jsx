@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, UserPlus, Phone, Mail, MapPin, Calendar as CalendarIcon2, User, Briefcase, Loader2 } from "lucide-react";
+import { UserPlus, Phone, Mail, MapPin, Calendar as CalendarIcon2, User, Briefcase, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,16 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
-import { Calendar } from "@/app/components/ui/calendar";
-import { cn } from "@/app/lib/utils";
 
 // Force refresh to clear any cached modules
 
@@ -213,46 +206,32 @@ export function CreateClientDialog({ onClientCreated }) {
                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                          <CalendarIcon2 className="h-4 w-4" />
                          Date of Birth
+                         <span className="text-xs text-muted-foreground font-normal">(Click to open calendar)</span>
                        </FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
                           <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "pl-3 text-left font-normal bg-background border-border",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                            className="rounded-md border"
-                            captionLayout="dropdown"
-                            fromYear={1900}
-                            toYear={new Date().getFullYear()}
-                            formatters={{
-                              formatYearDropdown: (date) => date.getFullYear().toString(),
-                              formatMonthDropdown: (date) => date.toLocaleString("default", { month: "long" }),
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                        <Input
+                          type="date"
+                          value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                          onChange={(e) => {
+                            const date = e.target.value ? new Date(e.target.value) : null;
+                            field.onChange(date);
+                          }}
+                            className="bg-background border-border pl-4 pr-4 py-2 h-10 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-primary/50 cursor-pointer"
+                          max={format(new Date(), "yyyy-MM-dd")}
+                          min="1900-01-01"
+                          placeholder="Select your date of birth"
+                        />
+                      </FormControl>
+                      {field.value && (
+                        <div className="mt-2 space-y-1">
+                          <div className="text-xs text-muted-foreground">
+                            Selected: {format(field.value, "EEEE, MMMM do, yyyy")}
+                          </div>
+                          <div className="text-xs text-primary font-medium">
+                            Age: {Math.floor((new Date() - field.value) / (365.25 * 24 * 60 * 60 * 1000))} years old
+                          </div>
+                        </div>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

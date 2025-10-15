@@ -429,9 +429,9 @@ export function ScheduleSessionDialog({
           let integrationResult;
           
           // For all meeting types, use the original logic
-          const platformForAPI = formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType;
-          console.log('Creating external meeting with platform:', platformForAPI);
-          integrationResult = await createExternalMeeting(result.session.id, sessionData, platformForAPI);
+            const platformForAPI = formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType;
+            console.log('Creating external meeting with platform:', platformForAPI);
+            integrationResult = await createExternalMeeting(result.session.id, sessionData, platformForAPI);
           
           console.log('Final integration result:', integrationResult);
           console.log('Integration results details:', integrationResult.results);

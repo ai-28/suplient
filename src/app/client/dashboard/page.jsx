@@ -1,5 +1,5 @@
-import ClientDashboard from "@/app/pages/client/ClientDashboard";
+import ClientOnlyDashboard from '@/app/components/ClientOnlyDashboard';
 
 export default function Page() {
-    return <ClientDashboard />;
+  return <ClientOnlyDashboard />;
 }

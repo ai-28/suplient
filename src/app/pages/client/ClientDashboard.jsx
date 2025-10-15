@@ -121,10 +121,7 @@ const useUpcomingSessions = () => {
 
 export default function ClientDashboard() {
   const router = useRouter();
-  const [currentDate, setCurrentDate] = useState(() => {
-    // Initialize with a consistent date to avoid hydration issues
-    return new Date(2024, 0, 1); // Use a fixed date initially
-  });
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState("today");
   const [selectedSession, setSelectedSession] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -132,10 +129,7 @@ export default function ClientDashboard() {
 
   const {user}=useAuth();
   
-  // Set current date after hydration to avoid hydration mismatch
-  useEffect(() => {
-    setCurrentDate(new Date());
-  }, []);
+  // Component is now completely client-side, no hydration issues
   
   // Initialize socket connection for real-time notifications
   useSocket();
@@ -214,7 +208,7 @@ export default function ClientDashboard() {
     return date.toLocaleDateString('en-US', { 
       weekday: 'long', 
       month: 'short', 
-      day: 'numeric' 
+      day: 'numeric'
     });
   };
 
@@ -266,13 +260,21 @@ export default function ClientDashboard() {
       </div>
 
       <div className="flex items-center justify-center p-4 bg-card border-b border-border">
-        <Button variant="ghost" size="icon" onClick={() => navigateDate('prev')}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigateDate('prev')}
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <div className="mx-8 text-center">
           <h2 className="text-lg font-semibold">{formatDate(currentDate)}</h2>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => navigateDate('next')}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => navigateDate('next')}
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
