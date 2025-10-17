@@ -6,7 +6,7 @@ import { chatRepo } from '@/app/lib/db/chatSchema';
 export async function GET(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -25,7 +25,7 @@ export async function GET(request, { params }) {
     // Verify user is participant
     const participants = await chatRepo.getConversationParticipants(conversationId);
     const isParticipant = participants.some(p => p.id === session.user.id);
-    
+
     if (!isParticipant) {
       return NextResponse.json(
         { error: 'Not authorized to access this conversation' },

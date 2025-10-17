@@ -6,13 +6,13 @@ import { chatRepo } from '@/app/lib/db/chatSchema';
 export async function GET(request) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const conversations = await chatRepo.getUserConversations(session.user.id);
-    
+
     return NextResponse.json({
       success: true,
       conversations
@@ -29,7 +29,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -46,7 +46,7 @@ export async function POST(request) {
           { status: 403 }
         );
       }
-      
+
       conversationId = await chatRepo.createPersonalConversation(session.user.id, clientId);
     } else if (type === 'group' && groupId) {
       // Create group conversation
@@ -56,7 +56,7 @@ export async function POST(request) {
           { status: 403 }
         );
       }
-      
+
       conversationId = await chatRepo.createGroupConversation(groupId, session.user.id);
     } else {
       return NextResponse.json(

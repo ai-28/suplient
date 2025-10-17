@@ -38,7 +38,7 @@ export const notificationSchema = {
                 RETURNING *
             `;
 
-        
+
             return { success: true, data: result[0] };
         } catch (error) {
             console.error('❌ Error creating notification:', error);
