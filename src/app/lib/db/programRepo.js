@@ -11,12 +11,6 @@ export async function createProgramTemplate(programData) {
             elements = []
         } = programData;
 
-            name,
-            description,
-            duration,
-            coachId,
-            elementsCount: elements?.length || 0
-        });
 
         // Validate required fields
         if (!name) {
@@ -37,7 +31,6 @@ export async function createProgramTemplate(programData) {
     `;
 
         const program = result[0];
-        console.log("elements", elements)
         // Insert program elements if provided
         if (elements.length > 0) {
             // Use Promise.all for concurrent inserts (better than sequential)
@@ -134,14 +127,6 @@ export async function updateProgramTemplate(id, programData) {
             elements
         } = programData;
 
-        console.log('updateProgramTemplate called with:', {
-            id,
-            name,
-            description,
-            duration,
-            elementsCount: elements?.length || 0
-        });
-
         // Validate required fields
         if (!name) {
             throw new Error('Program name is required');
@@ -164,19 +149,12 @@ export async function updateProgramTemplate(id, programData) {
 
         // If elements are provided, replace all elements
         if (elements && elements.length > 0) {
-            console.log('Updating elements:', elements.length, 'elements');
 
             // Delete existing elements
             await sql`DELETE FROM "ProgramTemplateElement" WHERE "programTemplateId" = ${id}`;
 
             // Insert new elements
             for (const element of elements) {
-                console.log('Inserting element:', {
-                    type: element.type,
-                    title: element.title,
-                    week: element.week,
-                    day: element.day
-                });
 
                 await sql`
           INSERT INTO "ProgramTemplateElement" (
@@ -229,12 +207,6 @@ export async function duplicateProgramTemplate(originalId, newName, coachId) {
             throw new Error('Original program template not found');
         }
 
-        console.log('Original program template data:', {
-            name: originalProgram.name,
-            description: originalProgram.description,
-            duration: originalProgram.duration,
-            elementsCount: originalProgram.elements?.length || 0
-        });
 
         // Create new program template with duplicated data
         const duplicatedProgram = await createProgramTemplate({
@@ -273,7 +245,6 @@ export async function getProgramTemplateStats(coachId) {
 // Create program enrollment (link client to template)
 export async function createProgramEnrollment(templateId, clientId, coachId) {
     try {
-        console.log('createProgramEnrollment called with:', { templateId, clientId, coachId });
 
         // Check if enrollment already exists
         const existingEnrollment = await sql`
@@ -315,7 +286,6 @@ export async function createProgramEnrollment(templateId, clientId, coachId) {
 // Get client programs with template data
 export async function getClientProgramsWithTemplates(clientId, coachId) {
     try {
-        console.log('getClientProgramsWithTemplates called with:', { clientId, coachId });
 
         const enrollments = await sql`
             SELECT 
@@ -412,7 +382,6 @@ export async function updateEnrollmentStatus(enrollmentId, status, coachId) {
             throw new Error('Enrollment not found or access denied');
         }
 
-        console.log('Found enrollment:', enrollment[0]);
 
         const result = await sql`
             UPDATE "ProgramEnrollment" 
@@ -421,7 +390,6 @@ export async function updateEnrollmentStatus(enrollmentId, status, coachId) {
             RETURNING id, status, "updatedAt"
         `;
 
-        console.log('Status update result:', result[0]);
         return result[0];
     } catch (error) {
         console.error('Error updating enrollment status:', error);
@@ -432,7 +400,6 @@ export async function updateEnrollmentStatus(enrollmentId, status, coachId) {
 // Start an enrollment (set startDate and change status to active)
 export async function startEnrollment(enrollmentId, coachId) {
     try {
-        console.log('startEnrollment called with:', { enrollmentId, coachId });
 
         // Check if enrollment exists and belongs to coach
         const enrollment = await sql`
@@ -470,7 +437,6 @@ export async function startEnrollment(enrollmentId, coachId) {
 // Restart an enrollment (reset to initial state)
 export async function restartEnrollment(enrollmentId, coachId) {
     try {
-        console.log('restartEnrollment called with:', { enrollmentId, coachId });
 
         // Verify the enrollment belongs to the coach
         const enrollment = await sql`
@@ -498,7 +464,6 @@ export async function restartEnrollment(enrollmentId, coachId) {
             RETURNING id, status, "completedElements", "startDate"
         `;
 
-        console.log('Enrollment restarted:', result[0]);
         return result[0];
     } catch (error) {
         console.error('Error restarting enrollment:', error);
@@ -509,7 +474,6 @@ export async function restartEnrollment(enrollmentId, coachId) {
 // Get enrolled clients for a specific program template
 export async function getEnrolledClientsForTemplate(templateId, coachId) {
     try {
-        console.log('getEnrolledClientsForTemplate called with:', { templateId, coachId });
 
         const result = await sql`
             SELECT 
@@ -540,7 +504,6 @@ export async function getEnrolledClientsForTemplate(templateId, coachId) {
             ORDER BY pe."createdAt" DESC
         `;
 
-        console.log('Found enrolled clients:', result.length);
         return result;
     } catch (error) {
         console.error('Error getting enrolled clients for template:', error);
