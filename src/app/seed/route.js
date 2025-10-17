@@ -26,6 +26,7 @@ async function seedUser() {
         "isActive" BOOLEAN DEFAULT true,
         "dateofBirth" DATE,
         "address" VARCHAR(255),
+        bio TEXT,
         "coachId" UUID REFERENCES "User"("id"),
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -48,7 +49,6 @@ async function seedUser() {
       INSERT INTO "User" (name, email, password, salt, role, phone, "isActive", "dateofBirth", "address", "coachId")
       VALUES ('Admin User', 'admin@mentalcoach.com', ${hashedPassword}, ${salt}, 'admin', '+1234567890', true, NULL, NULL, NULL)
     `;
-    console.log('Default admin user created');
   } else {
     console.log('Admin user already exists');
   }
@@ -90,7 +90,6 @@ async function createProgramTemplateTable() {
     await sql`CREATE INDEX IF NOT EXISTS idx_program_template_elements_programTemplateId ON "ProgramTemplateElement"("programTemplateId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_program_template_elements_type ON "ProgramTemplateElement"(type)`;
 
-    console.log('ProgramTemplate tables created successfully');
   } catch (error) {
     console.error('Error creating program template tables:', error);
     throw error;
@@ -117,7 +116,6 @@ async function createProgramEnrollmentTable() {
     await sql`CREATE INDEX IF NOT EXISTS idx_program_enrollment_templateId ON "ProgramEnrollment"("programTemplateId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_program_enrollment_coachId ON "ProgramEnrollment"("coachId")`;
 
-    console.log('ProgramEnrollment tables created successfully');
   } catch (error) {
     console.error('Error creating programEnrollment tables:', error);
     throw error;
@@ -270,7 +268,6 @@ async function seedTask() {
       }
     }
 
-    console.log('Task and Group tables created successfully');
   } catch (error) {
     console.error('Error creating task tables:', error);
     throw error;
@@ -307,7 +304,6 @@ async function createResourceTable() {
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_group_ids ON "Resource" USING GIN("groupIds")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_created_at ON "Resource"("createdAt")`;
 
-    console.log('Resource table created successfully');
   } catch (error) {
     console.error('Error creating Resource table:', error);
     throw error;
@@ -338,7 +334,6 @@ async function createResourceCompletionTable() {
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_completion_completed_at ON "ResourceCompletion"("completedAt")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_completion_liked_at ON "ResourceCompletion"("likedAt")`;
 
-    console.log('ResourceCompletion table created successfully');
   } catch (error) {
     console.error('Error creating ResourceCompletion table:', error);
     throw error;
@@ -365,7 +360,6 @@ async function seedNote() {
     await sql`CREATE INDEX IF NOT EXISTS idx_note_group_id ON "Note"("groupId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_note_created_at ON "Note"("createdAt")`;
 
-    console.log('Note table created successfully');
   } catch (error) {
     console.error('Error creating Note table:', error);
     throw error;
@@ -410,7 +404,6 @@ async function createCheckInTable() {
     await sql`CREATE INDEX IF NOT EXISTS idx_checkin_date ON "CheckIn"(date)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_checkin_created_at ON "CheckIn"("createdAt")`;
 
-    console.log('CheckIn table created successfully');
   } catch (error) {
     console.error('Error creating CheckIn table:', error);
     throw error;
@@ -434,7 +427,6 @@ async function createUserStatsTable() {
     // Create index for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_user_stats_user_id ON user_stats(user_id)`;
 
-    console.log('User stats table created successfully');
   } catch (error) {
     console.error('Error creating user stats table:', error);
     throw error;
@@ -490,7 +482,6 @@ async function createIntegrationTables() {
     await sql`CREATE INDEX IF NOT EXISTS idx_integration_event_session_id ON "IntegrationEvent"("sessionId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_integration_event_integration_id ON "IntegrationEvent"("integrationId")`;
 
-    console.log('Integration tables created successfully');
   } catch (error) {
     console.error('Error creating integration tables:', error);
     throw error;
@@ -619,7 +610,6 @@ async function createChatTables() {
     await sql`CREATE INDEX IF NOT EXISTS idx_notification_user_read ON "Notification"("userId", "isRead")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_notification_user_type ON "Notification"("userId", type)`;
 
-    console.log('Chat tables, activity table, and notification table created successfully (simplified schema)');
   } catch (error) {
     console.error('Error creating chat tables:', error);
     throw error;
@@ -628,7 +618,6 @@ async function createChatTables() {
 
 export async function GET() {
   try {
-    console.log('Starting database seeding...');
 
     await seedUser();
     await createProgramTemplateTable();

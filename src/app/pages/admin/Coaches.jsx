@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, MessageSquare, User, Mail, Phone, Calendar, DollarSign, Users, Award } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2, MessageSquare, User, Mail, Phone, Calendar, DollarSign, Users } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,47 +27,8 @@ import { CreateCoachDialog } from "@/app/components/CreateCoachDialog";
 import { EditCoachDialog } from "@/app/components/EditCoachDialog";
 
 export default function AdminCoaches() {
-  const [coaches, setCoaches] = useState([
-    {
-      id: 1,
-      name: "Dr. Sarah Johnson",
-      email: "sarah@example.com",
-      phone: "+1 555-0123",
-      specialization: "Anxiety & Depression",
-      experience: "8",
-      qualifications: "PhD in Clinical Psychology",
-      bio: "Specialized in cognitive behavioral therapy with over 8 years of experience.",
-      clients: 12,
-      status: "Active",
-      joinDate: "2024-01-15"
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      email: "michael@example.com",
-      phone: "+1 555-0124",
-      specialization: "Trauma Therapy",
-      experience: "6",
-      qualifications: "LCSW, Trauma-Informed Care Certification",
-      bio: "Expert in trauma recovery and PTSD treatment using evidence-based approaches.",
-      clients: 8,
-      status: "Active",
-      joinDate: "2024-02-20"
-    },
-    {
-      id: 3,
-      name: "Dr. Emily Rodriguez",
-      email: "emily@example.com",
-      phone: "+1 555-0125",
-      specialization: "Family Counseling",
-      experience: "12",
-      qualifications: "PhD in Family Therapy, Licensed Marriage Counselor",
-      bio: "Dedicated to helping families build stronger relationships and communication.",
-      clients: 15,
-      status: "Pending",
-      joinDate: "2024-03-10"
-    }
-  ]);
+  const [coaches, setCoaches] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -75,26 +37,145 @@ export default function AdminCoaches() {
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState(null);
 
+  // Fetch coaches from API
+  useEffect(() => {
+    fetchCoaches();
+  }, []);
+
+  const fetchCoaches = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/coaches');
+      const data = await response.json();
+      
+      if (data.success) {
+        setCoaches(data.coaches);
+        if (data.coaches.length > 0) {
+          toast.success('Coaches loaded successfully!', {
+            description: `Found ${data.coaches.length} coach${data.coaches.length === 1 ? '' : 'es'}.`
+          });
+        }
+      } else {
+        console.error('Failed to fetch coaches:', data.error);
+        toast.error('Failed to load coaches', {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching coaches:', error);
+      toast.error('Error loading coaches', {
+        description: 'Please refresh the page to try again.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredCoaches = coaches.filter(coach =>
     coach.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     coach.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    coach.specialization.toLowerCase().includes(searchTerm.toLowerCase())
+    (coach.specialization && coach.specialization.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleCreateCoach = (newCoach) => {
-    setCoaches([...coaches, newCoach]);
+  const handleCreateCoach = async (coachData) => {
+    try {
+      const response = await fetch('/api/admin/coaches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(coachData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Add the new coach to the list
+        setCoaches([...coaches, data.coach]);
+        setShowCreateDialog(false);
+        toast.success('Coach created successfully!', {
+          description: `${data.coach.name} has been added to the platform.`
+        });
+      } else {
+        console.error('Failed to create coach:', data.error);
+        toast.error('Failed to create coach', {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error('Error creating coach:', error);
+      toast.error('Error creating coach', {
+        description: 'Please try again.'
+      });
+    }
   };
 
-  const handleUpdateCoach = (updatedCoach) => {
-    setCoaches(coaches.map(coach => 
-      coach.id === updatedCoach.id ? updatedCoach : coach
-    ));
+  const handleUpdateCoach = async (updatedCoachData) => {
+    try {
+      const response = await fetch('/api/admin/coaches', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedCoachData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the coach in the list
+        setCoaches(coaches.map(coach => 
+          coach.id === updatedCoachData.id ? data.coach : coach
+        ));
+        setShowEditDialog(false);
+        setSelectedCoach(null);
+        toast.success('Coach updated successfully!', {
+          description: `${data.coach.name}'s profile has been updated.`
+        });
+      } else {
+        console.error('Failed to update coach:', data.error);
+        toast.error('Failed to update coach', {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error('Error updating coach:', error);
+      toast.error('Error updating coach', {
+        description: 'Please try again.'
+      });
+    }
   };
 
-  const handleDeleteCoach = (coachId) => {
-    setCoaches(coaches.filter(coach => coach.id !== coachId));
-    setShowDeleteDialog(false);
-    setSelectedCoach(null);
+  const handleDeleteCoach = async (coachId) => {
+    try {
+      const response = await fetch(`/api/admin/coaches?id=${coachId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove the coach from the list
+        setCoaches(coaches.filter(coach => coach.id !== coachId));
+        setShowDeleteDialog(false);
+        setSelectedCoach(null);
+        toast.success('Coach deleted successfully!', {
+          description: data.deletedClients > 0 
+            ? `Coach and ${data.deletedClients} client${data.deletedClients === 1 ? '' : 's'} deleted`
+            : 'Coach deleted'
+        });
+      } else {
+        console.error('Failed to delete coach:', data.error);
+        toast.error('Failed to delete coach', {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting coach:', error);
+      toast.error('Error deleting coach', {
+        description: 'Please try again.'
+      });
+    }
   };
 
   const handleEditClick = (coach) => {
@@ -143,8 +224,13 @@ export default function AdminCoaches() {
       {/* Coaches Summary List */}
       <Card>
         <CardContent className="p-0">
-          <div className="divide-y">
-            {filteredCoaches.map((coach) => (
+          {loading ? (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">Loading coaches...</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {filteredCoaches.map((coach) => (
               <div
                 key={coach.id}
                 className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
@@ -184,10 +270,6 @@ export default function AdminCoaches() {
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          Message
-                        </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={(e) => { e.stopPropagation(); handleDeleteClick(coach); }}
                           className="text-destructive"
@@ -201,7 +283,8 @@ export default function AdminCoaches() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -259,36 +342,15 @@ export default function AdminCoaches() {
                 </div>
               </div>
 
-              {/* Professional Info */}
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center">
-                    <Award className="h-4 w-4 mr-2" />
-                    Professional Information
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Specialization</p>
-                      <p className="font-medium">{selectedCoach.specialization}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Experience</p>
-                      <p className="font-medium">{selectedCoach.experience} years</p>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <p className="text-muted-foreground">Qualifications</p>
-                    <p className="font-medium">{selectedCoach.qualifications}</p>
-                  </div>
-                </div>
-
-                {selectedCoach.bio && (
+              {/* Bio Information */}
+              {selectedCoach.bio && (
+                <div className="space-y-4">
                   <div>
                     <h4 className="font-semibold mb-2">Biography</h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">{selectedCoach.bio}</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
           <AlertDialogFooter>
@@ -306,7 +368,13 @@ export default function AdminCoaches() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Coach</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedCoach?.name}? This action cannot be undone.
+              Are you sure you want to delete {selectedCoach?.name}? 
+              {selectedCoach?.clients > 0 && (
+                <span className="block mt-2 text-red-600 font-medium">
+                  ⚠️ This will also delete {selectedCoach.clients} associated client{selectedCoach.clients === 1 ? '' : 's'}.
+                </span>
+              )}
+              <span className="block mt-2">This action cannot be undone.</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -315,7 +383,7 @@ export default function AdminCoaches() {
               onClick={() => selectedCoach && handleDeleteCoach(selectedCoach.id)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Delete Coach{selectedCoach?.clients > 0 ? ' & Clients' : ''}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

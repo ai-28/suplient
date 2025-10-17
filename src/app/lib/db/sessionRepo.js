@@ -106,7 +106,6 @@ export const sessionRepo = {
     // Update session
     async updateSession(sessionId, updateData) {
         try {
-            console.log('updateSession called with:', { sessionId, updateData });
             const setClauses = [];
             const values = [];
             let paramIndex = 1;
@@ -142,9 +141,7 @@ export const sessionRepo = {
             }
 
             const query = `UPDATE "Session" SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-            console.log('Executing update query:', { query, values });
             const result = await sql.unsafe(query, values);
-            console.log('Update result:', result);
             return result[0];
         } catch (error) {
             console.error("Update session error:", error);

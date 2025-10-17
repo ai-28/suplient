@@ -108,7 +108,6 @@ export default function Groups() {
       // You could add a toast notification here to show the error to the user
     }
   };
-  console.log("groups",groups)
   const filteredAndSortedGroups = groups
     .filter(group => {
       if (filterBy === 'all') return true;

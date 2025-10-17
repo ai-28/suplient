@@ -85,11 +85,6 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
   };
 
   const handleUpload = async () => {
-    console.log('Upload attempt:', { 
-      selectedFile: !!selectedFile, 
-      title: title.trim(), 
-      description: description.trim() 
-    });
     
     // Check for missing fields and show comprehensive error message
     const missingFields = [];

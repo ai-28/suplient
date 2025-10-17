@@ -30,7 +30,6 @@ export async function GET(request) {
 
         // Extract the key from the full URL
         let key;
-        console.log('Original filePath:', filePath);
 
         if (filePath.includes('library/') && !filePath.startsWith('http')) {
             // If it's already a key path (starts with library/) and not a full URL
@@ -39,14 +38,10 @@ export async function GET(request) {
             // If it's a full URL, extract the key after the bucket name
             try {
                 const url = new URL(filePath);
-                console.log('Parsed URL:', {
-                    hostname: url.hostname,
-                    pathname: url.pathname
-                });
+
 
                 // Remove leading slash and split path
                 const pathParts = url.pathname.substring(1).split('/').filter(part => part);
-                console.log('Path parts:', pathParts);
 
                 // The key should be everything after the bucket name
                 // For DigitalOcean Spaces URLs like: /library/images/filename.jpg
@@ -59,25 +54,15 @@ export async function GET(request) {
             }
         }
 
-        console.log('Final extracted key:', key);
-
-        console.log('Preview request for key:', key);
-
         // Get the file from DigitalOcean Spaces
         const command = new GetObjectCommand({
             Bucket: process.env.DO_SPACES_BUCKET,
             Key: key,
         });
 
-        console.log('S3 command:', {
-            Bucket: process.env.DO_SPACES_BUCKET,
-            Key: key
-        });
-
         let response;
         try {
             response = await s3Client.send(command);
-            console.log('S3 response received, ContentType:', response.ContentType);
         } catch (error) {
             console.error('First attempt failed:', error.message);
 
@@ -88,18 +73,14 @@ export async function GET(request) {
                 key.split('/').pop() // Just the filename
             ];
 
-            console.log('Trying alternative keys:', alternativeKeys);
-
             for (const altKey of alternativeKeys) {
                 if (altKey && altKey !== key) {
                     try {
-                        console.log(`Trying alternative key: ${altKey}`);
                         const altCommand = new GetObjectCommand({
                             Bucket: process.env.DO_SPACES_BUCKET,
                             Key: altKey,
                         });
                         response = await s3Client.send(altCommand);
-                        console.log(`Success with alternative key: ${altKey}`);
                         break;
                     } catch (altError) {
                         console.log(`Alternative key ${altKey} also failed:`, altError.message);

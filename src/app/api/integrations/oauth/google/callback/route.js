@@ -118,14 +118,6 @@ export async function GET(request) {
             }
         };
 
-        console.log('Attempting to store integration:', {
-            coachId: integrationData.coachId,
-            platform: integrationData.platform,
-            platformEmail: integrationData.platformEmail,
-            platformName: integrationData.platformName
-        });
-
-
         await integrationRepo.upsertCoachIntegration(integrationData);
 
         // Redirect back to the callback URL with success

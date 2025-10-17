@@ -236,18 +236,13 @@ export default function ClientProfile() {
   };
 
   const handlePreview = (file) => {
-    console.log('Preview file:', file);
-    console.log('File URL:', file.url);
+
     
     const directUrl = file.url;
-    console.log('Using direct URL:', directUrl);
     
     // Determine file type based on resourceType or file extension
     const fileName = file.fileName || file.url.split('/').pop() || '';
     const fileExtension = fileName.split('.').pop()?.toLowerCase();
-    
-    console.log('File extension:', fileExtension);
-    console.log('Resource type:', file.resourceType);
     
     // Set preview type based on resourceType or file extension
     if (file.resourceType === 'image' || fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png' || fileExtension === 'gif' || fileExtension === 'webp') {
@@ -270,7 +265,6 @@ export default function ClientProfile() {
 
   // Use real program data from database
   const currentClientPrograms = clientRealPrograms;
-console.log("currentClientPrograms",currentClientPrograms)
   // Helper functions to work with current client's programs
   const getProgramById = (programId) => clientRealPrograms.find(p => p.id === programId);
   
@@ -396,7 +390,6 @@ console.log("currentClientPrograms",currentClientPrograms)
 
   const markElementComplete = async (clientProgramId, elementId) => {
     try {
-    console.log('Marking element complete:', clientProgramId, elementId);
       
       const response = await fetch(`/api/programs/${clientProgramId}/progress`, {
         method: 'PUT',
@@ -411,7 +404,6 @@ console.log("currentClientPrograms",currentClientPrograms)
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Element marked complete:', result);
         
         // Check if program should be auto-completed (before refreshing)
         await checkAndCompleteProgram(clientProgramId);
@@ -452,17 +444,10 @@ console.log("currentClientPrograms",currentClientPrograms)
       const completedElements = clientProgram.completedElements?.length || 0;
       const completionRate = totalElements > 0 ? (completedElements / totalElements) * 100 : 0;
 
-      console.log('Checking completion:', {
-        clientProgramId,
-        totalElements,
-        completedElements,
-        completionRate,
-        status: clientProgram.status
-      });
+
 
       // If program is 100% complete, mark it as completed
       if (completionRate >= 100) {
-        console.log('Program completed! Marking as completed:', clientProgramId);
         
         const updateResponse = await fetch(`/api/programs/${clientProgramId}/progress`, {
           method: 'PUT',
@@ -490,7 +475,6 @@ console.log("currentClientPrograms",currentClientPrograms)
 
   const enrollInProgram = async (templateId) => {
     try {
-      console.log('Enrolling client in program:', templateId, id);
       
       const response = await fetch('/api/programs/enroll', {
         method: 'POST',
@@ -505,7 +489,6 @@ console.log("currentClientPrograms",currentClientPrograms)
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Client enrolled successfully:', result);
         
         // Refresh the client's enrolled programs to update available programs
         await fetchClientEnrolledPrograms();
@@ -528,7 +511,6 @@ console.log("currentClientPrograms",currentClientPrograms)
 
   const startProgram = async (programId) => {
     try {
-      console.log('Starting program:', programId);
       
       const response = await fetch(`/api/programs/${programId}/start`, {
         method: 'PUT',
@@ -539,7 +521,6 @@ console.log("currentClientPrograms",currentClientPrograms)
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Program started successfully:', result);
         
         // Refresh the client's programs to update the status
         await fetchClientEnrolledPrograms();
@@ -736,7 +717,6 @@ console.log("currentClientPrograms",currentClientPrograms)
 
       // Refresh the client files list
       await fetchClientResources(id);
-      console.log("Shared files with client:", selectedFiles);
     } catch (error) {
       console.error('Error sharing files:', error);
       alert(`Error sharing files: ${error.message}`);
@@ -744,16 +724,12 @@ console.log("currentClientPrograms",currentClientPrograms)
   };
 
   const handleRemoveFileClick = (file) => {
-    console.log('🔍 handleRemoveFileClick called with file:', file);
-    console.log('🔍 Current clientData:', clientData);
+
     setFileToRemove(file);
   };
 
   const handleConfirmRemove = async () => {
-    console.log('🔍 handleConfirmRemove called');
-    console.log('fileToRemove:', fileToRemove);
-    console.log('clientData:', clientData);
-    console.log('URL id (client ID):', id);
+
     
     if (fileToRemove && id) {
       console.log('📤 Sending request to remove client from resource:', {
@@ -773,13 +749,10 @@ console.log("currentClientPrograms",currentClientPrograms)
           }),
         });
 
-        console.log('📥 Response status:', response.status);
-        console.log('📥 Response ok:', response.ok);
 
         if (response.ok) {
           const result = await response.json();
-          console.log('✅ Client removed from resource:', result.message);
-          console.log('✅ Updated resource:', result.resource);
+
           
           // Refresh the files list to reflect the change
           await fetchClientResources(id);  // Use client ID from URL params
@@ -807,7 +780,6 @@ console.log("currentClientPrograms",currentClientPrograms)
   };
 
   const handleTaskCreated = (taskData) => {
-    console.log("handleTaskCreated called with:", taskData);
     
     const newTask = {
       id: taskData.id || `temp-${Date.now()}`,
@@ -820,7 +792,6 @@ console.log("currentClientPrograms",currentClientPrograms)
       createdAt: new Date().toISOString()
     };
     
-    console.log("Adding new task to state:", newTask);
     setClientTasks(prev => [newTask, ...prev]);
   };
 
@@ -860,7 +831,6 @@ console.log("currentClientPrograms",currentClientPrograms)
             note.id === noteId ? result.note : note
           )
         );
-        console.log('Note updated successfully:', result.note);
       } else {
         throw new Error('Failed to update note');
       }
@@ -882,7 +852,6 @@ console.log("currentClientPrograms",currentClientPrograms)
 
       if (response.ok) {
         setClientNotes(prev => prev.filter(note => note.id !== noteId));
-        console.log('Note deleted successfully');
       } else {
         throw new Error('Failed to delete note');
       }
@@ -1795,7 +1764,6 @@ console.log("currentClientPrograms",currentClientPrograms)
                       className="max-w-full max-h-[70vh] object-contain mx-auto"
                       onLoad={(e) => {
                         console.log('✅ Image loaded successfully via API');
-                        console.log('Image dimensions:', e.target.naturalWidth, 'x', e.target.naturalHeight);
                       }}
                       onError={(e) => {
                         console.error('❌ API image failed to load');

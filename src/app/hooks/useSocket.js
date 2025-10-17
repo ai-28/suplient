@@ -30,7 +30,6 @@ export function useSocket() {
   useEffect(() => {
     if (!userData) {
       if (socket) {
-        console.log('Disconnecting socket - no user data');
         socket.removeAllListeners();
         socket.disconnect();
         setSocket(null);
@@ -46,7 +45,6 @@ export function useSocket() {
     }
 
     if (socket && !socket.connected) {
-      console.log('Reconnecting existing socket');
       socket.connect();
       return;
     }
@@ -57,8 +55,6 @@ export function useSocket() {
       socket.removeAllListeners();
       setSocket(null);
     }
-
-    console.log('Creating new socket for user:', userData.userName);
 
     // Create socket connection
     const newSocket = io({
@@ -74,7 +70,6 @@ export function useSocket() {
 
     // Global online/offline event handlers (always active)
     const handleGlobalUserOnline = (data) => {
-      console.log('🔥 Global user online event received in useSocket:', data); // Debug log
       setGlobalOnlineUsers(prev => {
         const exists = prev.some(user => user.userId === data.userId);
         if (!exists) {
@@ -82,27 +77,21 @@ export function useSocket() {
             userId: data.userId,
             userName: data.userName
           }];
-          console.log('🔥 Updated global online users list:', newList); // Debug log
           return newList;
         }
-        console.log('🔥 User already in online list:', data.userName); // Debug log
         return prev;
       });
     };
 
     const handleGlobalUserOffline = (data) => {
-      console.log('🔥 Global user offline event received in useSocket:', data); // Debug log
       setGlobalOnlineUsers(prev => {
         const newList = prev.filter(user => user.userId !== data.userId);
-        console.log('🔥 Updated global online users list after offline:', newList); // Debug log
         return newList;
       });
     };
 
     // Connection event handlers
     newSocket.on('connect', () => {
-      console.log('Socket connected:', newSocket.id);
-      console.log('📨 DEBUG: Socket connected, setting up unread count listener');
       setIsConnected(true);
       setConnectionError(null);
       reconnectAttempts.current = 0;
@@ -113,7 +102,6 @@ export function useSocket() {
       // Rejoin all previously joined conversations
       const conversationsToRejoin = Array.from(joinedConversations.current);
       conversationsToRejoin.forEach(conversationId => {
-        console.log('Rejoining conversation after reconnect:', conversationId);
         newSocket.emit('join_conversation', { conversationId });
       });
 
@@ -125,7 +113,6 @@ export function useSocket() {
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
       setIsConnected(false);
 
       // Don't clear joined conversations immediately - we'll rejoin on reconnect
@@ -145,7 +132,6 @@ export function useSocket() {
       } else if (reason === 'io client disconnect') {
         // Client initiated disconnect (page refresh, navigation, etc.)
         // Don't try to reconnect automatically, let the component handle it
-        console.log('Client disconnected, will reconnect on next mount');
         // Clear joined conversations only on client disconnect
         joinedConversations.current.clear();
       } else {
@@ -179,13 +165,10 @@ export function useSocket() {
 
     // Test event listener to verify socket is working
     newSocket.on('test_event', (data) => {
-      console.log('🔥 TEST EVENT RECEIVED:', data); // Debug log
     });
 
     // Setup notification events
     newSocket.on('new_notification', (notification) => {
-      console.log('🔔 New notification received:', notification);
-      console.log('🔔 DEBUG: Notification event listener is working!');
       // Dispatch custom event for useNotifications hook to listen
       window.dispatchEvent(new CustomEvent('new_notification', { detail: notification }));
     });
@@ -221,7 +204,6 @@ export function useSocket() {
       // Only disconnect if this is a real unmount (not just dependency change)
       // We'll let the next useEffect handle reconnection
       if (newSocket && newSocket.connected) {
-        console.log('Cleaning up socket connection');
         newSocket.removeAllListeners(); // Remove listeners to prevent memory leaks
         newSocket.disconnect();
       }
@@ -230,19 +212,15 @@ export function useSocket() {
 
   // Debug: Log when globalOnlineUsers changes
   useEffect(() => {
-    console.log('🔥 Global online users updated:', globalOnlineUsers);
   }, [globalOnlineUsers]);
 
   // Handle browser visibility changes to prevent unnecessary socket recreation
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        console.log('Browser hidden - keeping socket connection');
       } else {
-        console.log('Browser visible - checking socket connection');
         // Don't recreate socket, just ensure it's still connected
         if (socket && !socket.connected) {
-          console.log('Reconnecting socket after visibility change');
           socket.connect();
         }
       }
@@ -260,7 +238,6 @@ export function useSocket() {
     if (socket && isConnected && conversationId) {
       // Only join if not already joined
       if (!joinedConversations.current.has(conversationId)) {
-        console.log('Joining conversation:', conversationId);
         socket.emit('join_conversation', { conversationId });
         joinedConversations.current.add(conversationId);
       } else {
@@ -273,7 +250,6 @@ export function useSocket() {
     if (socket && isConnected && conversationId) {
       // Only leave if actually joined
       if (joinedConversations.current.has(conversationId)) {
-        console.log('Leaving conversation:', conversationId);
         socket.emit('leave_conversation', { conversationId });
         joinedConversations.current.delete(conversationId);
       } else {

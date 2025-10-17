@@ -46,7 +46,6 @@ class SocketManager {
     });
 
     this.io.on('connection', (socket) => {
-      console.log(`User ${socket.userName} (${socket.userId}) connected`);
 
       // Add user to active users
       this.activeUsers.set(socket.userId, {
@@ -236,7 +235,6 @@ class SocketManager {
 
 
   handleDisconnection(socket) {
-    console.log(`User ${socket.userName} (${socket.userId}) disconnected`);
 
     this.activeUsers.delete(socket.userId);
 
@@ -343,13 +341,11 @@ class SocketManager {
     // Handle joining notification room
     socket.on('join_notifications', (userId) => {
       socket.join(`notifications_${userId}`);
-      console.log(`User ${socket.userName} joined notifications room for user ${userId}`);
     });
 
     // Handle leaving notification room
     socket.on('leave_notifications', (userId) => {
       socket.leave(`notifications_${userId}`);
-      console.log(`User ${socket.userName} left notifications room for user ${userId}`);
     });
 
     // Handle creating notifications (for server-side use)
@@ -361,7 +357,6 @@ class SocketManager {
         if (result.success) {
           // Emit notification to the specific user
           this.io.to(`notifications_${data.userId}`).emit('new_notification', result.data);
-          console.log('✅ Real-time notification sent to user:', data.userId);
         }
       } catch (error) {
         console.error('❌ Error creating real-time notification:', error);

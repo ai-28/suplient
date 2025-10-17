@@ -267,7 +267,6 @@ export async function PUT(request) {
                 if (taskDetailsResult.length > 0) {
                     const { title: taskTitle, coachId, coachName, clientName } = taskDetailsResult[0];
                     await NotificationService.notifyTaskCompletion(clientId, coachId, clientName, taskTitle);
-                    console.log('✅ Task completion notification created for coach:', coachName);
                 }
             } catch (notificationError) {
                 console.error('❌ Error creating task completion notification:', notificationError);
@@ -309,7 +308,6 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        console.log('Received task creation request:', body);
 
         const {
             title,
@@ -357,7 +355,6 @@ export async function POST(request) {
             const task = await taskRepo.createTask(taskData);
             createdTasks.push(task);
         } else if (taskType === 'client' && selectedClients?.length > 0) {
-            console.log('Creating client task for clients:', selectedClients);
             // Create tasks for selected clients
             for (const clientId of selectedClients) {
                 const taskData = {

@@ -70,8 +70,6 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
       if (!response.ok) {
         throw new Error(result.error || "Failed to create group");
       }
-
-      console.log("Group created successfully:", result.group);
       
       // Show success message
       alert(`Group "${formData.name}" has been created successfully!`);

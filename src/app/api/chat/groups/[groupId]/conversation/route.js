@@ -5,22 +5,14 @@ import { chatRepo } from '@/app/lib/db/chatSchema';
 
 export async function GET(request, { params }) {
     try {
-        console.log('🔍 Group conversation API called');
 
         const session = await getServerSession(authOptions);
-        console.log('🔍 Session data:', {
-            hasSession: !!session,
-            userId: session?.user?.id,
-            userRole: session?.user?.role
-        });
 
         if (!session?.user?.id) {
-            console.log('❌ No session found');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { groupId } = await params;
-        console.log('🔍 Group ID:', groupId);
 
         if (!groupId) {
             return NextResponse.json(

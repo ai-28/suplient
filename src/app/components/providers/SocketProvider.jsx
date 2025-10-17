@@ -32,7 +32,6 @@ export default function SocketProvider({ children }) {
 
     if (!userData) {
       if (socket) {
-        console.log('🔥 Disconnecting socket - no user data');
         socket.removeAllListeners();
         socket.disconnect();
         setSocket(null);
@@ -44,11 +43,9 @@ export default function SocketProvider({ children }) {
 
     // Prevent multiple socket initializations
     if (socketInitialized.current) {
-      console.log('🔥 Socket already initialized, skipping');
       return;
     }
 
-    console.log('🔥 Creating global socket connection for:', userData.userName);
     socketInitialized.current = true;
 
     const newSocket = io(window.location.origin, {
@@ -68,7 +65,6 @@ export default function SocketProvider({ children }) {
 
     // Global event handlers
     const handleGlobalUserOnline = (data) => {
-      console.log('🔥 Global user online event received:', data);
       setGlobalOnlineUsers(prev => {
         const exists = prev.some(user => user.userId === data.userId);
         if (!exists) {
@@ -76,7 +72,6 @@ export default function SocketProvider({ children }) {
             userId: data.userId,
             userName: data.userName
           }];
-          console.log('🔥 Updated global online users list:', newList);
           return newList;
         }
         return prev;
@@ -84,29 +79,24 @@ export default function SocketProvider({ children }) {
     };
 
     const handleGlobalUserOffline = (data) => {
-      console.log('🔥 Global user offline event received:', data);
       setGlobalOnlineUsers(prev => {
         const newList = prev.filter(user => user.userId !== data.userId);
-        console.log('🔥 Updated global online users list after offline:', newList);
         return newList;
       });
     };
 
     // Connection handlers
     newSocket.on('connect', () => {
-      console.log('🔥 Global socket connected:', newSocket.id);
       setIsConnected(true);
       setConnectionError(null);
       newSocket.emit('authenticate', userData);
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('🔥 Global socket disconnected:', reason);
       setIsConnected(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('🔥 Global socket connection error:', error);
       console.error('🔥 Error details:', {
         message: error.message,
         description: error.description,
@@ -155,14 +145,12 @@ export default function SocketProvider({ children }) {
     newSocket.on('user_online_global', handleGlobalUserOnline);
     newSocket.on('user_offline_global', handleGlobalUserOffline);
     newSocket.on('test_event', (data) => {
-      console.log('🔥 TEST EVENT RECEIVED:', data);
     });
 
     setSocket(newSocket);
 
     // Cleanup
     return () => {
-      console.log('🔥 Cleaning up global socket connection');
       newSocket.off('user_online_global', handleGlobalUserOnline);
       newSocket.off('user_offline_global', handleGlobalUserOffline);
       newSocket.off('test_event');

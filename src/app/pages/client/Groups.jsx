@@ -56,15 +56,11 @@ function ClientGroupsComponent() {
       setRequestDialogOpen(true);
     } else {
       // For invite-only groups, show a message that they need an invitation
-      console.log(`Group ${group.id} is invite-only`);
     }
   };
 
   const handleOpenChat = (groupId, groupName) => {
     router.push(`/client/group/${groupId}/chat?groupName=${encodeURIComponent(groupName)}`);
-    console.log("groupId", groupId)
-    console.log("groupName", groupName)
-    console.log("router", router)
   };
 
   const handleJoinSession = (groupId, groupName) => {

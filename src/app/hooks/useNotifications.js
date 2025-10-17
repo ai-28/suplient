@@ -51,7 +51,6 @@ export function useNotifications(options = {}) {
     useEffect(() => {
         const handleNewNotification = (event) => {
             const notification = event.detail;
-            console.log('🔔 Real-time notification received:', notification);
 
             // Add the new notification to the beginning of the list
             setNotifications(prev => [notification, ...prev]);

@@ -4,7 +4,6 @@ export const integrationRepo = {
     // Get all integrations for a coach (using database)
     async getCoachIntegrations(coachId) {
         try {
-            console.log('Getting integrations from database for coach:', coachId);
 
             const integrations = await sql`
                 SELECT id, "coachId", platform, "accessToken", "refreshToken", 
@@ -15,7 +14,6 @@ export const integrationRepo = {
                 ORDER BY "createdAt" DESC
             `;
 
-            console.log('Found integrations from database:', integrations.length);
             return integrations;
         } catch (error) {
             console.error('Error getting coach integrations:', error);
@@ -26,7 +24,6 @@ export const integrationRepo = {
     // Get specific integration for a coach (using database)
     async getCoachIntegration(coachId, platform) {
         try {
-            console.log('Getting specific integration from database for coach:', coachId, 'platform:', platform);
 
             const [integration] = await sql`
                 SELECT id, "coachId", platform, "accessToken", "refreshToken", 
@@ -37,7 +34,6 @@ export const integrationRepo = {
                 LIMIT 1
             `;
 
-            console.log('Found integration from database:', integration);
             return integration || null;
         } catch (error) {
             console.error('Error getting coach integration:', error);
@@ -48,7 +44,6 @@ export const integrationRepo = {
     // Create or update integration (using database)
     async upsertCoachIntegration(integrationData) {
         try {
-            console.log('Storing integration in database:', integrationData);
 
             const {
                 coachId,
@@ -94,7 +89,6 @@ export const integrationRepo = {
                           "platformName", "isActive", settings, "createdAt", "updatedAt"
             `;
 
-            console.log('Integration stored in database:', integration);
             return integration;
         } catch (error) {
             console.error('Error upserting coach integration:', error);
@@ -105,8 +99,6 @@ export const integrationRepo = {
     // Update integration token (using database)
     async updateIntegrationToken(integrationId, accessToken, tokenExpiresAt) {
         try {
-            console.log('🔄 Updating integration token for:', integrationId);
-            console.log('🔄 Token expires at:', tokenExpiresAt, 'Type:', typeof tokenExpiresAt);
 
             // Validate and format the expiration date
             let expiresAt;
@@ -127,7 +119,6 @@ export const integrationRepo = {
                 throw new Error(`Invalid date: ${tokenExpiresAt}`);
             }
 
-            console.log('🔄 Formatted expiration date:', expiresAt.toISOString());
 
             const [integration] = await sql`
                 UPDATE "CoachIntegration"
@@ -145,7 +136,6 @@ export const integrationRepo = {
                 throw new Error(`Integration with ID ${integrationId} not found`);
             }
 
-            console.log('✅ Integration token updated successfully');
             return integration;
         } catch (error) {
             console.error('❌ Error updating integration token:', error);
@@ -156,7 +146,6 @@ export const integrationRepo = {
     // Update integration refresh token (using database)
     async updateIntegrationRefreshToken(integrationId, refreshToken) {
         try {
-            console.log('🔄 Updating integration refresh token for:', integrationId);
 
             const [integration] = await sql`
                 UPDATE "CoachIntegration"
@@ -173,7 +162,6 @@ export const integrationRepo = {
                 throw new Error(`Integration with ID ${integrationId} not found`);
             }
 
-            console.log('✅ Integration refresh token updated successfully');
             return integration;
         } catch (error) {
             console.error('❌ Error updating integration refresh token:', error);
@@ -184,7 +172,6 @@ export const integrationRepo = {
     // Deactivate integration (using database)
     async deactivateIntegration(coachId, platform) {
         try {
-            console.log('Deactivating integration for coach:', coachId, 'platform:', platform);
 
             const [integration] = await sql`
                 UPDATE "CoachIntegration"
@@ -197,11 +184,9 @@ export const integrationRepo = {
             `;
 
             if (!integration) {
-                console.log('No integration found to deactivate');
                 return null;
             }
 
-            console.log('Integration deactivated successfully');
             return integration;
         } catch (error) {
             console.error('Error deactivating integration:', error);

@@ -17,8 +17,6 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: 'Template ID is required' }, { status: 400 });
         }
 
-        console.log('Fetching enrolled clients for template:', { templateId: id, coachId: session.user.id });
-
         const enrolledClients = await getEnrolledClientsForTemplate(id, session.user.id);
 
         // Transform the data to match the expected format

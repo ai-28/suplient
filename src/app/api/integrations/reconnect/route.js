@@ -24,7 +24,6 @@ export async function POST(request) {
         let existingIntegration = null;
         try {
             existingIntegration = await integrationRepo.getCoachIntegration(coachId, platform);
-            console.log(`Existing ${platform} integration:`, existingIntegration ? 'found' : 'not found');
         } catch (dbError) {
             console.log(`Database error checking ${platform} integration:`, dbError.message);
             // Continue with reconnection even if database check fails

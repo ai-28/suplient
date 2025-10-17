@@ -83,10 +83,8 @@ app.prepare().then(() => {
 
       socket.emit('online_users', onlineUsers);
       socket.broadcast.emit('online_users', onlineUsers);
-      console.log('User authenticated:', userName, userEmail);
 
       // Also broadcast globally so any interface can update the user's status
-      console.log('About to emit user_online_global for:', userName); // Debug log
       io.emit('user_online_global', {
         userId: userId,
         userName: userName

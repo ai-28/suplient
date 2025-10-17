@@ -11,7 +11,6 @@ export async function createProgramTemplate(programData) {
             elements = []
         } = programData;
 
-        console.log('createProgramTemplate called with:', {
             name,
             description,
             duration,

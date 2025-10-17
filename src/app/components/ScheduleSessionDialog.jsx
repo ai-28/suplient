@@ -155,7 +155,6 @@ export function ScheduleSessionDialog({
 
   const checkExistingConnections = async () => {
     try {
-      console.log('Checking existing connections...');
       
       // First check localStorage for cached connections
       const cachedConnections = localStorage.getItem('integrationConnections');
@@ -163,7 +162,6 @@ export function ScheduleSessionDialog({
       if (cachedConnections) {
         try {
           cachedStatus = JSON.parse(cachedConnections);
-          console.log('Found cached connections:', cachedStatus);
           setConnectionStatus(cachedStatus);
         } catch (e) {
           console.warn('Failed to parse cached connections:', e);
@@ -175,7 +173,6 @@ export function ScheduleSessionDialog({
       if (response.ok) {
         const data = await response.json();
         const integrations = data.integrations || [];
-        console.log('Found integrations from server:', integrations);
         
         // Set connection status for each platform
         const status = {};
@@ -191,7 +188,6 @@ export function ScheduleSessionDialog({
         
         // Merge with cached status (server data takes precedence)
         const finalStatus = { ...cachedStatus, ...status };
-        console.log('Final connection status:', finalStatus);
         setConnectionStatus(finalStatus);
         
         // Update localStorage with latest data
@@ -389,54 +385,37 @@ export function ScheduleSessionDialog({
       }
 
       const result = await response.json();
-      
-      console.log('🎯 Session created successfully:', result);
-      console.log('🎯 Form meeting type:', formData.meetingType);
-      console.log('🎯 Available integrations:', Object.keys(connectionStatus));
-      console.log('🎯 Connection status details:', connectionStatus);
+
       
       // If meeting type is selected, create external meeting
       if (formData.meetingType !== 'none') {
-        console.log('🎯 Meeting type selected:', formData.meetingType);
-        console.log('🎯 Connection status:', connectionStatus);
-        console.log('🎯 Session data:', sessionData);
         
         try {
           // Add client email to attendees if it's an individual session
           if (formData.sessionType === 'individual' && selectedClient?.email) {
             sessionData.attendees = [selectedClient.email];
-            console.log('📧 Added individual client to attendees:', selectedClient.email);
           }
           
           // Add group member emails to attendees if it's a group session
           if (formData.sessionType === 'group' && fetchedGroupMembers.length > 0) {
             sessionData.attendees = fetchedGroupMembers.map(member => member.email).filter(email => email);
-            console.log('📧 Added group members to attendees:', sessionData.attendees);
-            console.log('📧 Group members data:', fetchedGroupMembers);
           }
           
           // Always add coach email to attendees so they receive calendar invitation
           if (session?.user?.email && sessionData.attendees) {
             if (!sessionData.attendees.includes(session.user.email)) {
               sessionData.attendees.push(session.user.email);
-              console.log('📧 Added coach to attendees:', session.user.email);
             }
           } else if (session?.user?.email) {
             sessionData.attendees = [session.user.email];
-            console.log('📧 Added coach as only attendee:', session.user.email);
           }
           
           let integrationResult;
           
           // For all meeting types, use the original logic
             const platformForAPI = formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType;
-            console.log('Creating external meeting with platform:', platformForAPI);
             integrationResult = await createExternalMeeting(result.session.id, sessionData, platformForAPI);
-          
-          console.log('Final integration result:', integrationResult);
-          console.log('Integration results details:', integrationResult.results);
-          console.log('Zoom result:', integrationResult.results?.zoom);
-          console.log('Google Calendar result:', integrationResult.results?.google_calendar);
+
           
           // Check if any integrations failed due to missing connections
           const failedIntegrations = Object.entries(integrationResult.results || {})
@@ -465,7 +444,6 @@ export function ScheduleSessionDialog({
             }
             
             if (meetingLinkToSave) {
-              console.log('Updating session with meeting link:', meetingLinkToSave);
               const updateResponse = await fetch(`/api/sessions/${result.session.id}`, {
                 method: 'PUT',
                 headers: {
@@ -478,7 +456,6 @@ export function ScheduleSessionDialog({
               });
               
               if (updateResponse.ok) {
-                console.log('Session meeting link updated successfully');
               } else {
                 const errorData = await updateResponse.json();
                 console.error('Failed to update session meeting link:', {
@@ -536,12 +513,6 @@ export function ScheduleSessionDialog({
       
       // Create a notification for the session creation
       try {
-        console.log('Creating notification for session:', {
-          userId: session?.user?.id,
-          sessionTitle: sessionData.title,
-          sessionDate: sessionData.sessionDate,
-          sessionTime: sessionData.sessionTime
-        });
         
         await fetch('/api/notifications', {
           method: 'POST',
@@ -563,7 +534,6 @@ export function ScheduleSessionDialog({
             }),
         });
         
-        console.log('Notification created successfully');
       } catch (notificationError) {
         console.error('Failed to create notification:', notificationError);
         // Don't fail the session creation if notification fails
@@ -572,12 +542,6 @@ export function ScheduleSessionDialog({
       // Create notification for client if it's an individual session
       if (formData.sessionType === 'individual' && selectedClient?.userId) {
         try {
-          console.log('Creating notification for client:', {
-            userId: selectedClient.userId,
-            sessionTitle: sessionData.title,
-            sessionDate: sessionData.sessionDate,
-            sessionTime: sessionData.sessionTime
-          });
           
           await fetch('/api/notifications', {
             method: 'POST',
@@ -642,7 +606,6 @@ export function ScheduleSessionDialog({
                     priority: 'high'
                   }),
                 });
-                console.log(`Notification created for group member: ${member.name}`);
               }
             }
           } catch (error) {

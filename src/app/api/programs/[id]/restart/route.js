@@ -17,8 +17,6 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'Enrollment ID is required' }, { status: 400 });
         }
 
-        console.log('Restarting enrollment:', { enrollmentId: id, coachId: session.user.id });
-
         const result = await restartEnrollment(id, session.user.id);
 
         return NextResponse.json({

@@ -82,7 +82,6 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }) {
   }, [task, open, form]);
 
   const onSubmit = (data) => {
-    console.log("Updated task data:", data);
     
     if (onTaskUpdated) {
       onTaskUpdated(data);

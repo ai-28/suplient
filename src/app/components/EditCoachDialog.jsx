@@ -26,9 +26,6 @@ export function EditCoachDialog({ open, onOpenChange, onUpdateCoach, coach }) {
     name: "",
     email: "",
     phone: "",
-    specialization: "",
-    experience: "",
-    qualifications: "",
     bio: "",
     status: "Active"
   });
@@ -39,9 +36,6 @@ export function EditCoachDialog({ open, onOpenChange, onUpdateCoach, coach }) {
         name: coach.name || "",
         email: coach.email || "",
         phone: coach.phone || "",
-        specialization: coach.specialization || "",
-        experience: coach.experience || "",
-        qualifications: coach.qualifications || "",
         bio: coach.bio || "",
         status: coach.status || "Active"
       });
@@ -89,64 +83,26 @@ export function EditCoachDialog({ open, onOpenChange, onUpdateCoach, coach }) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Suspended">Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="specialization">Specialization *</Label>
-                <Select value={formData.specialization} onValueChange={(value) => setFormData({ ...formData, specialization: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select specialization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Anxiety & Depression">Anxiety & Depression</SelectItem>
-                    <SelectItem value="Trauma Therapy">Trauma Therapy</SelectItem>
-                    <SelectItem value="Family Counseling">Family Counseling</SelectItem>
-                    <SelectItem value="Cognitive Behavioral Therapy">Cognitive Behavioral Therapy</SelectItem>
-                    <SelectItem value="Addiction Counseling">Addiction Counseling</SelectItem>
-                    <SelectItem value="Relationship Therapy">Relationship Therapy</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="experience">Years of Experience</Label>
-                <Input
-                  id="experience"
-                  type="number"
-                  value={formData.experience}
-                  onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="qualifications">Qualifications</Label>
-              <Input
-                id="qualifications"
-                value={formData.qualifications}
-                onChange={(e) => setFormData({ ...formData, qualifications: e.target.value })}
-                placeholder="e.g., PhD in Psychology, Licensed Clinical Social Worker"
-              />
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>

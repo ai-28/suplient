@@ -15,15 +15,6 @@ export const notificationSchema = {
                 priority = 'normal' // low, normal, high, urgent
             } = notificationData;
 
-            console.log('🔔 DEBUG: Creating notification in database:', {
-                userId,
-                type,
-                title,
-                message,
-                data,
-                isRead,
-                priority
-            });
 
             const result = await sql`
                 INSERT INTO "Notification" (
@@ -47,13 +38,7 @@ export const notificationSchema = {
                 RETURNING *
             `;
 
-            console.log('🔔 DEBUG: Notification created successfully in database:', {
-                id: result[0].id,
-                userId: result[0].userId,
-                type: result[0].type,
-                title: result[0].title
-            });
-
+        
             return { success: true, data: result[0] };
         } catch (error) {
             console.error('❌ Error creating notification:', error);
@@ -116,7 +101,6 @@ export const notificationSchema = {
     // Get notifications for a user with relationship filtering
     async getUserNotificationsWithRelations(userId, userRole, options = {}) {
         try {
-            console.log('🔍 DEBUG: getUserNotificationsWithRelations called with:', { userId, userRole, options });
 
             const {
                 limit = 50,
@@ -130,7 +114,6 @@ export const notificationSchema = {
 
             if (userRole === 'coach') {
                 // For coaches: only show notifications for their own clients
-                console.log('🔍 DEBUG: Building query for coach:', userId);
                 query = sql`
                     SELECT n.*
                     FROM "Notification" n
@@ -188,7 +171,6 @@ export const notificationSchema = {
             `;
 
             const result = await query;
-            console.log('🔍 DEBUG: Query result for coach:', userId, 'found', result.length, 'notifications');
             if (result.length > 0) {
                 console.log('🔍 DEBUG: Sample notification:', {
                     id: result[0].id,

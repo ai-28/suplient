@@ -64,7 +64,6 @@ export async function POST(request) {
         try {
             const { activityHelpers } = await import('@/app/lib/db/activitySchema');
             await activityHelpers.createSignupActivity(newUser.id, newClient.id);
-            console.log('✅ Signup activity created for client:', newUser.name);
         } catch (activityError) {
             console.error('❌ Error creating signup activity:', activityError);
             // Don't fail the registration if activity creation fails
@@ -74,7 +73,6 @@ export async function POST(request) {
         try {
             const { NotificationService } = require('@/app/lib/services/NotificationService');
             await NotificationService.notifyClientSignup(newClient.id, session.user.id, newUser.name);
-            console.log('✅ Signup notification created for coach:', session.user.name);
         } catch (notificationError) {
             console.error('❌ Error creating signup notification:', notificationError);
             // Don't fail the registration if notification creation fails

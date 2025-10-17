@@ -216,7 +216,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   };
 
   const handleStopRecording = () => {
-    console.log('VoiceRecorder: Stop button clicked - isRecording:', isRecording);
     if (!isRecording) {
       console.log('VoiceRecorder: Not recording, ignoring stop request');
       return;

@@ -64,7 +64,6 @@ export default function Clients() {
       const data = await response.json();
       
       if (data.status) {
-        console.log('📨 DEBUG: Clients fetched successfully:', data.clients?.length || 0, 'clients');
         setClients(data.clients || []);
       } else {
         console.error('Failed to fetch clients:', data.message);

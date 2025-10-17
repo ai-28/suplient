@@ -83,7 +83,6 @@ export function GroupFilesPanel({ groupId }) {
 
       // Refresh the files list
       await fetchGroupResources();
-      console.log("Shared files:", selectedFiles);
     } catch (error) {
       console.error('Error sharing files:', error);
       alert(`Error sharing files: ${error.message}`);
@@ -91,18 +90,12 @@ export function GroupFilesPanel({ groupId }) {
   };
 
   const handleViewFile = (file) => {
-    console.log('Preview file:', file);
-    console.log('File URL:', file.url);
     
     const directUrl = file.url;
-    console.log('Using direct URL:', directUrl);
     
     // Determine file type based on resourceType or file extension
     const fileName = file.fileName || file.url.split('/').pop() || '';
     const fileExtension = fileName.split('.').pop()?.toLowerCase();
-    
-    console.log('File extension:', fileExtension);
-    console.log('Resource type:', file.resourceType);
     
     // Set preview type based on resourceType or file extension
     if (file.resourceType === 'image' || fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png' || fileExtension === 'gif' || fileExtension === 'webp') {
@@ -146,7 +139,6 @@ export function GroupFilesPanel({ groupId }) {
 
         // Refresh the files list
         await fetchGroupResources();
-        console.log("Removed file with ID:", fileToRemove.id);
         setFileToRemove(null);
       } catch (error) {
         console.error('Error removing file:', error);
@@ -296,7 +288,6 @@ export function GroupFilesPanel({ groupId }) {
                     alt="Preview"
                     className="max-w-full max-h-[70vh] object-contain mx-auto"
                     onLoad={(e) => {
-                      console.log('✅ Image loaded successfully via API');
                       console.log('Image dimensions:', e.target.naturalWidth, 'x', e.target.naturalHeight);
                     }}
                     onError={(e) => {

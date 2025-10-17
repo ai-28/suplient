@@ -43,14 +43,6 @@ export async function PUT(request, { params }) {
         let updatedMeetingLink = sessionRecord.meetingLink;
         let updatedIntegrationPlatform = sessionRecord.integrationPlatform;
 
-        // Update integrations for each platform
-        console.log('🔄 Processing integrations for session:', {
-            sessionId: id,
-            currentIntegrationPlatform: sessionRecord.integrationPlatform,
-            currentMeetingLink: sessionRecord.meetingLink,
-            activeIntegrations: integrations.map(i => ({ platform: i.platform, isActive: i.isActive }))
-        });
-
         for (const integration of integrations) {
             if (!integration.isActive) {
                 continue;
@@ -60,7 +52,6 @@ export async function PUT(request, { params }) {
 
             // Check if we have a meeting link to update for this platform
             if (!sessionRecord.meetingLink) {
-                console.log(`⚠️ No existing meeting link found for ${platform}, skipping update`);
                 results[platform] = { success: false, error: 'No existing meeting link to update' };
                 continue;
             }
@@ -71,19 +62,14 @@ export async function PUT(request, { params }) {
             const isTeamsLink = sessionRecord.meetingLink.includes('teams.microsoft.com');
 
             if (platform === 'google_calendar' && !isGoogleCalendarLink) {
-                console.log(`🔄 Skipping ${platform} integration - meeting link is not Google Calendar`);
                 continue;
             }
             if (platform === 'zoom' && !isZoomLink) {
-                console.log(`🔄 Skipping ${platform} integration - meeting link is not Zoom`);
                 continue;
             }
             if (platform === 'teams' && !isTeamsLink) {
-                console.log(`🔄 Skipping ${platform} integration - meeting link is not Teams`);
                 continue;
             }
-
-            console.log(`🔄 Processing ${platform} integration for session with platform: ${sessionRecord.integrationPlatform}`);
 
             try {
                 const integrationService = getIntegrationService(platform, integration);
@@ -101,18 +87,14 @@ export async function PUT(request, { params }) {
 
                 if (platform === 'google_calendar') {
                     // For Google Calendar, update the event
-                    console.log(`🔄 Calling Google Calendar updateEvent for session with platform: ${sessionRecord.integrationPlatform}`);
                     updateResult = await integrationService.updateEvent(integrationData, sessionRecord.meetingLink);
                 } else if (platform === 'zoom') {
                     // For Zoom, update the meeting
-                    console.log(`🔄 Calling Zoom updateMeeting for session with platform: ${sessionRecord.integrationPlatform}`);
                     updateResult = await integrationService.updateMeeting(integrationData, sessionRecord.meetingLink);
                 } else if (platform === 'teams') {
                     // For Teams, update the meeting
-                    console.log(`🔄 Calling Teams updateMeeting for session with platform: ${sessionRecord.integrationPlatform}`);
                     updateResult = await integrationService.updateMeeting(integrationData, sessionRecord.meetingLink);
                 } else {
-                    console.log(`⚠️ Unsupported platform: ${platform}`);
                     results[platform] = { success: false, error: 'Unsupported platform for update' };
                     continue;
                 }
@@ -130,7 +112,6 @@ export async function PUT(request, { params }) {
                         meetingLink: updateResult.meetingLink,
                         data: updateResult
                     };
-                    console.log(`✅ ${platform} integration updated successfully`);
                 } else {
                     results[platform] = {
                         success: false,
@@ -159,7 +140,6 @@ export async function PUT(request, { params }) {
                         "updatedAt" = NOW()
                     WHERE id = ${id}
                 `;
-                console.log('✅ Session updated with new integration data');
             } catch (updateError) {
                 console.error('❌ Error updating session with integration data:', updateError);
             }

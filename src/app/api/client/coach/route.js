@@ -5,23 +5,18 @@ import { sql } from '@/app/lib/db/postgresql';
 
 export async function GET(request) {
     try {
-        console.log('🔍 Client coach API called');
 
         const session = await getServerSession(authOptions);
-        console.log('🔍 Session:', session?.user?.id, session?.user?.role);
 
         if (!session?.user?.id) {
-            console.log('❌ No session found');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         if (session.user.role !== 'client') {
-            console.log('❌ User is not a client');
             return NextResponse.json({ error: 'Only clients can access this endpoint' }, { status: 403 });
         }
 
         // Get the client's coach information
-        console.log('🔍 Looking up client and coach...');
         const result = await sql`
             SELECT 
                 u.id as "clientUserId",
@@ -36,11 +31,8 @@ export async function GET(request) {
             AND u.role = 'client'
             LIMIT 1
         `;
-        console.log('🔍 Client-coach lookup result:', result);
 
         if (result.length === 0) {
-            console.log('❌ Client not found or no coach assigned');
-            console.log('🔍 Debug: Checking if client exists without coach...');
 
             // Check if client exists but has no coach
             const clientCheck = await sql`
@@ -50,7 +42,6 @@ export async function GET(request) {
                 AND role = 'client'
             `;
 
-            console.log('🔍 Client check result:', clientCheck);
 
             if (clientCheck.length === 0) {
                 return NextResponse.json({
@@ -71,7 +62,6 @@ export async function GET(request) {
         }
 
         const clientCoachData = result[0];
-        console.log('🔍 Client-coach data:', clientCoachData);
 
         const coach = {
             id: clientCoachData.coachUserId,
@@ -80,7 +70,6 @@ export async function GET(request) {
             phone: clientCoachData.coachPhone
         };
 
-        console.log('✅ Coach found:', coach);
         return NextResponse.json({
             success: true,
             coach: coach

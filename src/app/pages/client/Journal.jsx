@@ -89,7 +89,6 @@ const useDailyTracking = (goals, habits) => {
       }
 
       const result = await response.json();
-      console.log('Check-in saved:', result);
       return result;
     } catch (error) {
       console.error('Error saving check-in:', error);

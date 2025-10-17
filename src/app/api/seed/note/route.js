@@ -111,7 +111,6 @@ async function createIntegrationTables() {
         FOR EACH ROW EXECUTE FUNCTION update_integration_updated_at();
     `;
 
-    console.log('Integration tables created successfully');
   } catch (error) {
     console.error('Error creating integration tables:', error);
     throw error;
@@ -120,10 +119,7 @@ async function createIntegrationTables() {
 
 export async function GET() {
   try {
-    console.log('Starting integration tables seeding...');
     await createIntegrationTables();
-    console.log('Integration tables seeded successfully');
-
     return new Response(JSON.stringify({
       message: 'Integration tables seeded successfully',
       details: 'CoachIntegration, IntegrationEvent tables created and Session table enhanced with integration fields'

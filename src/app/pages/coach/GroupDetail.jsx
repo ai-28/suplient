@@ -30,7 +30,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { GroupSettingsDialog } from "@/app/components/GroupSettingsDialog";
 import { ScheduleSessionDialog } from "@/app/components/ScheduleSessionDialog";
 import { GroupChatInterface } from "@/app/components/GroupChatInterface";
-import { useSession } from "next-auth/react";
 import { GroupInfoPanel } from "@/app/components/GroupInfoPanel";
 import { GroupMembersPanel } from "@/app/components/GroupMembersPanel";
 import { GroupTasksPanel } from "@/app/components/GroupTasksPanel";
@@ -63,7 +62,6 @@ export default function GroupDetail() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -218,7 +216,7 @@ export default function GroupDetail() {
   };
 
   console.log("group",groupData)
-  console.log("nextSession data:", groupData.nextSession)
+
   
   // Use real data if available, otherwise show empty state
   const groupProgressData = progressData ? {

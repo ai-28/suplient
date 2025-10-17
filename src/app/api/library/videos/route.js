@@ -91,13 +91,6 @@ export async function POST(request) {
         const description = formData.get('description') || '';
         const role = formData.get('role') || 'coach';
 
-        console.log('Video upload data:', {
-            title,
-            description,
-            fileName: file?.name,
-            fileSize: file?.size
-        });
-
         if (!file) {
             return NextResponse.json(
                 { status: false, message: 'No file provided' },
@@ -109,13 +102,6 @@ export async function POST(request) {
         const fileExtension = file.name.split('.').pop();
         const fileName = `${uuidv4()}.${fileExtension}`;
         const filePath = `library/videos/${fileName}`;
-
-        console.log('Preparing to upload video:', {
-            fileName,
-            filePath,
-            fileSize: file.size,
-            fileType: file.type
-        });
 
         // Convert file to buffer
         const buffer = await file.arrayBuffer();
@@ -133,14 +119,9 @@ export async function POST(request) {
         });
 
         try {
-            console.log('Sending upload command...');
             await s3Client.send(command);
-            console.log('Upload successful');
-
             // Generate public URL using CDN if enabled
             const publicUrl = getCdnUrl(filePath);
-            console.log('Generated public URL:', publicUrl);
-
             // Save to database
             const email = session.user.email;
             const user = await userRepo.getUserByEmail(email);

@@ -66,14 +66,6 @@ export async function POST(request) {
         const author = formData.get('author') || '';
         const role = formData.get('role') || 'coach';
 
-        console.log('Article upload data:', {
-            title,
-            description,
-            author,
-            fileName: file?.name,
-            fileSize: file?.size
-        });
-
         if (!file) {
             return NextResponse.json(
                 { status: false, message: 'No file provided' },

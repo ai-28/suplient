@@ -87,8 +87,6 @@ export function CreateClientDialog({ onClientCreated }) {
       if (!response.ok) {
         throw new Error(result.error || "Failed to create client");
       }
-
-      console.log("Client created successfully:", result.client);
       
       // Show success message with temporary password
       alert(`Client created successfully!\n\nClient Details:\nName: ${result.client.name}\nEmail: ${result.client.email}\nTemporary Password: ${result.client.tempPassword}\n\nPlease share the temporary password with the client so they can log in and change it.`);

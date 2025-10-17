@@ -35,19 +35,15 @@ export async function GET(request) {
       `;
         } else if (session.user.role === 'client') {
             // Client sees all available groups (both joined and available to join)
-            console.log('🔍 Fetching all groups for client:', session.user.id);
 
             // Get the client record for this user to get the clientId
             const clientRecord = await sql`SELECT id as "clientId", "userId" FROM "Client" WHERE "userId" = ${session.user.id}`;
-            console.log('🔍 Client record for user:', clientRecord);
 
             const clientId = clientRecord.length > 0 ? clientRecord[0].clientId : null;
-            console.log('🔍 Using clientId:', clientId);
 
             if (clientId) {
                 // Check if current client is in any groups
                 const clientInGroups = await sql`SELECT id, name, "selectedMembers" FROM "Group" WHERE ${clientId} = ANY("selectedMembers")`;
-                console.log('🔍 Groups client is member of:', clientInGroups);
             }
 
             groups = await sql`
@@ -70,7 +66,6 @@ export async function GET(request) {
         FROM "Group" g
         ORDER BY g."createdAt" DESC
       `;
-            console.log('🔍 All groups found:', groups);
         } else {
             // Admin sees all groups
             groups = await sql`

@@ -45,16 +45,6 @@ export async function POST(request) {
             RETURNING *
         `;
 
-        // Log the sharing activity (optional)
-        console.log(`Resource "${resource.title}" shared:`, {
-            resourceId,
-            clientIds: clientIds || [],
-            groupIds: groupIds || [],
-            message: message || '',
-            sharedBy: session.user.id,
-            sharedAt: new Date().toISOString()
-        });
-
         // Create notifications for clients when resource is shared
         try {
             const { NotificationService } = require('@/app/lib/services/NotificationService');

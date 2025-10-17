@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
@@ -51,8 +51,11 @@ import {
   Phone, 
   MapPin,
   Calendar,
-  User
+  User,
+  Loader2,
+  Ban
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function AdminClients() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,64 +63,69 @@ export default function AdminClients() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [clients, setClients] = useState([]);
+  const [coaches, setCoaches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [suspending, setSuspending] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     location: "",
     coachId: "",
-    notes: "",
-    status: "active"
+    notes: ""
   });
 
-  // Mock data
-  const [clients, setClients] = useState([
-    {
-      id: "1",
-      name: "John Smith",
-      email: "john@example.com",
-      phone: "+1 (555) 123-4567",
-      status: "active",
-      location: "New York, NY",
-      joinDate: "2024-01-15",
-      coachId: "c1",
-      coachName: "Dr. Sarah Johnson",
-      sessionsCount: 8,
-      notes: "Regular client, making good progress"
-    },
-    {
-      id: "2",
-      name: "Emma Wilson",
-      email: "emma@example.com",
-      phone: "+1 (555) 234-5678",
-      status: "active",
-      location: "Los Angeles, CA",
-      joinDate: "2024-02-20",
-      coachId: "c2",
-      coachName: "Michael Chen",
-      sessionsCount: 12,
-      notes: "Highly engaged, excellent attendance"
-    },
-    {
-      id: "3",
-      name: "David Brown",
-      email: "david@example.com",
-      phone: "+1 (555) 345-6789",
-      status: "inactive",
-      location: "Chicago, IL",
-      joinDate: "2023-11-10",
-      coachId: "c1",
-      coachName: "Dr. Sarah Johnson",
-      sessionsCount: 15,
-      notes: "Completed program successfully"
-    }
-  ]);
+  // Fetch clients and coaches from API
+  useEffect(() => {
+    fetchClients();
+    fetchCoaches();
+  }, []);
 
-  const coaches = [
-    { id: "c1", name: "Dr. Sarah Johnson" },
-    { id: "c2", name: "Michael Chen" },
-    { id: "c3", name: "Lisa Rodriguez" }
-  ];
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/clients');
+      const data = await response.json();
+      
+      if (data.success) {
+        setClients(data.clients);
+        if (data.clients.length > 0) {
+          toast.success('Clients loaded successfully!', {
+            description: `Found ${data.clients.length} client${data.clients.length === 1 ? '' : 's'}.`
+          });
+        }
+      } else {
+        console.error('Failed to fetch clients:', data.error);
+        toast.error('Failed to load clients', {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      toast.error('Error loading clients', {
+        description: 'Please refresh the page to try again.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCoaches = async () => {
+    try {
+      const response = await fetch('/api/admin/assigned-coaches');
+      const data = await response.json();
+      
+      if (data.success) {
+        setCoaches(data.coaches);
+      } else {
+        console.error('Failed to fetch coaches:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching coaches:', error);
+    }
+  };
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,53 +134,154 @@ export default function AdminClients() {
     return matchesSearch && matchesCoach;
   });
 
-  const handleCreate = () => {
-    const newClient = {
-      id: Date.now().toString(),
-      ...formData,
-      joinDate: new Date().toISOString().split('T')[0],
-      coachName: coaches.find(c => c.id === formData.coachId)?.name || "",
-      sessionsCount: 0
-    };
-    
-    setClients([...clients, newClient]);
-    setIsCreateOpen(false);
-    setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "", status: "active" });
-    toast({
-      title: "Client created",
-      description: "Client has been successfully created.",
-    });
+  const handleCreate = async () => {
+    try {
+      setCreating(true);
+      const response = await fetch('/api/admin/clients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Add the new client to the list
+        setClients([...clients, data.client]);
+        setIsCreateOpen(false);
+        setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "" });
+        toast.success('Client created successfully!', {
+          description: `${data.client.name} has been added to the platform.`
+        });
+      } else {
+        console.error('Failed to create client:', data.error);
+        toast.error('Failed to create client', {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error('Error creating client:', error);
+      toast.error('Error creating client', {
+        description: 'Please try again.'
+      });
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     if (selectedClient) {
-      const updatedClients = clients.map(client =>
-        client.id === selectedClient.id
-          ? { 
-              ...client, 
-              ...formData,
-              coachName: coaches.find(c => c.id === formData.coachId)?.name || client.coachName
-            }
-          : client
-      );
-      setClients(updatedClients);
-      setIsEditOpen(false);
-      setSelectedClient(null);
-      setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "", status: "active" });
-      toast({
-        title: "Client updated",
-        description: "Client has been successfully updated.",
+      try {
+        const response = await fetch('/api/admin/clients', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: selectedClient.id,
+            ...formData
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Update the client in the list
+          setClients(clients.map(client => 
+            client.id === selectedClient.id ? data.client : client
+          ));
+          setIsEditOpen(false);
+          setSelectedClient(null);
+          setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "" });
+          toast.success('Client updated successfully!', {
+            description: `${data.client.name}'s profile has been updated.`
+          });
+        } else {
+          console.error('Failed to update client:', data.error);
+          toast.error('Failed to update client', {
+            description: data.error
+          });
+        }
+      } catch (error) {
+        console.error('Error updating client:', error);
+        toast.error('Error updating client', {
+          description: 'Please try again.'
+        });
+      }
+    }
+  };
+
+  const handleDelete = async (clientId) => {
+    try {
+      const response = await fetch(`/api/admin/clients?id=${clientId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove the client from the list
+        setClients(clients.filter(client => client.id !== clientId));
+        toast.success('Client deleted successfully!', {
+          description: data.message
+        });
+      } else {
+        console.error('Failed to delete client:', data.error);
+        toast.error('Failed to delete client', {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      toast.error('Error deleting client', {
+        description: 'Please try again.'
       });
     }
   };
 
-  const handleDelete = (clientId) => {
-    setClients(clients.filter(client => client.id !== clientId));
-    toast({
-      title: "Client deleted",
-      description: "Client has been successfully deleted.",
-      variant: "destructive"
-    });
+  const handleSuspend = async (clientId, currentStatus) => {
+    try {
+      setSuspending(true);
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const action = newStatus === 'inactive' ? 'suspend' : 'activate';
+      
+      const response = await fetch('/api/admin/clients', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: clientId,
+          status: newStatus
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the client in the list
+        setClients(clients.map(client => 
+          client.id === clientId ? { ...client, status: newStatus } : client
+        ));
+        toast.success(`Client ${action}ed successfully!`, {
+          description: `Client status changed to ${newStatus}.`
+        });
+      } else {
+        console.error(`Failed to ${action} client:`, data.error);
+        toast.error(`Failed to ${action} client`, {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing client:`, error);
+      toast.error(`Error ${action}ing client`, {
+        description: 'Please try again.'
+      });
+    } finally {
+      setSuspending(false);
+    }
   };
 
   const openEditDialog = (client) => {
@@ -183,8 +292,7 @@ export default function AdminClients() {
       phone: client.phone,
       location: client.location,
       coachId: client.coachId,
-      notes: client.notes,
-      status: client.status
+      notes: client.notes
     });
     setIsEditOpen(true);
   };
@@ -266,25 +374,12 @@ export default function AdminClients() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-                </div>
               </div>
               <div>
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea
                   id="notes"
-                  value={formData.notes}
+                  value={formData.notes || ""}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   placeholder="Additional notes..."
                 />
@@ -294,8 +389,15 @@ export default function AdminClients() {
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate} disabled={!formData.name || !formData.email || !formData.coachId}>
-                Create Client
+              <Button onClick={handleCreate} disabled={!formData.name || !formData.email || !formData.coachId || creating}>
+                {creating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Client'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -343,55 +445,76 @@ export default function AdminClients() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredClients.map((client) => (
-              <TableRow key={client.id}>
-                <TableCell className="font-medium">{client.name}</TableCell>
-                <TableCell>{client.email}</TableCell>
-                <TableCell>{client.phone}</TableCell>
-                <TableCell>{client.coachName}</TableCell>
-                <TableCell>
-                  <Badge variant={client.status === "active" ? "default" : client.status === "inactive" ? "secondary" : "outline"}>
-                    {client.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{client.location}</TableCell>
-                <TableCell>{new Date(client.joinDate).toLocaleDateString()}</TableCell>
-                <TableCell>{client.sessionsCount}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(client)}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the client
-                            and remove their data from the platform.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(client.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-8">
+                  <p className="text-muted-foreground">Loading clients...</p>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredClients.map((client) => (
+                <TableRow key={client.id}>
+                  <TableCell className="font-medium">{client.name}</TableCell>
+                  <TableCell>{client.email}</TableCell>
+                  <TableCell>{client.phone}</TableCell>
+                  <TableCell>{client.coachName}</TableCell>
+                  <TableCell>
+                    <Badge variant={client.status === "active" ? "default" : "secondary"}>
+                      {client.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{client.location}</TableCell>
+                  <TableCell>{new Date(client.joinDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{client.sessionsCount}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(client)}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSuspend(client.id, client.status)}
+                        disabled={suspending}
+                        className={client.status === "active" ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+                      >
+                        {suspending ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Ban className="h-3 w-3" />
+                        )}
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the client
+                              and remove their data from the platform.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(client.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </Card>
@@ -459,25 +582,12 @@ export default function AdminClients() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label htmlFor="edit-status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             <div>
               <Label htmlFor="edit-notes">Notes</Label>
               <Textarea
                 id="edit-notes"
-                value={formData.notes}
+                value={formData.notes || ""}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
                 placeholder="Additional notes..."
               />

@@ -22,12 +22,10 @@ const useResources = () => {
   // Fetch resources from API
   const fetchResources = async () => {
     try {
-      console.log('Fetching resources...');
       setIsLoading(true);
       setError(null);
       
       const response = await fetch('/api/resources');
-      console.log('Resources API response:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -36,7 +34,6 @@ const useResources = () => {
       }
       
       const data = await response.json();
-      console.log('Resources data:', data);
       setResources(data.resources || []);
     } catch (err) {
       console.error('Error fetching resources:', err);

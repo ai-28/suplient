@@ -24,11 +24,6 @@ export async function GET(request) {
             callbackUrl
         }));
 
-        console.log('Zoom OAuth URL:', zoomAuthUrl.toString());
-        console.log('Using default Zoom scopes (no explicit scope set)');
-        console.log('Client ID:', process.env.ZOOM_CLIENT_ID);
-        console.log('Redirect URI:', `${process.env.NEXTAUTH_URL}/api/integrations/oauth/zoom/callback`);
-
         return NextResponse.redirect(zoomAuthUrl.toString());
     } catch (error) {
         console.error('Zoom OAuth authorization error:', error);

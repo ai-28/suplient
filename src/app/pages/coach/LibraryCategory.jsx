@@ -77,7 +77,6 @@ export default function LibraryCategory() {
         if (result.status) {
           const itemsKey = category === 'articles' ? 'articles' : category;
           const fetchedItems = result[itemsKey] || [];
-          console.log(`Fetched ${category} items:`, fetchedItems);
           
           // Check for missing IDs
           const itemsWithoutId = fetchedItems.filter(item => !item.id);
@@ -132,7 +131,6 @@ export default function LibraryCategory() {
 
   const handleShareSelected = (shareData) => {
     const selectedItems = items.filter(item => selectedFiles.includes(item.id));
-    console.log('Multiple files shared:', selectedItems, 'with:', shareData);
     
     toast.success("Files Shared Successfully", {
       description: `${selectedFiles.length} files have been shared.`
@@ -147,22 +145,16 @@ export default function LibraryCategory() {
   };
 
   const handlePreview = (item) => {
-    console.log('Preview item:', item);
-    console.log('Item URL:', item.url);
-    console.log('Category:', category);
-    
+
     // Since the direct URL works in browser, let's try using it directly first
     // If that fails, we can fall back to the preview API
     const directUrl = item.url;
-    console.log('Using direct URL:', directUrl);
-    console.log('URL type:', typeof directUrl);
-    console.log('URL length:', directUrl?.length);
+
     
     // Determine if this is a PDF or other document type
     const fileName = item.fileName || item.url.split('/').pop() || '';
     const fileExtension = fileName.split('.').pop()?.toLowerCase();
     
-    console.log('File extension:', fileExtension);
     
     // Set preview type based on actual file type, not category
     if (fileExtension === 'pdf') {

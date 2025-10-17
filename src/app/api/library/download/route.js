@@ -34,7 +34,6 @@ export async function GET(request) {
 
         // Extract the key from the full URL (same logic as preview API)
         let key;
-        console.log('Download - Original filePath:', filePath);
 
         if (filePath.includes('library/') && !filePath.startsWith('http')) {
             // If it's already a key path (starts with library/) and not a full URL
@@ -43,14 +42,9 @@ export async function GET(request) {
             // If it's a full URL, extract the key after the bucket name
             try {
                 const url = new URL(filePath);
-                console.log('Download - Parsed URL:', {
-                    hostname: url.hostname,
-                    pathname: url.pathname
-                });
 
                 // Remove leading slash and split path
                 const pathParts = url.pathname.substring(1).split('/').filter(part => part);
-                console.log('Download - Path parts:', pathParts);
 
                 // The key should be everything after the bucket name
                 // For DigitalOcean Spaces URLs like: /library/images/filename.jpg
@@ -68,23 +62,15 @@ export async function GET(request) {
             }
         }
 
-        console.log('Download - Final extracted key:', key);
-
         // Get file from DigitalOcean Spaces with fallback mechanism
         const command = new GetObjectCommand({
             Bucket: process.env.DO_SPACES_BUCKET,
             Key: key,
         });
 
-        console.log('Download - S3 command:', {
-            Bucket: process.env.DO_SPACES_BUCKET,
-            Key: key
-        });
-
         let response;
         try {
             response = await s3Client.send(command);
-            console.log('Download - S3 response received, ContentType:', response.ContentType);
         } catch (error) {
             console.error('Download - First attempt failed:', error.message);
 
@@ -97,18 +83,14 @@ export async function GET(request) {
                 key.replace(/^library\/[^\/]+\//, 'library/') // Fix double library prefix
             ];
 
-            console.log('Download - Trying alternative keys:', alternativeKeys);
-
             for (const altKey of alternativeKeys) {
                 if (altKey && altKey !== key) {
                     try {
-                        console.log(`Download - Trying alternative key: ${altKey}`);
                         const altCommand = new GetObjectCommand({
                             Bucket: process.env.DO_SPACES_BUCKET,
                             Key: altKey,
                         });
                         response = await s3Client.send(altCommand);
-                        console.log(`Download - Success with alternative key: ${altKey}`);
                         break;
                     } catch (altError) {
                         console.log(`Download - Alternative key ${altKey} failed:`, altError.message);

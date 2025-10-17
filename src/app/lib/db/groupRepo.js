@@ -178,7 +178,6 @@ async function getGroupById(groupId, coachId) {
         // Calculate group statistics
         const totalSessions = sessionsResult.length;
         const completedSessions = sessionsResult.filter(s => s.status === 'completed').length;
-        console.log(group)
         return {
             ...group,
             members: membersWithAttendance,

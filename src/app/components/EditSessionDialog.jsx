@@ -91,7 +91,6 @@ export function EditSessionDialog({
 
       // Update calendar integrations and send notifications
       try {
-        console.log('Updating session integrations and sending notifications...');
         
         // Refresh tokens automatically if needed
         await refreshTokensIfNeeded();
@@ -99,27 +98,16 @@ export function EditSessionDialog({
         // Get attendees for the session using original session data
         let attendees = [];
         
-        console.log('Original session clientId:', session.clientId);
-        console.log('Original session groupId:', session.groupId);
-        
         if (session.clientId) {
           // Get client email
           try {
-            console.log('🔍🔍🔍 FETCHING CLIENT DATA 🔍🔍🔍');
-            console.log('🔍 Client ID:', session.clientId);
             const clientResponse = await fetch(`/api/clients/${session.clientId}`);
-            console.log('🔍 Client API response status:', clientResponse.status);
             if (clientResponse.ok) {
               const clientData = await clientResponse.json();
-              console.log('🔍🔍🔍 CLIENT DATA RECEIVED 🔍🔍🔍');
-              console.log('🔍 Full client data:', JSON.stringify(clientData, null, 2));
               if (clientData.data?.client?.email) {
                 attendees.push(clientData.data.client.email);
-                console.log('🔍✅ ADDED CLIENT EMAIL TO ATTENDEES:', clientData.data.client.email);
               } else {
                 console.log('🔍❌ NO CLIENT EMAIL FOUND IN RESPONSE');
-                console.log('🔍 Data object:', clientData.data);
-                console.log('🔍 Client object:', clientData.data?.client);
               }
             } else {
               console.log('🔍❌ CLIENT API FAILED:', clientResponse.status, clientResponse.statusText);
@@ -130,14 +118,11 @@ export function EditSessionDialog({
         } else if (session.groupId) {
           // Get group member emails
           try {
-            console.log('Fetching group members for group:', session.groupId);
             const groupResponse = await fetch(`/api/groups/${session.groupId}/members`);
             if (groupResponse.ok) {
               const groupData = await groupResponse.json();
-              console.log('Group data:', groupData);
               const groupMembers = groupData.members || [];
               attendees = groupMembers.map(member => member.email).filter(email => email);
-              console.log('Group member emails:', attendees);
             } else {
               console.error('Failed to fetch group members:', groupResponse.status);
             }
@@ -153,20 +138,12 @@ export function EditSessionDialog({
             const coachData = await coachResponse.json();
             if (coachData.user?.email && !attendees.includes(coachData.user.email)) {
               attendees.push(coachData.user.email);
-              console.log('Added coach email to attendees:', coachData.user.email);
             }
           }
         } catch (coachError) {
           console.error('Error fetching coach email:', coachError);
         }
-        
-        console.log('🔍🔍🔍 FINAL ATTENDEES LIST 🔍🔍🔍');
-        console.log('🔍 Attendees count:', attendees.length);
-        console.log('🔍 Attendees:', JSON.stringify(attendees, null, 2));
 
-        // Update integrations and send notifications
-        console.log('🔄 Updating integrations and sending notifications...');
-        console.log('📧 Attendees for integration update:', attendees);
         
         const integrationResponse = await fetch(`/api/sessions/${session.id}/update-integrations`, {
           method: 'PUT',
@@ -189,7 +166,6 @@ export function EditSessionDialog({
 
         if (integrationResponse.ok) {
           const integrationResult = await integrationResponse.json();
-          console.log('✅ Integration update result:', integrationResult);
           
           if (integrationResult.notificationsSent > 0) {
             toast.success(`Session updated successfully! ${integrationResult.notificationsSent} attendee(s) notified and calendar events updated.`);
@@ -220,12 +196,10 @@ export function EditSessionDialog({
   // Handle automatic token refresh
   const refreshTokensIfNeeded = async () => {
     try {
-      console.log('Checking if token refresh is needed...');
       
       // Get available integrations
       const integrationsResponse = await fetch('/api/integrations');
       if (!integrationsResponse.ok) {
-        console.log('No integrations found or failed to fetch');
         return false;
       }
       
@@ -233,7 +207,6 @@ export function EditSessionDialog({
       const integrations = integrationsData.integrations || [];
       
       if (integrations.length === 0) {
-        console.log('No integrations found');
         return false;
       }
       
@@ -252,7 +225,6 @@ export function EditSessionDialog({
           
           if (refreshResponse.ok) {
             const result = await refreshResponse.json();
-            console.log(`Token refreshed for ${integration.platform}:`, result);
             return { platform: integration.platform, success: true };
           } else {
             const error = await refreshResponse.json();
@@ -268,14 +240,6 @@ export function EditSessionDialog({
       const results = await Promise.all(refreshPromises);
       const successful = results.filter(r => r.success);
       const failed = results.filter(r => !r.success);
-      
-      if (successful.length > 0) {
-        console.log(`Successfully refreshed ${successful.length} token(s): ${successful.map(r => r.platform).join(', ')}`);
-      }
-      
-      if (failed.length > 0) {
-        console.log(`Failed to refresh ${failed.length} token(s): ${failed.map(r => `${r.platform} (${r.error})`).join(', ')}`);
-      }
       
       return successful.length > 0;
       

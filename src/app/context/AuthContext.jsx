@@ -24,7 +24,6 @@ export const AuthProvider = ({ children }) => {
   }
 
   useEffect(() => {
-    console.log("session", session);
     if (session?.user && !user) {
       fetchUserData();
     }

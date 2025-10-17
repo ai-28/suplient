@@ -17,7 +17,6 @@ export default function PWAInstallPrompt() {
     const checkIfInstalled = () => {
       // Check for standalone mode (Android/Desktop)
       if (window.matchMedia('(display-mode: standalone)').matches) {
-        console.log('App is already installed (standalone mode)');
         setIsInstalled(true);
         return true;
       }
@@ -35,7 +34,6 @@ export default function PWAInstallPrompt() {
       // Check if previously installed (stored in localStorage)
       const wasInstalled = localStorage.getItem('pwa-installed') === 'true';
       if (wasInstalled) {
-        console.log('App was previously installed (localStorage)');
         setIsInstalled(true);
         return true;
       }
@@ -47,18 +45,12 @@ export default function PWAInstallPrompt() {
 
     // Listen for the beforeinstallprompt event (Android/Desktop)
     const handleBeforeInstallPrompt = (e) => {
-      console.log('PWA install prompt triggered', e);
-      console.log('Event details:', {
-        platforms: e.platforms,
-        userChoice: e.userChoice
-      });
       
       e.preventDefault();
       setDeferredPrompt(e);
       
       // Show our custom install prompt after a delay
       setTimeout(() => {
-        console.log('Showing install prompt after beforeinstallprompt event');
         setShowInstallPrompt(true);
       }, 2000);
     };
@@ -73,9 +65,7 @@ export default function PWAInstallPrompt() {
     // Wait for service worker to be ready before showing prompt
     const waitForServiceWorker = () => {
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(() => {
-          console.log('Service worker is ready, checking for install prompt...');
-          
+        navigator.serviceWorker.ready.then(() => {          
           // Double-check if app is installed before showing prompt
           const isCurrentlyInstalled = checkIfInstalled();
           
@@ -83,7 +73,6 @@ export default function PWAInstallPrompt() {
           if (!isCurrentlyInstalled && ((isIOS && isSafari) || isDevelopment)) {
             const delay = isDevelopment ? 3000 : 5000; // Wait longer for service worker
             setTimeout(() => {
-              console.log('Showing PWA install prompt (iOS/Development mode)');
               setShowInstallPrompt(true);
             }, delay);
           } else if (isCurrentlyInstalled) {
@@ -95,7 +84,6 @@ export default function PWAInstallPrompt() {
         const isCurrentlyInstalled = checkIfInstalled();
         if (!isCurrentlyInstalled && ((isIOS && isSafari) || isDevelopment)) {
           setTimeout(() => {
-            console.log('Showing PWA install prompt (fallback)');
             setShowInstallPrompt(true);
           }, 3000);
         }
@@ -125,7 +113,6 @@ export default function PWAInstallPrompt() {
   }, []);
 
   const handleInstallClick = async () => {
-    console.log('Install button clicked, deferredPrompt:', deferredPrompt);
     
     // Enhanced browser and platform detection
     const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
@@ -281,21 +268,17 @@ For the best experience, use Chrome, Edge, Safari, or Firefox.`;
     }
 
     try {
-      console.log('Showing native install prompt...');
       // Show the install prompt
       deferredPrompt.prompt();
       
       // Wait for the user to respond to the prompt
       const { outcome } = await deferredPrompt.userChoice;
-      
-      console.log(`User response to the install prompt: ${outcome}`);
-      
+            
       // Clear the deferredPrompt
       setDeferredPrompt(null);
       setShowInstallPrompt(false);
       
       if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
         // Mark as installed in localStorage so it won't show again
         localStorage.setItem('pwa-installed', 'true');
       } else {

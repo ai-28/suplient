@@ -39,9 +39,7 @@ export async function PUT(request, { params }) {
                 if (!status) {
                     return NextResponse.json({ error: 'Status is required' }, { status: 400 });
                 }
-                console.log('Updating enrollment status:', { enrollmentId: id, status, coachId: session.user.id });
                 result = await updateEnrollmentStatus(id, status, session.user.id);
-                console.log('Status update result:', result);
                 break;
 
             default:

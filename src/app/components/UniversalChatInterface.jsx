@@ -192,13 +192,7 @@ export function UniversalChatInterface({
 
   // Check if the other participant is online
   const isOtherParticipantOnline = () => {
-    console.log('Checking online status:', { 
-      chatType, 
-      onlineUsers, 
-      currentUserId, 
-      isConnected 
-    }); // Debug log
-    
+
     // For personal chats, we need to check if there are other users online globally
     if (chatType === "personal") {
       // Check if there are any online users other than the current user

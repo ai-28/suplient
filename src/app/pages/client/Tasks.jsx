@@ -55,12 +55,10 @@ const useClientTasks = () => {
   // Fetch tasks from API
   const fetchTasks = async () => {
     try {
-      console.log('Fetching tasks...');
       setIsLoading(true);
       setError(null);
       
       const response = await fetch('/api/tasks');
-      console.log('Tasks API response:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -69,7 +67,6 @@ const useClientTasks = () => {
       }
       
       const data = await response.json();
-      console.log('Tasks data:', data);
       setTasks(data.tasks || []);
     } catch (err) {
       console.error('Error fetching tasks:', err);
@@ -128,7 +125,6 @@ const useClientTasks = () => {
       }
 
       const result = await response.json();
-      console.log('Task completion updated:', result);
       
         // Create activity for task completion
         if (newCompletedState) {

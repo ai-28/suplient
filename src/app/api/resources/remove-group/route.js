@@ -58,13 +58,6 @@ export async function POST(request) {
             RETURNING *
         `;
 
-        console.log('✅ Group removed from resource:', {
-            resourceId,
-            groupId,
-            previousGroupIds: currentGroupIds,
-            newGroupIds: updatedGroupIds
-        });
-
         return NextResponse.json({
             message: 'Group removed from resource successfully',
             resource: updatedResource[0],

@@ -90,12 +90,10 @@ export function useChat(conversationId) {
         ...options
       };
 
-      console.log('📤 Adding temp message:', tempMessage);
       setMessages(prev => [...prev, tempMessage]);
       setPendingMessages(prev => new Set([...prev, messageKey]));
 
       // Send via socket for real-time delivery
-      console.log('Sending socket message:', { conversationId, content, type, ...options }); // Debug log
       sendMessage(conversationId, {
         content,
         type,
@@ -120,14 +118,12 @@ export function useChat(conversationId) {
       }
 
       const data = await response.json();
-      console.log('API response:', data); // Debug log
 
       if (data.success) {
         // Update the temp message with database response
         setMessages(prev => {
           return prev.map(msg => {
             if (msg.messageKey === tempMessage.messageKey) {
-              console.log('🔄 API: Updating temp message with database data:', data.message);
               return {
                 ...msg, // Keep existing message data
                 id: data.message.id, // Use database ID
@@ -199,7 +195,6 @@ export function useChat(conversationId) {
 
     // Message events
     const handleNewMessage = (message) => {
-      console.log('Received socket message:', message); // Debug log
       setMessages(prev => {
         // For messages sent by current user, check if we have a temp message with same content
         if (message.senderId === session?.user?.id) {
@@ -211,7 +206,6 @@ export function useChat(conversationId) {
           );
 
           if (tempMessageIndex !== -1) {
-            console.log('🔄 Socket: Replacing temp message with socket message:', message);
             const newMessages = [...prev];
             newMessages[tempMessageIndex] = {
               ...message,
@@ -225,7 +219,6 @@ export function useChat(conversationId) {
 
           // If no temp message found, skip this socket message for current user
           // (it will be handled by API response)
-          console.log('Skipping socket message from current user (no temp message found):', message);
           return prev;
         }
 
@@ -243,18 +236,15 @@ export function useChat(conversationId) {
         });
 
         if (exists) {
-          console.log('Message already exists, skipping:', message); // Debug log
           return prev;
         }
 
-        console.log('Adding new socket message from other user:', message); // Debug log
         const newMessage = {
           ...message,
           status: 'received',
           timestamp: new Date(message.timestamp || message.createdAt),
           content: message.content || message.text || '[Message received]'
         };
-        console.log('Processed message:', newMessage); // Debug log
         return [...prev, newMessage];
       });
     };
@@ -287,7 +277,6 @@ export function useChat(conversationId) {
 
     // Test: Listen for any event to see if socket is working
     socket.onAny((eventName, ...args) => {
-      console.log('Socket received event:', eventName, args); // Debug log
     });
 
     // Cleanup

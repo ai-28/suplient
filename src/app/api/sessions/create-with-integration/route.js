@@ -25,8 +25,6 @@ export async function POST(request) {
         let integrationPlatform = 'none';
 
         for (const platform of platforms) {
-            console.log('🎯 Processing platform:', platform);
-            console.log('🎯 Coach ID:', coachId);
 
             try {
                 const integration = await integrationRepo.getCoachIntegration(coachId, platform);
@@ -57,7 +55,6 @@ export async function POST(request) {
                         password: meetingResult.password || null,
                         data: meetingResult
                     };
-                    console.log(`✅ ${platform} meeting created successfully:`, meetingResult);
                 } else {
                     results[platform] = {
                         success: false,
@@ -86,7 +83,6 @@ export async function POST(request) {
                         "updatedAt" = NOW()
                     WHERE id = ${sessionId}
                 `;
-                console.log('✅ Session updated with meeting link:', meetingLink);
             } catch (updateError) {
                 console.error('❌ Error updating session with meeting link:', updateError);
             }

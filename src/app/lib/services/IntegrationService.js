@@ -14,14 +14,12 @@ export class GoogleCalendarService {
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
 
         if (expiresAt <= fiveMinutesFromNow) {
-            console.log('🔄 Google Calendar token expired or expiring soon, refreshing...');
             await this.refreshAccessToken();
         }
     }
 
     async refreshAccessToken() {
         try {
-            console.log('🔄 Refreshing Google Calendar access token...');
 
             const response = await fetch('https://oauth2.googleapis.com/token', {
                 method: 'POST',
@@ -42,7 +40,6 @@ export class GoogleCalendarService {
 
                 // If refresh token is invalid, mark integration as inactive
                 if (errorData.error === 'invalid_grant') {
-                    console.log('🔄 Invalid refresh token, marking Google Calendar integration as inactive');
                     const { integrationRepo } = await import('@/app/lib/db/integrationSchema');
                     await integrationRepo.deactivateIntegration(this.integration.coachId, 'google_calendar');
                 }
@@ -53,7 +50,6 @@ export class GoogleCalendarService {
             const tokenData = await response.json();
             const { access_token, expires_in } = tokenData;
 
-            console.log('🔄 Google Calendar token data:', { access_token: !!access_token, expires_in });
 
             // Validate token data
             if (!access_token) {
@@ -69,7 +65,6 @@ export class GoogleCalendarService {
             this.accessToken = access_token;
             this.tokenExpiresAt = new Date(Date.now() + expires_in * 1000);
 
-            console.log('🔄 Google Calendar token expires at:', this.tokenExpiresAt.toISOString());
 
             // Update in database
             const { integrationRepo } = await import('@/app/lib/db/integrationSchema');
@@ -79,7 +74,6 @@ export class GoogleCalendarService {
                 this.tokenExpiresAt
             );
 
-            console.log('✅ Google Calendar token refreshed successfully');
             return {
                 accessToken: access_token,
                 expiresAt: this.tokenExpiresAt,
@@ -95,9 +89,6 @@ export class GoogleCalendarService {
         try {
             await this.ensureValidToken();
 
-            console.log('📅 Creating Google Calendar event:', eventData);
-            console.log('📧 Attendees for Google Calendar:', eventData.attendees);
-            console.log('⏰ Reminder settings:', eventData.integrationSettings);
 
             // Format the event data for Google Calendar API
             const startDateTime = new Date(`${eventData.sessionDate}T${eventData.sessionTime}:00`);
@@ -114,7 +105,6 @@ export class GoogleCalendarService {
                 reminderTimeMinutes = parseInt(reminderTimeValue);
             }
 
-            console.log(`⏰ Using reminder time: ${reminderTimeMinutes} minutes + 10 minutes popup`);
 
             const googleEvent = {
                 summary: eventData.title || 'Session',
@@ -158,7 +148,6 @@ export class GoogleCalendarService {
                 guestsCanSeeOtherGuests: true
             };
 
-            console.log('📅 Google Calendar event structure:', JSON.stringify(googleEvent, null, 2));
 
             const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all', {
                 method: 'POST',
@@ -175,7 +164,6 @@ export class GoogleCalendarService {
 
                 // If it's an auth error, try refreshing token once more
                 if (response.status === 401) {
-                    console.log('🔄 Auth error, attempting token refresh...');
                     await this.refreshAccessToken();
 
                     // Retry the request
@@ -198,8 +186,7 @@ export class GoogleCalendarService {
                     }
 
                     const retryResult = await retryResponse.json();
-                    console.log('✅ Google Calendar event created successfully (retry):', retryResult.id);
-                    console.log('📧 Email invitations sent to attendees (retry):', retryResult.attendees?.map(a => a.email) || []);
+
                     return this.formatEventResponse(retryResult);
                 }
 
@@ -210,15 +197,6 @@ export class GoogleCalendarService {
             }
 
             const result = await response.json();
-            console.log('✅ Google Calendar event created successfully:', result.id);
-            console.log('📧 Email invitations sent to attendees:', result.attendees?.map(a => a.email) || []);
-            console.log('📧 Event details:', {
-                id: result.id,
-                summary: result.summary,
-                attendees: result.attendees,
-                conferenceData: result.conferenceData,
-                htmlLink: result.htmlLink
-            });
 
             return this.formatEventResponse(result);
         } catch (error) {
@@ -244,8 +222,6 @@ export class GoogleCalendarService {
     async updateEvent(eventId, eventData) {
         try {
             await this.ensureValidToken();
-
-            console.log('📅 Updating Google Calendar event:', eventId, eventData);
 
             const startDateTime = new Date(`${eventData.sessionDate}T${eventData.sessionTime}:00`);
             const endDateTime = new Date(startDateTime.getTime() + (eventData.duration || 60) * 60 * 1000);
@@ -287,7 +263,6 @@ export class GoogleCalendarService {
             }
 
             const result = await response.json();
-            console.log('✅ Google Calendar event updated successfully');
 
             return {
                 success: true,
@@ -308,7 +283,6 @@ export class GoogleCalendarService {
         try {
             await this.ensureValidToken();
 
-            console.log('🗑️ Deleting Google Calendar event:', eventId);
 
             const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
                 method: 'DELETE',
@@ -326,7 +300,6 @@ export class GoogleCalendarService {
                 };
             }
 
-            console.log('✅ Google Calendar event deleted successfully');
             return {
                 success: true,
                 eventId
@@ -417,7 +390,6 @@ export class GoogleCalendarService {
             }
 
             if (!eventToUpdate) {
-                console.log('❌ No existing calendar event found to update');
                 throw new Error('No existing calendar event found to update. Please check if the original meeting was created properly.');
             }
 
@@ -463,7 +435,6 @@ export class GoogleCalendarService {
             }
 
             const updatedEventData = await updateResponse.json();
-            console.log('✅ Google Calendar event updated successfully');
 
             return {
                 success: true,
@@ -493,14 +464,12 @@ export class ZoomService {
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
 
         if (expiresAt <= fiveMinutesFromNow) {
-            console.log('🔄 Zoom token expired or expiring soon, refreshing...');
             await this.refreshAccessToken();
         }
     }
 
     async refreshAccessToken() {
         try {
-            console.log('🔄 Refreshing Zoom access token...');
 
             const response = await fetch('https://zoom.us/oauth/token', {
                 method: 'POST',
@@ -521,7 +490,6 @@ export class ZoomService {
 
                 // If refresh token is invalid, mark integration as inactive
                 if (errorData.error === 'invalid_grant') {
-                    console.log('🔄 Invalid refresh token, marking Zoom integration as inactive');
                     const { integrationRepo } = await import('@/app/lib/db/integrationSchema');
                     await integrationRepo.deactivateIntegration(this.integration.coachId, 'zoom');
                 }
@@ -532,7 +500,6 @@ export class ZoomService {
             const tokenData = await response.json();
             const { access_token, expires_in } = tokenData;
 
-            console.log('🔄 Zoom token data:', { access_token: !!access_token, expires_in });
 
             // Validate token data
             if (!access_token) {
@@ -558,7 +525,6 @@ export class ZoomService {
                 this.tokenExpiresAt
             );
 
-            console.log('✅ Zoom token refreshed successfully');
             return {
                 accessToken: access_token,
                 expiresAt: this.tokenExpiresAt,
@@ -574,15 +540,9 @@ export class ZoomService {
         try {
             await this.ensureValidToken();
 
-            console.log('📹 Creating Zoom meeting:', meetingData);
-            console.log('📹 Zoom access token:', this.accessToken ? 'Present' : 'Missing');
-            console.log('📹 Zoom refresh token:', this.refreshToken ? 'Present' : 'Missing');
 
             const startDateTime = new Date(`${meetingData.sessionDate}T${meetingData.sessionTime}:00`);
             const duration = meetingData.duration || 60;
-
-            console.log('📹 Meeting start time:', startDateTime.toISOString());
-            console.log('📹 Meeting duration:', duration);
 
             const zoomMeeting = {
                 topic: meetingData.title || 'Session',
@@ -621,8 +581,6 @@ export class ZoomService {
                 })
             };
 
-            console.log('📹 Zoom meeting payload:', JSON.stringify(zoomMeeting, null, 2));
-
             const response = await fetch('https://api.zoom.us/v2/users/me/meetings', {
                 method: 'POST',
                 headers: {
@@ -631,8 +589,6 @@ export class ZoomService {
                 },
                 body: JSON.stringify(zoomMeeting),
             });
-
-            console.log('📹 Zoom API response status:', response.status);
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -673,7 +629,6 @@ export class ZoomService {
             }
 
             const result = await response.json();
-            console.log('✅ Zoom meeting created successfully:', result.id);
 
             // Send calendar invitations to attendees (Gmail API not working, so use calendar only)
             if (meetingData.attendees && meetingData.attendees.length > 0) {
@@ -684,7 +639,6 @@ export class ZoomService {
                         meetingId: result.id
                     });
                     if (calendarResult.success) {
-                        console.log('✅ Calendar invitations sent to attendees');
                     } else {
                         console.log('⚠️ Calendar invitation failed:', calendarResult.error);
                     }
@@ -717,7 +671,6 @@ export class ZoomService {
 
     async sendMeetingInvitations(meetingId, attendees, meetingData) {
         try {
-            console.log('📧 Attempting to send Zoom meeting invitations via Gmail to:', attendees);
 
             // Get Google Calendar integration for sending emails
             const { integrationRepo } = await import('../db/integrationSchema');
@@ -807,9 +760,7 @@ Your Coach
             if (emailsFailed > 0) {
                 console.log(`⚠️ ${emailsFailed} email invitation(s) failed (Gmail API not enabled)`);
             }
-            console.log('📅 Calendar invitations are sent separately via createCalendarEvent');
 
-            console.log('✅ Zoom meeting invitation process completed');
             return { success: true };
         } catch (error) {
             console.error('❌ Error sending Zoom invitations:', error);
@@ -819,19 +770,12 @@ Your Coach
 
     async createCalendarEvent(meetingData) {
         try {
-            console.log('📅 Creating calendar event for Zoom meeting - START');
-            console.log('📅 Meeting data:', {
-                title: meetingData.title,
-                attendees: meetingData.attendees?.length || 0,
-                meetingLink: meetingData.meetingLink
-            });
 
             // Get Google Calendar integration for the coach
             const { integrationRepo } = await import('../db/integrationSchema');
             const googleIntegration = await integrationRepo.getCoachIntegration(meetingData.coachId, 'google_calendar');
 
             if (!googleIntegration || !googleIntegration.isActive) {
-                console.log('⚠️ No Google Calendar integration found, skipping calendar event creation');
                 return { success: false, error: 'No Google Calendar integration' };
             }
 
@@ -848,7 +792,6 @@ Your Coach
             const calendarResult = await googleService.createEvent(calendarEventData);
 
             if (calendarResult.success) {
-                console.log('✅ Calendar event created for Zoom meeting - END');
                 return calendarResult;
             } else {
                 console.error('❌ Failed to create calendar event:', calendarResult.error);
@@ -863,8 +806,6 @@ Your Coach
     async updateMeeting(meetingId, meetingData) {
         try {
             await this.ensureValidToken();
-
-            console.log('📹 Updating Zoom meeting:', meetingId, meetingData);
 
             const startDateTime = new Date(`${meetingData.sessionDate}T${meetingData.sessionTime}:00`);
             const duration = meetingData.duration || 60;
@@ -895,8 +836,6 @@ Your Coach
                 };
             }
 
-            console.log('✅ Zoom meeting updated successfully');
-
             return {
                 success: true,
                 meetingId: meetingId,
@@ -917,8 +856,6 @@ Your Coach
         try {
             await this.ensureValidToken();
 
-            console.log('🗑️ Deleting Zoom meeting:', meetingId);
-
             const response = await fetch(`https://api.zoom.us/v2/meetings/${meetingId}`, {
                 method: 'DELETE',
                 headers: {
@@ -935,7 +872,6 @@ Your Coach
                 };
             }
 
-            console.log('✅ Zoom meeting deleted successfully');
             return {
                 success: true,
                 meetingId
@@ -980,16 +916,8 @@ Your Coach
             }
 
             if (!meetingId) {
-                console.log('⚠️ No meeting ID found, creating new meeting');
                 return await this.createMeeting(meetingData);
             }
-
-            // Prepare meeting update data
-            console.log('🔄 Zoom update meeting data validation:', {
-                sessionDate: meetingData.sessionDate,
-                sessionTime: meetingData.sessionTime,
-                duration: meetingData.duration
-            });
 
             // Validate and format the date/time
             let startDateTime;
@@ -1014,7 +942,6 @@ Your Coach
                     throw new Error(`Invalid date/time: ${meetingData.sessionDate} ${meetingData.sessionTime}`);
                 }
 
-                console.log('🔄 Parsed startDateTime:', startDateTime.toISOString());
             } catch (dateError) {
                 console.error('❌ Date parsing error:', dateError);
                 throw new Error(`Invalid date/time format: ${meetingData.sessionDate} ${meetingData.sessionTime}`);
@@ -1051,10 +978,6 @@ Your Coach
                 }
             };
 
-            console.log('🚨🚨🚨 ZOOM API UPDATE CALL 🚨🚨🚨');
-            console.log('🚨 Meeting ID:', meetingId);
-            console.log('🚨 Update payload:', JSON.stringify(updateData, null, 2));
-            console.log('🚨 Access token (first 20 chars):', this.accessToken?.substring(0, 20));
 
             const response = await fetch(`https://api.zoom.us/v2/meetings/${meetingId}`, {
                 method: 'PATCH',
@@ -1065,8 +988,6 @@ Your Coach
                 body: JSON.stringify(updateData),
             });
 
-            console.log('🚨 Zoom API response status:', response.status);
-            console.log('🚨 Zoom API response headers:', Object.fromEntries(response.headers.entries()));
 
             if (!response.ok) {
                 let errorData;
@@ -1085,23 +1006,19 @@ Your Coach
             let result;
             try {
                 const responseText = await response.text();
-                console.log('🔄 Zoom API response:', responseText);
                 result = responseText ? JSON.parse(responseText) : {};
             } catch (parseError) {
                 console.error('❌ Failed to parse Zoom success response:', parseError);
                 throw new Error('Failed to parse Zoom API response');
             }
-            console.log('✅ Zoom meeting updated successfully:', result);
 
             // Update Google Calendar event with new meeting details
-            console.log('🔄 Updating Google Calendar event for Zoom meeting');
             try {
                 // Get Google Calendar integration for the coach
                 const { integrationRepo } = await import('../db/integrationSchema');
                 const googleIntegration = await integrationRepo.getCoachIntegration(meetingData.coachId, 'google_calendar');
 
                 if (!googleIntegration || !googleIntegration.isActive) {
-                    console.log('⚠️ No Google Calendar integration found, skipping calendar event update');
                 } else {
                     // Create Google Calendar service instance
                     const googleService = new GoogleCalendarService(googleIntegration);
@@ -1152,14 +1069,12 @@ export class TeamsService {
         const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
 
         if (expiresAt <= fiveMinutesFromNow) {
-            console.log('🔄 Teams token expired or expiring soon, refreshing...');
             await this.refreshAccessToken();
         }
     }
 
     async refreshAccessToken() {
         try {
-            console.log('🔄 Refreshing Teams access token...');
 
             const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
                 method: 'POST',
@@ -1184,8 +1099,6 @@ export class TeamsService {
             const tokenData = await response.json();
             const { access_token, expires_in } = tokenData;
 
-            console.log('🔄 Teams token data:', { access_token: !!access_token, expires_in });
-
             // Validate token data
             if (!access_token) {
                 throw new Error('No access token received from Teams');
@@ -1200,8 +1113,6 @@ export class TeamsService {
             this.accessToken = access_token;
             this.tokenExpiresAt = new Date(Date.now() + expires_in * 1000);
 
-            console.log('🔄 Teams token expires at:', this.tokenExpiresAt.toISOString());
-
             // Update in database
             const { integrationRepo } = await import('@/app/lib/db/integrationSchema');
             await integrationRepo.updateIntegrationToken(
@@ -1210,7 +1121,6 @@ export class TeamsService {
                 this.tokenExpiresAt
             );
 
-            console.log('✅ Teams token refreshed successfully');
             return {
                 accessToken: access_token,
                 expiresAt: this.tokenExpiresAt,
@@ -1226,7 +1136,6 @@ export class TeamsService {
         try {
             await this.ensureValidToken();
 
-            console.log('📹 Creating Teams meeting:', meetingData);
 
             const startDateTime = new Date(`${meetingData.sessionDate}T${meetingData.sessionTime}:00`);
             const endDateTime = new Date(startDateTime.getTime() + (meetingData.duration || 60) * 60 * 1000);
@@ -1264,7 +1173,6 @@ export class TeamsService {
 
                 // If it's an auth error, try refreshing token once more
                 if (response.status === 401) {
-                    console.log('🔄 Auth error, attempting token refresh...');
                     await this.refreshAccessToken();
 
                     // Retry the request
@@ -1297,13 +1205,11 @@ export class TeamsService {
             }
 
             const result = await response.json();
-            console.log('✅ Teams meeting created successfully:', result.id);
 
             // Send email invitations to attendees
             if (meetingData.attendees && meetingData.attendees.length > 0) {
                 try {
                     await this.sendMeetingInvitations(result.id, meetingData.attendees, meetingData);
-                    console.log('✅ Teams meeting invitations sent to attendees');
                 } catch (inviteError) {
                     console.error('❌ Error sending Teams invitations:', inviteError);
                     // Don't fail the entire operation if invitations fail
@@ -1336,11 +1242,9 @@ export class TeamsService {
 
     async sendMeetingInvitations(meetingId, attendees, meetingData) {
         try {
-            console.log('📧 Sending Teams meeting invitations to:', attendees);
 
             // Teams automatically sends invitations when attendees are included in the meeting creation
             // But we can also send additional invitations via the calendar event
-            console.log('✅ Teams invitations handled via calendar integration');
             return { success: true };
         } catch (error) {
             console.error('❌ Error sending Teams invitations:', error);
@@ -1350,14 +1254,12 @@ export class TeamsService {
 
     async createCalendarEvent(meetingData) {
         try {
-            console.log('📅 Creating calendar event for Teams meeting');
 
             // Get Google Calendar integration for the coach
             const { integrationRepo } = await import('../db/integrationSchema');
             const googleIntegration = await integrationRepo.getCoachIntegration(meetingData.coachId, 'google_calendar');
 
             if (!googleIntegration || !googleIntegration.isActive) {
-                console.log('⚠️ No Google Calendar integration found, skipping calendar event creation');
                 return { success: false, error: 'No Google Calendar integration' };
             }
 
@@ -1374,7 +1276,6 @@ export class TeamsService {
             const calendarResult = await googleService.createEvent(calendarEventData);
 
             if (calendarResult.success) {
-                console.log('✅ Calendar event created for Teams meeting');
                 return calendarResult;
             } else {
                 console.error('❌ Failed to create calendar event:', calendarResult.error);
@@ -1389,8 +1290,6 @@ export class TeamsService {
     async updateMeeting(meetingId, meetingData) {
         try {
             await this.ensureValidToken();
-
-            console.log('📹 Updating Teams meeting:', meetingId, meetingData);
 
             const startDateTime = new Date(`${meetingData.sessionDate}T${meetingData.sessionTime}:00`);
             const endDateTime = new Date(startDateTime.getTime() + (meetingData.duration || 60) * 60 * 1000);
@@ -1420,7 +1319,6 @@ export class TeamsService {
             }
 
             const result = await response.json();
-            console.log('✅ Teams meeting updated successfully');
 
             return {
                 success: true,
@@ -1442,8 +1340,6 @@ export class TeamsService {
         try {
             await this.ensureValidToken();
 
-            console.log('🗑️ Deleting Teams meeting:', meetingId);
-
             const response = await fetch(`https://graph.microsoft.com/v1.0/me/onlineMeetings/${meetingId}`, {
                 method: 'DELETE',
                 headers: {
@@ -1460,7 +1356,6 @@ export class TeamsService {
                 };
             }
 
-            console.log('✅ Teams meeting deleted successfully');
             return {
                 success: true,
                 meetingId
@@ -1476,7 +1371,6 @@ export class TeamsService {
 
     async updateMeeting(meetingData, existingMeetingLink) {
         try {
-            console.log('🔄 Updating Teams meeting:', meetingData);
 
             await this.ensureValidToken();
 
@@ -1491,16 +1385,8 @@ export class TeamsService {
             }
 
             if (!meetingId) {
-                console.log('⚠️ No meeting ID found in existing link, creating new meeting');
                 return await this.createMeeting(meetingData);
             }
-
-            // Prepare meeting update data
-            console.log('🔄 Teams update meeting data validation:', {
-                sessionDate: meetingData.sessionDate,
-                sessionTime: meetingData.sessionTime,
-                duration: meetingData.duration
-            });
 
             // Validate and format the date/time
             let startDateTime, endDateTime;
@@ -1509,11 +1395,9 @@ export class TeamsService {
                 if (meetingData.sessionDate.includes('T')) {
                     // sessionDate is already a full ISO string, use it directly
                     startDateTime = new Date(meetingData.sessionDate);
-                    console.log('🔄 Using sessionDate directly as ISO string:', meetingData.sessionDate);
                 } else {
                     // sessionDate is just a date, combine with sessionTime
                     const dateTimeString = `${meetingData.sessionDate}T${meetingData.sessionTime}`;
-                    console.log('🔄 Creating date from string:', dateTimeString);
                     startDateTime = new Date(dateTimeString);
                 }
 
@@ -1522,8 +1406,6 @@ export class TeamsService {
                 }
 
                 endDateTime = new Date(startDateTime.getTime() + (meetingData.duration || 60) * 60 * 1000);
-                console.log('🔄 Parsed startDateTime:', startDateTime.toISOString());
-                console.log('🔄 Parsed endDateTime:', endDateTime.toISOString());
             } catch (dateError) {
                 console.error('❌ Date parsing error:', dateError);
                 throw new Error(`Invalid date/time format: ${meetingData.sessionDate} ${meetingData.sessionTime}`);
@@ -1544,7 +1426,6 @@ export class TeamsService {
                 }
             };
 
-            console.log('🔄 Teams meeting update payload:', updateData);
 
             const response = await fetch(`https://graph.microsoft.com/v1.0/me/onlineMeetings/${meetingId}`, {
                 method: 'PATCH',
@@ -1562,7 +1443,6 @@ export class TeamsService {
             }
 
             const result = await response.json();
-            console.log('✅ Teams meeting updated successfully:', result);
 
             // Send updated invitations
             if (meetingData.attendees && meetingData.attendees.length > 0) {
