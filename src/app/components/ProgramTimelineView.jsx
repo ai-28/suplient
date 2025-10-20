@@ -55,6 +55,11 @@ export function ProgramTimelineView({
   const isElementCurrent = (element) => {
     // Calculate scheduled day from week and day
     const scheduledDay = (element.week - 1) * 7 + element.day;
+    console.log('Element:', element);
+    console.log('Element week:', element.week, 'Element day:', element.day);
+    console.log('Scheduled day calculation:', scheduledDay);
+    console.log('Current day:', progress?.currentDay);
+    console.log('Is current?', scheduledDay <= progress?.currentDay);
     return scheduledDay <= progress?.currentDay;
   };
 
@@ -272,24 +277,30 @@ export function ProgramTimelineView({
                             </div>
                             
                             <div className="flex-shrink-0">
-                              {!isCompleted && status === 'current' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleMarkComplete(element?.id)}
-                                  disabled={completingElementId === element?.id}
-                                  className="text-xs"
-                                >
-                                  {completingElementId === element?.id ? (
-                                    <>
-                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                      Completing...
-                                    </>
-                                  ) : (
-                                    'Mark Complete'
-                                  )}
-                                </Button>
-                              )}
+                              {(() => {
+                                console.log('Button rendering for element:', element?.id);
+                                console.log('isCompleted:', isCompleted);
+                                console.log('status:', status);
+                                console.log('Should show button?', !isCompleted && status === 'current');
+                                return !isCompleted && status === 'current' && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleMarkComplete(element?.id)}
+                                    disabled={completingElementId === element?.id}
+                                    className="text-xs"
+                                  >
+                                    {completingElementId === element?.id ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                        Completing...
+                                      </>
+                                    ) : (
+                                      'Mark Complete'
+                                    )}
+                                  </Button>
+                                );
+                              })()}
                             </div>
                           </div>
                         );

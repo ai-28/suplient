@@ -165,43 +165,71 @@ export default function Tasks() {
     };
   }, [personalTasks, clientTasks, groupTasks]);
 
-  // Dynamic chart data based on active tab
+  // Generate real chart data based on actual tasks
+  const generateChartData = (tasks) => {
+    const today = new Date();
+    const months = [];
+    
+    // Generate last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      months.push({
+        month: monthName,
+        completed: 0,
+        pending: 0,
+        overdue: 0
+      });
+    }
+
+    // Count tasks by month and status
+    tasks.forEach(task => {
+      if (!task.createdAt) return;
+      
+      const taskDate = new Date(task.createdAt);
+      const monthIndex = months.findIndex(m => {
+        const monthDate = new Date(taskDate.getFullYear(), taskDate.getMonth(), 1);
+        const chartMonthDate = new Date(today.getFullYear(), today.getMonth() - (5 - months.indexOf(m)), 1);
+        return monthDate.getTime() === chartMonthDate.getTime();
+      });
+      
+      if (monthIndex === -1) return;
+      
+      const taskStatus = getTaskStatus(task);
+      
+      if (task.status === 'completed') {
+        months[monthIndex].completed++;
+      } else if (taskStatus.label === 'Overdue') {
+        months[monthIndex].overdue++;
+      } else {
+        months[monthIndex].pending++;
+      }
+    });
+
+    return months;
+  };
+
+  // Dynamic chart data based on active tab using real data
   const getChartData = () => {
+    let chartData;
     switch (activeTab) {
       case 'client-tasks':
-        return [
-          { month: "Sep", completed: 12, pending: 8, overdue: 1 },
-          { month: "Oct", completed: 15, pending: 10, overdue: 2 },
-          { month: "Nov", completed: 18, pending: 12, overdue: 1 },
-          { month: "Dec", completed: 22, pending: 14, overdue: 3 },
-          { month: "Jan", completed: 25, pending: 16, overdue: 2 }
-        ];
+        chartData = generateChartData(clientTasks);
+        break;
       case 'my-tasks':
-        return [
-          { month: "Sep", completed: 20, pending: 5, overdue: 1 },
-          { month: "Oct", completed: 24, pending: 6, overdue: 2 },
-          { month: "Nov", completed: 28, pending: 7, overdue: 2 },
-          { month: "Dec", completed: 32, pending: 6, overdue: 2 },
-          { month: "Jan", completed: 35, pending: 7, overdue: 3 }
-        ];
+        chartData = generateChartData(personalTasks);
+        break;
       case 'group-tasks':
-        return [
-          { month: "Sep", completed: 13, pending: 2, overdue: 1 },
-          { month: "Oct", completed: 13, pending: 2, overdue: 1 },
-          { month: "Nov", completed: 14, pending: 1, overdue: 1 },
-          { month: "Dec", completed: 14, pending: 2, overdue: 1 },
-          { month: "Jan", completed: 15, pending: 2, overdue: 3 }
-        ];
+        chartData = generateChartData(groupTasks);
+        break;
       default:
         // Overall combined data
-        return [
-          { month: "Sep", completed: 45, pending: 15, overdue: 3 },
-          { month: "Oct", completed: 52, pending: 18, overdue: 5 },
-          { month: "Nov", completed: 60, pending: 20, overdue: 4 },
-          { month: "Dec", completed: 68, pending: 22, overdue: 6 },
-          { month: "Jan", completed: 75, pending: 25, overdue: 8 }
-        ];
+        chartData = generateChartData([...personalTasks, ...clientTasks, ...groupTasks]);
+        break;
     }
+    
+    console.log(`📊 Chart data for ${activeTab}:`, chartData);
+    return chartData;
   };
 
   const getChartTitle = () => {
@@ -243,10 +271,14 @@ export default function Tasks() {
 
   const handleTaskStatusChange = async (taskId, currentStatus) => {
     try {
+      console.log('🔄 Updating task status:', { taskId, currentStatus });
       const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+      console.log('📝 New status will be:', newStatus);
+      
       await updateTaskStatus(taskId, newStatus);
+      console.log('✅ Task status updated successfully');
     } catch (error) {
-      console.error('Error updating task status:', error);
+      console.error('❌ Error updating task status:', error);
       // You could add a toast notification here to show the error to the user
     }
   };
@@ -429,46 +461,53 @@ export default function Tasks() {
                   ) : (
                     filteredClientTasks.map((task) => {
                       const status = getTaskStatus(task);
+                      console.log('📋 Rendering client task:', { id: task.id, title: task.title, status: task.status, completed: task.status === 'completed' });
                       
                       return (
                         <div 
                           key={task.id} 
-                          className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
+                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
                         >
-                          <div className="flex items-center gap-3 flex-1">
-                            <Avatar className="h-9 w-9">
-                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                                {task.clientId ? task.clientId.slice(0, 2).toUpperCase() : 'CL'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="text-sm font-medium text-foreground">Client Task</p>
-                              </div>
-                              <p className="text-sm text-muted-foreground truncate">{task.title}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs text-muted-foreground">{formatTaskDueDate(task.dueDate)}</span>
-                                <Badge variant={status.variant} className="text-xs h-4 px-1.5">
-                                  {status.label}
-                                </Badge>
-                              </div>
+                          <Checkbox 
+                            id={`client-task-${task.id}`} 
+                            checked={task.status === 'completed'}
+                            onCheckedChange={() => handleTaskStatusChange(task.id, task.status)}
+                            className="transition-transform hover:scale-110"
+                          />
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                              {task.clientId ? task.clientId.slice(0, 2).toUpperCase() : 'CL'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <label 
+                                htmlFor={`client-task-${task.id}`} 
+                                className={`text-sm font-medium cursor-pointer transition-all ${
+                                  task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
+                                }`}
+                              >
+                                Client Task
+                              </label>
+                            </div>
+                            <p className={`text-sm truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                              {task.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-muted-foreground">{formatTaskDueDate(task.dueDate)}</span>
+                              <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                                {status.label}
+                              </Badge>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {task.status === 'completed' ? (
-                              <CircleCheck className="h-5 w-5 text-success" />
-                            ) : (
-                              <Circle className="h-5 w-5 text-info" />
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="h-8 w-8 p-0 hover-scale"
-                              onClick={() => handleEditTask(task)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0 hover-scale"
+                            onClick={() => handleEditTask(task)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         </div>
                       );
                     })
@@ -544,6 +583,7 @@ export default function Tasks() {
                   ) : (
                     filteredMyTasks.map((task) => {
                       const status = getTaskStatus(task);
+                      console.log('📋 Rendering task:', { id: task.id, title: task.title, status: task.status, completed: task.status === 'completed' });
                       
                       return (
                         <div 
@@ -657,44 +697,51 @@ export default function Tasks() {
                   ) : (
                     filteredGroupTasks.map((task) => {
                       const status = getTaskStatus(task);
+                      console.log('📋 Rendering group task:', { id: task.id, title: task.title, status: task.status, completed: task.status === 'completed' });
                       
                       return (
                         <div 
                           key={task.id} 
-                          className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
+                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
                         >
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
-                              <UsersRound className="h-4 w-4 text-secondary-foreground" />
+                          <Checkbox 
+                            id={`group-task-${task.id}`} 
+                            checked={task.status === 'completed'}
+                            onCheckedChange={() => handleTaskStatusChange(task.id, task.status)}
+                            className="transition-transform hover:scale-110"
+                          />
+                          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
+                            <UsersRound className="h-4 w-4 text-secondary-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <label 
+                                htmlFor={`group-task-${task.id}`} 
+                                className={`text-sm font-medium cursor-pointer transition-all ${
+                                  task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
+                                }`}
+                              >
+                                Group Task
+                              </label>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="text-sm font-medium text-foreground">Group Task</p>
-                              </div>
-                              <p className="text-sm text-muted-foreground truncate">{task.title}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</span>
-                                <Badge variant={status.variant} className="text-xs h-4 px-1.5">
-                                  {status.label}
-                                </Badge>
-                              </div>
+                            <p className={`text-sm truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                              {task.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</span>
+                              <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                                {status.label}
+                              </Badge>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {task.status === 'completed' ? (
-                              <CircleCheck className="h-5 w-5 text-success" />
-                            ) : (
-                              <Circle className="h-5 w-5 text-info" />
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="h-8 w-8 p-0 hover-scale"
-                              onClick={() => handleEditTask(task)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0 hover-scale"
+                            onClick={() => handleEditTask(task)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         </div>
                       );
                     })

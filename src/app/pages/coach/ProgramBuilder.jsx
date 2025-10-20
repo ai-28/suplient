@@ -179,6 +179,7 @@ export default function ProgramBuilder() {
       <ProgramFlowChart 
         elements={elements} 
         duration={formData.duration}
+        forceCloseDropdowns={addElementDialog.open}
         onElementClick={(element) => {
           // Optional: Handle element clicks if needed
         }}

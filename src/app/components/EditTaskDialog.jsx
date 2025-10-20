@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/app/lib/utils";
 import { Button } from "@/app/components/ui/button";
@@ -250,7 +251,8 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }) {
               </Button>
               <Button 
                 type="submit"
-                className="bg-gradient-primary text-white shadow-medium hover:shadow-strong transition-all"
+                variant="outline"
+                className="bg-gradient-primary text-black shadow-medium hover:shadow-strong transition-all"
               >
                 Update Task
               </Button>

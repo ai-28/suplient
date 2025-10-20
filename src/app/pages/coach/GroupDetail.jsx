@@ -303,20 +303,22 @@ console.log(groupProgressData)
             </TabsList>
           </div>
 
-          <TabsContent value="overview" className="px-6 py-4">
-            <div className="grid grid-cols-1 lg:grid-cols-[30%_40%_30%] gap-6 h-full">
+          <TabsContent value="overview" className="px-6 py-4 flex-1">
+            <div className="grid grid-cols-1 lg:grid-cols-[30%_40%_30%] gap-6 h-full min-h-[calc(100vh-200px)]">
               {/* Left Column */}
-              <div className="space-y-6">
+              <div className="flex flex-col space-y-6">
                 <GroupInfoPanel 
                   group={group} 
                   onSettings={handleGroupSettings}
                   onAddMember={handleAddMember}
                 />
-                <GroupTasksPanel groupId={group.id} memberCount={group.members} />
+                <div className="flex-1 flex flex-col">
+                  <GroupTasksPanel groupId={group.id} memberCount={group.members} />
+                </div>
               </div>
 
               {/* Center Column */}
-              <div className="space-y-6">
+              <div className="flex flex-col">
                 <GroupChatInterface 
                   groupId={group.id}
                   groupName={group.name}
@@ -326,9 +328,11 @@ console.log(groupProgressData)
               </div>
 
               {/* Right Column */}
-              <div className="space-y-6">
+              <div className="flex flex-col space-y-6">
                 <GroupNotesPanel groupId={group.id} />
-                <GroupFilesPanel groupId={group.id} />
+                <div className="flex-1 flex flex-col">
+                  <GroupFilesPanel groupId={group.id} />
+                </div>
               </div>
             </div>
           </TabsContent>

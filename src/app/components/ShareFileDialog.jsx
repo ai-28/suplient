@@ -132,15 +132,50 @@ export function ShareFileDialog({ file, files, onShare, children }) {
     try {
       const filesToShare = files || (file ? [file] : []);
       
+      // Debug: Log the file data structure
+      console.log('Files to share:', filesToShare);
+      console.log('File structure:', filesToShare.map(f => ({ id: f.id, title: f.title, url: f.url })));
+      
       // Share each file individually
       const sharePromises = filesToShare.map(async (fileItem) => {
+        console.log('Sharing file item:', fileItem);
+        
+        // Handle nested data structure from various APIs
+        let actualFileItem = fileItem;
+        const nestedTypes = ['image', 'article', 'video', 'sound', 'template', 'program'];
+        let foundNestedType = null;
+        
+        for (const type of nestedTypes) {
+          if (fileItem[type] && fileItem[type].id) {
+            foundNestedType = type;
+            break;
+          }
+        }
+        
+        if (foundNestedType) {
+          actualFileItem = {
+            ...fileItem[foundNestedType],
+            url: fileItem.url,
+            filename: fileItem.filename
+          };
+          console.log(`Using nested ${foundNestedType} data:`, actualFileItem);
+        }
+        
+        console.log('File item ID:', actualFileItem.id);
+        
+        // Check if file has required ID
+        if (!actualFileItem.id) {
+          console.error('File missing ID:', actualFileItem);
+          throw new Error(`File "${actualFileItem.title || 'Unknown'}" is missing required ID field. Please refresh the page and try again.`);
+        }
+        
         const response = await fetch('/api/resources/share', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            resourceId: fileItem.id,
+            resourceId: actualFileItem.id,
             clientIds: selectedClients,
             groupIds: selectedGroups,
             message: shareMessage
@@ -185,7 +220,13 @@ export function ShareFileDialog({ file, files, onShare, children }) {
       
     } catch (error) {
       console.error('Share error:', error);
-      toast.error(error.message || 'Failed to share files');
+      
+      // Provide more specific error messages
+      if (error.message.includes('missing required ID field')) {
+        toast.error('Some files cannot be shared due to missing data. Please refresh the page and try again.');
+      } else {
+        toast.error(error.message || 'Failed to share files');
+      }
     } finally {
       setSharing(false);
     }
@@ -299,7 +340,9 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium">{client.name}</p>
-                                <p className="text-sm text-muted-foreground">{client.email || 'No email'}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {client.email ? client.email : 'No email provided'}
+                                </p>
                               </div>
                               <div className="flex gap-2">
                                 <Badge variant={client.type?.toLowerCase() === "personal" ? "default" : "secondary"}>
@@ -369,8 +412,8 @@ export function ShareFileDialog({ file, files, onShare, children }) {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex flex-wrap gap-1">
-                  {(files || [file]).map((f) => (
-                    <Badge key={f.id} variant="outline">
+                  {(files || [file]).map((f, index) => (
+                    <Badge key={f.id || f.title || `file-${index}`} variant="outline">
                       {f.title}
                     </Badge>
                   ))}

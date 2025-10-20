@@ -177,6 +177,11 @@ export function AddElementDialog({
     onOpenChange(false);
   };
 
+  const handleCancel = () => {
+    resetDialog();
+    onOpenChange(false);
+  };
+
   const getElementTitle = () => {
     switch (elementType) {
       case 'content':
@@ -454,7 +459,7 @@ export function AddElementDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={(open) => { onOpenChange(open); if (!open) resetDialog(); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -472,7 +477,7 @@ export function AddElementDialog({
           {renderPreview()}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
             <Button onClick={handleAddElement} disabled={!isFormValid()}>

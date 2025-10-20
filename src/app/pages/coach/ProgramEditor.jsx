@@ -305,6 +305,7 @@ export default function ProgramEditor() {
           elements={elements} 
           duration={formData.duration}
           highlightedElementId={highlightedElementId}
+          forceCloseDropdowns={addElementDialog.open}
           onElementClick={handleEditElement}
           onAddElementToDay={handleAddElementToDay}
         />

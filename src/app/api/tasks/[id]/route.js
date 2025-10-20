@@ -52,9 +52,12 @@ export async function PUT(request, { params }) {
         const body = await request.json();
 
         // First check if task exists and user has permission
+        console.log('🔍 API: Getting task by ID:', taskId);
         const existingTask = await taskRepo.getTaskById(taskId);
+        console.log('📋 API: Existing task:', existingTask);
 
         if (!existingTask) {
+            console.log('❌ API: Task not found');
             return NextResponse.json({ error: 'Task not found' }, { status: 404 });
         }
 
@@ -63,7 +66,15 @@ export async function PUT(request, { params }) {
             existingTask.coachId === session.user.id ||
             session.user.role === 'admin';
 
+        console.log('🔐 API: Permission check:', {
+            taskCoachId: existingTask.coachId,
+            sessionUserId: session.user.id,
+            userRole: session.user.role,
+            canUpdate
+        });
+
         if (!canUpdate) {
+            console.log('❌ API: Forbidden - no permission to update task');
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
@@ -91,7 +102,9 @@ export async function PUT(request, { params }) {
         // Always update the updatedAt timestamp
         updateData.updatedAt = new Date();
 
+        console.log('📝 API: Update data:', updateData);
         const updatedTask = await taskRepo.updateTask(taskId, updateData);
+        console.log('✅ API: Task updated successfully:', updatedTask);
 
         return NextResponse.json({
             message: 'Task updated successfully',

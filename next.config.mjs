@@ -12,6 +12,24 @@ const nextConfig = {
         NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     },
     staticPageGenerationTimeout: 1000,
+    // Disable PWA-related warnings in development
+    webpack: (config, { dev, isServer }) => {
+        if (dev && !isServer) {
+            config.optimization = {
+                ...config.optimization,
+                splitChunks: {
+                    ...config.optimization.splitChunks,
+                    cacheGroups: {
+                        ...config.optimization.splitChunks.cacheGroups,
+                        // Prevent service worker from being regenerated multiple times
+                        default: false,
+                        vendors: false,
+                    },
+                },
+            };
+        }
+        return config;
+    },
     async headers() {
         return [
             {
@@ -41,8 +59,19 @@ const withPWA = withPWAInit({
     dest: 'public',
     register: true,
     skipWaiting: true,
-    disable: process.env.NODE_ENV === 'development' ? false : false, // Enable PWA in both dev and prod
+    disable: process.env.NODE_ENV === 'development', // Disable PWA in development
     buildExcludes: [/middleware-manifest\.json$/], // Exclude middleware from service worker
+    fallbacks: {
+        document: '/offline', // Fallback page for offline
+    },
+    publicExcludes: ['!robots.txt', '!sitemap.xml'], // Exclude these from precaching
+    reloadOnOnline: true, // Reload when back online
+    swcMinify: true, // Use SWC minification
+    workboxOptions: {
+        disableDevLogs: true, // Disable dev logs in production
+        cleanupOutdatedCaches: true, // Clean up old caches
+        clientsClaim: true, // Take control of all clients immediately
+    },
     runtimeCaching: [
         {
             urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
@@ -173,5 +202,5 @@ const withPWA = withPWAInit({
     ]
 });
 
-// Export the config wrapped with PWA support
-export default withPWA(nextConfig);
+// Export the config wrapped with PWA support (only in production)
+export default process.env.NODE_ENV === 'production' ? withPWA(nextConfig) : nextConfig;

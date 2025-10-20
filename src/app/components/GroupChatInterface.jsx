@@ -73,17 +73,19 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers 
   }
   
   return (
-    <UniversalChatInterface
-      chatId={conversationId}
-      chatType="group"
-      participantName={groupName}
-      participantInitials="GC"
-      currentUserId={session?.user?.id}
-      currentUserRole={session?.user?.role || "client"}
-      groupMembers={members}
-      activeMembers={activeMembers}
-      title={`${groupName} Chat`}
-      className="h-screen rounded-none border-none"
-    />
+    <div className="h-full flex flex-col">
+      <UniversalChatInterface
+        chatId={conversationId}
+        chatType="group"
+        participantName={groupName}
+        participantInitials="GC"
+        currentUserId={session?.user?.id}
+        currentUserRole={session?.user?.role || "client"}
+        groupMembers={members}
+        activeMembers={activeMembers}
+        title={`${groupName} Chat`}
+        className="h-full rounded-lg border border-border"
+      />
+    </div>
   );
 }

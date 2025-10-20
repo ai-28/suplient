@@ -2,6 +2,7 @@ import { sql } from "@/app/lib/db/postgresql";
 import { hashPasswordAsync } from "@/app/lib/auth/passwordUtils";
 import { getServerSession } from "next-auth";
 import authOptions from "@/app/lib/authoption";
+import { sendClientRegistrationEmail } from "@/app/lib/email";
 
 export async function POST(request) {
     try {
@@ -59,7 +60,12 @@ export async function POST(request) {
       VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${'personal'}, ${'active'}, ${referralSource}, ${concerns}, NOW(), NOW())
       RETURNING id, name, email
     `;
-
+        // Send welcome email for clients
+        await sendClientRegistrationEmail({
+            name: newUser.name,
+            email: newUser.email,
+            tempPassword: tempPassword
+        });
         // Create signup activity
         try {
             const { activityHelpers } = await import('@/app/lib/db/activitySchema');

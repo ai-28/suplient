@@ -48,6 +48,8 @@ export function useTasks() {
 
     const updateTaskStatus = async (taskId, newStatus) => {
         try {
+            console.log('🔄 useTasks: Updating task status:', { taskId, newStatus });
+
             const response = await fetch(`/api/tasks/${taskId}`, {
                 method: 'PUT',
                 headers: {
@@ -58,15 +60,23 @@ export function useTasks() {
                 }),
             });
 
+            console.log('📡 API Response status:', response.status);
+
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('❌ API Error:', errorData);
                 throw new Error(errorData.error || 'Failed to update task status');
             }
 
+            const result = await response.json();
+            console.log('✅ API Success:', result);
+
             // Refetch tasks to get updated data
+            console.log('🔄 Refetching tasks...');
             await fetchTasks();
+            console.log('✅ Tasks refetched successfully');
         } catch (error) {
-            console.error('Error updating task status:', error);
+            console.error('❌ Error updating task status:', error);
             throw error;
         }
     };

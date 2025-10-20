@@ -159,8 +159,8 @@ export function GroupFilesPanel({ groupId }) {
 
   return (
     <>
-      <Card className="shadow-soft border-border bg-card">
-        <CardHeader className="pb-3">
+      <Card className="shadow-soft border-border bg-card h-full flex flex-col">
+        <CardHeader className="pb-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             <CardTitle className="text-foreground text-sm">Shared Files</CardTitle>
             <Button 
@@ -173,8 +173,8 @@ export function GroupFilesPanel({ groupId }) {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[250px]">
+        <CardContent className="flex-1 flex flex-col">
+          <ScrollArea className="flex-1">
             {loading ? (
               <div className="flex items-center justify-center h-32">
                 <div className="text-center">

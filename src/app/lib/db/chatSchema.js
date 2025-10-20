@@ -99,13 +99,13 @@ export const chatRepo = {
 
       // Get group info
       const [group] = await sql`
-        SELECT name, description FROM "Group" WHERE id = ${groupId}
+        SELECT name FROM "Group" WHERE id = ${groupId}
       `;
 
       // Create conversation
       const [conversation] = await sql`
-        INSERT INTO "Conversation" (type, name, description, "createdBy", "groupId")
-        VALUES ('group', ${group.name}, ${group.description}, ${coachId}, ${groupId})
+        INSERT INTO "Conversation" (type, name, "createdBy", "groupId")
+        VALUES ('group', ${group.name}, ${coachId}, ${groupId})
         RETURNING id
       `;
 
@@ -116,12 +116,14 @@ export const chatRepo = {
       `;
 
       // Add all group members
-      const members = await sql`
-        SELECT "userId" FROM "Client" WHERE "groupId" = ${groupId} AND status = 'active'
+      const groupMembers = await sql`
+        SELECT "userId" FROM "Client" WHERE id = ANY(
+          SELECT unnest("selectedMembers") FROM "Group" WHERE id = ${groupId}
+        )
       `;
 
-      if (members.length > 0) {
-        const memberInserts = members.map(member =>
+      if (groupMembers.length > 0) {
+        const memberInserts = groupMembers.map(member =>
           sql`INSERT INTO "ConversationParticipant" ("conversationId", "userId", role) VALUES (${conversation.id}, ${member.userId}, 'member')`
         );
         await Promise.all(memberInserts);

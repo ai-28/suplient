@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { userRepo } from '@/app/lib/db/userRepo';
-
+import { sendCoachRegistrationEmail } from '@/app/lib/email';
 export async function POST(request) {
     try {
         const body = await request.json();
@@ -49,19 +49,20 @@ export async function POST(request) {
             role
         });
 
-        return NextResponse.json(
-            {
-                message: 'User registered successfully',
-                user: {
-                    id: newUser.id,
-                    name: newUser.name,
-                    email: newUser.email,
-                    phone: newUser.phone,
-                    role: newUser.role
-                }
-            },
-            { status: 201 }
-        );
+        // Send welcome email for coaches
+        if (role === 'coach') {
+            console.log('Sending coach registration email');
+            await sendCoachRegistrationEmail({
+                name: newUser.name,
+                email: newUser.email,
+                tempPassword: password
+            });
+        }
+
+        return NextResponse.json({
+            success: true,
+            message: 'User registered successfully'
+        }, { status: 201 });
 
     } catch (error) {
         console.error('Registration error:', error);

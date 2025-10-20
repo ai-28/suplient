@@ -114,10 +114,10 @@ class NotificationService {
     static async notifyResourceShared(userId, coachId, coachName, resourceTitle) {
         return await this.createAndEmitNotification({
             userId: userId,
-            type: 'resource_shared',
+            type: 'system', // Use system type for resource sharing
             title: 'New Resource Shared',
             message: `${coachName} shared a new resource: "${resourceTitle}"`,
-            data: { userId, coachId, coachName, resourceTitle },
+            data: { userId, coachId, coachName, resourceTitle, notificationType: 'resource_shared' },
             priority: 'normal'
         });
     }

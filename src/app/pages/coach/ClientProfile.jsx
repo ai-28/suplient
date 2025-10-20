@@ -266,7 +266,11 @@ export default function ClientProfile() {
   // Use real program data from database
   const currentClientPrograms = clientRealPrograms;
   // Helper functions to work with current client's programs
-  const getProgramById = (programId) => clientRealPrograms.find(p => p.id === programId);
+  const getProgramById = (programId) => {
+    // Find the enrollment record which contains the elements
+    const enrollment = clientRealPrograms.find(p => p.id === programId);
+    return enrollment; // The enrollment record itself contains the elements
+  };
   
   const calculateProgramProgress = (clientProgram) => {
     
@@ -287,6 +291,11 @@ export default function ClientProfile() {
     }
     
     const program = getProgramById(clientProgram.id);
+    console.log('Calculating progress for clientProgram:', clientProgram);
+    console.log('Found program:', program);
+    console.log('Program elements:', program?.elements);
+    console.log('Client completed elements:', clientProgram.completedElements);
+    
     if (!program) {
       console.error('Program not found for ID:', clientProgram.id);
     return {
@@ -328,7 +337,7 @@ export default function ClientProfile() {
     
     // Convert local today to UTC for consistent comparison
     const todayUTC = new Date(today.getTime() + (today.getTimezoneOffset() * 60000));
-    
+    console.log("todayutc",todayUTC, "startdate",startDate)
     // Handle edge cases
     if (startDate > todayUTC) {
       // Program hasn't started yet (shouldn't happen for active programs)
@@ -907,10 +916,10 @@ export default function ClientProfile() {
             <TabsTrigger value="progress" className="flex-1">Progress & Activity</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-[30%_40%_30%] gap-6">
+          <TabsContent value="overview" className="space-y-6 flex-1">
+            <div className="grid grid-cols-1 lg:grid-cols-[30%_40%_30%] gap-6 h-full min-h-[calc(100vh-300px)]">
               {/* Left Column - Client Details + Tasks */}
-              <div className="space-y-6">
+              <div className="flex flex-col space-y-6">
                 {/* Client Details */}
                 <Card>
                   <CardContent className="pt-6">
@@ -963,58 +972,60 @@ export default function ClientProfile() {
                 </Card>
 
                 {/* Client Tasks */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-3">
-                    <CardTitle className="text-sm">Tasks</CardTitle>
-                    <CreateTaskDialog 
-                      clientId={clientData.id}
-                      clientName={clientData.name}
-                      hideGroupTasks={true}
-                      defaultTab="client"
-                      preSelectClient={true}
-                      onTaskCreated={handleTaskCreated}
-                    >
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </CreateTaskDialog>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[300px]">
-                      <div className="space-y-3">
-                        {clientTasks.length > 0 ? (
-                          clientTasks.map((task) => (
-                            <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                              <Checkbox 
-                                checked={task.completed}
-                                onCheckedChange={() => handleTaskToggle(task.id)}
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className={`text-sm ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                                  {task.title}
-                                </p>
-                                <span className="text-xs text-gray-500">
-                                  {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
-                                </span>
+                <div className="flex-1 flex flex-col">
+                  <Card className="h-full flex flex-col">
+                    <CardHeader className="flex flex-row items-center justify-between pb-3 flex-shrink-0">
+                      <CardTitle className="text-sm">Tasks</CardTitle>
+                      <CreateTaskDialog 
+                        clientId={clientData.id}
+                        clientName={clientData.name}
+                        hideGroupTasks={true}
+                        defaultTab="client"
+                        preSelectClient={true}
+                        onTaskCreated={handleTaskCreated}
+                      >
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </CreateTaskDialog>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col">
+                      <ScrollArea className="flex-1">
+                        <div className="space-y-3">
+                          {clientTasks.length > 0 ? (
+                            clientTasks.map((task) => (
+                              <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <Checkbox 
+                                  checked={task.completed}
+                                  onCheckedChange={() => handleTaskToggle(task.id)}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                                    {task.title}
+                                  </p>
+                                  <span className="text-xs text-gray-500">
+                                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
+                                  </span>
+                                </div>
                               </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <p>No tasks assigned yet</p>
                             </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <p>No tasks assigned yet</p>
-                          </div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
 
               {/* Center Column - Chat Interface */}
-              <div className="space-y-6">
-                <Card>
-                  <CardContent className="p-0">
-                    <div className="h-[600px]">
+              <div className="flex flex-col">
+                <Card className="h-full flex flex-col">
+                  <CardContent className="p-0 flex-1 flex flex-col">
+                    <div className="flex-1">
                       {conversationLoading ? (
                         <div className="flex items-center justify-center h-full">
                           <Loader2 className="h-8 w-8 animate-spin" />
@@ -1041,7 +1052,7 @@ export default function ClientProfile() {
               </div>
 
               {/* Right Column - Notes & Files */}
-              <div className="space-y-6">
+              <div className="flex flex-col space-y-6">
                 {/* Recent Notes */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -1118,57 +1129,59 @@ export default function ClientProfile() {
                 </Card>
 
                 {/* Shared Files */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-3">
-                    <CardTitle className="text-sm">Shared Files</CardTitle>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-6 w-6 p-0"
-                      onClick={() => setShareFilesOpen(true)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[250px]">
-                      <div className="space-y-2">
-                        {clientFiles.map((file) => (
-                          <div key={file.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              {getFileIcon(file.type)}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">{file.name}</p>
-                                <p className="text-xs text-gray-500">{file.type} • {file.size}</p>
-                                <p className="text-xs text-gray-500">Shared {file.sharedDate}</p>
+                <div className="flex-1 flex flex-col">
+                  <Card className="h-full flex flex-col">
+                    <CardHeader className="flex flex-row items-center justify-between pb-3 flex-shrink-0">
+                      <CardTitle className="text-sm">Shared Files</CardTitle>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-6 w-6 p-0"
+                        onClick={() => setShareFilesOpen(true)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col">
+                      <ScrollArea className="flex-1">
+                        <div className="space-y-2">
+                          {clientFiles.map((file) => (
+                            <div key={file.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {getFileIcon(file.type)}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium truncate">{file.name}</p>
+                                  <p className="text-xs text-gray-500">{file.type} • {file.size}</p>
+                                  <p className="text-xs text-gray-500">Shared {file.sharedDate}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 ml-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handlePreview(file)}
+                                  title="Preview file"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-600"
+                                  onClick={() => handleRemoveFileClick(file)}
+                                  title="Remove file"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1 ml-2">
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                className="h-6 w-6 p-0"
-                                onClick={() => handlePreview(file)}
-                                title="Preview file"
-                              >
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-600"
-                                onClick={() => handleRemoveFileClick(file)}
-                                title="Remove file"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
             </TabsContent>

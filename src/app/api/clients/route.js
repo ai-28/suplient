@@ -27,8 +27,8 @@ export async function GET(request) {
         const clients = await sql`
             SELECT 
                 c.id,
-                c.name,
-                c.email,
+                u.name,
+                u.email,
                 c.type,
                 c.status,
                 c.mood,
@@ -65,6 +65,7 @@ export async function GET(request) {
                 'No recent messages' as "lastMessage",
                 'No recent notes' as "lastNote"
             FROM "Client" c
+            JOIN "User" u ON c."userId" = u.id
             WHERE c."coachId" = ${coachId}
             ORDER BY c."lastActive" DESC NULLS LAST, c."createdAt" DESC
         `;
@@ -75,6 +76,7 @@ export async function GET(request) {
             return {
                 id: client.id,
                 name: client.name,
+                email: client.email, // Include email field
                 type: client.type || 'Personal',
                 status: client.status ? client.status.charAt(0).toUpperCase() + client.status.slice(1).toLowerCase() : 'Active',
                 lastActive: client.lastActive ? formatDate(client.lastActive) : 'Never',

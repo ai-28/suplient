@@ -127,7 +127,7 @@ export const notificationSchema = {
                     LEFT JOIN "Client" c ON c.id = ${userId}
                     WHERE n."userId" = ${userId}
                     AND (
-                        n.type IN ('new_message', 'resource_shared', 'session_reminder', 'goal_achieved', 'system')
+                        n.type IN ('new_message', 'session_reminder', 'goal_achieved', 'system')
                         AND (
                             n.data->>'coachId' IS NULL 
                             OR (n.data->>'coachId')::uuid = c."coachId"
@@ -341,6 +341,18 @@ export const notificationHelpers = {
             message: `${clientName} achieved their goal: "${goalTitle}"`,
             data: { clientId, clientName, goalTitle },
             priority: 'high'
+        });
+    },
+
+    // Create notification for resource sharing
+    async createResourceSharedNotification(userId, coachId, coachName, resourceTitle) {
+        return await notificationSchema.createNotification({
+            userId: userId,
+            type: 'system',
+            title: 'New Resource Shared',
+            message: `${coachName} shared a new resource: "${resourceTitle}"`,
+            data: { userId, coachId, coachName, resourceTitle, notificationType: 'resource_shared' },
+            priority: 'normal'
         });
     }
 };

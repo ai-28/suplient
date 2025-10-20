@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Users, Target, Clock, Copy, Edit, CheckCircle, Timer, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Users, Target, Clock, Copy, Edit, CheckCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
@@ -30,8 +30,7 @@ export default function Programs() {
     totalPrograms: 0,
     clientsEnrolled: 0,
     clientsCompleted: 0,
-    totalElements: 0,
-    timeSavedHours: 0
+    totalElements: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,11 +51,10 @@ export default function Programs() {
       const data = await response.json();
       setPrograms(data.programs || []);
       setStats({
-        totalPrograms: data.stats?.totalPrograms || 0,
-        clientsEnrolled: 0, // Default value - not provided by backend yet
-        clientsCompleted: 0, // Default value - not provided by backend yet
-        totalElements: data.programs?.reduce((sum, program) => sum + Number(program.elementCount || 0), 0) || 0,
-        timeSavedHours: 0 // Default value - not provided by backend yet
+        totalPrograms: data.stats?.totalProgramTemplates || 0,
+        clientsEnrolled: data.stats?.enrolledClients || 0,
+        clientsCompleted: data.stats?.completedClients || 0,
+        totalElements: data.programs?.reduce((sum, program) => sum + Number(program.elementCount || 0), 0) || 0
       });
     } catch (err) {
       console.error('Error fetching programs:', err);
@@ -214,7 +212,7 @@ export default function Programs() {
       </PageHeader>
 
       {/* KPI Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatsCard
           title={"Total Programs"}
           value={stats.totalPrograms}
@@ -241,13 +239,6 @@ export default function Programs() {
           value={stats.totalElements}
           icon={Target}
           iconColor="bg-purple-500"
-        />
-        
-        <StatsCard
-          title={"Time Saved"}
-          value={`${stats.timeSavedHours}h`}
-          icon={Timer}
-          iconColor="bg-orange-500"
         />
       </div>
 

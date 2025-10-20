@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
@@ -30,9 +30,17 @@ const ELEMENT_ICONS = {
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export function ProgramFlowChart({ elements, duration, highlightedElementId, onElementClick, onAddElementToDay }) {
+export function ProgramFlowChart({ elements, duration, highlightedElementId, onElementClick, onAddElementToDay, forceCloseDropdowns = false }) {
   const [currentWeekStart, setCurrentWeekStart] = useState(1);
+  const [openDropdown, setOpenDropdown] = useState(null);
   console.log("elements", elements)
+
+  // Close dropdowns when forceCloseDropdowns is true
+  useEffect(() => {
+    if (forceCloseDropdowns) {
+      setOpenDropdown(null);
+    }
+  }, [forceCloseDropdowns]);
   // Group elements by week and day (filtered to current 4-week view)
   const weeklyData = React.useMemo(() => {
     const weeks = [];
@@ -169,7 +177,10 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                     {/* Add Element Button */}
                     {onAddElementToDay && (
                       <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <DropdownMenu>
+                        <DropdownMenu 
+                          open={openDropdown === `${week}-${dayOfWeek}`}
+                          onOpenChange={(open) => setOpenDropdown(open ? `${week}-${dayOfWeek}` : null)}
+                        >
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"

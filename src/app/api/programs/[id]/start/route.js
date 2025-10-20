@@ -10,14 +10,17 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id: programId } = await params;
+        const { id: enrollmentId } = await params;
         const coachId = session.user.id;
 
-        if (!programId) {
-            return NextResponse.json({ error: 'Program ID is required' }, { status: 400 });
+        console.log('Starting program with enrollmentId:', enrollmentId, 'coachId:', coachId);
+
+        if (!enrollmentId) {
+            return NextResponse.json({ error: 'Enrollment ID is required' }, { status: 400 });
         }
 
-        const result = await startEnrollment(programId, coachId);
+        const result = await startEnrollment(enrollmentId, coachId);
+        console.log('Start enrollment result:', result);
 
         return NextResponse.json({
             success: true,

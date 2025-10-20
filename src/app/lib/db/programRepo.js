@@ -230,7 +230,19 @@ export async function getProgramTemplateStats(coachId) {
         const stats = await sql`
       SELECT 
         COUNT(*) as "totalProgramTemplates",
-        AVG(duration) as "averageDuration"
+        AVG(duration) as "averageDuration",
+        (
+            SELECT COUNT(DISTINCT pe."clientId") 
+            FROM "ProgramEnrollment" pe 
+            WHERE pe."coachId" = ${coachId} 
+            AND pe.status = 'enrolled'
+        ) as "enrolledClients",
+        (
+            SELECT COUNT(DISTINCT pe."clientId") 
+            FROM "ProgramEnrollment" pe 
+            WHERE pe."coachId" = ${coachId} 
+            AND pe.status = 'completed'
+        ) as "completedClients"
       FROM "ProgramTemplate"
       WHERE "coachId" = ${coachId}
     `;

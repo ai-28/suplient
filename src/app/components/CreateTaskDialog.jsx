@@ -140,6 +140,7 @@ export function CreateTaskDialog({
       };
 
       console.log('Creating task with data:', taskData);
+      console.log('Selected clients state:', selectedClients);
 
       // Send to backend API - use group tasks API when in group mode
       const apiUrl = mode === "group" && groupId 
@@ -184,7 +185,12 @@ export function CreateTaskDialog({
   const handleOpenChange = (newOpen) => {
     if (!newOpen) {
       form.reset();
+      // Only reset selectedClients if not in client context
+      if (!clientId) {
         setSelectedClients([]);
+      } else {
+        setSelectedClients([clientId]);
+      }
       setSelectedGroup(null);
       setClientSearchQuery("");
       setGroupSearchQuery("");
@@ -203,12 +209,19 @@ export function CreateTaskDialog({
   );
 
   const handleClientSelect = (clientId) => {
+    console.log('🔍 Selecting client:', clientId, 'Current selected:', selectedClients);
     if (!selectedClients.includes(clientId)) {
       const newSelectedClients = [...selectedClients, clientId];
+      console.log('✅ Adding client to selection:', newSelectedClients);
       setSelectedClients(newSelectedClients);
       form.setValue("selectedClients", newSelectedClients);
+    } else {
+      console.log('⚠️ Client already selected:', clientId);
     }
-    setClientSearchOpen(false);
+    // Add a small delay before closing to ensure state updates
+    setTimeout(() => {
+      setClientSearchOpen(false);
+    }, 100);
   };
 
   const handleClientRemove = (clientId) => {
@@ -416,7 +429,9 @@ export function CreateTaskDialog({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           {children || (
-            <Button className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all">
+            <Button className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all"
+            variant="outline"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create Task
             </Button>
@@ -538,11 +553,15 @@ export function CreateTaskDialog({
                                   </div>
                                 ) : (
                                   filteredClients.map((client) => (
-                                    <Button
+                                    <div
                                       key={client.id}
-                                      variant="ghost"
-                                      className="w-full justify-start h-auto p-2"
-                                      onClick={() => handleClientSelect(client.id)}
+                                      className="w-full cursor-pointer hover:bg-muted rounded-md p-2 transition-colors"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        console.log('🖱️ Client clicked:', client.id, client.name);
+                                        handleClientSelect(client.id);
+                                      }}
                                     >
                                       <div className="flex items-center gap-3 w-full">
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
@@ -550,7 +569,7 @@ export function CreateTaskDialog({
                                         </div>
                                         <span>{client.name}</span>
                                       </div>
-                                    </Button>
+                                    </div>
                                   ))
                                 )}
                               </div>

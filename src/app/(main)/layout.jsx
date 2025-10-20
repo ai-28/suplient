@@ -19,7 +19,6 @@ import { Avatar } from "@/app/components/ui/avatar";
 import { BookMarked, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
-import { Toaster } from "@/app/components/ui/sonner";
 
 const Layout = ({ children }) => {
     const pathname = usePathname();
@@ -141,7 +140,6 @@ const Layout = ({ children }) => {
             </main>
           </div>
         </div>
-        <Toaster />
       </SidebarProvider>
     )
 }

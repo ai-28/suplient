@@ -25,6 +25,7 @@ import {
   X,
   Loader2
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { FileUploadDialog } from "@/app/components/FileUploadDialog";
 import { ShareFileDialog } from "@/app/components/ShareFileDialog";
 import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group";
@@ -78,13 +79,15 @@ export default function LibraryCategory() {
           const itemsKey = category === 'articles' ? 'articles' : category;
           const fetchedItems = result[itemsKey] || [];
           
-          // Check for missing IDs
+          // Check for missing IDs and filter them out
           const itemsWithoutId = fetchedItems.filter(item => !item.id);
           if (itemsWithoutId.length > 0) {
             console.warn('Items without ID found:', itemsWithoutId);
           }
           
-          setItems(fetchedItems);
+          // Filter out items without IDs to prevent sharing errors
+          const validItems = fetchedItems.filter(item => item.id);
+          setItems(validItems);
         } else {
           console.error('Failed to fetch items:', result.message);
           setItems([]);
@@ -103,8 +106,46 @@ export default function LibraryCategory() {
   }, [category]);
 
   const handleFileUpload = (uploadedFile) => {
+    // Debug: Log the uploaded file structure
+    console.log('Uploaded file data:', uploadedFile);
+    
+    // Transform the uploaded file data to match expected structure
+    let transformedFile;
+    
+    // Handle different nested data structures from various APIs
+    const nestedTypes = ['image', 'article', 'video', 'sound', 'template', 'program'];
+    let foundNestedType = null;
+    
+    for (const type of nestedTypes) {
+      if (uploadedFile[type] && uploadedFile[type].id) {
+        foundNestedType = type;
+        break;
+      }
+    }
+    
+    if (foundNestedType) {
+      // If the file has a nested property (from API response), use that as the main data
+      transformedFile = {
+        ...uploadedFile[foundNestedType],
+        url: uploadedFile.url,
+        filename: uploadedFile.filename
+      };
+      console.log(`Transformed file (from ${foundNestedType} property):`, transformedFile);
+    } else {
+      // If it's already in the correct format, use as is
+      transformedFile = uploadedFile;
+      console.log('Using file as-is:', transformedFile);
+    }
+    
+    // Verify the transformed file has required fields
+    if (!transformedFile.id) {
+      console.error('Transformed file missing ID:', transformedFile);
+      toast.error('Uploaded file is missing required ID. Please refresh the page.');
+      return;
+    }
+    
     // Add the new file to the items list
-    setItems(prev => [uploadedFile, ...prev]);
+    setItems(prev => [transformedFile, ...prev]);
     toast.success("File uploaded successfully");
   };
 
@@ -145,16 +186,21 @@ export default function LibraryCategory() {
   };
 
   const handlePreview = (item) => {
-
     // Since the direct URL works in browser, let's try using it directly first
     // If that fails, we can fall back to the preview API
     const directUrl = item.url;
-
     
     // Determine if this is a PDF or other document type
     const fileName = item.fileName || item.url.split('/').pop() || '';
     const fileExtension = fileName.split('.').pop()?.toLowerCase();
     
+    console.log('🔍 Opening preview for:', {
+      title: item.title,
+      url: directUrl,
+      fileName: fileName,
+      extension: fileExtension,
+      category: category
+    });
     
     // Set preview type based on actual file type, not category
     if (fileExtension === 'pdf') {
@@ -320,19 +366,28 @@ export default function LibraryCategory() {
               onClick={() => handleFileToggle(item.id)}
             >
               <CardHeader className="pb-4">
-                <CardTitle className="text-foreground flex items-start justify-between">
-                  <div className="flex items-center gap-2">
+                <CardTitle className="text-foreground flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Checkbox
                       checked={selectedFiles.includes(item.id)}
                       onCheckedChange={() => handleFileToggle(item.id)}
                       onClick={(e) => e.stopPropagation()}
-                      className="mt-1"
+                      className="mt-1 shrink-0"
                     />
-                    <span className="flex-1 pr-2">{item.title}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate text-sm font-medium cursor-help">{item.title}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{item.title}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
-                  <Badge variant="outline" className="shrink-0">
+                  {/* <Badge variant="outline" className="shrink-0 text-xs">
                     {item.format}
-                  </Badge>
+                  </Badge> */}
                 </CardTitle>
               </CardHeader>
               
@@ -480,10 +535,19 @@ export default function LibraryCategory() {
                       <div className={`${categoryInfo.color} rounded-md p-2`}>
                         <IconComponent className="h-4 w-4 text-white" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium text-foreground">{item.title}</h4>
-                          <Badge variant="outline" className="text-xs">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <h4 className="font-medium text-foreground truncate cursor-help">{item.title}</h4>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{item.title}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <Badge variant="outline" className="text-xs shrink-0">
                             {item.format}
                           </Badge>
                         </div>
@@ -624,28 +688,44 @@ export default function LibraryCategory() {
                 />
               ) : previewType === 'sounds' ? (
                 <audio 
-                  src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
+                  src={previewUrl}
                   controls
                   className="w-full"
+                  preload="metadata"
                   onLoadStart={() => {
-                    console.log('✅ Audio started loading via API');
+                    console.log('✅ Audio started loading directly from:', previewUrl);
+                  }}
+                  onCanPlay={() => {
+                    console.log('✅ Audio can play');
+                  }}
+                  onLoadedData={() => {
+                    console.log('✅ Audio data loaded');
+                  }}
+                  onLoadedMetadata={() => {
+                    console.log('✅ Audio metadata loaded');
                   }}
                   onError={(e) => {
-                    console.error('❌ API audio failed to load');
-                    e.target.style.display = 'none';
-                    const fallback = document.createElement('div');
-                    fallback.className = 'text-center py-8';
-                    fallback.innerHTML = `
-                      <p class="text-muted-foreground mb-4">Audio failed to load</p>
-                      <p class="text-xs text-red-500 mb-2">URL: ${previewUrl}</p>
-                      <button 
-                        class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                        onclick="window.open('${previewUrl}', '_blank')"
-                      >
-                        Open in New Tab
-                      </button>
-                    `;
-                    e.target.parentNode.appendChild(fallback);
+                    console.error('❌ Direct audio failed to load, trying preview API');
+                    // Try the preview API as fallback
+                    e.target.src = `/api/library/preview?path=${encodeURIComponent(previewUrl)}`;
+                    e.target.onerror = (fallbackError) => {
+                      console.error('❌ Preview API audio also failed to load');
+                      e.target.style.display = 'none';
+                      const fallback = document.createElement('div');
+                      fallback.className = 'text-center py-8';
+                      fallback.innerHTML = `
+                        <p class="text-muted-foreground mb-4">Audio failed to load</p>
+                        <p class="text-xs text-red-500 mb-2">Direct URL: ${previewUrl}</p>
+                        <p class="text-xs text-red-500 mb-2">Preview API: /api/library/preview?path=${encodeURIComponent(previewUrl)}</p>
+                        <button 
+                          class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                          onclick="window.open('${previewUrl}', '_blank')"
+                        >
+                          Open in New Tab
+                        </button>
+                      `;
+                      e.target.parentNode.appendChild(fallback);
+                    };
                   }}
                 />
               ) : previewType === 'pdf' ? (

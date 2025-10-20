@@ -58,7 +58,7 @@ export function useClients() {
     // Transform clients data for the CreateGroupDialog
     const availableClients = clients.map(client => ({
         id: client.id,
-        userId: client.userId,
+        userId: client.id, // Use the same ID since the API returns User.id
         name: client.name,
         initials: client.name.split(' ').map(n => n[0]).join('').toUpperCase(),
         email: client.email,
