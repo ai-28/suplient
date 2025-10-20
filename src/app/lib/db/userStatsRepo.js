@@ -31,14 +31,15 @@ export const userStatsRepo = {
         try {
             // Ensure we have valid values
             const validUpdates = {
-                daily_streak: updates.daily_streak || 0,
-                total_points: updates.total_points || 0,
-                last_checkin_date: updates.last_checkin_date || null
+                // Use null for unspecified so we don't overwrite existing values
+                daily_streak: updates.daily_streak ?? null,
+                total_points: updates.total_points ?? null,
+                last_checkin_date: updates.last_checkin_date ?? null
             };
 
             const result = await sql`
                 INSERT INTO user_stats (user_id, daily_streak, total_points, last_checkin_date, updated_at)
-                VALUES (${userId}, ${validUpdates.daily_streak}, ${validUpdates.total_points}, ${validUpdates.last_checkin_date}, NOW())
+                VALUES (${userId}, ${validUpdates.daily_streak ?? 0}, ${validUpdates.total_points ?? 0}, ${validUpdates.last_checkin_date}, NOW())
                 ON CONFLICT (user_id) 
                 DO UPDATE SET
                     daily_streak = COALESCE(${validUpdates.daily_streak}, user_stats.daily_streak),
@@ -61,19 +62,24 @@ export const userStatsRepo = {
             // Ensure we have valid values
             const validPoints = points || 1;
             const validDate = date || new Date().toISOString().split('T')[0];
-
+            if (!userId) {
+                throw new Error('addEngagementActivity: userId is required');
+            }
+            console.log('Adding engagement activity', { userId, activityType, validPoints, validDate });
             // Simply increment total points in user_stats
-            await sql`
+            const updated = await sql`
                 INSERT INTO user_stats (user_id, daily_streak, total_points, last_checkin_date, updated_at)
                 VALUES (${userId}, 0, ${validPoints}, ${validDate}, NOW())
                 ON CONFLICT (user_id) 
                 DO UPDATE SET
-                    total_points = user_stats.total_points + ${validPoints},
+                    total_points = COALESCE(user_stats.total_points, 0) + ${validPoints},
                     last_checkin_date = ${validDate},
                     updated_at = NOW()
+                RETURNING daily_streak, total_points, last_checkin_date, updated_at
             `;
-
-            return { userId, activityType, points: validPoints, date: validDate };
+            const row = updated?.[0] || null;
+            console.log('Updated user_stats row:', row);
+            return { userId, activityType, points: validPoints, date: validDate, userStats: row };
         } catch (error) {
             console.error('Error adding engagement activity:', error);
             throw error;

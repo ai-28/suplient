@@ -132,10 +132,19 @@ export async function POST(request) {
         // Record engagement activity and update streak
         try {
             await userStatsRepo.addEngagementActivity(session.user.id, 'checkin', 1, date);
+            console.log('Engagement activity recorded', session.user.id, 'checkin', 1, date);
             await userStatsRepo.updateDailyStreak(session.user.id, date);
         } catch (engagementError) {
             console.error('Error recording engagement activity:', engagementError);
             // Don't fail the check-in if engagement tracking fails
+        }
+
+        // Fetch latest user stats to confirm initialization/update
+        let updatedUserStats = null;
+        try {
+            updatedUserStats = await userStatsRepo.getUserStats(session.user.id);
+        } catch (statsError) {
+            console.error('Error fetching updated user stats after check-in:', statsError);
         }
 
         // Create activity for daily check-in
@@ -197,7 +206,8 @@ export async function POST(request) {
             checkIn: {
                 id: checkInId,
                 date: date
-            }
+            },
+            userStats: updatedUserStats
         });
 
     } catch (error) {

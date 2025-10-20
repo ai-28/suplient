@@ -14,7 +14,18 @@ export const activitySchema = {
                 activityData: additionalData = null,
                 pointsEarned = 0,
                 isVisible = true
-            } = activityData;
+            } = activityData || {};
+
+            // Validate required fields and coerce optional ones to safe values
+            if (!userId || !type || !title) {
+                return { success: false, error: 'Missing required activity fields (userId, type, title)' };
+            }
+
+            const safeClientId = clientId ?? null;
+            const safeDescription = description ?? null;
+            const safeAdditionalData = additionalData ? JSON.stringify(additionalData) : null;
+            const safePoints = typeof pointsEarned === 'number' ? pointsEarned : 0;
+            const safeIsVisible = typeof isVisible === 'boolean' ? isVisible : true;
 
             const result = await sql`
         INSERT INTO "Activity" (
@@ -29,13 +40,13 @@ export const activitySchema = {
         )
         VALUES (
           ${userId},
-          ${clientId},
+          ${safeClientId},
           ${type},
           ${title},
-          ${description},
-          ${additionalData ? JSON.stringify(additionalData) : null},
-          ${pointsEarned},
-          ${isVisible}
+          ${safeDescription},
+          ${safeAdditionalData},
+          ${safePoints},
+          ${safeIsVisible}
         )
         RETURNING *
       `;

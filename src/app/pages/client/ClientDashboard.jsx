@@ -27,7 +27,7 @@ import {
   User as UserIcon
 } from "lucide-react";
 import { NotificationBell } from "@/app/components/NotificationBell";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { GoalAnalyticsChart } from "@/app/components/GoalAnalyticsChart";
 import { StreakCounter } from "@/app/components/StreakCounter";
@@ -41,6 +41,9 @@ const useGoalTracking = (period) => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Guard to avoid duplicate fetches in React 18 Strict Mode during development
+  const hasFetchedRef = useRef({});
+  const lastVisibilityFetchAtRef = useRef(0);
 
   const fetchAnalytics = async () => {
     try {
@@ -60,15 +63,21 @@ const useGoalTracking = (period) => {
   };
 
   useEffect(() => {
+    // Only fetch once per period value per mount
+    if (hasFetchedRef.current[period]) return;
+    hasFetchedRef.current[period] = true;
     fetchAnalytics();
   }, [period]);
 
   // Refresh when component becomes visible (after navigation)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchAnalytics();
-      }
+      if (document.hidden) return;
+      // Throttle visibility-triggered refetch to once every 30s
+      const now = Date.now();
+      if (now - lastVisibilityFetchAtRef.current < 30000) return;
+      lastVisibilityFetchAtRef.current = now;
+      fetchAnalytics();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -87,6 +96,7 @@ const useUpcomingSessions = () => {
   const [sessions, setSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState(null);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -106,6 +116,8 @@ const useUpcomingSessions = () => {
       }
     };
 
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     fetchSessions();
   }, []);
 
@@ -168,15 +180,7 @@ export default function ClientDashboard() {
     };
   }, [analyticsData]);
 
-  // Refresh analytics when dashboard loads (e.g., after check-in from Journal)
-  // Only refetch if we don't have current data or if it's stale
-  useEffect(() => {
-    const shouldRefetch = !analyticsData || 
-                         (analyticsData && new Date() - new Date(analyticsData.updated_at) > 60000); // 1 minute
-    if (shouldRefetch) {
-      refetch();
-    }
-  }, []); // Run once on mount
+  // Removed extra refetch-on-mount to avoid multiple visible refreshes in dev
 
   const handleTimePeriodChange = (period) => {
     if (period !== activeTab) {
@@ -219,68 +223,71 @@ export default function ClientDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col">
       {/* Offline Indicator */}
       {!isOnline && (
         <div className="bg-red-50 border-b border-red-200 p-2 text-center">
           <p className="text-sm text-red-800">You're offline. Some features may be limited.</p>
         </div>
       )}
-      
-      {/* Header with Profile */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <h1 className="text-xl font-semibold text-foreground">Mental Health</h1>
+      {/* Sticky Topbar: header + date controls */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+        {/* Header with Profile */}
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-xl font-semibold text-foreground">Mental Health</h1>
 
-                <div className="flex items-center gap-2">
-                  {/* Notifications */}
-                  <NotificationBell userRole="client" />
-          
-          <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>                    
-                  {user?.name ? user.name.slice(0, 2).toUpperCase() : "U"}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => router.push('/client/profile')}>
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sign Out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {/* Notifications */}
+            <NotificationBell userRole="client" />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>
+                      {user?.name ? user.name.slice(0, 2).toUpperCase() : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => router.push('/client/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Date navigator */}
+        <div className="flex items-center justify-center p-4 bg-card border-t border-border">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigateDate('prev')}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="mx-8 text-center">
+            <h2 className="text-lg font-semibold">{formatDate(currentDate)}</h2>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigateDate('next')}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-4 bg-card border-b border-border">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigateDate('prev')}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <div className="mx-8 text-center">
-          <h2 className="text-lg font-semibold">{formatDate(currentDate)}</h2>
-        </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigateDate('next')}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Main Content */}
-      <div className="p-4 space-y-6">
+      {/* Scrollable Main Content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
         
         {/* Analytics Chart */}
         {loading ? (
