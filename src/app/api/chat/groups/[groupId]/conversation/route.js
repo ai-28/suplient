@@ -28,7 +28,7 @@ export async function GET(request, { params }) {
             // Create group conversation if it doesn't exist
             conversationId = await chatRepo.createGroupConversation(groupId, session.user.id);
         } else {
-            // Ensure coach is participant even for existing conversations
+            // Ensure user is participant even for existing conversations
             conversationId = await chatRepo.createGroupConversation(groupId, session.user.id);
         }
 

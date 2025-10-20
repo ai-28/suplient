@@ -7,7 +7,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Separator } from "@/app/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip";
-import { Send, Calendar, Clock, Mic, Settings, Info, Video, Loader2, Wifi, WifiOff } from "lucide-react";
+import { Send, Calendar, Clock, Mic, Settings, Info, Video, Loader2, Wifi, WifiOff, MessageCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { VoiceRecorder } from "@/app/components/VoiceRecorder";
 import { VoiceMessage } from "@/app/components/VoiceMessage";
@@ -50,7 +50,10 @@ export function UniversalChatInterface({
   subtitle,
   groupMembers,
   activeMembers,
-  className = ""
+  className = "",
+  showBackButton = false,
+  backButtonAction,
+  groupId
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -285,10 +288,20 @@ export function UniversalChatInterface({
       </div>
     );
   }
-  return <div className={`flex flex-col max-h-[calc(100vh-200px)] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
-      {/* Chat Header */}
-      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
+  return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+      {/* Chat Header - Fixed for client, normal for coach */}
+      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? "fixed top-0 left-0 right-0 z-40" : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
         <div className="flex items-center gap-3">
+          {showBackButton && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={backButtonAction}
+              className="h-8 w-8"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <div className="relative">
             <Avatar className={`bg-primary text-primary-foreground ${currentUserRole === "client" && chatType === "personal" ? "h-9 w-9" : "h-10 w-10"}`}>
               <AvatarFallback className="bg-primary text-primary-foreground">
@@ -327,15 +340,41 @@ export function UniversalChatInterface({
             {currentUserRole === "client" && chatType === "personal" ? <Button variant="default" size="sm" className="h-8 px-3 text-xs flex items-center gap-1" onClick={() => router.push('/client/book-session')}>
               <Video className="h-3 w-3" />
               <span>1-1</span>
-            </Button> : allowScheduling ? <Button variant="ghost" size="sm" className="hover:bg-accent flex items-center gap-2" onClick={() => setIsScheduleDialogOpen(true)}>
+            </Button> : chatType === "group" ? (
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="h-8 px-3 text-xs flex items-center gap-1" 
+                onClick={async () => {
+                  try {
+                    // Extract groupId from chatId or use a different approach
+                    // For now, we'll need to pass groupId as a prop
+                    const response = await fetch(`/api/groups/${groupId}/sessions/latest`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.session?.meetingUrl) {
+                      window.open(data.session.meetingUrl, '_blank');
+                    } else {
+                      alert('No active session available. Please contact your coach.');
+                    }
+                  } catch (error) {
+                    console.error('Error joining session:', error);
+                    alert('Unable to join session. Please try again or contact your coach.');
+                  }
+                }}
+              >
+                <Video className="h-3 w-3" />
+                <span>Join Session</span>
+              </Button>
+            ) : allowScheduling ? <Button variant="ghost" size="sm" className="hover:bg-accent flex items-center gap-2" onClick={() => setIsScheduleDialogOpen(true)}>
               <Calendar className="h-4 w-4" />
               <span className="text-xs">{t("buttons.bookSession")}</span>
             </Button> : null}
         </div>
       </div>
 
-      {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4">
+      {/* Messages Area - Adjusted for fixed header on client */}
+      <ScrollArea className={`flex-1 p-4 ${currentUserRole === "client" ? "pt-24" : ""}`}>
         <TooltipProvider>
           <div className="space-y-1">
             {/* Load More Button */}
@@ -445,6 +484,22 @@ export function UniversalChatInterface({
                 </div>;
             })}
 
+            {/* Empty State */}
+            {!loading && messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="text-muted-foreground mb-4">
+                  <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No messages yet</h3>
+                  <p className="text-sm">
+                    {chatType === "group" 
+                      ? "Start the conversation by sending a message to the group"
+                      : "Start the conversation by sending a message"
+                    }
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Typing Indicator */}
             {renderTypingIndicator()}
             
@@ -453,7 +508,7 @@ export function UniversalChatInterface({
         </TooltipProvider>
       </ScrollArea>
 
-      {/* Voice Recorder */}
+      {/* Voice Recorder - Normal positioning for both client and coach */}
       {showVoiceRecorder && allowVoiceMessages && <div className="p-4 border-t border-border bg-card">
           <VoiceRecorder onSendVoiceMessage={handleSendVoiceMessage} onCancel={() => setShowVoiceRecorder(false)} autoStart={true} />
         </div>}
@@ -462,7 +517,7 @@ export function UniversalChatInterface({
       {/* Reply Preview */}
       {replyToMessage && allowReplies && <ReplyPreview replyToMessage={replyToMessage} onCancel={handleCancelReply} />}
 
-      {/* Message Input - Hidden in monitoring mode */}
+      {/* Message Input - Normal positioning for both client and coach */}
       {!showVoiceRecorder && !hideInput && !readOnly && <div className="p-3 border-t border-border bg-card">
 
           <div className="flex items-end gap-2">

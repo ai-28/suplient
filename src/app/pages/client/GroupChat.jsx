@@ -21,28 +21,16 @@ export default function GroupChat() {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Header with back button */}
-      <div className="flex items-center gap-4 p-4 border-b border-border bg-card">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => router.push('/client/sessions')}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-lg font-semibold">{groupName} Chat</h1>
-      </div>
-      
-      {/* Chat interface */}
-      <div className="flex-1">
-        <GroupChatInterface
-          groupId={groupId}
-          groupName={groupName}
-          members={[]} 
-          activeMembers={0}
-          className="h-full"
-        />
-      </div>
+      {/* Chat interface with integrated header */}
+      <GroupChatInterface
+        groupId={groupId}
+        groupName={groupName}
+        members={[]} 
+        activeMembers={0}
+        className="h-full"
+        showBackButton={true}
+        backButtonAction={() => router.push('/client/sessions')}
+      />
     </div>
   );
 }

@@ -70,7 +70,7 @@ export const chatRepo = {
   },
 
   // Create a group conversation
-  async createGroupConversation(groupId, coachId) {
+  async createGroupConversation(groupId, userId) {
     try {
       // Check if conversation already exists for this group
       const existing = await sql`
@@ -81,16 +81,16 @@ export const chatRepo = {
       if (existing.length > 0) {
         const conversationId = existing[0].id;
 
-        // Ensure coach is a participant
-        const coachParticipant = await sql`
+        // Ensure user is a participant
+        const userParticipant = await sql`
           SELECT id FROM "ConversationParticipant" 
-          WHERE "conversationId" = ${conversationId} AND "userId" = ${coachId}
+          WHERE "conversationId" = ${conversationId} AND "userId" = ${userId}
         `;
 
-        if (coachParticipant.length === 0) {
+        if (userParticipant.length === 0) {
           await sql`
             INSERT INTO "ConversationParticipant" ("conversationId", "userId", role)
-            VALUES (${conversationId}, ${coachId}, 'admin')
+            VALUES (${conversationId}, ${userId}, 'member')
           `;
         }
 
@@ -105,14 +105,14 @@ export const chatRepo = {
       // Create conversation
       const [conversation] = await sql`
         INSERT INTO "Conversation" (type, name, "createdBy", "groupId")
-        VALUES ('group', ${group.name}, ${coachId}, ${groupId})
+        VALUES ('group', ${group.name}, ${userId}, ${groupId})
         RETURNING id
       `;
 
-      // Add coach as admin
+      // Add user as participant
       await sql`
         INSERT INTO "ConversationParticipant" ("conversationId", "userId", role)
-        VALUES (${conversation.id}, ${coachId}, 'admin')
+        VALUES (${conversation.id}, ${userId}, 'member')
       `;
 
       // Add all group members
@@ -127,6 +127,20 @@ export const chatRepo = {
           sql`INSERT INTO "ConversationParticipant" ("conversationId", "userId", role) VALUES (${conversation.id}, ${member.userId}, 'member')`
         );
         await Promise.all(memberInserts);
+      }
+
+      // Also ensure the current user (who might be a client) is added as a participant
+      // This handles cases where clients are trying to access group chats
+      const currentUserParticipant = await sql`
+        SELECT id FROM "ConversationParticipant" 
+        WHERE "conversationId" = ${conversation.id} AND "userId" = ${userId}
+      `;
+
+      if (currentUserParticipant.length === 0) {
+        await sql`
+          INSERT INTO "ConversationParticipant" ("conversationId", "userId", role)
+          VALUES (${conversation.id}, ${userId}, 'member')
+        `;
       }
 
       return conversation.id;

@@ -133,14 +133,22 @@ class NotificationService {
         });
     }
 
-    static async notifyNoteCreated(userId, coachId, coachName, noteTitle) {
+    static async notifyGroupJoinRequest(coachId, groupId, groupName, clientId, clientName, clientEmail, message) {
         return await this.createAndEmitNotification({
-            userId: userId,
-            type: 'system', // Use 'system' type since 'note_created' is not allowed
-            title: 'New Note Added',
-            message: `${coachName} added a note about you: "${noteTitle}"`,
-            data: { userId, coachId, coachName, noteTitle, notificationType: 'note_created' },
-            priority: 'low'
+            userId: coachId,
+            type: 'system',
+            title: 'New Group Join Request',
+            message: `${clientName} wants to join your group "${groupName}"`,
+            data: {
+                groupId,
+                groupName,
+                clientId,
+                clientName,
+                clientEmail,
+                message: message || '',
+                notificationType: 'group_join_request'
+            },
+            priority: 'high'
         });
     }
 }

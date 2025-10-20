@@ -584,7 +584,7 @@ async function createChatTables() {
       CREATE TABLE IF NOT EXISTS "Notification" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-        type VARCHAR(50) NOT NULL CHECK (type IN ('client_signup', 'task_completed', 'daily_checkin', 'new_message', 'session_reminder', 'goal_achieved', 'system', 'other')),
+        type VARCHAR(50) NOT NULL CHECK (type IN ('client_signup', 'task_completed', 'daily_checkin', 'new_message', 'session_reminder', 'goal_achieved', 'system', 'group_join_request', 'other')),
         title VARCHAR(255) NOT NULL,
         message TEXT NOT NULL,
         data JSONB, -- Store additional data like client info, message preview, etc.
@@ -600,6 +600,14 @@ async function createChatTables() {
         CONSTRAINT chk_notification_message_length CHECK (LENGTH(message) >= 1)
       );
     `;
+
+    // Update existing Notification table constraint to include group_join_request
+    try {
+      await sql`ALTER TABLE "Notification" DROP CONSTRAINT IF EXISTS "Notification_type_check"`;
+      await sql`ALTER TABLE "Notification" ADD CONSTRAINT "Notification_type_check" CHECK (type IN ('client_signup', 'task_completed', 'daily_checkin', 'new_message', 'session_reminder', 'goal_achieved', 'system', 'group_join_request', 'other'))`;
+    } catch (error) {
+      console.log('Note: Notification constraint update may have failed, but table creation will handle it');
+    }
 
     // Create indexes for Notification table
     await sql`CREATE INDEX IF NOT EXISTS idx_notification_user ON "Notification"("userId")`;

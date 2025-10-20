@@ -11,12 +11,18 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Add timeout wrapper for database operations
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database connection timeout')), 10000); // 10 second timeout
+    });
+
     // Get groups based on user role
     let groups;
 
     if (session.user.role === 'coach') {
       // Coach sees all groups they manage
-      groups = await sql`
+      groups = await Promise.race([
+        sql`
         SELECT 
           g.id,
           g.name,
@@ -32,7 +38,9 @@ export async function GET(request) {
         FROM "Group" g
         WHERE g."coachId" = ${session.user.id}
         ORDER BY g."createdAt" DESC
-      `;
+      `,
+        timeoutPromise
+      ]);
     } else if (session.user.role === 'client') {
       // Client sees all available groups (both joined and available to join)
 
@@ -46,7 +54,8 @@ export async function GET(request) {
         const clientInGroups = await sql`SELECT id, name, "selectedMembers" FROM "Group" WHERE ${clientId} = ANY("selectedMembers")`;
       }
 
-      groups = await sql`
+      groups = await Promise.race([
+        sql`
         SELECT 
           g.id,
           g.name,
@@ -65,7 +74,9 @@ export async function GET(request) {
           END as "isJoined"
         FROM "Group" g
         ORDER BY g."createdAt" DESC
-      `;
+      `,
+        timeoutPromise
+      ]);
     } else {
       // Admin sees all groups
       groups = await sql`

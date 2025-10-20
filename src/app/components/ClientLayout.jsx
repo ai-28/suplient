@@ -22,17 +22,17 @@ export default function ClientLayout({ children }) {
   const isActiveRoute = (path) => pathname === path;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="h-screen bg-background flex flex-col">
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         {children}
       </div>
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
 
-      {/* Bottom Navigation - Fixed */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-50 shadow-lg">
+      {/* Bottom Navigation - Flexbox */}
+      <div className="bg-card border-t border-border p-4 shadow-lg">
         <div className="flex items-center justify-around max-w-md mx-auto">
           <Button 
             variant="ghost" 

@@ -139,12 +139,27 @@ export default function SocketProvider({ children }) {
     newSocket.on('connect', () => {
       clearTimeout(connectionTimeout);
       console.log('🔥 Socket connected successfully with transport:', newSocket.io.engine.transport.name);
+      
+      // Ensure we're in the notifications room after reconnection
+      if (userData?.userId) {
+        newSocket.emit('join_notifications', userData.userId);
+        console.log('🔔 Rejoined notifications room for user:', userData.userId);
+      }
     });
 
     // Register global event listeners
     newSocket.on('user_online_global', handleGlobalUserOnline);
     newSocket.on('user_offline_global', handleGlobalUserOffline);
     newSocket.on('test_event', (data) => {
+    });
+
+    // Handle real-time notifications
+    newSocket.on('new_notification', (notification) => {
+      console.log('🔔 Received new notification via socket:', notification);
+      // Dispatch custom DOM event for useNotifications hook to catch
+      window.dispatchEvent(new CustomEvent('new_notification', { 
+        detail: notification 
+      }));
     });
 
     setSocket(newSocket);

@@ -44,8 +44,41 @@ function ClientGroupsComponent() {
 
   if (groupsError) {
     return (
-      <div className="flex items-center justify-center h-screen text-muted-foreground">
-        Error loading groups: {groupsError}
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <div className="flex items-center p-4 border-b border-border bg-card">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button> 
+          <h1 className="ml-4 text-xl font-semibold">Support Circles</h1>
+        </div>
+
+        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+          <div className="text-center p-6">
+            <div className="text-red-500 mb-4">
+              <Users className="h-12 w-12 mx-auto mb-2" />
+              <h3 className="text-lg font-medium">Connection Error</h3>
+            </div>
+            <p className="text-muted-foreground mb-4">
+              Unable to load groups. This might be a temporary network issue.
+            </p>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="w-full"
+              >
+                Try Again
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/client')}
+                className="w-full"
+              >
+                Back to Sessions
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -60,31 +93,61 @@ function ClientGroupsComponent() {
   };
 
   const handleOpenChat = (groupId, groupName) => {
-    router.push(`/client/group/${groupId}/chat?groupName=${encodeURIComponent(groupName)}`);
+    router.push(`/client/group/${groupId}?groupName=${encodeURIComponent(groupName)}`);
   };
 
-  const handleJoinSession = (groupId, groupName) => {
-    // Handle join session logic
-    console.log(`Joining session for group ${groupId}`);
+  const handleJoinSession = async (groupId, groupName) => {
+    try {
+      // Fetch the latest session for this group
+      const response = await fetch(`/api/groups/${groupId}/sessions/latest`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch session');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success || !data.session) {
+        // No active session available
+        alert(`No active session available for ${groupName}. Please check back later or contact your coach.`);
+        return;
+      }
+      
+      if (!data.session.meetingUrl) {
+        // Session exists but no meeting link
+        alert(`Session "${data.session.title}" is scheduled but no meeting link is available yet. Please contact your coach.`);
+        return;
+      }
+      
+      // Open the meeting URL in a new tab
+      window.open(data.session.meetingUrl, '_blank');
+      
+    } catch (error) {
+      console.error('Error joining session:', error);
+      alert(`Unable to join session for ${groupName}. Please try again or contact your coach.`);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center p-4 border-b border-border bg-card">
+      <div className="flex items-center p-3 sm:p-4 border-b border-border bg-card flex-shrink-0">
         <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
           <ArrowLeft className="h-5 w-5" />
         </Button> 
-        <h1 className="ml-4 text-xl font-semibold">Support Circles</h1>
+        <h1 className="ml-4 text-lg sm:text-xl font-semibold">Support Circles</h1>
       </div>
 
-      <div className="p-4 space-y-6">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-3 sm:p-4 pb-32 space-y-4 sm:space-y-6">
         {/* Filter Tabs */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={filter === "all" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("all")}
+            className="flex-1 sm:flex-none"
           >
             All Groups
           </Button>
@@ -92,6 +155,7 @@ function ClientGroupsComponent() {
             variant={filter === "joined" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("joined")}
+            className="flex-1 sm:flex-none"
           >
             My Groups
           </Button>
@@ -99,36 +163,39 @@ function ClientGroupsComponent() {
             variant={filter === "available" ? "default" : "outline"}
             size="sm"
             onClick={() => setFilter("available")}
+            className="flex-1 sm:flex-none"
           >
             Available
           </Button>
         </div>
 
         {/* Groups List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredGroups.map((group) => (
-            <Card key={group.id}>
-              <CardHeader>
+            <Card key={group.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="p-3 sm:p-6">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CardTitle className="text-lg">{group.name}</CardTitle>
-                      {group.isJoined && (
-                        <Badge variant="secondary">Joined</Badge>
-                      )}
-                      {group.unreadMessages > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          {group.unreadMessages}
-                        </Badge>
-                      )}
-                    </div>
-                    <CardDescription>{group.description}</CardDescription>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {group.members}/{group.maxMembers || '∞'} members
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                      <CardTitle className="text-base sm:text-lg truncate">{group.name}</CardTitle>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {group.isJoined && (
+                          <Badge variant="secondary" className="text-xs">Joined</Badge>
+                        )}
+                        {group.unreadMessages > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {group.unreadMessages}
+                          </Badge>
+                        )}
                       </div>
+                    </div>
+                    <CardDescription className="text-sm mb-3 line-clamp-2">{group.description}</CardDescription>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span>{group.members}/{group.maxMembers || '∞'} members</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="outline" className="text-xs">
                           {group.focusArea || 'General'}
                         </Badge>
@@ -140,28 +207,29 @@ function ClientGroupsComponent() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline">{group.focusArea || 'General'}</Badge>
-                  <div className="flex space-x-2">
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <Badge variant="outline" className="w-fit">{group.focusArea || 'General'}</Badge>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     {group.isJoined ? (
                       <>
                         <Button 
                           size="sm" 
                           variant="outline"
                           onClick={() => handleOpenChat(group.id, group.name)}
+                          className="w-full sm:w-auto"
                         >
                           <MessageCircle className="h-4 w-4 mr-2" />
                           Chat
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="sm">
+                            <Button size="sm" className="w-full sm:w-auto">
                               <Calendar className="h-4 w-4 mr-2" />
                               Join Session
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="mx-4 sm:mx-0">
                             <AlertDialogHeader>
                               <AlertDialogTitle>Join {group.name} Session</AlertDialogTitle>
                               <AlertDialogDescription>
@@ -169,9 +237,12 @@ function ClientGroupsComponent() {
                                 Make sure you're in a quiet, private space for the best experience.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleJoinSession(group.id, group.name)}>
+                            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                              <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleJoinSession(group.id, group.name)}
+                                className="w-full sm:w-auto"
+                              >
                                 Join Session
                               </AlertDialogAction>
                             </AlertDialogFooter>
@@ -183,6 +254,7 @@ function ClientGroupsComponent() {
                         size="sm"
                         onClick={() => handleJoinGroup(group)}
                         disabled={group.maxMembers && group.members >= group.maxMembers || hasPendingRequest(group.id)}
+                        className="w-full sm:w-auto"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         {group.maxMembers && group.members >= group.maxMembers 
@@ -203,20 +275,23 @@ function ClientGroupsComponent() {
         {/* Empty State */}
         {filteredGroups.length === 0 && (
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">
+            <CardContent className="pt-6 p-4 sm:p-6">
+              <div className="text-center py-6 sm:py-8">
+                <Users className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-base sm:text-lg font-medium mb-2">
                   {filter === "joined" ? "No Joined Groups" : "No Groups Available"}
                 </h3>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-sm sm:text-base text-muted-foreground mb-4">
                   {filter === "joined" 
                     ? "You haven't joined any support circles yet."
                     : "No groups match your current filter."
                   }
                 </p>
                 {filter === "joined" && (
-                  <Button onClick={() => setFilter("available")}>
+                  <Button 
+                    onClick={() => setFilter("available")}
+                    className="w-full sm:w-auto"
+                  >
                     Browse Available Groups
                   </Button>
                 )}
@@ -234,6 +309,7 @@ function ClientGroupsComponent() {
           clientName={session?.user?.name}
           clientEmail={session?.user?.email}
         />
+        </div>
       </div>
     </div>
   );

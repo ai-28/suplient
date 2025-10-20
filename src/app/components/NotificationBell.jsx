@@ -20,6 +20,7 @@ const notificationIcons = {
   session_reminder: '⏰',
   goal_achieved: '🎯',
   system: '⚙️',
+  group_join_request: '👥',
   other: '🔔'
 };
 
@@ -45,8 +46,8 @@ export function NotificationBell({ userRole = 'client' }) {
   // Filter notifications based on user role and relationships
   const filteredNotifications = notifications.filter(notification => {
     if (userRole === 'coach') {
-      // Coaches see: client signup, task completion, daily checkin, new messages from THEIR OWN CLIENTS
-      const allowedTypes = ['client_signup', 'task_completed', 'daily_checkin', 'new_message'];
+      // Coaches see: client signup, task completion, daily checkin, new messages from THEIR OWN CLIENTS, system notifications, and group join requests
+      const allowedTypes = ['client_signup', 'task_completed', 'daily_checkin', 'new_message', 'system', 'group_join_request'];
       if (!allowedTypes.includes(notification.type)) return false;
       
       // For client-related notifications, check if the client belongs to this coach
