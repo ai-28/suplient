@@ -804,18 +804,61 @@ export default function ClientProfile() {
     setClientTasks(prev => [newTask, ...prev]);
   };
 
-  const handleTaskToggle = (taskId) => {
-    setClientTasks(prev => 
-      prev.map(task => 
-        task.id === taskId 
-          ? { 
-              ...task, 
-              completed: !task.completed,
-              status: !task.completed ? 'completed' : 'pending'
-            }
-          : task
-      )
-    );
+  const handleTaskToggle = async (taskId) => {
+    try {
+      // Find the current task to get its current status
+      const currentTask = clientTasks.find(task => task.id === taskId);
+      if (!currentTask) {
+        console.error('Task not found:', taskId);
+        return;
+      }
+
+      // Determine new status based on current completion state
+      const newStatus = currentTask.completed ? 'pending' : 'completed';
+      
+      console.log('🔄 Updating task status:', { taskId, currentStatus: currentTask.status, newStatus });
+
+      // Call API to update task status in database
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: newStatus
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Failed to update task status:', errorData);
+        toast.error(errorData.error || 'Failed to update task status');
+        return;
+      }
+
+      const result = await response.json();
+      console.log('✅ Task status updated successfully:', result);
+
+      // Update local state to reflect the change
+      setClientTasks(prev => 
+        prev.map(task => 
+          task.id === taskId 
+            ? { 
+                ...task, 
+                completed: newStatus === 'completed',
+                status: newStatus
+              }
+            : task
+        )
+      );
+
+      // Show success message
+      toast.success(`Task ${newStatus === 'completed' ? 'completed' : 'marked as pending'}`);
+      
+    } catch (error) {
+      console.error('❌ Error updating task status:', error);
+      toast.error('Error updating task status');
+    }
   };
 
   // Note management functions
@@ -881,7 +924,7 @@ export default function ClientProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="max-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

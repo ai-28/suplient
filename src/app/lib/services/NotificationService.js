@@ -121,6 +121,28 @@ class NotificationService {
             priority: 'normal'
         });
     }
+
+    static async notifyTaskCreated(userId, coachId, coachName, taskTitle) {
+        return await this.createAndEmitNotification({
+            userId: userId,
+            type: 'system', // Use 'system' type since 'task_assigned' is not allowed
+            title: 'New Task Assigned',
+            message: `${coachName} assigned you a new task: "${taskTitle}"`,
+            data: { userId, coachId, coachName, taskTitle, notificationType: 'task_created' },
+            priority: 'normal'
+        });
+    }
+
+    static async notifyNoteCreated(userId, coachId, coachName, noteTitle) {
+        return await this.createAndEmitNotification({
+            userId: userId,
+            type: 'system', // Use 'system' type since 'note_created' is not allowed
+            title: 'New Note Added',
+            message: `${coachName} added a note about you: "${noteTitle}"`,
+            data: { userId, coachId, coachName, noteTitle, notificationType: 'note_created' },
+            priority: 'low'
+        });
+    }
 }
 
 // CommonJS exports

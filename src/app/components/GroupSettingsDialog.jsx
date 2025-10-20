@@ -33,6 +33,15 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
 
+  // Initialize form fields when group data is available
+  useEffect(() => {
+    if (group && open) {
+      setGroupName(group.name || "");
+      setDescription(group.description || "");
+      setCapacity(group.capacity?.toString() || "12");
+    }
+  }, [group, open]);
+
   // Fetch group members when dialog opens
   useEffect(() => {
     const fetchGroupMembers = async () => {
@@ -60,9 +69,44 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
     fetchGroupMembers();
   }, [open, group?.id]);
 
-  const handleSave = () => {
-    toast.success(`${groupName} has been successfully updated.`);
-    onOpenChange(false);
+  const handleSave = async () => {
+    try {
+      // Prepare the update data
+      const updateData = {
+        name: groupName,
+        description: description,
+        capacity: parseInt(capacity)
+      };
+
+      // Call the API to update the group
+      const response = await fetch(`/api/groups/${group.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update group');
+      }
+
+      const result = await response.json();
+      
+      // Show success message
+      toast.success(`${groupName} has been successfully updated.`);
+      
+      // Close the dialog
+      onOpenChange(false);
+      
+      // Optionally refresh the page or trigger a callback to update the parent component
+      window.location.reload(); // Simple refresh for now
+      
+    } catch (error) {
+      console.error('Error updating group:', error);
+      toast.error(error.message || 'Failed to update group settings');
+    }
   };
 
   const handleRemoveMember = async (memberId, memberName) => {

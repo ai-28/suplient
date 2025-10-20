@@ -318,7 +318,7 @@ console.log(groupProgressData)
               </div>
 
               {/* Center Column */}
-              <div className="flex flex-col">
+              <div className="flex flex-col justify-end h-full">
                 <GroupChatInterface 
                   groupId={group.id}
                   groupName={group.name}

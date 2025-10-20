@@ -262,7 +262,7 @@ export function UniversalChatInterface({
 
   if (loading && messages.length === 0) {
     return (
-      <div className={`flex flex-col h-full min-h-[60vh] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+      <div className={`flex flex-col max-h-[calc(100vh-200px)] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -275,7 +275,7 @@ export function UniversalChatInterface({
 
   if (error) {
     return (
-      <div className={`flex flex-col h-full min-h-[60vh] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+      <div className={`flex flex-col max-h-[calc(100vh-200px)] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <p className="text-destructive mb-4">Error: {error}</p>
@@ -285,7 +285,7 @@ export function UniversalChatInterface({
       </div>
     );
   }
-  return <div className={`flex flex-col h-full min-h-[60vh] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+  return <div className={`flex flex-col max-h-[calc(100vh-200px)] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
       {/* Chat Header */}
       <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
         <div className="flex items-center gap-3">

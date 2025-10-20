@@ -372,6 +372,32 @@ export async function POST(request) {
 
                 const task = await taskRepo.createTask(taskData);
                 createdTasks.push(task);
+
+                // Send notification to client about new task
+                try {
+                    const { NotificationService } = require('@/app/lib/services/NotificationService');
+
+                    // Get client details for notification
+                    const clientDetails = await sql`
+                        SELECT c.id, c.name, c."userId"
+                        FROM "Client" c
+                        WHERE c.id = ${clientId}
+                    `;
+
+                    if (clientDetails.length > 0) {
+                        const client = clientDetails[0];
+                        await NotificationService.notifyTaskCreated(
+                            client.userId, // Use userId instead of client.id
+                            session.user.id,
+                            session.user.name,
+                            title
+                        );
+                        console.log('✅ Task creation notification sent to client:', client.name);
+                    }
+                } catch (notificationError) {
+                    console.error('❌ Error creating task notification:', notificationError);
+                    // Don't fail task creation if notification fails
+                }
             }
         } else if (taskType === 'group' && selectedGroup?.id) {
             // Create group task

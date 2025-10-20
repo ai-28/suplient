@@ -8,7 +8,7 @@ export default function Layout({ children }) {
   
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="max-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
           {/* Header */}
