@@ -265,7 +265,7 @@ export function UniversalChatInterface({
 
   if (loading && messages.length === 0) {
     return (
-      <div className={`flex flex-col max-h-[calc(100vh-200px)] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+      <div className={`flex flex-col bg-background border border-border rounded-lg overflow-hidden ${className}`}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -278,7 +278,7 @@ export function UniversalChatInterface({
 
   if (error) {
     return (
-      <div className={`flex flex-col max-h-[calc(100vh-200px)] bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+      <div className={`flex flex-col  bg-background border border-border rounded-lg overflow-hidden ${className}`}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <p className="text-destructive mb-4">Error: {error}</p>
@@ -290,7 +290,7 @@ export function UniversalChatInterface({
   }
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
       {/* Chat Header - Fixed for client, normal for coach */}
-      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? "fixed top-0 left-0 right-0 z-40" : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
+      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40 ${chatType === "personal" ? "top-12" : "top-0"}` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
         <div className="flex items-center gap-3">
           {showBackButton && (
             <Button 
@@ -373,8 +373,8 @@ export function UniversalChatInterface({
         </div>
       </div>
 
-      {/* Messages Area - Adjusted for fixed header on client */}
-      <ScrollArea className={`flex-1 p-4 ${currentUserRole === "client" ? "pt-24" : ""}`}>
+      {/* Messages Area - Adjusted for fixed header and input on client */}
+      <ScrollArea className={`flex-1 p-4 ${currentUserRole === "client" ? "pt-24 pb-20" : ""}`}>
         <TooltipProvider>
           <div className="space-y-1">
             {/* Load More Button */}
@@ -517,8 +517,8 @@ export function UniversalChatInterface({
       {/* Reply Preview */}
       {replyToMessage && allowReplies && <ReplyPreview replyToMessage={replyToMessage} onCancel={handleCancelReply} />}
 
-      {/* Message Input - Normal positioning for both client and coach */}
-      {!showVoiceRecorder && !hideInput && !readOnly && <div className="p-3 border-t border-border bg-card">
+      {/* Message Input - Fixed for client, normal for coach */}
+      {!showVoiceRecorder && !hideInput && !readOnly && <div className={`p-3 border-t border-border bg-card ${currentUserRole === "client" ? "fixed bottom-[93px] left-0 right-0 z-40" : ""}`}>
 
           <div className="flex items-end gap-2">
             <div className="relative flex-1">
