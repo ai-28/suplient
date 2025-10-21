@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Badge } from "@/app/components/ui/badge";
 import { Switch } from "@/app/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { GroupOverviewModal } from "@/app/components/GroupOverviewModal";
+import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
 import { 
   User, 
   Mail, 
@@ -29,7 +31,6 @@ import {
   TrendingDown
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useGroups } from "@/app/hooks/useGroups";
@@ -262,6 +263,14 @@ export default function ClientProfile() {
   // Get real groups data
   const { groups, loading: groupsLoading, error: groupsError } = useGroups();
 
+  // Group overview modal state
+  const [groupOverviewOpen, setGroupOverviewOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  
+  // Membership request dialog state
+  const [membershipRequestOpen, setMembershipRequestOpen] = useState(false);
+  const [selectedGroupForRequest, setSelectedGroupForRequest] = useState(null);
+
   // User data state
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -274,13 +283,6 @@ export default function ClientProfile() {
     phone: "",
     birthdate: "",
     bio: ""
-  });
-
-  // Privacy settings state
-  const [privacySettings, setPrivacySettings] = useState({
-    profilePictureVisible: true,
-    nameFormat: 'full', // 'full' or 'firstInitial'
-    onlineStatusVisible: true
   });
 
   // Fetch user data on component mount
@@ -333,18 +335,6 @@ export default function ClientProfile() {
     fetchUserData();
   }, [session?.user?.id]);
 
-  // Format name based on privacy setting
-  const getDisplayName = () => {
-    if (!userData) return '';
-    
-    if (privacySettings.nameFormat === 'firstInitial') {
-      const nameParts = userData.name ? userData.name.split(' ') : ['', ''];
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-      return `${firstName} ${lastName.charAt(0)}.`;
-    }
-    return userData.name || '';
-  };
 
   const [showCustomGoalDialog, setShowCustomGoalDialog] = useState(false);
   const [newGoalName, setNewGoalName] = useState("");
@@ -434,6 +424,12 @@ export default function ClientProfile() {
     }));
   };
 
+  // Handle opening group overview modal
+  const handleViewGroup = (group) => {
+    setSelectedGroup(group);
+    setGroupOverviewOpen(true);
+  };
+
   // Handle save profile
   const handleSaveProfile = async () => {
     if (!formData.name.trim() || !formData.email.trim()) {
@@ -488,44 +484,23 @@ export default function ClientProfile() {
   const joinedGroups = groups.filter(group => group.isJoined);
   const availableGroups = groups.filter(group => !group.isJoined);
   
-  // Use the first joined group as current group, or show empty state
-  const currentGroup = joinedGroups.length > 0 ? {
-    id: joinedGroups[0].id,
-    name: joinedGroups[0].name,
-    description: joinedGroups[0].description,
-    members: joinedGroups[0].members?.length || 0,
-    maxMembers: joinedGroups[0].maxMembers || 15,
+  // Transform joined groups to include additional data
+  const transformedJoinedGroups = joinedGroups.map(group => ({
+    id: group.id,
+    name: group.name,
+    description: group.description,
+    members: group.members || 0,
+    maxMembers: group.maxMembers || 15,
     joinedDate: "Recently", // We could calculate this from actual join date
     nextSession: "TBD", // We could get this from sessions API
-    sessionFrequency: joinedGroups[0].sessionFrequency || "Weekly",
-    status: joinedGroups[0].status || "Active",
-    attendance: 85 // We could calculate this from actual attendance
-  } : null;
+    sessionFrequency: group.sessionFrequency || "Weekly",
+    status: group.status || "Active",
+    attendance: 0 // Default to 0 until we implement real attendance calculation
+  }));
 
-  const handleJoinRequest = async (groupId, groupName) => {
-    try {
-      const response = await fetch(`/api/groups/${groupId}/membership-requests`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          groupId: groupId,
-          message: `I would like to join ${groupName}`
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        toast.success(`Join request sent for ${groupName}!`);
-      } else {
-        throw new Error(data.error || 'Failed to send join request');
-      }
-    } catch (error) {
-      console.error('Error sending join request:', error);
-      toast.error(error.message || 'Failed to send join request');
-    }
+  const handleJoinRequest = (group) => {
+    setSelectedGroupForRequest(group);
+    setMembershipRequestOpen(true);
   };
 
   // Handle contact therapist
@@ -1104,70 +1079,74 @@ export default function ClientProfile() {
           {/* Groups Content */}
           {!groupsLoading && !groupsError && (
             <>
-              {/* Current Group Section */}
-              {currentGroup ? (
+              {/* My Groups Section */}
+              {transformedJoinedGroups.length > 0 ? (
                 <Card>
                   <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
                     <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                       <Users className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                      My Group
+                      My Groups ({transformedJoinedGroups.length})
                     </CardTitle>
-                    <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Support group you're currently participating in</CardDescription>
+                    <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Support groups you're currently participating in</CardDescription>
                   </CardHeader>
                   <CardContent className={`${isMobile ? 'p-3' : ''}`}>
-                    <div className={`p-4 border rounded-lg bg-muted/30 ${isMobile ? 'p-3' : ''}`}>
-                      <div className={`flex ${isMobile ? 'flex-col space-y-3' : isTablet ? 'flex-col space-y-3' : 'items-start justify-between'} mb-3`}>
-                        <div className="flex-1">
-                          <div className={`flex items-center gap-2 mb-1 ${isMobile ? 'flex-wrap' : ''}`}>
-                            <h3 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{currentGroup.name}</h3>
-                            <Badge variant="default" className={`${isMobile ? 'text-xs px-1 py-0' : ''}`}>{currentGroup.status}</Badge>
+                    <div className="space-y-4">
+                      {transformedJoinedGroups.map((group, index) => (
+                        <div key={group.id} className={`p-4 border rounded-lg bg-muted/30 ${isMobile ? 'p-3' : ''}`}>
+                          <div className={`flex ${isMobile ? 'flex-col space-y-3' : isTablet ? 'flex-col space-y-3' : 'items-start justify-between'} mb-3`}>
+                            <div className="flex-1">
+                              <div className={`flex items-center gap-2 mb-1 ${isMobile ? 'flex-wrap' : ''}`}>
+                                <h3 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{group.name}</h3>
+                                <Badge variant="default" className={`${isMobile ? 'text-xs px-1 py-0' : ''}`}>{group.status}</Badge>
+                              </div>
+                              <p className={`text-muted-foreground mb-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>{group.description}</p>
+                              <div className={`flex ${isMobile ? 'flex-col gap-2' : isTablet ? 'flex-col gap-2' : 'flex-wrap gap-4'} text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                                <div className="flex items-center gap-1">
+                                  <Calendar className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
+                                  <span>Joined {group.joinedDate}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
+                                  <span>{group.sessionFrequency}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Users className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
+                                  <span>{group.members}/{group.maxMembers} members</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <TrendingUp className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
+                                  <span>{group.attendance}% attendance</span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <p className={`text-muted-foreground mb-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>{currentGroup.description}</p>
-                          <div className={`flex ${isMobile ? 'flex-col gap-2' : isTablet ? 'flex-col gap-2' : 'flex-wrap gap-4'} text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                            <div className="flex items-center gap-1">
-                              <Calendar className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                              <span>Joined {currentGroup.joinedDate}</span>
+                          <div className={`flex ${isMobile ? 'flex-col gap-2' : isTablet ? 'flex-col gap-2' : 'items-center justify-between'}`}>
+                            <div className={`text-sm ${isMobile ? 'text-xs' : ''}`}>
+                              <span className="font-medium">Next session: </span>
+                              <span className="text-muted-foreground">{group.nextSession}</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                              <span>{currentGroup.sessionFrequency}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Users className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                              <span>{currentGroup.members}/{currentGroup.maxMembers} members</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <TrendingUp className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                              <span>{currentGroup.attendance}% attendance</span>
+                            <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
+                              <Button 
+                                variant="outline" 
+                                size={isMobile ? "sm" : "sm"} 
+                                className={`${isMobile ? 'flex-1 h-10' : ''}`}
+                                onClick={() => handleViewGroup(group)}
+                              >
+                                View Group
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size={isMobile ? "sm" : "sm"} 
+                                className={`${isMobile ? 'flex-1 h-10' : ''}`}
+                                onClick={() => router.push(`/client/group/${group.id}?groupName=${encodeURIComponent(group.name)}`)}
+                              >
+                                <MessageCircle className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-1'}`} />
+                                Chat
+                              </Button>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <div className={`flex ${isMobile ? 'flex-col gap-2' : isTablet ? 'flex-col gap-2' : 'items-center justify-between'}`}>
-                        <div className={`text-sm ${isMobile ? 'text-xs' : ''}`}>
-                          <span className="font-medium">Next session: </span>
-                          <span className="text-muted-foreground">{currentGroup.nextSession}</span>
-                        </div>
-                        <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
-                          <Button 
-                            variant="outline" 
-                            size={isMobile ? "sm" : "sm"} 
-                            className={`${isMobile ? 'flex-1 h-10' : ''}`}
-                            onClick={() => router.push('/client/groups')}
-                          >
-                            View Group
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size={isMobile ? "sm" : "sm"} 
-                            className={`${isMobile ? 'flex-1 h-10' : ''}`}
-                            onClick={() => router.push(`/client/group/${currentGroup.id}?groupName=${encodeURIComponent(currentGroup.name)}`)}
-                          >
-                            <MessageCircle className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-1'}`} />
-                            Chat
-                          </Button>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -1242,7 +1221,7 @@ export default function ClientProfile() {
                               )}
                             </div>
                             <Button 
-                              onClick={() => handleJoinRequest(group.id, group.name)}
+                              onClick={() => handleJoinRequest(group)}
                               className={`flex items-center gap-2 ${isMobile ? 'w-full h-10' : ''}`}
                               size={isMobile ? "sm" : "sm"}
                             >
@@ -1263,73 +1242,6 @@ export default function ClientProfile() {
 
         <TabsContent value="settings" className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
-            {/* Group Privacy Settings */}
-            <Card>
-              <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
-                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
-                  <Users className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                  Group Member Visibility
-                </CardTitle>
-                <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Control what other group members can see</CardDescription>
-              </CardHeader>
-              <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
-                <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
-                  <div className="space-y-0.5">
-                    <Label className={`${isMobile ? 'text-sm' : ''}`}>Profile Picture</Label>
-                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Show your profile picture to group members
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={privacySettings.profilePictureVisible}
-                    onCheckedChange={(checked) => 
-                      setPrivacySettings(prev => ({ ...prev, profilePictureVisible: checked }))
-                    }
-                    className={`${isMobile ? 'self-end' : ''}`}
-                  />
-                </div>
-                
-                <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
-                  <div className="space-y-0.5">
-                    <Label className={`${isMobile ? 'text-sm' : ''}`}>Name Format</Label>
-                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      {privacySettings.nameFormat === 'full' ? 'Show full name' : 'Show first name + last initial'}
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={privacySettings.nameFormat === 'full'}
-                    onCheckedChange={(checked) => 
-                      setPrivacySettings(prev => ({ ...prev, nameFormat: checked ? 'full' : 'firstInitial' }))
-                    }
-                    className={`${isMobile ? 'self-end' : ''}`}
-                  />
-                </div>
-                
-                <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
-                  <div className="space-y-0.5">
-                    <Label className={`${isMobile ? 'text-sm' : ''}`}>Online Status</Label>
-                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Show when you're online in group chats
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={privacySettings.onlineStatusVisible}
-                    onCheckedChange={(checked) => 
-                      setPrivacySettings(prev => ({ ...prev, onlineStatusVisible: checked }))
-                    }
-                    className={`${isMobile ? 'self-end' : ''}`}
-                  />
-                </div>
-
-                <div className={`pt-2 border-t ${isMobile ? 'pt-3' : ''}`}>
-                  <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                    <Shield className={`inline mr-1 ${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                    Your coach/therapist always has full access to your profile and progress
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Notification Settings */}
             <Card>
               <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
@@ -1429,6 +1341,23 @@ export default function ClientProfile() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Group Overview Modal */}
+      <GroupOverviewModal
+        open={groupOverviewOpen}
+        onOpenChange={setGroupOverviewOpen}
+        groupData={selectedGroup}
+      />
+
+      {/* Membership Request Dialog */}
+      <MembershipRequestDialog
+        open={membershipRequestOpen}
+        onOpenChange={setMembershipRequestOpen}
+        group={selectedGroupForRequest}
+        clientId={session?.user?.id}
+        clientName={session?.user?.name}
+        clientEmail={session?.user?.email}
+      />
       </div>
     </div>
   );
