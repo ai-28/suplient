@@ -12,6 +12,12 @@ const nextConfig = {
         NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     },
     staticPageGenerationTimeout: 1000,
+    swcMinify: true, // Use SWC minification
+    workboxOptions: {
+        disableDevLogs: true, // Disable dev logs in production
+        cleanupOutdatedCaches: true, // Clean up old caches
+        clientsClaim: true, // Take control of all clients immediately
+    },
     // Disable PWA-related warnings in development
     webpack: (config, { dev, isServer }) => {
         if (dev && !isServer) {
@@ -66,12 +72,6 @@ const withPWA = withPWAInit({
     },
     publicExcludes: ['!robots.txt', '!sitemap.xml'], // Exclude these from precaching
     reloadOnOnline: true, // Reload when back online
-    swcMinify: true, // Use SWC minification
-    workboxOptions: {
-        disableDevLogs: true, // Disable dev logs in production
-        cleanupOutdatedCaches: true, // Clean up old caches
-        clientsClaim: true, // Take control of all clients immediately
-    },
     runtimeCaching: [
         {
             urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
