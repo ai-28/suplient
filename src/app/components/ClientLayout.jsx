@@ -24,7 +24,7 @@ export default function ClientLayout({ children }) {
   return (
     <div className="h-screen bg-background flex flex-col">
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         {children}
       </div>
 
