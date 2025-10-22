@@ -78,16 +78,28 @@ export function formatProgressiveTimestamp(timestamp) {
 
   if (diffDays === 0) {
     // Today - show time only (24-hour by default)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
   } else if (diffDays === 1) {
     // Yesterday
     return 'Yesterday';
   } else if (diffDays < 7) {
     // This week - show day name
-    return date.toLocaleDateString([], { weekday: 'short' });
+    return date.toLocaleDateString([], {
+      weekday: 'short',
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
   } else {
     // Older - show date
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString([], {
+      month: 'short',
+      day: 'numeric',
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
   }
 }
 
@@ -114,26 +126,18 @@ export function formatTimeOfDay(input, is24Hour = true) {
     return '--:--';
   }
 
-  // Since the database stores timestamps without timezone info (TIMESTAMP instead of TIMESTAMP WITH TIME ZONE),
-  // we need to treat them as UTC and convert to local time for display
-  // The timestamps from the database are actually UTC but stored as TIMESTAMP (without timezone)
-  // So we need to create a proper UTC date and then convert to local time
+  // The database stores timestamps as TIMESTAMP (without timezone info)
+  // These are stored in the server's local time, but we need to display them in the user's local time
+  // Since the server and client might be in different timezones, we need to handle this properly
 
-  // If the input is a string from the database, it's likely in UTC format
-  let utcDate;
-  if (typeof input === 'string') {
-    // Ensure the string is treated as UTC by appending 'Z' if it doesn't have timezone info
-    const utcString = input.includes('Z') || input.includes('+') || input.includes('-') ? input : input + 'Z';
-    utcDate = new Date(utcString);
-  } else {
-    // If it's already a Date object, assume it's correct
-    utcDate = date;
-  }
+  // For now, we'll treat the timestamp as-is and let the browser handle the timezone conversion
+  // This assumes the server is storing timestamps in a consistent timezone (preferably UTC)
 
-  return utcDate.toLocaleTimeString([], {
+  return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: !is24Hour
+    hour12: !is24Hour,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 }
 
@@ -148,20 +152,10 @@ export function formatDateSeparator(timestamp) {
     return 'Invalid Date';
   }
 
-  // Since the database stores timestamps without timezone info (TIMESTAMP instead of TIMESTAMP WITH TIME ZONE),
-  // we need to treat them as UTC and convert to local time for display
-  let utcDate;
-  if (typeof timestamp === 'string') {
-    // Ensure the string is treated as UTC by appending 'Z' if it doesn't have timezone info
-    const utcString = timestamp.includes('Z') || timestamp.includes('+') || timestamp.includes('-') ? timestamp : timestamp + 'Z';
-    utcDate = new Date(utcString);
-  } else {
-    // If it's already a Date object, assume it's correct
-    utcDate = date;
-  }
-
+  // The database stores timestamps as TIMESTAMP (without timezone info)
+  // Display in the user's local timezone for better UX
   const now = new Date();
-  const diffMs = now.getTime() - utcDate.getTime();
+  const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) {
@@ -169,12 +163,16 @@ export function formatDateSeparator(timestamp) {
   } else if (diffDays === 1) {
     return 'Yesterday';
   } else if (diffDays < 7) {
-    return utcDate.toLocaleDateString([], { weekday: 'long' });
+    return date.toLocaleDateString([], {
+      weekday: 'long',
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
   } else {
-    return utcDate.toLocaleDateString([], {
+    return date.toLocaleDateString([], {
       month: 'long',
       day: 'numeric',
-      ...(utcDate.getFullYear() !== now.getFullYear() && { year: 'numeric' })
+      ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' }),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
   }
 }
@@ -190,25 +188,17 @@ export function getPreciseTimestamp(timestamp, is24Hour = true) {
     return 'Invalid Date';
   }
 
-  // Since the database stores timestamps without timezone info (TIMESTAMP instead of TIMESTAMP WITH TIME ZONE),
-  // we need to treat them as UTC and convert to local time for display
-  let utcDate;
-  if (typeof timestamp === 'string') {
-    // Ensure the string is treated as UTC by appending 'Z' if it doesn't have timezone info
-    const utcString = timestamp.includes('Z') || timestamp.includes('+') || timestamp.includes('-') ? timestamp : timestamp + 'Z';
-    utcDate = new Date(utcString);
-  } else {
-    // If it's already a Date object, assume it's correct
-    utcDate = date;
-  }
+  // The database stores timestamps as TIMESTAMP (without timezone info)
+  // Display in the user's local timezone for better UX
 
-  return utcDate.toLocaleString([], {
+  return date.toLocaleString([], {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: !is24Hour
+    hour12: !is24Hour,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
 }

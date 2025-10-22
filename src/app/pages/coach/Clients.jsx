@@ -421,8 +421,10 @@ export default function Clients() {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
-                                  {client.lastMessage.split(' ').slice(0, 15).join(' ')}
-                                  {client.lastMessage.split(' ').length > 15 && '...'}
+                                  {client.lastMessage && client.lastMessage !== 'No recent messages' 
+                                    ? `${client.lastMessage.split(' ').slice(0, 15).join(' ')}${client.lastMessage.split(' ').length > 15 ? '...' : ''}`
+                                    : 'No recent messages'
+                                  }
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -442,8 +444,10 @@ export default function Clients() {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
-                                  {client.lastNote.split(' ').slice(0, 15).join(' ')}
-                                  {client.lastNote.split(' ').length > 15 && '...'}
+                                  {client.lastNote && client.lastNote !== 'No recent notes' 
+                                    ? `${client.lastNote.split(' ').slice(0, 15).join(' ')}${client.lastNote.split(' ').length > 15 ? '...' : ''}`
+                                    : 'No recent notes'
+                                  }
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -566,8 +570,10 @@ export default function Clients() {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
-                            {client.lastMessage.split(' ').slice(0, 15).join(' ')}
-                            {client.lastMessage.split(' ').length > 15 && '...'}
+                            {client.lastMessage && client.lastMessage !== 'No recent messages' 
+                              ? `${client.lastMessage.split(' ').slice(0, 15).join(' ')}${client.lastMessage.split(' ').length > 15 ? '...' : ''}`
+                              : 'No recent messages'
+                            }
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -587,8 +593,10 @@ export default function Clients() {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
-                            {client.lastNote.split(' ').slice(0, 15).join(' ')}
-                            {client.lastNote.split(' ').length > 15 && '...'}
+                            {client.lastNote && client.lastNote !== 'No recent notes' 
+                              ? `${client.lastNote.split(' ').slice(0, 15).join(' ')}${client.lastNote.split(' ').length > 15 ? '...' : ''}`
+                              : 'No recent notes'
+                            }
                           </p>
                         </TooltipContent>
                       </Tooltip>

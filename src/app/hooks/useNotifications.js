@@ -52,11 +52,22 @@ export function useNotifications(options = {}) {
         const handleNewNotification = (event) => {
             const notification = event.detail;
 
-            // Add the new notification to the beginning of the list
-            setNotifications(prev => [notification, ...prev]);
+            // Check if notification already exists to prevent duplicates
+            setNotifications(prev => {
+                const exists = prev.some(n => n.id === notification.id);
+                if (exists) {
+                    console.log('Notification already exists, skipping duplicate:', notification.id);
+                    return prev;
+                }
 
-            // Update unread count
-            setUnreadCount(prev => prev + 1);
+                // Add the new notification to the beginning of the list
+                const newNotifications = [notification, ...prev];
+
+                // Update unread count only if it's a new notification
+                setUnreadCount(prevCount => prevCount + 1);
+
+                return newNotifications;
+            });
 
             // Show toast notification
             toast.success(notification.title, {

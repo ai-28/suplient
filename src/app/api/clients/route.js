@@ -62,8 +62,30 @@ export async function GET(request) {
                     ), 
                     0
                 ) as "unreadMessages",
-                'No recent messages' as "lastMessage",
-                'No recent notes' as "lastNote"
+                COALESCE(
+                    (
+                        SELECT m.content
+                        FROM "Message" m
+                        JOIN "Conversation" conv ON conv.id = m."conversationId"
+                        JOIN "ConversationParticipant" cp_coach ON cp_coach."conversationId" = conv.id AND cp_coach."userId" = ${coachId}
+                        WHERE conv.type = 'personal'
+                        AND conv."createdBy" = ${coachId}
+                        AND (m."senderId" = c."userId" OR m."senderId" = ${coachId})
+                        ORDER BY m."createdAt" DESC
+                        LIMIT 1
+                    ), 
+                    'No recent messages'
+                ) as "lastMessage",
+                COALESCE(
+                    (
+                        SELECT n.description
+                        FROM "Note" n
+                        WHERE n."clientId" = c.id
+                        ORDER BY n."createdAt" DESC
+                        LIMIT 1
+                    ), 
+                    'No recent notes'
+                ) as "lastNote"
             FROM "Client" c
             JOIN "User" u ON c."userId" = u.id
             WHERE c."coachId" = ${coachId}

@@ -83,11 +83,17 @@ class NotificationService {
         try {
             if (global.globalSocketIO) {
                 const roomName = `notifications_${participantId}`;
+                console.log(`🔔 Emitting unread count update to room: ${roomName} for conversation: ${conversationId}`);
 
                 global.globalSocketIO.to(roomName).emit('update_unread_count', {
                     conversationId,
                     participantId
                 });
+
+                // Check if room exists and has members
+                const room = global.globalSocketIO.sockets.adapter.rooms.get(roomName);
+                console.log(`Room ${roomName} exists:`, !!room, 'Members:', room?.size || 0);
+
                 return true;
             } else {
                 console.warn('Global socket not available for unread count update');
@@ -129,6 +135,24 @@ class NotificationService {
             title: 'New Task Assigned',
             message: `${coachName} assigned you a new task: "${taskTitle}"`,
             data: { userId, coachId, coachName, taskTitle, notificationType: 'task_created' },
+            priority: 'normal'
+        });
+    }
+
+    static async notifyNewMessage(recipientId, senderId, senderName, senderRole, conversationId, messageContent, messageType = 'text') {
+        return await this.createAndEmitNotification({
+            userId: recipientId,
+            type: 'new_message',
+            title: 'New Message',
+            message: `${senderName}: ${messageContent.length > 50 ? messageContent.substring(0, 50) + '...' : messageContent}`,
+            data: {
+                conversationId,
+                senderId,
+                senderName,
+                senderRole,
+                messageContent,
+                messageType
+            },
             priority: 'normal'
         });
     }

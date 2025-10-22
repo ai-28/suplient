@@ -85,7 +85,7 @@ export function useChat(conversationId) {
         senderId: session.user.id,
         senderName: session.user.name,
         senderRole: session.user.role,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(), // Use ISO string to match server format
         status: 'sending',
         ...options
       };

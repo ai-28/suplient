@@ -34,6 +34,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useGroups } from "@/app/hooks/useGroups";
+import { toast } from "sonner";
 
 // Demo data for goals and habits
 const demoGoals = [

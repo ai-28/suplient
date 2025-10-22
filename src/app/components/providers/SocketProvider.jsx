@@ -162,6 +162,15 @@ export default function SocketProvider({ children }) {
       }));
     });
 
+    // Handle unread count updates
+    newSocket.on('update_unread_count', (data) => {
+      console.log('📊 Received unread count update via socket:', data);
+      // Dispatch custom DOM event for client pages to catch
+      window.dispatchEvent(new CustomEvent('update_unread_count', { 
+        detail: data 
+      }));
+    });
+
     setSocket(newSocket);
 
     // Cleanup
@@ -169,6 +178,8 @@ export default function SocketProvider({ children }) {
       newSocket.off('user_online_global', handleGlobalUserOnline);
       newSocket.off('user_offline_global', handleGlobalUserOffline);
       newSocket.off('test_event');
+      newSocket.off('new_notification');
+      newSocket.off('update_unread_count');
       newSocket.removeAllListeners();
       newSocket.disconnect();
       socketInitialized.current = false;

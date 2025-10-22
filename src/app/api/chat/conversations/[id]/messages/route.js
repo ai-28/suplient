@@ -83,16 +83,67 @@ export async function POST(request, { params }) {
     });
 
 
-    // Emit real-time update for unread message counts
+    // Create persistent notifications and emit real-time updates
     try {
       const { NotificationService } = await import('@/app/lib/services/NotificationService');
 
-      // Emit to all participants to update their unread counts
+      // Get the global socket instance to check if users are in the conversation
+      const { globalSocketIO } = global;
+
+      // Create notifications for all participants except the sender
       for (const participant of participants) {
-        await NotificationService.emitUnreadCountUpdate(conversationId, participant.id);
+        if (participant.id !== session.user.id) {
+          // Check if the participant is currently in this conversation
+          let isInConversation = false;
+          if (globalSocketIO) {
+            try {
+              const room = globalSocketIO.sockets.adapter.rooms.get(`conversation_${conversationId}`);
+              if (room && room.size > 0) {
+                // Check if any socket in this room belongs to the participant
+                for (const socketId of room) {
+                  const socket = globalSocketIO.sockets.sockets.get(socketId);
+                  if (socket && socket.userId && socket.userId === participant.id) {
+                    isInConversation = true;
+                    console.log(`User ${participant.id} found in conversation ${conversationId} via socket ${socketId}`);
+                    break;
+                  }
+                }
+              } else {
+                console.log(`No active sockets in conversation room: conversation_${conversationId}`);
+              }
+            } catch (roomError) {
+              console.error('Error checking conversation room:', roomError);
+              // If we can't check the room, assume user is not in conversation (safer to send notification)
+              isInConversation = false;
+            }
+          } else {
+            console.log('Global socket not available, will create notification');
+          }
+
+          // Only create notification if user is NOT currently in the conversation
+          if (!isInConversation) {
+            console.log(`Creating notification for user ${participant.id} - not in conversation ${conversationId}`);
+            await NotificationService.notifyNewMessage(
+              participant.id,
+              session.user.id,
+              session.user.name,
+              session.user.role,
+              conversationId,
+              content,
+              type
+            );
+          } else {
+            console.log(`Skipping notification for user ${participant.id} - currently in conversation ${conversationId}`);
+          }
+        }
+
+        // Emit real-time update for unread message counts
+        console.log(`Emitting unread count update for participant ${participant.id} in conversation ${conversationId}`);
+        const emitResult = await NotificationService.emitUnreadCountUpdate(conversationId, participant.id);
+        console.log(`Unread count update result for ${participant.id}:`, emitResult);
       }
-    } catch (socketError) {
-      console.error('Error emitting unread count updates:', socketError);
+    } catch (notificationError) {
+      console.error('Error creating notifications or emitting updates:', notificationError);
     }
 
     return NextResponse.json({
