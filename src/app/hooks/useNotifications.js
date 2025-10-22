@@ -52,6 +52,13 @@ export function useNotifications(options = {}) {
         const handleNewNotification = (event) => {
             const notification = event.detail;
 
+            // Check if notifications are enabled for this user
+            const notificationsEnabled = localStorage.getItem('notificationsEnabled');
+            if (notificationsEnabled === 'false') {
+                console.log('Notifications disabled, skipping notification:', notification.id);
+                return;
+            }
+
             // Check if notification already exists to prevent duplicates
             setNotifications(prev => {
                 const exists = prev.some(n => n.id === notification.id);

@@ -274,6 +274,7 @@ export default function ClientProfile() {
 
   // User data state
   const [userData, setUserData] = useState(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -361,6 +362,12 @@ export default function ClientProfile() {
       setIsTablet(width >= 640 && width < 1024); // md breakpoint
     };
 
+    // Load notification preference from localStorage
+    const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
+    if (savedNotificationPreference !== null) {
+      setNotificationsEnabled(savedNotificationPreference === 'true');
+    }
+
     // Check on mount
     checkScreenSize();
 
@@ -415,6 +422,27 @@ export default function ClientProfile() {
   const handleRemoveCustomBadHabit = (habitId, habitName) => {
     removeCustomBadHabit(habitId);
     toast.success(`"${habitName}" removed successfully!`);
+  };
+
+  const handleNotificationToggle = async (enabled) => {
+    setNotificationsEnabled(enabled);
+    
+    try {
+      // Save notification preference to user profile or localStorage
+      localStorage.setItem('notificationsEnabled', enabled.toString());
+      
+      toast.success(
+        enabled ? "Notifications enabled" : "Notifications disabled",
+        {
+          description: enabled 
+            ? "You'll receive notifications for messages, tasks, and sessions"
+            : "You won't receive any notifications"
+        }
+      );
+    } catch (error) {
+      console.error('Error saving notification preference:', error);
+      toast.error("Failed to save notification preference");
+    }
   };
 
   // Handle form input changes
@@ -1255,42 +1283,16 @@ export default function ClientProfile() {
               <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
                 <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
                   <div className="space-y-0.5">
-                    <Label className={`${isMobile ? 'text-sm' : ''}`}>Session Reminders</Label>
+                    <Label className={`${isMobile ? 'text-sm' : ''}`}>Enable Notifications</Label>
                     <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Get reminded about upcoming sessions
+                      Receive notifications for messages, tasks, sessions, and updates
                     </p>
                   </div>
-                  <Switch defaultChecked className={`${isMobile ? 'self-end' : ''}`} />
-                </div>
-                
-                <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
-                  <div className="space-y-0.5">
-                    <Label className={`${isMobile ? 'text-sm' : ''}`}>Goal Updates</Label>
-                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Notifications about goal progress
-                    </p>
-                  </div>
-                  <Switch defaultChecked className={`${isMobile ? 'self-end' : ''}`} />
-                </div>
-                
-                <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
-                  <div className="space-y-0.5">
-                    <Label className={`${isMobile ? 'text-sm' : ''}`}>Group Messages</Label>
-                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Notifications for new group messages
-                    </p>
-                  </div>
-                  <Switch defaultChecked className={`${isMobile ? 'self-end' : ''}`} />
-                </div>
-                
-                <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
-                  <div className="space-y-0.5">
-                    <Label className={`${isMobile ? 'text-sm' : ''}`}>New Resources</Label>
-                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Get notified about new helpful resources
-                    </p>
-                  </div>
-                  <Switch className={`${isMobile ? 'self-end' : ''}`} />
+                  <Switch 
+                    checked={notificationsEnabled} 
+                    onCheckedChange={handleNotificationToggle}
+                    className={`${isMobile ? 'self-end' : ''}`} 
+                  />
                 </div>
               </CardContent>
             </Card>
