@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -33,12 +35,24 @@ import {
 import { PageHeader } from "@/app/components/PageHeader";
 
 export default function Settings() {
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: false,
-    sms: true,
-    calendar: true
+  const { data: session } = useSession();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [coachData, setCoachData] = useState(null);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    license: ''
   });
+
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [pipelineStages, setPipelineStages] = useState([
     { id: "light", name: "Light", color: "bg-blue-500" },
@@ -48,9 +62,230 @@ export default function Settings() {
     { id: "inactive", name: "Inactive", color: "bg-red-500" }
   ]);
 
-  const handleDeleteAccount = () => {
-    console.log("Account deletion requested");
-    // TODO: Implement actual account deletion logic
+  const handleDeleteAccount = async () => {
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to delete your account');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/user/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Account deleted successfully');
+        // Redirect to login page or sign out
+        window.location.href = '/auth/signin';
+      } else {
+        toast.error(data.error || 'Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account');
+    }
+  };
+
+  // Fetch coach data on component mount
+  useEffect(() => {
+    const fetchCoachData = async () => {
+      if (!session?.user?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await fetch('/api/user/profile');
+        const data = await response.json();
+
+        if (data.success && data.user) {
+          console.log('Coach data loaded:', data.user);
+          setCoachData(data.user);
+
+          // Update form data with real coach data
+          setFormData({
+            fullName: data.user.name || '',
+            email: data.user.email || '',
+            phone: data.user.phone || '',
+            license: data.user.license || ''
+          });
+        } else {
+          toast.error('Failed to load coach data');
+        }
+      } catch (error) {
+        console.error('Error fetching coach data:', error);
+        toast.error('Failed to load coach data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCoachData();
+  }, [session?.user?.id]);
+
+  // Load notification preference from localStorage
+  useEffect(() => {
+    const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
+    if (savedNotificationPreference !== null) {
+      setNotificationsEnabled(savedNotificationPreference === 'true');
+    }
+  }, []);
+
+  // Handle form input changes
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle notification toggle
+  const handleNotificationToggle = async (enabled) => {
+    setNotificationsEnabled(enabled);
+    
+    try {
+      // Save notification preference to localStorage
+      localStorage.setItem('notificationsEnabled', enabled.toString());
+      
+      toast.success(
+        enabled ? "Notifications enabled" : "Notifications disabled",
+        {
+          description: enabled 
+            ? "You'll receive notifications for messages, tasks, and sessions"
+            : "You won't receive any notifications"
+        }
+      );
+    } catch (error) {
+      console.error('Error saving notification preference:', error);
+      toast.error("Failed to save notification preference");
+    }
+  };
+
+  // Handle password input changes
+  const handlePasswordChange = (field, value) => {
+    setPasswordData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle password update
+  const handlePasswordUpdate = async () => {
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to update password');
+      return;
+    }
+
+    // Validate passwords
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      
+      const requestBody = {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      };
+      
+      console.log('Sending password change request:', { 
+        hasCurrentPassword: !!requestBody.currentPassword, 
+        hasNewPassword: !!requestBody.newPassword 
+      });
+      
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (data.success) {
+        toast.success('Password updated successfully!');
+        // Clear password fields
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        toast.error(data.error || 'Failed to update password');
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      toast.error('Failed to update password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // Handle save changes
+  const handleSaveChanges = async () => {
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to save changes');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName.trim(),
+          email: formData.email,
+          phone: formData.phone,
+          license: formData.license
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Profile updated successfully!');
+        // Update coach data with new values
+        setCoachData(prev => ({
+          ...prev,
+          name: formData.fullName.trim(),
+          email: formData.email,
+          phone: formData.phone,
+          license: formData.license
+        }));
+      } else {
+        toast.error(data.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -79,7 +314,7 @@ export default function Settings() {
 
         {/* Profile Settings */}
         <TabsContent value="profile">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
             <Card className="card-standard">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -91,7 +326,10 @@ export default function Settings() {
                 <div className="flex items-center gap-4 mb-6">
                   <Avatar className="h-20 w-20">
                     <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                      DR
+                      {coachData?.name ? 
+                        coachData.name.split(' ').map(n => n[0]).join('').toUpperCase() : 
+                        'DR'
+                      }
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -100,79 +338,59 @@ export default function Settings() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" defaultValue="Dr. Sarah" />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" defaultValue="Johnson" />
-                  </div>
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input 
+                    id="fullName" 
+                    value={formData.fullName}
+                    onChange={(e) => handleInputChange('fullName', e.target.value)}
+                    disabled={loading}
+                    placeholder="Enter your full name"
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="sarah.johnson@mentalcoach.com" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    disabled={loading}
+                    placeholder="Enter your email"
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" type="tel" defaultValue="+1 (555) 123-4567" />
+                  <Input 
+                    id="phone" 
+                    type="tel" 
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    disabled={loading}
+                    placeholder="Enter your phone number"
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="license">Professional License</Label>
-                  <Input id="license" defaultValue="LPC-12345678" />
+                  <Input 
+                    id="license" 
+                    value={formData.license}
+                    onChange={(e) => handleInputChange('license', e.target.value)}
+                    disabled={loading}
+                    placeholder="Enter your professional license"
+                  />
                 </div>
 
-                <Button className="w-full">Save Changes</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="card-standard">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  Practice Info
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="practice">Practice Name</Label>
-                  <Input id="practice" defaultValue="Mindful Wellness Center" />
-                </div>
-
-                <div>
-                  <Label htmlFor="address">Address</Label>
-                  <Input id="address" defaultValue="123 Wellness Street" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input id="city" defaultValue="San Francisco" />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State</Label>
-                    <Input id="state" defaultValue="CA" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Input id="timezone" defaultValue="Pacific Time (UTC-8)" />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Online Sessions</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable online sessions</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <Button className="w-full">Update Practice Info</Button>
+                <Button 
+                  className="w-full" 
+                  onClick={handleSaveChanges}
+                  disabled={loading || saving}
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -201,88 +419,20 @@ export default function Settings() {
                 <Bell className="h-5 w-5 text-primary" />
                 Notifications
               </CardTitle>
+              <p className="text-sm text-muted-foreground">Choose what notifications you receive</p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-primary" />
-                  <div>
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable email notifications</p>
-                  </div>
+                <div className="space-y-0.5">
+                  <Label>Enable Notifications</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive notifications for messages, tasks, sessions, and updates
+                  </p>
                 </div>
                 <Switch 
-                  checked={notifications.email} 
-                  onCheckedChange={(checked) => setNotifications({...notifications, email: checked})}
+                  checked={notificationsEnabled} 
+                  onCheckedChange={handleNotificationToggle}
                 />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Bell className="h-5 w-5 text-primary" />
-                  <div>
-                      <Label>Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable push notifications</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={notifications.push} 
-                  onCheckedChange={(checked) => setNotifications({...notifications, push: checked})}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-primary" />
-                  <div>
-                    <Label>SMS Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable SMS notifications</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={notifications.sms} 
-                  onCheckedChange={(checked) => setNotifications({...notifications, sms: checked})}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <div>
-                    <Label>Calendar Sync</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable calendar sync</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={notifications.calendar} 
-                  onCheckedChange={(checked) => setNotifications({...notifications, calendar: checked})}
-                />
-              </div>
-
-              <div className="pt-4">
-                <h4 className="font-medium mb-4">Timing</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Session Reminders</Label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">24 hours before</span>
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Follow-up Reminders</Label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">1 week after</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -301,20 +451,47 @@ export default function Settings() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input id="currentPassword" type="password" />
+                  <Input 
+                    id="currentPassword" 
+                    type="password" 
+                    value={passwordData.currentPassword}
+                    onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                    disabled={passwordLoading}
+                    placeholder="Enter your current password"
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="newPassword">New Password</Label>
-                  <Input id="newPassword" type="password" />
+                  <Input 
+                    id="newPassword" 
+                    type="password" 
+                    value={passwordData.newPassword}
+                    onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                    disabled={passwordLoading}
+                    placeholder="Enter your new password"
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input id="confirmPassword" type="password" />
+                  <Input 
+                    id="confirmPassword" 
+                    type="password" 
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                    disabled={passwordLoading}
+                    placeholder="Confirm your new password"
+                  />
                 </div>
 
-                <Button className="w-full">Update Password</Button>
+                <Button 
+                  className="w-full" 
+                  onClick={handlePasswordUpdate}
+                  disabled={passwordLoading}
+                >
+                  {passwordLoading ? 'Updating...' : 'Update Password'}
+                </Button>
 
                 <Separator />
 
@@ -332,38 +509,10 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
-                  Privacy & Data
+                  Account Management
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Data Encryption</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable data encryption</p>
-                  </div>
-                  <Badge className="bg-green-100 text-green-800">Active</Badge>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Session Recordings</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable session recordings</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Analytics</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable analytics</p>
-                  </div>
-                  <Switch />
-                </div>
-
                 <div className="pt-4">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -384,13 +533,13 @@ export default function Settings() {
                           onClick={handleDeleteAccount}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          Confirm
+                          Delete Account
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    Are you sure you want to delete your account? This action cannot be undone. All your data, including client information, sessions, and settings will be permanently deleted.
+                    This action cannot be undone. All your data will be permanently deleted.
                   </p>
                 </div>
               </CardContent>
