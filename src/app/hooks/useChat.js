@@ -85,7 +85,7 @@ export function useChat(conversationId) {
         senderId: session.user.id,
         senderName: session.user.name,
         senderRole: session.user.role,
-        timestamp: new Date().toISOString(), // Use ISO string to match server format
+        timestamp: new Date(), // Use local Date object to preserve local time
         status: 'sending',
         ...options
       };
@@ -128,7 +128,7 @@ export function useChat(conversationId) {
                 ...msg, // Keep existing message data
                 id: data.message.id, // Use database ID
                 status: 'sent',
-                timestamp: new Date(data.message.timestamp || data.message.createdAt || msg.timestamp),
+                timestamp: msg.timestamp, // Keep the original local timestamp
                 content: data.message.content || msg.content,
                 readBy: data.message.readBy || msg.readBy || []
               };
@@ -211,7 +211,7 @@ export function useChat(conversationId) {
               ...message,
               messageKey: prev[tempMessageIndex].messageKey, // Preserve the message key
               status: 'delivered', // Socket confirmation means delivered
-              timestamp: new Date(message.timestamp || message.createdAt),
+              timestamp: prev[tempMessageIndex].timestamp, // Keep the original local timestamp
               content: message.content || message.text || '[Message received]'
             };
             return newMessages;
