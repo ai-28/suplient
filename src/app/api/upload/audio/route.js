@@ -83,10 +83,24 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
-        // Generate unique filename
-        const fileExtension = audioFile.type.split('/')[1] || 'wav';
+        // Generate unique filename with proper extension
+        console.log('📥 Received audio file:', { 
+            name: audioFile.name, 
+            type: audioFile.type, 
+            size: audioFile.size 
+        });
+        
+        let fileExtension = 'webm'; // Default to webm (most browsers use this)
+        if (audioFile.type) {
+            const typeParts = audioFile.type.split('/');
+            if (typeParts.length > 1) {
+                fileExtension = typeParts[1].split(';')[0]; // Remove any codec info
+            }
+        }
+        
         const fileName = `${uuidv4()}.${fileExtension}`;
         const filePath = `chat/voice-messages/${fileName}`;
+        console.log('📝 Generated filename:', fileName);
 
         // Convert file to buffer
         const bytes = await audioFile.arrayBuffer();

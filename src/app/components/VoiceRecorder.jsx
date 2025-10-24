@@ -42,8 +42,29 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
       mediaRecorder.onstop = () => {
         console.log('🎙️ Recording stopped, processing audio chunks:', audioChunksRef.current.length);
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        console.log('📦 Created audio blob, size:', audioBlob.size, 'bytes');
+        
+        if (audioChunksRef.current.length === 0) {
+          console.error('❌ No audio chunks recorded!');
+          toast.error('Recording failed - no audio captured', { duration: 3000 });
+          setIsProcessing(false);
+          return;
+        }
+        
+        // Use the MIME type from MediaRecorder for better compatibility
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        console.log('📦 Created audio blob:', {
+          size: audioBlob.size,
+          type: mimeType,
+          chunks: audioChunksRef.current.length
+        });
+        
+        if (audioBlob.size === 0) {
+          console.error('❌ Audio blob is empty!');
+          toast.error('Recording failed - empty audio', { duration: 3000 });
+          setIsProcessing(false);
+          return;
+        }
         
         const url = URL.createObjectURL(audioBlob);
         console.log('🔗 Created blob URL for preview:', url);
@@ -265,7 +286,13 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         // Convert blob URL to file for upload
         const response = await fetch(audioUrl);
         const blob = await response.blob();
-        const file = new File([blob], 'voice-message.wav', { type: 'audio/wav' });
+        console.log('📦 Blob for upload:', { size: blob.size, type: blob.type });
+        
+        // Use the actual blob type, with fallback
+        const fileType = blob.type || 'audio/webm';
+        const fileExtension = fileType.includes('webm') ? 'webm' : 'wav';
+        const file = new File([blob], `voice-message.${fileExtension}`, { type: fileType });
+        console.log('📄 Created file:', { name: file.name, size: file.size, type: file.type });
         
         // Upload audio file
         const formData = new FormData();
