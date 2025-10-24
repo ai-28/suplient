@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Mic, Square, Send, X, AlertCircle, Trash2, Play, Pause } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
+import { toast } from 'sonner';
 
 // Recording time limits following best practices
 const MAX_RECORDING_DURATION = 60; // 1 minute maximum (industry standard)
@@ -208,9 +209,13 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       console.error('Recording error:', error);
       setIsInitializing(false);
       if (error instanceof DOMException && error.name === 'NotAllowedError') {
-        setPermissionError('Microphone permission denied. Please allow microphone access to record voice messages.');
+        const errorMsg = 'Microphone permission denied. Please allow microphone access to record voice messages.';
+        setPermissionError(errorMsg);
+        toast.error(`❌ ${errorMsg}`, { duration: 5000 });
       } else {
-        setPermissionError('Failed to start recording. Please check your microphone.');
+        const errorMsg = 'Failed to start recording. Please check your microphone.';
+        setPermissionError(errorMsg);
+        toast.error(`❌ ${errorMsg}`, { duration: 5000 });
       }
     }
   };
@@ -234,6 +239,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       // Check minimum duration
       if (duration < MIN_RECORDING_DURATION) {
         console.warn('Recording too short, minimum duration required');
+        toast.error('❌ Recording too short. Please record for at least 1 second.', { duration: 3000 });
         return;
       }
       
@@ -263,6 +269,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         if (uploadData.success) {
           // Send message with uploaded audio URL
           onSendVoiceMessage(uploadData.audioUrl, duration, waveformData);
+          toast.success('✅ Voice message sent!', { duration: 2000 });
           clearRecording();
           onCancel();
         } else {
@@ -270,8 +277,8 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         }
       } catch (error) {
         console.error('Error sending voice message:', error);
+        toast.error(`❌ Failed to send voice message: ${error.message}`, { duration: 5000 });
         setIsProcessing(false);
-        // You might want to show an error message to the user here
       }
     }
   };

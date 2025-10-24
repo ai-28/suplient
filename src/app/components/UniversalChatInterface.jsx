@@ -137,7 +137,7 @@ export function UniversalChatInterface({
   const handleSendVoiceMessage = (audioUrl, duration, waveformData) => {
     sendMessage("", "voice", {
       audioUrl,
-      duration: duration, // Use consistent field name
+      audioDuration: duration, // Fixed: backend expects audioDuration
       waveformData
     });
     setShowVoiceRecorder(false);
