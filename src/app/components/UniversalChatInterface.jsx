@@ -444,7 +444,18 @@ export function UniversalChatInterface({
                           {repliedMessage && <RepliedMessage repliedMessage={repliedMessage} onScrollToMessage={scrollToMessage} className="mb-2" />}
 
                           {/* Message content */}
-                          {msg.type === "voice" ? <VoiceMessage audioUrl={msg.audioUrl} duration={msg.duration} waveformData={msg.waveformData || []} isOwnMessage={isOwnMessage} /> : (
+                          {msg.type === "voice" ? <VoiceMessage 
+                            audioUrl={msg.audioUrl} 
+                            duration={msg.audioDuration || msg.duration || 0} 
+                            waveformData={(() => {
+                              try {
+                                return typeof msg.waveformData === 'string' ? JSON.parse(msg.waveformData) : (msg.waveformData || []);
+                              } catch {
+                                return [];
+                              }
+                            })()} 
+                            isOwnMessage={isOwnMessage} 
+                          /> : (
                             <div className={`p-3 rounded-lg ${isOwnMessage ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"} ${msg.status === 'sending' ? 'opacity-70' : ''} ${msg.status === 'error' ? 'bg-red-100 border-red-300' : ''}`}>
                               <p className="text-sm leading-relaxed">{msg.content || '[No content]'}</p>
                               {msg.status === 'sending' && (
