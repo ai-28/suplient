@@ -13,6 +13,8 @@ import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
 import { Separator } from "@/app/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { 
   Settings as SettingsIcon, 
@@ -30,7 +32,8 @@ import {
   Users2,
   Edit2,
   Edit3,
-  Minus
+  Minus,
+  Loader2
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 
@@ -55,12 +58,357 @@ export default function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [pipelineStages, setPipelineStages] = useState([
-    { id: "light", name: "Light", color: "bg-blue-500" },
-    { id: "group", name: "Group", color: "bg-yellow-500" },
-    { id: "personal", name: "Personal", color: "bg-purple-500" },
-    { id: "completed", name: "Completed", color: "bg-green-500" },
-    { id: "inactive", name: "Inactive", color: "bg-red-500" }
+    { id: "light", name: "Light", color: "bg-blue-500", isVisible: true },
+    { id: "group", name: "Group", color: "bg-yellow-500", isVisible: true },
+    { id: "personal", name: "Personal", color: "bg-purple-500", isVisible: true },
+    { id: "completed", name: "Completed", color: "bg-green-500", isVisible: true },
+    { id: "inactive", name: "Inactive", color: "bg-red-500", isVisible: false }
   ]);
+
+  const [groupPipelineStages, setGroupPipelineStages] = useState([
+    { id: "upcoming", name: "Upcoming", color: "bg-blue-500", description: "Groups scheduled to start", isVisible: true },
+    { id: "ongoing", name: "Ongoing", color: "bg-green-500", description: "Active groups", isVisible: true },
+    { id: "completed", name: "Completed", color: "bg-purple-500", description: "Finished groups", isVisible: true },
+    { id: "inactive", name: "Inactive", color: "bg-gray-500", description: "Paused groups", isVisible: true }
+  ]);
+
+  const [showAddClientStageDialog, setShowAddClientStageDialog] = useState(false);
+  const [showEditClientStageDialog, setShowEditClientStageDialog] = useState(false);
+  const [showAddGroupStageDialog, setShowAddGroupStageDialog] = useState(false);
+  const [showEditGroupStageDialog, setShowEditGroupStageDialog] = useState(false);
+  const [editingStage, setEditingStage] = useState(null);
+  const [newStageName, setNewStageName] = useState('');
+  const [newStageColor, setNewStageColor] = useState('bg-blue-500');
+  const [newStageDescription, setNewStageDescription] = useState('');
+  const [savingClientPipeline, setSavingClientPipeline] = useState(false);
+  const [savingGroupPipeline, setSavingGroupPipeline] = useState(false);
+
+  // Pipeline stage handlers
+  const colorOptions = [
+    { value: 'bg-blue-500', label: 'Blue' },
+    { value: 'bg-green-500', label: 'Green' },
+    { value: 'bg-yellow-500', label: 'Yellow' },
+    { value: 'bg-purple-500', label: 'Purple' },
+    { value: 'bg-red-500', label: 'Red' },
+    { value: 'bg-pink-500', label: 'Pink' },
+    { value: 'bg-orange-500', label: 'Orange' },
+    { value: 'bg-gray-500', label: 'Gray' },
+  ];
+
+  const handleAddClientStage = async () => {
+    if (!newStageName.trim()) {
+      toast.error('Please enter a stage name');
+      return;
+    }
+
+    try {
+      const newStage = {
+        id: newStageName.toLowerCase().replace(/\s+/g, '_'),
+        name: newStageName,
+        color: newStageColor,
+        isVisible: true
+      };
+
+      // Update local state
+      const updatedStages = [...pipelineStages, newStage];
+      setPipelineStages(updatedStages);
+
+      // Save to database
+      const response = await fetch('/api/pipeline/client', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stages: updatedStages }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to add stage');
+        // Revert local state on error
+        setPipelineStages(pipelineStages);
+        return;
+      }
+
+      setNewStageName('');
+      setNewStageColor('bg-blue-500');
+      setShowAddClientStageDialog(false);
+      toast.success('Stage added successfully');
+    } catch (error) {
+      console.error('Error adding stage:', error);
+      toast.error('Failed to add stage');
+      // Revert local state on error
+      setPipelineStages(pipelineStages);
+    }
+  };
+
+  const handleEditClientStage = async () => {
+    if (!newStageName.trim()) {
+      toast.error('Please enter a stage name');
+      return;
+    }
+
+    try {
+      // Update local state
+      const updatedStages = pipelineStages.map(stage =>
+        stage.id === editingStage.id
+          ? { ...stage, name: newStageName, color: newStageColor }
+          : stage
+      );
+      
+      setPipelineStages(updatedStages);
+
+      // Save to database
+      const response = await fetch('/api/pipeline/client', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stages: updatedStages }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to update stage');
+        return;
+      }
+
+      setEditingStage(null);
+      setNewStageName('');
+      setNewStageColor('bg-blue-500');
+      setShowEditClientStageDialog(false);
+      toast.success('Stage updated successfully');
+    } catch (error) {
+      console.error('Error updating stage:', error);
+      toast.error('Failed to update stage');
+    }
+  };
+
+  const handleDeleteClientStage = async (stageId) => {
+    try {
+      // Update local state
+      const updatedStages = pipelineStages.filter(stage => stage.id !== stageId);
+      setPipelineStages(updatedStages);
+
+      // Save to database
+      const response = await fetch('/api/pipeline/client', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stages: updatedStages }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to delete stage');
+        // Revert local state on error
+        setPipelineStages(pipelineStages);
+        return;
+      }
+
+      toast.success('Stage deleted successfully');
+    } catch (error) {
+      console.error('Error deleting stage:', error);
+      toast.error('Failed to delete stage');
+      // Revert local state on error
+      setPipelineStages(pipelineStages);
+    }
+  };
+
+  const handleAddGroupStage = async () => {
+    if (!newStageName.trim()) {
+      toast.error('Please enter a stage name');
+      return;
+    }
+
+    try {
+      const newStage = {
+        id: newStageName.toLowerCase().replace(/\s+/g, '_'),
+        name: newStageName,
+        color: newStageColor,
+        description: newStageDescription,
+        isVisible: true
+      };
+
+      // Update local state
+      const updatedStages = [...groupPipelineStages, newStage];
+      setGroupPipelineStages(updatedStages);
+
+      // Save to database
+      const response = await fetch('/api/pipeline/group', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stages: updatedStages }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to add stage');
+        // Revert local state on error
+        setGroupPipelineStages(groupPipelineStages);
+        return;
+      }
+
+      setNewStageName('');
+      setNewStageColor('bg-blue-500');
+      setNewStageDescription('');
+      setShowAddGroupStageDialog(false);
+      toast.success('Stage added successfully');
+    } catch (error) {
+      console.error('Error adding stage:', error);
+      toast.error('Failed to add stage');
+      // Revert local state on error
+      setGroupPipelineStages(groupPipelineStages);
+    }
+  };
+
+  const handleEditGroupStage = async () => {
+    if (!newStageName.trim()) {
+      toast.error('Please enter a stage name');
+      return;
+    }
+
+    try {
+      // Update local state
+      const updatedStages = groupPipelineStages.map(stage =>
+        stage.id === editingStage.id
+          ? { ...stage, name: newStageName, color: newStageColor, description: newStageDescription }
+          : stage
+      );
+      
+      setGroupPipelineStages(updatedStages);
+
+      // Save to database
+      const response = await fetch('/api/pipeline/group', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stages: updatedStages }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to update stage');
+        return;
+      }
+
+      setEditingStage(null);
+      setNewStageName('');
+      setNewStageColor('bg-blue-500');
+      setNewStageDescription('');
+      setShowEditGroupStageDialog(false);
+      toast.success('Stage updated successfully');
+    } catch (error) {
+      console.error('Error updating stage:', error);
+      toast.error('Failed to update stage');
+    }
+  };
+
+  const handleDeleteGroupStage = async (stageId) => {
+    try {
+      // Update local state
+      const updatedStages = groupPipelineStages.filter(stage => stage.id !== stageId);
+      setGroupPipelineStages(updatedStages);
+
+      // Save to database
+      const response = await fetch('/api/pipeline/group', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stages: updatedStages }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        toast.error(data.error || 'Failed to delete stage');
+        // Revert local state on error
+        setGroupPipelineStages(groupPipelineStages);
+        return;
+      }
+
+      toast.success('Stage deleted successfully');
+    } catch (error) {
+      console.error('Error deleting stage:', error);
+      toast.error('Failed to delete stage');
+      // Revert local state on error
+      setGroupPipelineStages(groupPipelineStages);
+    }
+  };
+
+  const handleToggleClientStageVisibility = (stageId, isVisible) => {
+    setPipelineStages(pipelineStages.map(stage =>
+      stage.id === stageId ? { ...stage, isVisible } : stage
+    ));
+  };
+
+  const handleToggleGroupStageVisibility = (stageId, isVisible) => {
+    setGroupPipelineStages(groupPipelineStages.map(stage =>
+      stage.id === stageId ? { ...stage, isVisible } : stage
+    ));
+  };
+
+  const handleSaveClientPipeline = async () => {
+    try {
+      setSavingClientPipeline(true);
+      const response = await fetch('/api/pipeline/client', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stages: pipelineStages }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Client pipeline saved successfully!');
+      } else {
+        toast.error(data.error || 'Failed to save pipeline');
+      }
+    } catch (error) {
+      console.error('Error saving pipeline:', error);
+      toast.error('Failed to save pipeline');
+    } finally {
+      setSavingClientPipeline(false);
+    }
+  };
+
+  const handleSaveGroupPipeline = async () => {
+    try {
+      setSavingGroupPipeline(true);
+      const response = await fetch('/api/pipeline/group', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stages: groupPipelineStages }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Group pipeline saved successfully!');
+      } else {
+        toast.error(data.error || 'Failed to save pipeline');
+      }
+    } catch (error) {
+      console.error('Error saving pipeline:', error);
+      toast.error('Failed to save pipeline');
+    } finally {
+      setSavingGroupPipeline(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     if (!session?.user?.id) {
@@ -127,6 +475,35 @@ export default function Settings() {
     };
 
     fetchCoachData();
+  }, [session?.user?.id]);
+
+  // Fetch pipeline stages from database
+  useEffect(() => {
+    const fetchPipelineStages = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        // Fetch client pipeline stages
+        const clientResponse = await fetch('/api/pipeline/client');
+        const clientData = await clientResponse.json();
+        
+        if (clientData.success && clientData.stages && clientData.stages.length > 0) {
+          setPipelineStages(clientData.stages);
+        }
+
+        // Fetch group pipeline stages
+        const groupResponse = await fetch('/api/pipeline/group');
+        const groupData = await groupResponse.json();
+        
+        if (groupData.success && groupData.stages && groupData.stages.length > 0) {
+          setGroupPipelineStages(groupData.stages);
+        }
+      } catch (error) {
+        console.error('Error fetching pipeline stages:', error);
+      }
+    };
+
+    fetchPipelineStages();
   }, [session?.user?.id]);
 
   // Load notification preference from localStorage
@@ -565,7 +942,11 @@ export default function Settings() {
                       <Label className="text-base font-medium">Stages</Label>
                       <p className="text-sm text-muted-foreground">Set the stages for your client pipeline</p>
                     </div>
-                    <Button size="sm" className="gap-2">
+                    <Button 
+                      size="sm" 
+                      className="gap-2"
+                      onClick={() => setShowAddClientStageDialog(true)}
+                    >
                       <Plus className="h-4 w-4" />
                       Add Stage
                     </Button>
@@ -583,6 +964,12 @@ export default function Settings() {
                             size="sm"
                             variant="ghost"
                             className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setEditingStage(stage);
+                              setNewStageName(stage.name);
+                              setNewStageColor(stage.color);
+                              setShowEditClientStageDialog(true);
+                            }}
                           >
                             <Edit2 className="h-3 w-3" />
                           </Button>
@@ -590,6 +977,7 @@ export default function Settings() {
                             size="sm"
                             variant="ghost"
                             className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                            onClick={() => handleDeleteClientStage(stage.id)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -614,14 +1002,30 @@ export default function Settings() {
                           <div className={`w-3 h-3 rounded-full ${stage.color}`} />
                           <Label>{stage.name}</Label>
                         </div>
-                        <Switch defaultChecked={stage.id !== "inactive"} />
+                        <Switch 
+                          checked={stage.isVisible} 
+                          onCheckedChange={(checked) => handleToggleClientStageVisibility(stage.id, checked)}
+                        />
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="pt-4">
-                  <Button className="w-full">Save</Button>
+                  <Button 
+                    className="w-full"
+                    onClick={handleSaveClientPipeline}
+                    disabled={savingClientPipeline}
+                  >
+                    {savingClientPipeline ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Client Pipeline'
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -641,19 +1045,18 @@ export default function Settings() {
                       <Label className="text-base font-medium">Stages</Label>
                       <p className="text-sm text-muted-foreground">Set the stages for your group pipeline</p>
                     </div>
-                    <Button size="sm" className="gap-2">
+                    <Button 
+                      size="sm" 
+                      className="gap-2"
+                      onClick={() => setShowAddGroupStageDialog(true)}
+                    >
                       <Plus className="h-4 w-4" />
                       Add Stage
                     </Button>
                   </div>
                   
                   <div className="space-y-3">
-                    {[
-                      { id: "upcoming", name: "Upcoming", color: "bg-blue-500", description: "Groups scheduled to start" },
-                      { id: "ongoing", name: "Ongoing", color: "bg-green-500", description: "Active groups" },
-                      { id: "completed", name: "Completed", color: "bg-purple-500", description: "Finished groups" },
-                      { id: "inactive", name: "Inactive", color: "bg-gray-500", description: "Paused groups" }
-                    ].map((stage) => (
+                    {groupPipelineStages.map((stage) => (
                       <div key={stage.id} className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                         <div className="flex items-center gap-3">
                           <div className={`w-4 h-4 rounded-full ${stage.color}`} />
@@ -667,6 +1070,13 @@ export default function Settings() {
                             size="sm"
                             variant="ghost"
                             className="h-8 w-8 p-0"
+                            onClick={() => {
+                              setEditingStage(stage);
+                              setNewStageName(stage.name);
+                              setNewStageColor(stage.color);
+                              setNewStageDescription(stage.description || '');
+                              setShowEditGroupStageDialog(true);
+                            }}
                           >
                             <Edit2 className="h-3 w-3" />
                           </Button>
@@ -674,7 +1084,7 @@ export default function Settings() {
                             size="sm"
                             variant="ghost"
                             className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                            disabled={["upcoming", "ongoing", "completed", "inactive"].includes(stage.id)}
+                            onClick={() => handleDeleteGroupStage(stage.id)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -693,31 +1103,240 @@ export default function Settings() {
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { id: "upcoming", name: "Upcoming", color: "bg-blue-500" },
-                      { id: "ongoing", name: "Ongoing", color: "bg-green-500" },
-                      { id: "completed", name: "Completed", color: "bg-purple-500" },
-                      { id: "inactive", name: "Inactive", color: "bg-gray-500" }
-                    ].map((stage) => (
+                    {groupPipelineStages.map((stage) => (
                       <div key={stage.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className={`w-3 h-3 rounded-full ${stage.color}`} />
                           <Label>{stage.name}</Label>
                         </div>
-                        <Switch defaultChecked={stage.id !== "inactive"} />
+                        <Switch 
+                          checked={stage.isVisible} 
+                          onCheckedChange={(checked) => handleToggleGroupStageVisibility(stage.id, checked)}
+                        />
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="pt-4">
-                  <Button className="w-full">Save</Button>
+                  <Button 
+                    className="w-full"
+                    onClick={handleSaveGroupPipeline}
+                    disabled={savingGroupPipeline}
+                  >
+                    {savingGroupPipeline ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Group Pipeline'
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Add Client Stage Dialog */}
+      <Dialog open={showAddClientStageDialog} onOpenChange={setShowAddClientStageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Client Stage</DialogTitle>
+            <DialogDescription>Create a new stage for your client pipeline</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="stageName">Stage Name</Label>
+              <Input
+                id="stageName"
+                value={newStageName}
+                onChange={(e) => setNewStageName(e.target.value)}
+                placeholder="Enter stage name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="stageColor">Color</Label>
+              <Select value={newStageColor} onValueChange={setNewStageColor}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {colorOptions.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full ${color.value}`} />
+                        {color.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddClientStageDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddClientStage}>Add Stage</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Client Stage Dialog */}
+      <Dialog open={showEditClientStageDialog} onOpenChange={setShowEditClientStageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Client Stage</DialogTitle>
+            <DialogDescription>Update the stage details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editStageName">Stage Name</Label>
+              <Input
+                id="editStageName"
+                value={newStageName}
+                onChange={(e) => setNewStageName(e.target.value)}
+                placeholder="Enter stage name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editStageColor">Color</Label>
+              <Select value={newStageColor} onValueChange={setNewStageColor}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {colorOptions.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full ${color.value}`} />
+                        {color.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditClientStageDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditClientStage}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Group Stage Dialog */}
+      <Dialog open={showAddGroupStageDialog} onOpenChange={setShowAddGroupStageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Group Stage</DialogTitle>
+            <DialogDescription>Create a new stage for your group pipeline</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="groupStageName">Stage Name</Label>
+              <Input
+                id="groupStageName"
+                value={newStageName}
+                onChange={(e) => setNewStageName(e.target.value)}
+                placeholder="Enter stage name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="groupStageDescription">Description</Label>
+              <Input
+                id="groupStageDescription"
+                value={newStageDescription}
+                onChange={(e) => setNewStageDescription(e.target.value)}
+                placeholder="Enter stage description"
+              />
+            </div>
+            <div>
+              <Label htmlFor="groupStageColor">Color</Label>
+              <Select value={newStageColor} onValueChange={setNewStageColor}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {colorOptions.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full ${color.value}`} />
+                        {color.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddGroupStageDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddGroupStage}>Add Stage</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Group Stage Dialog */}
+      <Dialog open={showEditGroupStageDialog} onOpenChange={setShowEditGroupStageDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Group Stage</DialogTitle>
+            <DialogDescription>Update the stage details</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editGroupStageName">Stage Name</Label>
+              <Input
+                id="editGroupStageName"
+                value={newStageName}
+                onChange={(e) => setNewStageName(e.target.value)}
+                placeholder="Enter stage name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editGroupStageDescription">Description</Label>
+              <Input
+                id="editGroupStageDescription"
+                value={newStageDescription}
+                onChange={(e) => setNewStageDescription(e.target.value)}
+                placeholder="Enter stage description"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editGroupStageColor">Color</Label>
+              <Select value={newStageColor} onValueChange={setNewStageColor}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {colorOptions.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded-full ${color.value}`} />
+                        {color.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditGroupStageDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditGroupStage}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

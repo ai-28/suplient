@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -25,7 +26,8 @@ import {
   UserX,
   ChevronDown,
   ArrowUpDown,
-  StickyNote
+  StickyNote,
+  MoreVertical
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -33,7 +35,8 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuLabel
+  DropdownMenuLabel,
+  DropdownMenuItem
 } from "@/app/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 
@@ -45,13 +48,7 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("status.active");  
   const [viewMode, setViewMode] = useState("funnel"); // "list" or "funnel"
-  const [visibleColumns, setVisibleColumns] = useState({
-    light: true,
-    group: true,
-    personal: true,
-    completed: true,
-    inactive: false
-  });
+  const [visibleColumns, setVisibleColumns] = useState({});
   const [sortBy, setSortBy] = useState("activity"); // "activity", "name", "created", "unread", "session", "oldest", "type"
   const router = useRouter();
 
@@ -121,6 +118,40 @@ export default function Clients() {
   useEffect(() => {
     fetchClients();
   }, []);
+
+  // Fetch pipeline stages from database
+  useEffect(() => {
+    const fetchPipelineStages = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        const response = await fetch('/api/pipeline/client');
+        const data = await response.json();
+        
+        if (data.success && data.stages && data.stages.length > 0) {
+          // Map stages with default icons
+          const stagesWithIcons = data.stages.map(stage => ({
+            ...stage,
+            icon: defaultIcons[stage.id] || UserPlus,
+            description: stage.name
+          }));
+          setFunnelStages(stagesWithIcons);
+
+          // Update visible columns based on isVisible property
+          const visibilityMap = {};
+          data.stages.forEach(stage => {
+            visibilityMap[stage.id] = stage.isVisible !== undefined ? stage.isVisible : true;
+          });
+          setVisibleColumns(visibilityMap);
+        }
+      } catch (error) {
+        console.error('Error fetching pipeline stages:', error);
+      }
+    };
+
+    fetchPipelineStages();
+  }, [session?.user?.id]);
+
   // Handle client creation callback
   const handleClientCreated = (newClient) => {
     console.log('New client created:', newClient);
@@ -128,44 +159,44 @@ export default function Clients() {
     fetchClients();
   };
 
+  // Handle client stage change
+  const handleClientStageChange = async (clientId, newStage) => {
+    try {
+      console.log(`Moving client ${clientId} to stage ${newStage}`);
+      
+      const response = await fetch(`/api/clients/${clientId}/stage`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stage: newStage }),
+      });
 
-  const funnelStages = [
-    { 
-      id: "light", 
-      name: "Light", 
-      icon: UserPlus, 
-      color: "bg-blue-500", 
-      description: "Light"
-    },
-    { 
-      id: "group", 
-      name: "Group", 
-      icon: CalendarCheck, 
-      color: "bg-yellow-500", 
-      description: "Group"
-    },
-    { 
-      id: "personal", 
-      name: "Personal", 
-      icon: Trophy, 
-      color: "bg-purple-500", 
-      description: "Personal"
-    },
-    { 
-      id: "completed", 
-      name: "Completed", 
-      icon: Trophy, 
-      color: "bg-green-500", 
-      description: "Completed"
-    },
-    { 
-      id: "inactive", 
-      name: "Inactive", 
-      icon: UserX, 
-      color: "bg-red-500", 
-      description: "Inactive"
+      if (!response.ok) {
+        throw new Error('Failed to update client stage');
+      }
+
+      // Refresh clients list to show updated stage
+      await fetchClients();
+      
+      toast.success('Client stage updated successfully');
+    } catch (error) {
+      console.error('Error updating client stage:', error);
+      toast.error('Failed to update client stage');
     }
-  ];
+  };
+
+
+  // Default funnel stages with icons (as fallback)
+  const defaultIcons = {
+    light: UserPlus,
+    group: CalendarCheck,
+    personal: Trophy,
+    completed: Trophy,
+    inactive: UserX
+  };
+
+  const [funnelStages, setFunnelStages] = useState([]);
 
   const filteredClients = clients.filter(client => {
     if (filter === "clients.all") return true;
@@ -202,15 +233,23 @@ export default function Clients() {
     return sortedClients.filter(client => client.stage === stageId);
   };
 
-  const getStageColor = (stage) => {
-    switch (stage) {
-      case 'light': return 'bg-blue-100 text-blue-800';
-      case 'group': return 'bg-yellow-100 text-yellow-800';
-      case 'personal': return 'bg-purple-100 text-purple-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-red-100 text-red-800';
-      default: return 'bg-accent text-accent-foreground';
-    }
+  const getStageColor = (stageId) => {
+    const stage = funnelStages.find(s => s.id === stageId);
+    if (!stage) return 'bg-accent text-accent-foreground';
+    
+    // Convert bg-color-500 to bg-color-100 text-color-800 for badges
+    const colorMap = {
+      'bg-blue-500': 'bg-blue-100 text-blue-800',
+      'bg-green-500': 'bg-green-100 text-green-800',
+      'bg-yellow-500': 'bg-yellow-100 text-yellow-800',
+      'bg-purple-500': 'bg-purple-100 text-purple-800',
+      'bg-red-500': 'bg-red-100 text-red-800',
+      'bg-pink-500': 'bg-pink-100 text-pink-800',
+      'bg-orange-500': 'bg-orange-100 text-orange-800',
+      'bg-gray-500': 'bg-gray-100 text-gray-800',
+    };
+    
+    return colorMap[stage.color] || 'bg-accent text-accent-foreground';
   };
 
   if (loading) {
@@ -398,6 +437,37 @@ export default function Clients() {
                            </Avatar>
                            <span className="font-medium text-sm text-foreground">{client.name}</span>
                            <span className="text-xl ml-auto">{client.mood}</span>
+                           <DropdownMenu>
+                             <DropdownMenuTrigger asChild>
+                               <Button
+                                 size="sm"
+                                 variant="ghost"
+                                 className="h-6 w-6 p-0"
+                                 onClick={(e) => e.stopPropagation()}
+                               >
+                                 <MoreVertical className="h-4 w-4" />
+                               </Button>
+                             </DropdownMenuTrigger>
+                             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                               <DropdownMenuLabel>Move to Stage</DropdownMenuLabel>
+                               <DropdownMenuSeparator />
+                               {funnelStages.map((stageOption) => (
+                                 <DropdownMenuItem
+                                   key={stageOption.id}
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleClientStageChange(client.id, stageOption.id);
+                                   }}
+                                   disabled={stageOption.id === client.stage}
+                                 >
+                                   <div className="flex items-center gap-2">
+                                     <div className={`w-3 h-3 rounded-full ${stageOption.color}`} />
+                                     {stageOption.name}
+                                   </div>
+                                 </DropdownMenuItem>
+                               ))}
+                             </DropdownMenuContent>
+                           </DropdownMenu>
                          </div>
                           <div className="flex gap-1 mb-3 items-center">
                             <Tooltip>

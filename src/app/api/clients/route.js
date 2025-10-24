@@ -37,6 +37,7 @@ export async function GET(request) {
                 c."updatedAt",
                 c."referralSource",
                 c."primaryConcerns",
+                c."stageId",
                 COALESCE(
                     (
                         SELECT (s."sessionDate" + s."sessionTime") as "scheduledDate"
@@ -104,7 +105,7 @@ export async function GET(request) {
                 lastActive: client.lastActive ? formatDate(client.lastActive) : 'Never',
                 created: formatDate(client.createdAt),
                 mood: client.mood || '😐',
-                stage: determineStage(client.status, client.type),
+                stage: client.stageId || determineStage(client.status, client.type),
                 scheduledSession: client.scheduledSession ? formatDate(client.scheduledSession) : null,
                 unreadMessages: client.unreadMessages,
                 lastMessage: client.lastMessage,

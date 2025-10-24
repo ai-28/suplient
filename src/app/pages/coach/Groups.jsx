@@ -1,6 +1,7 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useGroups } from "@/app/hooks/useGroups";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -42,32 +43,17 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
 
-const groupPipelineStages = [
-  { 
-    id: "upcoming", 
-    color: "bg-blue-500", 
-    icon: Clock,
-  },
-  { 
-    id: "ongoing", 
-    color: "bg-green-500", 
-    icon: PlayCircle,
-  },
-  { 
-    id: "completed", 
-    color: "bg-purple-500", 
-    icon: CheckCircle,
-  },
-  { 
-    id: "inactive", 
-    color: "bg-gray-500", 
-    icon: PauseCircle,
-  }
-];
-
+// Default icons for group stages
+const defaultGroupIcons = {
+  upcoming: Clock,
+  ongoing: PlayCircle,
+  completed: CheckCircle,
+  inactive: PauseCircle
+};
 
 export default function Groups() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { groups, loading, error, refetchGroups, updateGroupStage } = useGroups();
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -78,12 +64,40 @@ export default function Groups() {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [filterBy, setFilterBy] = useState('all');
-  const [visibleStages, setVisibleStages] = useState({
-    upcoming: true,
-    ongoing: true,
-    completed: true,
-    inactive: true
-  });
+  const [groupPipelineStages, setGroupPipelineStages] = useState([]);
+  const [visibleStages, setVisibleStages] = useState({});
+
+  // Fetch pipeline stages from database
+  useEffect(() => {
+    const fetchPipelineStages = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        const response = await fetch('/api/pipeline/group');
+        const data = await response.json();
+        
+        if (data.success && data.stages && data.stages.length > 0) {
+          // Map stages with default icons
+          const stagesWithIcons = data.stages.map(stage => ({
+            ...stage,
+            icon: defaultGroupIcons[stage.id] || Clock
+          }));
+          setGroupPipelineStages(stagesWithIcons);
+
+          // Update visible stages based on isVisible property
+          const visibilityMap = {};
+          data.stages.forEach(stage => {
+            visibilityMap[stage.id] = stage.isVisible !== undefined ? stage.isVisible : true;
+          });
+          setVisibleStages(visibilityMap);
+        }
+      } catch (error) {
+        console.error('Error fetching group pipeline stages:', error);
+      }
+    };
+
+    fetchPipelineStages();
+  }, [session?.user?.id]);
 
   const handleScheduleClick = (group) => {
     setSelectedGroup(group);

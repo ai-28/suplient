@@ -155,6 +155,7 @@ async function seedTask() {
       "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
       "referralSource" VARCHAR(255),
       "primaryConcerns" TEXT,
+      "stageId" VARCHAR(50),
       "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -624,6 +625,53 @@ async function createChatTables() {
   }
 }
 
+// Create Pipeline Tables
+async function createPipelineTables() {
+  try {
+    console.log('Creating pipeline tables...');
+
+    // Create ClientPipelineStage table
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ClientPipelineStage" (
+        id VARCHAR(50) NOT NULL,
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        color VARCHAR(50) NOT NULL,
+        "isVisible" BOOLEAN DEFAULT true,
+        "order" INTEGER NOT NULL,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY ("coachId", id)
+      )
+    `;
+
+    // Create GroupPipelineStage table
+    await sql`
+      CREATE TABLE IF NOT EXISTS "GroupPipelineStage" (
+        id VARCHAR(50) NOT NULL,
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        color VARCHAR(50) NOT NULL,
+        description TEXT,
+        "isVisible" BOOLEAN DEFAULT true,
+        "order" INTEGER NOT NULL,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY ("coachId", id)
+      )
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_pipeline_coach ON "ClientPipelineStage"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_group_pipeline_coach ON "GroupPipelineStage"("coachId")`;
+
+    console.log('Pipeline tables created successfully');
+  } catch (error) {
+    console.error('Error creating pipeline tables:', error);
+    throw error;
+  }
+}
+
 export async function GET() {
   try {
 
@@ -638,11 +686,12 @@ export async function GET() {
     await createUserStatsTable(); // Create user stats table
     await createResourceCompletionTable(); // Create resource completion table
     await createIntegrationTables(); // Create integration tables
+    await createPipelineTables(); // Create pipeline tables
     console.log('Database seeded successfully');
 
     return new Response(JSON.stringify({
       message: 'Database seeded successfully',
-      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, CheckIn, and Integration tables created with sample data'
+      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, CheckIn, Integration, and Pipeline tables created with sample data'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

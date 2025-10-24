@@ -154,6 +154,7 @@ async function seedTask() {
       "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
       "referralSource" VARCHAR(255),
       "primaryConcerns" TEXT,
+      "stageId" VARCHAR(50),
       "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
