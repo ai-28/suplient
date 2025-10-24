@@ -1,6 +1,7 @@
 import AuthSessionProvider from "@/app/components/providers/SessionProvider";
 import { AuthProvider } from "@/app/context/AuthContext";
 import SocketProvider from "@/app/components/providers/SocketProvider";
+import { Toaster } from "sonner";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -100,6 +101,7 @@ export default function RootLayout({ children }) {
           <AuthProvider>
             <SocketProvider>
               {children}
+              <Toaster position="top-right" richColors />
             </SocketProvider>
           </AuthProvider>
         </AuthSessionProvider>

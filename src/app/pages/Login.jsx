@@ -8,7 +8,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Eye, EyeOff, Brain, Shield, Users, Heart } from "lucide-react";
+import { Eye, EyeOff, Brain, Shield, Users, Heart, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -93,22 +93,23 @@ export default function Login() {
 
       if (result?.error) {
         // Handle specific error messages
-        if (result.error === "Invalid email") {
-          toast.error("Email not found. Please check your email address.");
-        } else if (result.error === "Invalid password") {
-          toast.error("Incorrect password. Please try again.");
-        } else if (result.error === "User is not active") {
-          toast.error("Account is deactivated. Please contact support.");
+        console.log('Login error:', result.error);
+        if (result.error === "Invalid email" || result.error.includes("Invalid email")) {
+          toast.error("❌ Email not found. Please check your email address.", { duration: 5000 });
+        } else if (result.error === "Invalid password" || result.error.includes("Invalid password")) {
+          toast.error("❌ Incorrect password. Please try again.", { duration: 5000 });
+        } else if (result.error === "User is not active" || result.error.includes("not active")) {
+          toast.error("❌ Account is deactivated. Please contact support.", { duration: 5000 });
         } else {
-          toast.error("Invalid email or password");
+          toast.error("❌ Invalid email or password. Please try again.", { duration: 5000 });
         }
-      } else {
-        toast.success("Login successful!");
+      } else if (result?.ok) {
+        toast.success("✅ Login successful! Redirecting...", { duration: 3000 });
         // The redirect will be handled by the useEffect above
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("An error occurred during login");
+      toast.error("❌ An error occurred during login. Please try again.", { duration: 5000 });
     } finally {
       setLoginLoading(false);
     }
@@ -120,14 +121,14 @@ export default function Login() {
     
     // Validate passwords match
     if (registerPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error("❌ Passwords do not match", { duration: 5000 });
       setRegisterLoading(false);
       return;
     }
 
     // Validate password length
     if (registerPassword.length < 8) {
-      toast.error("Password must be at least 8 characters long");
+      toast.error("❌ Password must be at least 8 characters long", { duration: 5000 });
       setRegisterLoading(false);
       return;
     }
@@ -153,7 +154,7 @@ export default function Login() {
         throw new Error(data.error || "Registration failed");
       }
 
-      toast.success("Registration successful! Please sign in.");
+      toast.success("✅ Registration successful! Please sign in.", { duration: 4000 });
       setActiveTab("login");
       
       // Clear form
@@ -165,7 +166,7 @@ export default function Login() {
       
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error(error.message || "Registration failed");
+      toast.error(`❌ ${error.message || "Registration failed"}`, { duration: 5000 });
     } finally {
       setRegisterLoading(false);
     }
@@ -306,7 +307,14 @@ export default function Login() {
                     </div>
                     
                     <Button type="submit" className="w-full h-11" disabled={loginLoading}>
-                      {loginLoading ? "Signing in..." : "Sign In"}
+                      {loginLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        "Sign In"
+                      )}
                     </Button>
                   </form>
                 </TabsContent>
@@ -408,7 +416,14 @@ export default function Login() {
                     </div>
                     
                     <Button type="submit" className="w-full h-11" disabled={registerLoading}>
-                      {registerLoading ? "Creating account..." : "Create Coach Account"}
+                      {registerLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        "Create Coach Account"
+                      )}
                     </Button>
                   </form>
                 </TabsContent>

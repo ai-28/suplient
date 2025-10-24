@@ -43,6 +43,12 @@ export default function AdminUsers() {
     isSuperAdmin: false,
     isActive: true,
   });
+  const [showPasswordEdit, setShowPasswordEdit] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
 
   useEffect(() => {
     const fetchAdmins = async () => {
@@ -113,34 +119,85 @@ export default function AdminUsers() {
   const handleUpdateAdmin = async () => {
     if (!selectedAdmin) return;
 
+    // Check if user is updating their own account
+    const isUpdatingSelf = selectedAdmin.id === session?.user?.id;
+
+    // Validate password changes if password edit is shown
+    if (showPasswordEdit) {
+      // Always require current password for security verification
+      if (!passwordData.currentPassword) {
+        toast.error('Your current password is required to change any password');
+        return;
+      }
+
+      // Check if new password is provided
+      if (passwordData.newPassword || passwordData.confirmPassword) {
+        if (passwordData.newPassword.length < 8) {
+          toast.error('New password must be at least 8 characters long');
+          return;
+        }
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          toast.error('New passwords do not match');
+          return;
+        }
+      } else {
+        // If password fields are shown but empty, that's okay - just don't update password
+        // Clear the password data to avoid sending empty strings
+        passwordData.newPassword = '';
+        passwordData.currentPassword = '';
+        passwordData.confirmPassword = '';
+      }
+    }
+
     setUpdatingAdmin(true);
 
     try {
+      const updateData = {
+        ...formData,
+        password: passwordData.newPassword,
+        currentPassword: passwordData.currentPassword, // Always send current password for verification
+      };
+
       const response = await fetch(`/api/admin/admins/${selectedAdmin.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(updateData),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        toast.success('Admin updated successfully');
-        setShowEditDialog(false);
-        setSelectedAdmin(null);
-        setFormData({ name: '', email: '', password: '', phone: '', isSuperAdmin: false, isActive: true });
-        // Refresh admins list
-        const refreshResponse = await fetch('/api/admin/admins');
-        const refreshData = await refreshResponse.json();
-        if (refreshData.success) {
-          setAdmins(refreshData.admins || []);
+      // Handle error responses (400, 403, 404, 500, etc.)
+      if (!response.ok || !data.success) {
+        // Show specific error message from backend
+        const errorMessage = data.error || 'Failed to update admin';
+        
+        // Special handling for password errors
+        if (errorMessage.includes('password')) {
+          toast.error(errorMessage, { duration: 5000 });
+        } else {
+          toast.error(errorMessage);
         }
-      } else {
-        toast.error(data.error || 'Failed to update admin');
+        return;
+      }
+
+      // Success case
+      toast.success('Admin updated successfully');
+      setShowEditDialog(false);
+      setSelectedAdmin(null);
+      setFormData({ name: '', email: '', password: '', phone: '', isSuperAdmin: false, isActive: true });
+      setShowPasswordEdit(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      
+      // Refresh admins list
+      const refreshResponse = await fetch('/api/admin/admins');
+      const refreshData = await refreshResponse.json();
+      if (refreshData.success) {
+        setAdmins(refreshData.admins || []);
       }
     } catch (error) {
       console.error('Error updating admin:', error);
-      toast.error('Failed to update admin');
+      toast.error('Network error: Failed to update admin');
     } finally {
       setUpdatingAdmin(false);
     }
@@ -188,6 +245,12 @@ export default function AdminUsers() {
       phone: admin.phone || '',
       isSuperAdmin: admin.isSuperAdmin,
       isActive: admin.isActive,
+    });
+    setShowPasswordEdit(false);
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
     });
     setShowEditDialog(true);
   };
@@ -455,6 +518,74 @@ export default function AdminUsers() {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
             </div>
+            
+            {/* Password Update Section */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Password</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowPasswordEdit(!showPasswordEdit);
+                    if (showPasswordEdit) {
+                      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                    }
+                  }}
+                >
+                  {showPasswordEdit ? 'Cancel' : 'Change Password'}
+                </Button>
+              </div>
+               {showPasswordEdit && (
+                 <div className="space-y-3">
+                   {/* Always show current password field for security */}
+                   <div className="space-y-2">
+                     <Label htmlFor="current-password">
+                       Your Current Password * 
+                       {selectedAdmin?.id !== session?.user?.id && (
+                         <span className="text-muted-foreground font-normal"> (for verification)</span>
+                       )}
+                     </Label>
+                     <Input
+                       id="current-password"
+                       type="password"
+                       placeholder="Enter your current password"
+                       value={passwordData.currentPassword}
+                       onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="new-password">
+                       New Password {selectedAdmin?.id !== session?.user?.id && `for ${selectedAdmin?.name}`} *
+                     </Label>
+                     <Input
+                       id="new-password"
+                       type="password"
+                       placeholder="Enter new password (min. 8 characters)"
+                       value={passwordData.newPassword}
+                       onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="confirm-password">Confirm New Password *</Label>
+                     <Input
+                       id="confirm-password"
+                       type="password"
+                       placeholder="Confirm new password"
+                       value={passwordData.confirmPassword}
+                       onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                     />
+                   </div>
+                   <p className="text-xs text-muted-foreground">
+                     {selectedAdmin?.id === session?.user?.id 
+                       ? '🔒 Enter your current password to change your password.'
+                       : `🔒 Enter YOUR current password to reset ${selectedAdmin?.name}'s password.`}
+                   </p>
+                 </div>
+               )}
+            </div>
+            
             {currentUserIsSuperAdmin && (
               <div className="flex items-center gap-2">
                 <Checkbox
