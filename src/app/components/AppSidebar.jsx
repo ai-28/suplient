@@ -19,7 +19,9 @@ import {
   X,
   BarChart3,
   FileText,
-  Database
+  Database,
+  Bell,
+  UserCog
 } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
@@ -86,7 +88,9 @@ export function AppSidebar() {
         { title: "Dashboard", url: "/admin/dashboard", icon: Home },
         { title: "Coaches", url: "/admin/coaches", icon: User },
         { title: "Clients", url: "/admin/clients", icon: Users },
-        { title: "Chat", url: "/admin/chat", icon: MessageSquare },
+        { title: "Note", url: "/admin/note", icon: Bell },
+        { title: "Admin Users", url: "/admin/admin-users", icon: UserCog },
+        // { title: "Chat", url: "/admin/chat", icon: MessageSquare },
       ];
     } else if (isCoach) {
       return [
