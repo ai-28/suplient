@@ -20,11 +20,12 @@ export async function GET(request) {
         email,
         phone,
         "isActive",
+        "isSuperAdmin",
         "createdAt",
         "updatedAt"
       FROM "User"
       WHERE role = 'admin'
-      ORDER BY "createdAt" DESC
+      ORDER BY "isSuperAdmin" DESC, "createdAt" DESC
     `;
 
         return NextResponse.json({

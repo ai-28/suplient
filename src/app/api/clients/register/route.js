@@ -84,6 +84,75 @@ export async function POST(request) {
             // Don't fail the registration if notification creation fails
         }
 
+        // Notify all admins about new client signup
+        try {
+            // Get all admins
+            const admins = await sql`
+                SELECT id FROM "User" WHERE role = 'admin' AND "isActive" = true
+            `;
+
+            // Get coach name for the notification
+            const coach = await sql`
+                SELECT name FROM "User" WHERE id = ${session.user.id}
+            `;
+            const coachName = coach[0]?.name || 'Unknown Coach';
+
+            // Create notifications for all admins
+            for (const admin of admins) {
+                await sql`
+                    INSERT INTO "Notification" 
+                    ("userId", type, title, message, "isRead", priority, data, "createdAt")
+                    VALUES (
+                        ${admin.id},
+                        'client_signup',
+                        'New Client Signup',
+                        ${`${newUser.name} (${newUser.email}) was registered by coach ${coachName}.`},
+                        false,
+                        'normal',
+                        ${JSON.stringify({
+                    clientId: newClient.id,
+                    clientName: newUser.name,
+                    clientEmail: newUser.email,
+                    coachId: session.user.id,
+                    coachName: coachName
+                })},
+                        CURRENT_TIMESTAMP
+                    )
+                `;
+
+                // Send real-time notification via socket
+                try {
+                    if (global.globalSocketIO) {
+                        const notification = {
+                            id: Math.random().toString(36).substr(2, 9),
+                            userId: admin.id,
+                            type: 'client_signup',
+                            title: 'New Client Signup',
+                            message: `${newUser.name} (${newUser.email}) was registered by coach ${coachName}.`,
+                            isRead: false,
+                            priority: 'normal',
+                            data: {
+                                clientId: newClient.id,
+                                clientName: newUser.name,
+                                clientEmail: newUser.email,
+                                coachId: session.user.id,
+                                coachName: coachName
+                            },
+                            createdAt: new Date().toISOString(),
+                        };
+                        global.globalSocketIO.to(`notifications_${admin.id}`).emit('new_notification', notification);
+                        console.log(`✅ Admin notification sent to ${admin.id} for client signup`);
+                    }
+                } catch (socketError) {
+                    console.warn(`⚠️ Socket emission failed for admin ${admin.id}:`, socketError.message);
+                }
+            }
+            console.log(`📧 Notified ${admins.length} admin(s) about new client signup`);
+        } catch (notificationError) {
+            console.error('❌ Error creating admin notifications:', notificationError);
+            // Don't fail registration if notification fails
+        }
+
         return Response.json({
             success: true,
             message: 'Client created successfully',

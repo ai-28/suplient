@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { userRepo } from '@/app/lib/db/userRepo';
 import { sendCoachRegistrationEmail } from '@/app/lib/email';
+import { sql } from '@/app/lib/db/postgresql';
 export async function POST(request) {
     try {
         const body = await request.json();
@@ -57,6 +58,57 @@ export async function POST(request) {
                 email: newUser.email,
                 tempPassword: password
             });
+
+            // Notify all admins about new coach signup
+            try {
+                // Get all admins
+                const admins = await sql`
+                    SELECT id FROM "User" WHERE role = 'admin' AND "isActive" = true
+                `;
+
+                // Create notifications for all admins
+                for (const admin of admins) {
+                    await sql`
+                        INSERT INTO "Notification" 
+                        ("userId", type, title, message, "isRead", priority, data, "createdAt")
+                        VALUES (
+                            ${admin.id},
+                            'system',
+                            'New Coach Signup',
+                            ${`${newUser.name} (${newUser.email}) has registered as a coach.`},
+                            false,
+                            'normal',
+                            ${JSON.stringify({ coachId: newUser.id, coachName: newUser.name, coachEmail: newUser.email })},
+                            CURRENT_TIMESTAMP
+                        )
+                    `;
+
+                    // Send real-time notification via socket
+                    try {
+                        if (global.globalSocketIO) {
+                            const notification = {
+                                id: Math.random().toString(36).substr(2, 9),
+                                userId: admin.id,
+                                type: 'system',
+                                title: 'New Coach Signup',
+                                message: `${newUser.name} (${newUser.email}) has registered as a coach.`,
+                                isRead: false,
+                                priority: 'normal',
+                                data: { coachId: newUser.id, coachName: newUser.name, coachEmail: newUser.email },
+                                createdAt: new Date().toISOString(),
+                            };
+                            global.globalSocketIO.to(`notifications_${admin.id}`).emit('new_notification', notification);
+                            console.log(`✅ Admin notification sent to ${admin.id} for coach signup`);
+                        }
+                    } catch (socketError) {
+                        console.warn(`⚠️ Socket emission failed for admin ${admin.id}:`, socketError.message);
+                    }
+                }
+                console.log(`📧 Notified ${admins.length} admin(s) about new coach signup`);
+            } catch (notificationError) {
+                console.error('❌ Error creating admin notifications:', notificationError);
+                // Don't fail registration if notification fails
+            }
         }
 
         return NextResponse.json({

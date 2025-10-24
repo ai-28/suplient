@@ -45,7 +45,11 @@ export function NotificationBell({ userRole = 'client' }) {
 
   // Filter notifications based on user role and relationships
   const filteredNotifications = notifications.filter(notification => {
-    if (userRole === 'coach') {
+    if (userRole === 'admin') {
+      // Admins see: system notifications and all admin-related notifications
+      // Admins can receive notifications from the "Note" feature and other admin-specific events
+      return true; // Admins see all their notifications
+    } else if (userRole === 'coach') {
       // Coaches see: client signup, task completion, daily checkin, new messages from THEIR OWN CLIENTS, system notifications, and group join requests
       const allowedTypes = ['client_signup', 'task_completed', 'daily_checkin', 'new_message', 'system', 'group_join_request'];
       if (!allowedTypes.includes(notification.type)) return false;
@@ -82,7 +86,7 @@ export function NotificationBell({ userRole = 'client' }) {
       
       return true;
     }
-    return true; // Admin or other roles see all notifications
+    return true; // Default: show all notifications
   });
 
   // Calculate filtered unread count (since we already fetch only unread notifications, this is just the length)

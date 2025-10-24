@@ -24,6 +24,7 @@ async function seedUser() {
         phone VARCHAR(50),
         role VARCHAR(20) NOT NULL DEFAULT 'client' CHECK (role IN ('admin', 'coach', 'client')),
         "isActive" BOOLEAN DEFAULT true,
+        "isSuperAdmin" BOOLEAN DEFAULT false,
         "dateofBirth" DATE,
         "address" VARCHAR(255),
         bio TEXT,
@@ -37,8 +38,9 @@ async function seedUser() {
   await sql`CREATE INDEX IF NOT EXISTS idx_users_email ON "User"(email)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_users_role ON "User"(role)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_users_isActive ON "User"("isActive")`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_users_isSuperAdmin ON "User"("isSuperAdmin")`;
 
-  // Insert a default admin user if it doesn't exist
+  // Insert a default super admin user if it doesn't exist
   const existingAdmin = await sql`SELECT id FROM "User" WHERE email = 'admin@mentalcoach.com'`;
 
   if (existingAdmin.length === 0) {
@@ -46,11 +48,18 @@ async function seedUser() {
     const hashedPassword = hashPassword("admin123", salt);
 
     await sql`
-      INSERT INTO "User" (name, email, password, salt, role, phone, "isActive", "dateofBirth", "address", "coachId")
-      VALUES ('Admin User', 'admin@mentalcoach.com', ${hashedPassword}, ${salt}, 'admin', '+1234567890', true, NULL, NULL, NULL)
+      INSERT INTO "User" (name, email, password, salt, role, phone, "isActive", "isSuperAdmin", "dateofBirth", "address", "coachId")
+      VALUES ('Super Admin', 'admin@mentalcoach.com', ${hashedPassword}, ${salt}, 'admin', '+1234567890', true, true, NULL, NULL, NULL)
     `;
+    console.log('Super Admin user created');
   } else {
     console.log('Admin user already exists');
+    // Ensure existing admin is super admin
+    await sql`
+      UPDATE "User" 
+      SET "isSuperAdmin" = true 
+      WHERE email = 'admin@mentalcoach.com' AND role = 'admin'
+    `;
   }
 
 }

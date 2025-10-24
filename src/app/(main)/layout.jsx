@@ -68,7 +68,7 @@ const Layout = ({ children }) => {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                    <NotificationBell userRole="coach" />
+                    <NotificationBell userRole={pathname.startsWith('/admin') ? 'admin' : 'coach'} />
                   <ThemeToggle />
                   <DropdownMenu>
             <DropdownMenuTrigger asChild>
