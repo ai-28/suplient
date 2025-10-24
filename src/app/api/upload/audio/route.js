@@ -1,31 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-
-// Initialize S3 client dynamically (same as library uploads)
-function getS3Client() {
-    return new S3Client({
-        endpoint: `https://${process.env.DO_SPACES_REGION}.${process.env.DO_SPACES_ENDPOINT}`,
-        region: process.env.DO_SPACES_REGION,
-        credentials: {
-            accessKeyId: process.env.DO_SPACES_KEY,
-            secretAccessKey: process.env.DO_SPACES_SECRET,
-        },
-        forcePathStyle: true,
-    });
-}
-
-// Helper function to generate CDN URL (same as library uploads)
-const getCdnUrl = (filePath) => {
-    if (process.env.DO_SPACES_CDN_ENABLED === 'true') {
-        return `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.cdn.${process.env.DO_SPACES_ENDPOINT}/${filePath}`;
-    }
-    return `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.${process.env.DO_SPACES_ENDPOINT}/${filePath}`;
-};
 
 export async function POST(request) {
     try {
@@ -34,34 +12,6 @@ export async function POST(request) {
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-
-        // Validate environment variables
-        const requiredEnvVars = [
-            'DO_SPACES_REGION',
-            'DO_SPACES_ENDPOINT',
-            'DO_SPACES_BUCKET',
-            'DO_SPACES_KEY',
-            'DO_SPACES_SECRET'
-        ];
-
-        const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-        if (missingVars.length > 0) {
-            console.error('❌ Missing environment variables:', missingVars);
-            return NextResponse.json({
-                success: false,
-                error: 'Server configuration error: Missing DigitalOcean Spaces credentials',
-                missingVars
-            }, { status: 500 });
-        }
-
-        console.log('✅ Environment variables OK:', {
-            region: process.env.DO_SPACES_REGION,
-            endpoint: process.env.DO_SPACES_ENDPOINT,
-            bucket: process.env.DO_SPACES_BUCKET,
-            hasKey: !!process.env.DO_SPACES_KEY,
-            hasSecret: !!process.env.DO_SPACES_SECRET
-        });
 
         const formData = await request.formData();
         const audioFile = formData.get('audio');
@@ -83,88 +33,42 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
-        // Generate unique filename with proper extension
-        console.log('📥 Received audio file:', { 
-            name: audioFile.name, 
-            type: audioFile.type, 
-            size: audioFile.size 
-        });
-        
-        let fileExtension = 'webm'; // Default to webm (most browsers use this)
+        // Generate unique filename
+        let fileExtension = 'webm'; // Default
         if (audioFile.type) {
             const typeParts = audioFile.type.split('/');
             if (typeParts.length > 1) {
-                fileExtension = typeParts[1].split(';')[0]; // Remove any codec info
+                fileExtension = typeParts[1].split(';')[0];
             }
         }
-        
+
         const fileName = `${uuidv4()}.${fileExtension}`;
-        const filePath = `chat/voice-messages/${fileName}`;
-        console.log('📝 Generated filename:', fileName);
+        console.log('📝 Processing voice message:', { fileName, type: audioFile.type, size: audioFile.size });
 
         // Convert file to buffer
         const bytes = await audioFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        let audioUrl;
-        let uploadMethod = 'spaces';
+        // Save to local storage (public/uploads/audio)
+        const uploadsDir = join(process.cwd(), 'public', 'uploads', 'audio');
+        await mkdir(uploadsDir, { recursive: true });
 
-        // Try uploading to DigitalOcean Spaces first
-        try {
-            console.log('📤 Uploading voice message to DigitalOcean Spaces:', filePath);
+        const localFilePath = join(uploadsDir, fileName);
+        await writeFile(localFilePath, buffer);
 
-            const s3Client = getS3Client();
-            const command = new PutObjectCommand({
-                Bucket: process.env.DO_SPACES_BUCKET,
-                Key: filePath,
-                Body: buffer,
-                ContentType: audioFile.type,
-                ACL: 'public-read',
-                ContentLength: audioFile.size,
-                CacheControl: 'max-age=31536000', // Cache for 1 year (same as library files)
-            });
-
-            await s3Client.send(command);
-
-            // Get CDN URL (same as library uploads)
-            audioUrl = getCdnUrl(filePath);
-
-            console.log('✅ Voice message uploaded successfully to Spaces:', fileName);
-            console.log('🔗 CDN URL:', audioUrl);
-        } catch (spacesError) {
-            // Fallback to local storage if Spaces fails
-            console.warn('⚠️ DigitalOcean Spaces upload failed, falling back to local storage:', spacesError.message);
-
-            const uploadsDir = join(process.cwd(), 'public', 'uploads', 'audio');
-            await mkdir(uploadsDir, { recursive: true });
-
-            const localFilePath = join(uploadsDir, fileName);
-            await writeFile(localFilePath, buffer);
-
-            audioUrl = `/uploads/audio/${fileName}`;
-            uploadMethod = 'local';
-
-            console.log('✅ Voice message saved locally:', fileName);
-            console.log('🔗 Local URL:', audioUrl);
-        }
+        const audioUrl = `/uploads/audio/${fileName}`;
+        console.log('✅ Voice message saved:', audioUrl);
 
         return NextResponse.json({
             success: true,
             audioUrl,
             fileName,
             fileSize: buffer.length,
-            fileType: audioFile.type,
-            uploadMethod // 'spaces' or 'local'
+            fileType: audioFile.type
         });
 
     } catch (error) {
-        console.error('❌ Error uploading audio to DigitalOcean Spaces:', error);
-        console.error('Error details:', {
-            message: error.message,
-            code: error.code,
-            statusCode: error.$metadata?.httpStatusCode,
-            stack: error.stack
-        });
+        console.error('❌ Error processing audio:', error);
         return NextResponse.json(
             {
                 success: false,

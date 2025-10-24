@@ -40,41 +40,16 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         }
       };
 
-      mediaRecorder.onstop = () => {
-        console.log('🎙️ Recording stopped, processing audio chunks:', audioChunksRef.current.length);
-        
-        if (audioChunksRef.current.length === 0) {
-          console.error('❌ No audio chunks recorded!');
-          toast.error('Recording failed - no audio captured', { duration: 3000 });
+        mediaRecorder.onstop = () => {
+          // Create audio blob from recorded chunks
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+          
+          // Generate waveform data for visualization
+          setWaveformData(Array.from({ length: 32 }, () => Math.random() * 0.8 + 0.1));
+          
           setIsProcessing(false);
-          return;
-        }
-        
-        // Use the MIME type from MediaRecorder for better compatibility
-        const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        console.log('📦 Created audio blob:', {
-          size: audioBlob.size,
-          type: mimeType,
-          chunks: audioChunksRef.current.length
-        });
-        
-        if (audioBlob.size === 0) {
-          console.error('❌ Audio blob is empty!');
-          toast.error('Recording failed - empty audio', { duration: 3000 });
-          setIsProcessing(false);
-          return;
-        }
-        
-        const url = URL.createObjectURL(audioBlob);
-        console.log('🔗 Created blob URL for preview:', url);
-        setAudioUrl(url);
-        
-        // Generate mock waveform data (in a real app, you'd analyze the audio)
-        setWaveformData(Array.from({ length: 32 }, () => Math.random() * 0.8 + 0.1));
-        
-        setIsProcessing(false);
-        console.log('✅ Recording processed, ready for preview/send');
         
         // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
@@ -159,44 +134,29 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     }
   };
 
-  const play = () => {
-    if (audioUrl) {
-      console.log('🔊 Attempting to play preview audio:', audioUrl);
-      
-      // Stop any currently playing audio
-      if (currentAudioRef.current) {
-        currentAudioRef.current.pause();
-        currentAudioRef.current = null;
+    const play = () => {
+      if (audioUrl) {
+        // Stop any currently playing audio
+        if (currentAudioRef.current) {
+          currentAudioRef.current.pause();
+          currentAudioRef.current = null;
+        }
+        
+        const audio = new Audio(audioUrl);
+        currentAudioRef.current = audio;
+        
+        audio.play().then(() => {
+          setIsPlaying(true);
+          audio.onended = () => {
+            setIsPlaying(false);
+            currentAudioRef.current = null;
+          };
+        }).catch((error) => {
+          console.error('Failed to play audio:', error);
+          toast.error('Cannot play audio preview', { duration: 2000 });
+        });
       }
-      
-      const audio = new Audio(audioUrl);
-      currentAudioRef.current = audio;
-      
-      audio.play().then(() => {
-        console.log('✅ Audio playing successfully');
-        setIsPlaying(true);
-        audio.onended = () => {
-          console.log('🔚 Audio playback ended');
-          setIsPlaying(false);
-          currentAudioRef.current = null;
-        };
-        audio.onerror = (error) => {
-          console.error('❌ Audio playback error:', error);
-          toast.error('Failed to play audio preview', { duration: 3000 });
-          setIsPlaying(false);
-          currentAudioRef.current = null;
-        };
-      }).catch((error) => {
-        console.error('❌ Failed to start audio playback:', error);
-        toast.error(`Cannot play audio: ${error.message}`, { duration: 3000 });
-        setIsPlaying(false);
-        currentAudioRef.current = null;
-      });
-    } else {
-      console.warn('⚠️ No audio URL available to play');
-      toast.warning('No audio recorded yet', { duration: 2000 });
-    }
-  };
+    };
 
   const pause = () => {
     if (currentAudioRef.current) {
@@ -273,12 +233,11 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   const handleSend = async () => {
     if (audioUrl && duration > 0) {
-      // Check minimum duration
-      if (duration < MIN_RECORDING_DURATION) {
-        console.warn('Recording too short, minimum duration required');
-        toast.error('❌ Recording too short. Please record for at least 1 second.', { duration: 3000 });
-        return;
-      }
+        // Check minimum duration
+        if (duration < MIN_RECORDING_DURATION) {
+          toast.error('Recording too short. Please record for at least 1 second.', { duration: 3000 });
+          return;
+        }
       
       try {
         setIsProcessing(true);
@@ -286,13 +245,8 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         // Convert blob URL to file for upload
         const response = await fetch(audioUrl);
         const blob = await response.blob();
-        console.log('📦 Blob for upload:', { size: blob.size, type: blob.type });
         
-        // Use the actual blob type, with fallback
-        const fileType = blob.type || 'audio/webm';
-        const fileExtension = fileType.includes('webm') ? 'webm' : 'wav';
-        const file = new File([blob], `voice-message.${fileExtension}`, { type: fileType });
-        console.log('📄 Created file:', { name: file.name, size: file.size, type: file.type });
+        const file = new File([blob], 'voice-message.webm', { type: 'audio/webm' });
         
         // Upload audio file
         const formData = new FormData();
@@ -308,18 +262,9 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         }
         
         const uploadData = await uploadResponse.json();
-        console.log('📤 Upload response:', uploadData);
         
         if (uploadData.success) {
-          console.log(`✅ Upload successful via ${uploadData.uploadMethod}:`, uploadData.audioUrl);
-          
-          // Show different message based on upload method
-          if (uploadData.uploadMethod === 'local') {
-            toast.success('✅ Voice message sent! (Saved locally)', { duration: 3000 });
-            console.warn('⚠️ Using local storage fallback. Check DigitalOcean Spaces configuration.');
-          } else {
-            toast.success('✅ Voice message sent!', { duration: 2000 });
-          }
+          toast.success('Voice message sent!', { duration: 2000 });
           
           // Send message with uploaded audio URL
           onSendVoiceMessage(uploadData.audioUrl, duration, waveformData);
@@ -328,11 +273,11 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         } else {
           throw new Error(uploadData.error || 'Upload failed');
         }
-      } catch (error) {
-        console.error('Error sending voice message:', error);
-        toast.error(`❌ Failed to send voice message: ${error.message}`, { duration: 5000 });
-        setIsProcessing(false);
-      }
+        } catch (error) {
+          console.error('Error sending voice message:', error);
+          toast.error('Failed to send voice message', { duration: 3000 });
+          setIsProcessing(false);
+        }
     }
   };
 
@@ -448,10 +393,9 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     );
   }
 
-  // If we have a recorded audio, show playback interface
-  if (audioUrl) {
-    console.log('🎵 Rendering preview interface with audioUrl:', audioUrl, 'duration:', duration);
-    return (
+    // If we have a recorded audio, show playback interface
+    if (audioUrl) {
+      return (
       <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
         <div className="text-xs text-muted-foreground mb-2">Preview your recording</div>
         <div className="flex items-center gap-2">
