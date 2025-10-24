@@ -265,8 +265,22 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         }
         
         const uploadData = await uploadResponse.json();
+        console.log('📤 Upload response:', uploadData);
         
         if (uploadData.success) {
+          console.log('✅ Upload successful, audio URL:', uploadData.audioUrl);
+          // Verify the file exists before sending
+          try {
+            const verifyResponse = await fetch(uploadData.audioUrl, { method: 'HEAD' });
+            if (!verifyResponse.ok) {
+              console.warn('⚠️ Uploaded file not accessible:', uploadData.audioUrl, 'Status:', verifyResponse.status);
+            } else {
+              console.log('✅ File verified accessible');
+            }
+          } catch (verifyError) {
+            console.warn('⚠️ Could not verify file:', verifyError);
+          }
+          
           // Send message with uploaded audio URL
           onSendVoiceMessage(uploadData.audioUrl, duration, waveformData);
           toast.success('✅ Voice message sent!', { duration: 2000 });

@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
+
+// Initialize S3 client for DigitalOcean Spaces (same as library uploads)
+const s3Client = new S3Client({
+    endpoint: `https://${process.env.DO_SPACES_REGION}.${process.env.DO_SPACES_ENDPOINT}`,
+    region: process.env.DO_SPACES_REGION,
+    credentials: {
+        accessKeyId: process.env.DO_SPACES_KEY,
+        secretAccessKey: process.env.DO_SPACES_SECRET,
+    },
+    forcePathStyle: true,
+});
+
+// Helper function to generate CDN URL (same as library uploads)
+const getCdnUrl = (filePath) => {
+    if (process.env.DO_SPACES_CDN_ENABLED === 'true') {
+        return `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.cdn.${process.env.DO_SPACES_ENDPOINT}/${filePath}`;
+    }
+    return `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.${process.env.DO_SPACES_ENDPOINT}/${filePath}`;
+};
 
 export async function POST(request) {
     try {
@@ -36,19 +54,32 @@ export async function POST(request) {
         // Generate unique filename
         const fileExtension = audioFile.type.split('/')[1] || 'wav';
         const fileName = `${uuidv4()}.${fileExtension}`;
+        const filePath = `chat/voice-messages/${fileName}`;
 
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = join(process.cwd(), 'public', 'uploads', 'audio');
-        await mkdir(uploadsDir, { recursive: true });
-
-        // Save file
-        const filePath = join(uploadsDir, fileName);
+        // Convert file to buffer
         const bytes = await audioFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        await writeFile(filePath, buffer);
 
-        // Return the public URL
-        const audioUrl = `/uploads/audio/${fileName}`;
+        console.log('📤 Uploading voice message to DigitalOcean Spaces:', filePath);
+
+        // Upload to DigitalOcean Spaces (same as library uploads)
+        const command = new PutObjectCommand({
+            Bucket: process.env.DO_SPACES_BUCKET,
+            Key: filePath,
+            Body: buffer,
+            ContentType: audioFile.type,
+            ACL: 'public-read',
+            ContentLength: audioFile.size,
+            CacheControl: 'max-age=31536000', // Cache for 1 year (same as library files)
+        });
+
+        await s3Client.send(command);
+
+        // Get CDN URL (same as library uploads)
+        const audioUrl = getCdnUrl(filePath);
+
+        console.log('✅ Voice message uploaded successfully:', fileName);
+        console.log('🔗 CDN URL:', audioUrl);
 
         return NextResponse.json({
             success: true,
