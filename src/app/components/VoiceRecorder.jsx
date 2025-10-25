@@ -57,16 +57,38 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
       
-      // Use Opus codec in WebM container (Discord/Telegram standard)
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-        ? 'audio/webm;codecs=opus' 
-        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-        ? 'audio/ogg;codecs=opus'
-        : 'audio/webm'; // Fallback
+      // Test multiple formats and choose the best one
+      const formats = [
+        'audio/webm;codecs=opus',
+        'audio/ogg;codecs=opus',
+        'audio/webm',
+        'audio/ogg',
+        'audio/wav'
+      ];
+      
+      let mimeType = '';
+      for (const format of formats) {
+        if (MediaRecorder.isTypeSupported(format)) {
+          mimeType = format;
+          console.log('✅ Selected audio format:', format);
+          break;
+        }
+      }
+      
+      if (!mimeType) {
+        throw new Error('No supported audio format found');
+      }
       
       console.log('🎤 Recording with format:', mimeType);
+      console.log('📋 All supported formats:', formats.filter(f => MediaRecorder.isTypeSupported(f)));
       
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
@@ -79,21 +101,49 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          console.log('📊 Chunk received:', event.data.size, 'bytes');
         }
       };
 
       mediaRecorder.onstop = async () => {
         console.log('🎙️ Recording stopped, processing audio...');
+        
+        // Validate we have audio data
+        if (audioChunksRef.current.length === 0) {
+          console.error('❌ No audio data recorded');
+          toast.error('❌ No audio recorded. Please try again.', { duration: 3000 });
+          setIsProcessing(false);
+          return;
+        }
+        
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         console.log('📦 Audio blob created:', { 
-          type: mimeType, 
+          type: audioBlob.type,
           size: audioBlob.size, 
-          sizeKB: (audioBlob.size / 1024).toFixed(2) + ' KB' 
+          sizeKB: (audioBlob.size / 1024).toFixed(2) + ' KB',
+          chunks: audioChunksRef.current.length
         });
+        
+        // Validate blob size
+        if (audioBlob.size === 0) {
+          console.error('❌ Audio blob is empty');
+          toast.error('❌ Recording failed. Please try again.', { duration: 3000 });
+          setIsProcessing(false);
+          return;
+        }
         
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
         console.log('🔗 Blob URL created for preview:', url);
+        
+        // Test if the blob URL is valid by creating a test audio element
+        const testAudio = new Audio(url);
+        testAudio.onerror = (e) => {
+          console.error('❌ Invalid audio blob:', e, testAudio.error);
+        };
+        testAudio.onloadedmetadata = () => {
+          console.log('✅ Audio blob is valid and playable');
+        };
         
         // Generate REAL waveform data by analyzing audio
         try {
@@ -114,9 +164,45 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(100); // Collect data every 100ms for better streaming
       setIsRecording(true);
       setDuration(0);
+      
+      console.log('🎤 Recording started with stream tracks:', stream.getTracks().map(t => ({
+        kind: t.kind,
+        label: t.label,
+        enabled: t.enabled,
+        muted: t.muted
+      })));
+      
+      // Monitor audio levels to verify microphone is working
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        const microphone = audioContext.createMediaStreamSource(stream);
+        microphone.connect(analyser);
+        analyser.fftSize = 256;
+        
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let checkCount = 0;
+        const checkAudioLevel = () => {
+          if (!isRecordingRef.current || checkCount++ > 60) return; // Stop after 60 seconds
+          
+          analyser.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          
+          if (checkCount % 2 === 0) { // Log every 2 seconds
+            console.log('🎚️ Audio level:', Math.round(average), '/ 255', average < 5 ? '⚠️ VERY LOW' : '');
+          }
+          
+          if (isRecordingRef.current) {
+            setTimeout(checkAudioLevel, 1000);
+          }
+        };
+        checkAudioLevel();
+      } catch (err) {
+        console.warn('Audio level monitoring not available:', err);
+      }
       
       // Start duration counter with time limit checks
       durationIntervalRef.current = setInterval(() => {
@@ -206,25 +292,48 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
       
-      audio.play().then(() => {
-        console.log('✅ Preview playback started successfully');
-        setIsPlaying(true);
-        audio.onended = () => {
-          console.log('⏹️ Preview playback ended');
-          setIsPlaying(false);
-          currentAudioRef.current = null;
-        };
-        audio.onerror = (e) => {
-          console.error('❌ Preview playback error:', e);
-          setIsPlaying(false);
-          currentAudioRef.current = null;
-          toast.error('❌ Failed to play preview', { duration: 3000 });
-        };
-      }).catch((err) => {
-        console.error('❌ Preview play failed:', err);
+      // Set up event handlers BEFORE playing
+      audio.onloadedmetadata = () => {
+        console.log('✅ Audio metadata loaded:', {
+          duration: audio.duration,
+          readyState: audio.readyState
+        });
+      };
+      
+      audio.oncanplay = () => {
+        console.log('✅ Audio ready to play');
+      };
+      
+      audio.onended = () => {
+        console.log('⏹️ Preview playback ended');
+        setIsPlaying(false);
+        currentAudioRef.current = null;
+      };
+      
+      audio.onerror = (e) => {
+        console.error('❌ Preview playback error:', {
+          error: e,
+          audioError: audio.error,
+          audioUrl: audioUrl
+        });
         setIsPlaying(false);
         currentAudioRef.current = null;
         toast.error('❌ Failed to play preview', { duration: 3000 });
+      };
+      
+      // Now try to play
+      audio.play().then(() => {
+        console.log('✅ Preview playback started successfully');
+        setIsPlaying(true);
+      }).catch((err) => {
+        console.error('❌ Preview play failed:', {
+          error: err.message,
+          name: err.name,
+          audioUrl: audioUrl
+        });
+        setIsPlaying(false);
+        currentAudioRef.current = null;
+        toast.error('❌ Failed to play preview: ' + err.message, { duration: 3000 });
       });
     }
   };
@@ -519,7 +628,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       >
         <Mic className="h-6 w-6" />
       </Button>
-      <span className="text-sm text-muted-foreground">
+      <span className="text-sm text-muted-foreground fixed">
         {isInitializing ? 'Initializing...' : 'Tap to record'}
       </span>
     </div>
