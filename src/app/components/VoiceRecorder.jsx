@@ -333,53 +333,8 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       isRecordingRef.current = true;
       setDuration(0);
       
-      // Monitor audio levels to verify microphone is working
-      try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const analyser = audioContext.createAnalyser();
-        const microphone = audioContext.createMediaStreamSource(stream);
-        
-        // Configure analyser for better accuracy
-        analyser.fftSize = 2048;
-        analyser.smoothingTimeConstant = 0.8;
-        
-        microphone.connect(analyser);
-        
-        const timeDataArray = new Uint8Array(analyser.fftSize);
-        let checkCount = 0;
-        
-        const checkAudioLevel = () => {
-          if (!isRecordingRef.current || checkCount++ > 300) {
-            setAudioLevel(0);
-            microphone.disconnect();
-            audioContext.close();
-            return;
-          }
-          
-          // Use time domain data for accurate volume measurement
-          analyser.getByteTimeDomainData(timeDataArray);
-          
-          // Calculate RMS (root mean square) for accurate volume level
-          let sum = 0;
-          for (let i = 0; i < timeDataArray.length; i++) {
-            const normalized = (timeDataArray[i] - 128) / 128;
-            sum += normalized * normalized;
-          }
-          const rms = Math.sqrt(sum / timeDataArray.length);
-          const volume = Math.min(Math.round(rms * 255 * 5), 255);
-          
-          setAudioLevel(volume);
-          
-          if (isRecordingRef.current) {
-            requestAnimationFrame(checkAudioLevel);
-          }
-        };
-        
-        setTimeout(checkAudioLevel, 100);
-        
-      } catch (err) {
-        console.error('Audio level monitoring error:', err);
-      }
+      // Start audio level monitoring
+      startAudioLevelMonitoring(stream);
       
       // Start duration counter with time limit checks
       durationIntervalRef.current = setInterval(() => {
@@ -534,39 +489,36 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       const analyser = audioContext.createAnalyser();
       const microphone = audioContext.createMediaStreamSource(stream);
       
-      analyser.fftSize = 2048;
-      analyser.smoothingTimeConstant = 0.8;
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.3;
       microphone.connect(analyser);
       
-      const timeDataArray = new Uint8Array(analyser.fftSize);
-      let checkCount = 0;
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
       
       const checkAudioLevel = () => {
-        if (!isRecordingRef.current || checkCount++ > 300) {
+        if (!isRecordingRef.current) {
           setAudioLevel(0);
           microphone.disconnect();
           audioContext.close();
           return;
         }
         
-        analyser.getByteTimeDomainData(timeDataArray);
+        analyser.getByteFrequencyData(dataArray);
         
+        // Simple average volume calculation
         let sum = 0;
-        for (let i = 0; i < timeDataArray.length; i++) {
-          const normalized = (timeDataArray[i] - 128) / 128;
-          sum += normalized * normalized;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
         }
-        const rms = Math.sqrt(sum / timeDataArray.length);
-        const volume = Math.min(Math.round(rms * 255 * 5), 255);
+        const average = sum / dataArray.length;
+        const volume = Math.round(average);
         
         setAudioLevel(volume);
         
-        if (isRecordingRef.current) {
-          requestAnimationFrame(checkAudioLevel);
-        }
+        requestAnimationFrame(checkAudioLevel);
       };
       
-      setTimeout(checkAudioLevel, 100);
+      checkAudioLevel();
       
     } catch (err) {
       console.error('Audio level monitoring error:', err);
