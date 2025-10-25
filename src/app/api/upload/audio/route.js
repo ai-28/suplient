@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
-import { v4 as uuidv4 } from 'uuid';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request) {
     try {
@@ -34,30 +34,25 @@ export async function POST(request) {
         }
 
         // Generate unique filename
-        let fileExtension = 'webm'; // Default
-        if (audioFile.type) {
-            const typeParts = audioFile.type.split('/');
-            if (typeParts.length > 1) {
-                fileExtension = typeParts[1].split(';')[0];
-            }
-        }
-
+        const fileExtension = audioFile.type.split('/')[1] || 'wav';
         const fileName = `${uuidv4()}.${fileExtension}`;
-        console.log('📝 Processing voice message:', { fileName, type: audioFile.type, size: audioFile.size });
 
-        // Convert file to buffer
-        const bytes = await audioFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        // Save to local storage (public/uploads/audio)
+        // Create uploads directory if it doesn't exist
         const uploadsDir = join(process.cwd(), 'public', 'uploads', 'audio');
+        console.log('📁 Creating directory:', uploadsDir);
         await mkdir(uploadsDir, { recursive: true });
 
-        const localFilePath = join(uploadsDir, fileName);
-        await writeFile(localFilePath, buffer);
+        // Save file
+        const filePath = join(uploadsDir, fileName);
+        console.log('💾 Saving audio file to:', filePath);
+        const bytes = await audioFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        await writeFile(filePath, buffer);
+        console.log('✅ Audio file saved successfully:', fileName, 'Size:', buffer.length, 'bytes');
 
+        // Return the public URL
         const audioUrl = `/uploads/audio/${fileName}`;
-        console.log('✅ Voice message saved:', audioUrl);
+        console.log('🔗 Returning audio URL:', audioUrl);
 
         return NextResponse.json({
             success: true,
@@ -68,13 +63,9 @@ export async function POST(request) {
         });
 
     } catch (error) {
-        console.error('❌ Error processing audio:', error);
+        console.error('Error uploading audio:', error);
         return NextResponse.json(
-            {
-                success: false,
-                error: 'Failed to upload audio file',
-                details: error.message
-            },
+            { error: 'Failed to upload audio file' },
             { status: 500 }
         );
     }
