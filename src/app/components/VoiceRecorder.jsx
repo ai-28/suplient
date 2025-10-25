@@ -102,10 +102,13 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       
       // Try to use the "communications" device first (like Discord/Telegram)
       // This automatically selects the microphone Windows uses for calls
+      // Start with minimal constraints - some browsers have issues with advanced audio processing
       const audioConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
+        echoCancellation: false, // Disable initially to test if this is the problem
+        noiseSuppression: false,
+        autoGainControl: false,
+        sampleRate: 48000, // Standard sample rate
+        channelCount: 1 // Mono audio for voice
       };
       
       // Check if user previously selected a specific microphone
@@ -166,9 +169,15 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
           label: audioTrack.label,
           enabled: audioTrack.enabled,
           muted: audioTrack.muted,
-          readyState: audioTrack.readyState
+          readyState: audioTrack.readyState,
+          settings: audioTrack.getSettings ? audioTrack.getSettings() : 'not available'
         }
       });
+      
+      // Add event listeners to track changes
+      audioTrack.onmute = () => console.warn('⚠️ Audio track muted!');
+      audioTrack.onunmute = () => console.log('✅ Audio track unmuted');
+      audioTrack.onended = () => console.warn('⚠️ Audio track ended unexpectedly!');
       
       // Refresh microphone list after permission is granted
       await enumerateMicrophones();
@@ -198,13 +207,33 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       console.log('🎤 Recording with format:', mimeType);
       console.log('📋 All supported formats:', formats.filter(f => MediaRecorder.isTypeSupported(f)));
       
+      console.log('🎙️ Creating MediaRecorder with:', { mimeType, audioBitsPerSecond: 32000 });
+      
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
         audioBitsPerSecond: 32000 // 32kbps - good quality for voice (Discord uses 32-64kbps)
       });
       
+      console.log('✅ MediaRecorder created:', {
+        state: mediaRecorder.state,
+        mimeType: mediaRecorder.mimeType,
+        audioBitsPerSecond: mediaRecorder.audioBitsPerSecond,
+        videoBitsPerSecond: mediaRecorder.videoBitsPerSecond
+      });
+      
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      
+      // Add state change listener
+      mediaRecorder.onstatechange = () => {
+        console.log('🎙️ MediaRecorder state changed:', mediaRecorder.state);
+      };
+      
+      // Add error listener
+      mediaRecorder.onerror = (event) => {
+        console.error('❌ MediaRecorder error:', event.error);
+        toast.error('Recording error: ' + event.error.name, { duration: 5000 });
+      };
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -695,6 +724,52 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     }
   };
 
+  // Test microphone by playing back what you hear (echo test)
+  const testMicrophone = async () => {
+    console.log('🎤 Testing microphone with live playback...');
+    toast.info('🎤 Speak now - you should hear yourself!', { duration: 3000 });
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+      
+      console.log('✅ Microphone stream obtained');
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      
+      source.connect(analyser);
+      analyser.connect(audioContext.destination); // This creates echo - you hear yourself
+      
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      
+      const checkLevel = setInterval(() => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        console.log('🎚️ Live mic level:', Math.round(average), '/ 255');
+      }, 500);
+      
+      // Stop after 3 seconds
+      setTimeout(() => {
+        clearInterval(checkLevel);
+        stream.getTracks().forEach(track => track.stop());
+        source.disconnect();
+        analyser.disconnect();
+        toast.success('✅ Microphone test complete!', { duration: 2000 });
+        console.log('✅ Microphone test finished');
+      }, 3000);
+      
+    } catch (err) {
+      console.error('❌ Microphone test failed:', err);
+      toast.error('❌ Microphone test failed: ' + err.message, { duration: 5000 });
+    }
+  };
+
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -924,16 +999,29 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         {isInitializing ? 'Initializing...' : 'Tap to record'}
       </span>
       
-      {/* Test speakers button for debugging */}
-      <Button 
-        onClick={testSpeakers}
-        variant="outline"
-        size="sm"
-        className="mt-2"
-      >
-        <Volume2 className="h-4 w-4 mr-2" />
-        Test Speakers
-      </Button>
+      {/* Test buttons for debugging */}
+      <div className="flex gap-2">
+        <Button 
+          onClick={testMicrophone}
+          variant="outline"
+          size="sm"
+        >
+          <Mic className="h-4 w-4 mr-2" />
+          Test Mic
+        </Button>
+        <Button 
+          onClick={testSpeakers}
+          variant="outline"
+          size="sm"
+        >
+          <Volume2 className="h-4 w-4 mr-2" />
+          Test Speakers
+        </Button>
+      </div>
+      
+      <p className="text-xs text-muted-foreground text-center">
+        Click "Test Mic" - you should hear yourself speak
+      </p>
     </div>
   );
 }
