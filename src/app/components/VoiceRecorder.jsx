@@ -20,11 +20,14 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   const [waveformData, setWaveformData] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0); // Real-time audio level indicator
   
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const durationIntervalRef = useRef(null);
   const currentAudioRef = useRef(null);
+  const audioLevelIntervalRef = useRef(null);
+  const isRecordingRef = useRef(false);
 
   // Generate real waveform from audio blob (like Discord/Telegram)
   const generateWaveform = async (audioBlob) => {
@@ -219,6 +222,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
       mediaRecorder.start(100); // Collect data every 100ms for better streaming
       setIsRecording(true);
+      isRecordingRef.current = true;
       setDuration(0);
       
       console.log('🎤 Recording started with stream tracks:', stream.getTracks().map(t => ({
@@ -239,13 +243,21 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         let checkCount = 0;
         const checkAudioLevel = () => {
-          if (!isRecordingRef.current || checkCount++ > 60) return; // Stop after 60 seconds
+          if (!isRecordingRef.current || checkCount++ > 300) {
+            setAudioLevel(0);
+            return;
+          }
           
           analyser.getByteFrequencyData(dataArray);
           const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
           
+          // Update visual indicator
+          setAudioLevel(Math.round(average));
+          
+          // Log to console
           if (checkCount % 2 === 0) { // Log every 2 seconds
-            console.log('🎚️ Audio level:', Math.round(average), '/ 255', average < 5 ? '⚠️ VERY LOW' : '');
+            const level = Math.round(average);
+            console.log('🎚️ Audio level:', level, '/ 255', level < 5 ? '⚠️ VERY LOW - MICROPHONE NOT WORKING!' : level < 20 ? '⚠️ LOW' : '✅ GOOD');
           }
           
           if (isRecordingRef.current) {
@@ -287,8 +299,10 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      isRecordingRef.current = false;
       setIsProcessing(true);
       setShowTimeWarning(false); // Reset warning state
+      setAudioLevel(0); // Reset audio level indicator
       
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
@@ -299,8 +313,10 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   const cancelRecording = () => {
     setIsRecording(false);
+    isRecordingRef.current = false;
     setIsProcessing(false);
     setDuration(0);
+    setAudioLevel(0);
     setAudioUrl(null);
     setWaveformData([]);
     setShowTimeWarning(false); // Reset warning state
@@ -630,6 +646,14 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     const remainingTime = MAX_RECORDING_DURATION - duration;
     const isNearLimit = duration >= MAX_RECORDING_DURATION - WARNING_DURATION;
     
+    // Audio level indicator
+    const levelPercentage = (audioLevel / 255) * 100;
+    const getLevelColor = () => {
+      if (audioLevel < 5) return 'bg-destructive';
+      if (audioLevel < 20) return 'bg-yellow-500';
+      return 'bg-green-500';
+    };
+    
     return (
       <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
         <div className="flex items-center gap-2">
@@ -638,6 +662,30 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
             isNearLimit ? "bg-orange-500" : "bg-red-500"
           )} />
           <span className="text-sm font-medium">Recording...</span>
+        </div>
+        
+        {/* Audio Level Indicator */}
+        <div className="w-full max-w-xs space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Microphone Level</span>
+            <span className={cn(
+              "font-medium",
+              audioLevel < 5 ? "text-destructive" : audioLevel < 20 ? "text-yellow-500" : "text-green-500"
+            )}>
+              {audioLevel < 5 ? '⚠️ TOO LOW!' : audioLevel < 20 ? 'Low' : 'Good'} ({audioLevel}/255)
+            </span>
+          </div>
+          <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+            <div 
+              className={cn("h-full transition-all duration-200", getLevelColor())}
+              style={{ width: `${levelPercentage}%` }}
+            />
+          </div>
+          {audioLevel < 5 && (
+            <p className="text-xs text-destructive text-center">
+              🎤 Speak louder or check microphone volume!
+            </p>
+          )}
         </div>
         
         <div className={cn(
