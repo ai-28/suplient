@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/app/components/ui/button';
-import { Mic, Square, Send, X, AlertCircle, Trash2, Play, Pause } from 'lucide-react';
+import { Mic, Square, Send, X, AlertCircle, Trash2, Play, Pause, Volume2 } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
 import { toast } from 'sonner';
 
@@ -57,12 +57,26 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   const startRecording = async () => {
     try {
+      console.log('🎤 Requesting microphone access...');
+      
+      // First check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support audio recording');
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
         }
+      });
+      
+      console.log('✅ Microphone access granted');
+      console.log('📡 Stream info:', {
+        active: stream.active,
+        id: stream.id,
+        tracks: stream.getTracks().length
       });
       
       // Test multiple formats and choose the best one
@@ -107,11 +121,13 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
       mediaRecorder.onstop = async () => {
         console.log('🎙️ Recording stopped, processing audio...');
+        console.log('📊 Total chunks collected:', audioChunksRef.current.length);
+        console.log('📊 Chunk sizes:', audioChunksRef.current.map(chunk => chunk.size + ' bytes'));
         
         // Validate we have audio data
         if (audioChunksRef.current.length === 0) {
-          console.error('❌ No audio data recorded');
-          toast.error('❌ No audio recorded. Please try again.', { duration: 3000 });
+          console.error('❌ No audio data recorded - MediaRecorder did not produce any chunks');
+          toast.error('❌ No audio recorded. Please check microphone permissions and try again.', { duration: 5000 });
           setIsProcessing(false);
           return;
         }
@@ -121,15 +137,27 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
           type: audioBlob.type,
           size: audioBlob.size, 
           sizeKB: (audioBlob.size / 1024).toFixed(2) + ' KB',
-          chunks: audioChunksRef.current.length
+          chunks: audioChunksRef.current.length,
+          avgChunkSize: Math.round(audioBlob.size / audioChunksRef.current.length) + ' bytes'
         });
         
         // Validate blob size
         if (audioBlob.size === 0) {
-          console.error('❌ Audio blob is empty');
+          console.error('❌ Audio blob is empty - chunks had no data');
           toast.error('❌ Recording failed. Please try again.', { duration: 3000 });
           setIsProcessing(false);
           return;
+        }
+        
+        // Check if blob size is suspiciously small (less than 100 bytes per second)
+        const recordingDuration = duration;
+        const expectedMinSize = recordingDuration * 100; // Very conservative estimate
+        if (audioBlob.size < expectedMinSize) {
+          console.warn('⚠️ Audio blob is very small for duration:', {
+            size: audioBlob.size,
+            duration: recordingDuration,
+            expectedMin: expectedMinSize
+          });
         }
         
         const url = URL.createObjectURL(audioBlob);
@@ -138,11 +166,36 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         
         // Test if the blob URL is valid by creating a test audio element
         const testAudio = new Audio(url);
-        testAudio.onerror = (e) => {
-          console.error('❌ Invalid audio blob:', e, testAudio.error);
-        };
+        
         testAudio.onloadedmetadata = () => {
-          console.log('✅ Audio blob is valid and playable');
+          console.log('✅ Audio blob metadata loaded:', {
+            duration: testAudio.duration,
+            readyState: testAudio.readyState,
+            paused: testAudio.paused,
+            volume: testAudio.volume,
+            muted: testAudio.muted
+          });
+          
+          // Try to play a tiny bit to test if there's actual audio
+          testAudio.volume = 0.5;
+          testAudio.play().then(() => {
+            console.log('✅ Test playback successful - audio blob is valid');
+            setTimeout(() => {
+              testAudio.pause();
+              testAudio.currentTime = 0;
+            }, 100);
+          }).catch(err => {
+            console.error('❌ Test playback failed:', err);
+          });
+        };
+        
+        testAudio.onerror = (e) => {
+          console.error('❌ Invalid audio blob:', {
+            event: e,
+            error: testAudio.error,
+            errorCode: testAudio.error?.code,
+            errorMessage: testAudio.error?.message
+          });
         };
         
         // Generate REAL waveform data by analyzing audio
@@ -501,6 +554,40 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     }
   };
 
+  // Test speakers/headphones by playing a beep
+  const testSpeakers = () => {
+    console.log('🔊 Testing speakers/headphones...');
+    
+    try {
+      // Create a simple beep tone using Web Audio API
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 440; // A4 note
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+      
+      console.log('✅ Test tone playing - if you hear a beep, your speakers work!');
+      toast.success('🔊 If you hear a beep, your speakers are working!', { duration: 3000 });
+      
+      oscillator.onended = () => {
+        console.log('✅ Test tone finished');
+      };
+    } catch (err) {
+      console.error('❌ Failed to play test tone:', err);
+      toast.error('❌ Could not test speakers', { duration: 3000 });
+    }
+  };
+
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -628,9 +715,20 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       >
         <Mic className="h-6 w-6" />
       </Button>
-      <span className="text-sm text-muted-foreground fixed">
+      <span className="text-sm text-muted-foreground">
         {isInitializing ? 'Initializing...' : 'Tap to record'}
       </span>
+      
+      {/* Test speakers button for debugging */}
+      <Button 
+        onClick={testSpeakers}
+        variant="outline"
+        size="sm"
+        className="mt-2"
+      >
+        <Volume2 className="h-4 w-4 mr-2" />
+        Test Speakers
+      </Button>
     </div>
   );
 }
