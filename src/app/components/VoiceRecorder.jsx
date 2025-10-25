@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/app/components/ui/button';
-import { Mic, Square, Send, X, AlertCircle, Trash2, Play, Pause, Volume2 } from 'lucide-react';
+import { Mic, Square, Send, X, AlertCircle, Trash2, Play, Pause } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
 import { toast } from 'sonner';
 
@@ -37,7 +37,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const microphones = devices.filter(device => device.kind === 'audioinput');
-      console.log('🎤 Available microphones:', microphones.map(m => ({ id: m.deviceId, label: m.label })));
       setAvailableMicrophones(microphones);
       return microphones;
     } catch (err) {
@@ -55,7 +54,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       const savedMicId = localStorage.getItem('preferredMicrophoneId');
       if (savedMicId) {
         setSelectedMicrophoneId(savedMicId);
-        console.log('💾 Loaded saved microphone preference:', savedMicId);
       }
     };
     
@@ -93,43 +91,33 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   const startRecording = async () => {
     try {
-      console.log('🎤 Requesting microphone access...');
-      
       // First check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Your browser does not support audio recording');
       }
       
-      // Try to use the "communications" device first (like Discord/Telegram)
-      // This automatically selects the microphone Windows uses for calls
-      // Start with minimal constraints - some browsers have issues with advanced audio processing
+      // Audio constraints optimized for voice recording
       const audioConstraints = {
-        echoCancellation: false, // Disable initially to test if this is the problem
+        echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,
-        sampleRate: 48000, // Standard sample rate
-        channelCount: 1 // Mono audio for voice
+        sampleRate: 48000,
+        channelCount: 1
       };
       
       // Check if user previously selected a specific microphone
       const savedMicrophoneId = localStorage.getItem('preferredMicrophoneId');
       
       if (selectedMicrophoneId && selectedMicrophoneId !== 'default') {
-        // User manually selected a microphone
         audioConstraints.deviceId = { exact: selectedMicrophoneId };
-        console.log('🎤 Using user-selected microphone:', selectedMicrophoneId);
       } else if (savedMicrophoneId && savedMicrophoneId !== 'default') {
-        // Use previously saved microphone
         audioConstraints.deviceId = { exact: savedMicrophoneId };
-        console.log('🎤 Using saved microphone:', savedMicrophoneId);
       } else {
-        // Try to get the "communications" device (what Discord/Telegram use)
-        // This is supported in modern browsers
+        // Try to auto-select communication device
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
           const audioInputs = devices.filter(d => d.kind === 'audioinput');
           
-          // Look for communication device keywords
           const commDevice = audioInputs.find(d => 
             d.label.toLowerCase().includes('communication') ||
             d.label.toLowerCase().includes('headset') ||
@@ -138,51 +126,25 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
           
           if (commDevice) {
             audioConstraints.deviceId = { exact: commDevice.deviceId };
-            console.log('🎤 Auto-selected communication device:', commDevice.label);
-          } else {
-            console.log('🎤 Using browser default microphone');
           }
         } catch (err) {
-          console.log('🎤 Could not auto-select microphone, using default');
+          // Use default if auto-selection fails
         }
       }
-      
-      console.log('🎤 Requesting microphone with constraints:', audioConstraints);
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: audioConstraints
       });
       
-      console.log('✅ Microphone access granted');
-      
       // Get the actual microphone being used
       const audioTrack = stream.getAudioTracks()[0];
       const micName = audioTrack.label;
       setCurrentMicrophoneName(micName);
-      console.log('🎤 Using microphone:', micName);
-      
-      console.log('📡 Stream info:', {
-        active: stream.active,
-        id: stream.id,
-        tracks: stream.getTracks().length,
-        audioTrack: {
-          label: audioTrack.label,
-          enabled: audioTrack.enabled,
-          muted: audioTrack.muted,
-          readyState: audioTrack.readyState,
-          settings: audioTrack.getSettings ? audioTrack.getSettings() : 'not available'
-        }
-      });
-      
-      // Add event listeners to track changes
-      audioTrack.onmute = () => console.warn('⚠️ Audio track muted!');
-      audioTrack.onunmute = () => console.log('✅ Audio track unmuted');
-      audioTrack.onended = () => console.warn('⚠️ Audio track ended unexpectedly!');
       
       // Refresh microphone list after permission is granted
       await enumerateMicrophones();
       
-      // Test multiple formats and choose the best one
+      // Select best supported audio format
       const formats = [
         'audio/webm;codecs=opus',
         'audio/ogg;codecs=opus',
@@ -195,7 +157,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       for (const format of formats) {
         if (MediaRecorder.isTypeSupported(format)) {
           mimeType = format;
-          console.log('✅ Selected audio format:', format);
           break;
         }
       }
@@ -204,189 +165,112 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         throw new Error('No supported audio format found');
       }
       
-      console.log('🎤 Recording with format:', mimeType);
-      console.log('📋 All supported formats:', formats.filter(f => MediaRecorder.isTypeSupported(f)));
-      
-      console.log('🎙️ Creating MediaRecorder with:', { mimeType, audioBitsPerSecond: 32000 });
-      
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
-        audioBitsPerSecond: 32000 // 32kbps - good quality for voice (Discord uses 32-64kbps)
-      });
-      
-      console.log('✅ MediaRecorder created:', {
-        state: mediaRecorder.state,
-        mimeType: mediaRecorder.mimeType,
-        audioBitsPerSecond: mediaRecorder.audioBitsPerSecond,
-        videoBitsPerSecond: mediaRecorder.videoBitsPerSecond
+        audioBitsPerSecond: 32000
       });
       
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       
-      // Add state change listener
-      mediaRecorder.onstatechange = () => {
-        console.log('🎙️ MediaRecorder state changed:', mediaRecorder.state);
-      };
-      
       // Add error listener
       mediaRecorder.onerror = (event) => {
-        console.error('❌ MediaRecorder error:', event.error);
+        console.error('Recording error:', event.error);
         toast.error('Recording error: ' + event.error.name, { duration: 5000 });
       };
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          console.log('📊 Chunk received:', event.data.size, 'bytes');
         }
       };
 
       mediaRecorder.onstop = async () => {
-        console.log('🎙️ Recording stopped, processing audio...');
-        console.log('📊 Total chunks collected:', audioChunksRef.current.length);
-        console.log('📊 Chunk sizes:', audioChunksRef.current.map(chunk => chunk.size + ' bytes'));
-        
         // Validate we have audio data
         if (audioChunksRef.current.length === 0) {
-          console.error('❌ No audio data recorded - MediaRecorder did not produce any chunks');
           toast.error('❌ No audio recorded. Please check microphone permissions and try again.', { duration: 5000 });
           setIsProcessing(false);
           return;
         }
         
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        console.log('📦 Audio blob created:', { 
-          type: audioBlob.type,
-          size: audioBlob.size, 
-          sizeKB: (audioBlob.size / 1024).toFixed(2) + ' KB',
-          chunks: audioChunksRef.current.length,
-          avgChunkSize: Math.round(audioBlob.size / audioChunksRef.current.length) + ' bytes'
-        });
         
         // Validate blob size
         if (audioBlob.size === 0) {
-          console.error('❌ Audio blob is empty - chunks had no data');
           toast.error('❌ Recording failed. Please try again.', { duration: 3000 });
           setIsProcessing(false);
           return;
         }
         
-        // Check if blob size is suspiciously small (less than 100 bytes per second)
-        const recordingDuration = duration;
-        const expectedMinSize = recordingDuration * 100; // Very conservative estimate
-        if (audioBlob.size < expectedMinSize) {
-          console.warn('⚠️ Audio blob is very small for duration:', {
-            size: audioBlob.size,
-            duration: recordingDuration,
-            expectedMin: expectedMinSize
-          });
-        }
-        
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
-        console.log('🔗 Blob URL created for preview:', url);
         
-        // Test if the blob URL is valid by creating a test audio element
-        const testAudio = new Audio(url);
-        
-        testAudio.onloadedmetadata = () => {
-          console.log('✅ Audio blob metadata loaded:', {
-            duration: testAudio.duration,
-            readyState: testAudio.readyState,
-            paused: testAudio.paused,
-            volume: testAudio.volume,
-            muted: testAudio.muted
-          });
-          
-          // Try to play a tiny bit to test if there's actual audio
-          testAudio.volume = 0.5;
-          testAudio.play().then(() => {
-            console.log('✅ Test playback successful - audio blob is valid');
-            setTimeout(() => {
-              testAudio.pause();
-              testAudio.currentTime = 0;
-            }, 100);
-          }).catch(err => {
-            console.error('❌ Test playback failed:', err);
-          });
-        };
-        
-        testAudio.onerror = (e) => {
-          console.error('❌ Invalid audio blob:', {
-            event: e,
-            error: testAudio.error,
-            errorCode: testAudio.error?.code,
-            errorMessage: testAudio.error?.message
-          });
-        };
-        
-        // Generate REAL waveform data by analyzing audio
+        // Generate waveform data by analyzing audio
         try {
-          console.log('📊 Generating waveform...');
           const waveform = await generateWaveform(audioBlob);
           setWaveformData(waveform);
-          console.log('✅ Waveform generated successfully');
         } catch (error) {
-          console.warn('⚠️ Failed to generate waveform, using fallback:', error);
-          // Fallback to mock data if waveform generation fails
+          console.error('Error generating waveform:', error);
           setWaveformData(Array.from({ length: 32 }, () => Math.random() * 0.8 + 0.1));
         }
         
         setIsProcessing(false);
-        console.log('✅ Recording ready for preview!');
         
         // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.start(100); // Collect data every 100ms for better streaming
+      mediaRecorder.start(100);
       setIsRecording(true);
       isRecordingRef.current = true;
       setDuration(0);
-      
-      console.log('🎤 Recording started with stream tracks:', stream.getTracks().map(t => ({
-        kind: t.kind,
-        label: t.label,
-        enabled: t.enabled,
-        muted: t.muted
-      })));
       
       // Monitor audio levels to verify microphone is working
       try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const analyser = audioContext.createAnalyser();
         const microphone = audioContext.createMediaStreamSource(stream);
-        microphone.connect(analyser);
-        analyser.fftSize = 256;
         
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        // Configure analyser for better accuracy
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.8;
+        
+        microphone.connect(analyser);
+        
+        const timeDataArray = new Uint8Array(analyser.fftSize);
         let checkCount = 0;
+        
         const checkAudioLevel = () => {
           if (!isRecordingRef.current || checkCount++ > 300) {
             setAudioLevel(0);
+            microphone.disconnect();
+            audioContext.close();
             return;
           }
           
-          analyser.getByteFrequencyData(dataArray);
-          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          // Use time domain data for accurate volume measurement
+          analyser.getByteTimeDomainData(timeDataArray);
           
-          // Update visual indicator
-          setAudioLevel(Math.round(average));
-          
-          // Log to console
-          if (checkCount % 2 === 0) { // Log every 2 seconds
-            const level = Math.round(average);
-            console.log('🎚️ Audio level:', level, '/ 255', level < 5 ? '⚠️ VERY LOW - MICROPHONE NOT WORKING!' : level < 20 ? '⚠️ LOW' : '✅ GOOD');
+          // Calculate RMS (root mean square) for accurate volume level
+          let sum = 0;
+          for (let i = 0; i < timeDataArray.length; i++) {
+            const normalized = (timeDataArray[i] - 128) / 128;
+            sum += normalized * normalized;
           }
+          const rms = Math.sqrt(sum / timeDataArray.length);
+          const volume = Math.min(Math.round(rms * 255 * 5), 255);
+          
+          setAudioLevel(volume);
           
           if (isRecordingRef.current) {
-            setTimeout(checkAudioLevel, 1000);
+            requestAnimationFrame(checkAudioLevel);
           }
         };
-        checkAudioLevel();
+        
+        setTimeout(checkAudioLevel, 100);
+        
       } catch (err) {
-        console.warn('Audio level monitoring not available:', err);
+        console.error('Audio level monitoring error:', err);
       }
       
       // Start duration counter with time limit checks
@@ -470,8 +354,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   const play = () => {
     if (audioUrl) {
-      console.log('▶️ Preview playing from blob URL:', audioUrl);
-      
       // Stop any currently playing audio
       if (currentAudioRef.current) {
         currentAudioRef.current.pause();
@@ -481,45 +363,20 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
       
-      // Set up event handlers BEFORE playing
-      audio.onloadedmetadata = () => {
-        console.log('✅ Audio metadata loaded:', {
-          duration: audio.duration,
-          readyState: audio.readyState
-        });
-      };
-      
-      audio.oncanplay = () => {
-        console.log('✅ Audio ready to play');
-      };
-      
       audio.onended = () => {
-        console.log('⏹️ Preview playback ended');
         setIsPlaying(false);
         currentAudioRef.current = null;
       };
       
-      audio.onerror = (e) => {
-        console.error('❌ Preview playback error:', {
-          error: e,
-          audioError: audio.error,
-          audioUrl: audioUrl
-        });
+      audio.onerror = () => {
         setIsPlaying(false);
         currentAudioRef.current = null;
         toast.error('❌ Failed to play preview', { duration: 3000 });
       };
       
-      // Now try to play
       audio.play().then(() => {
-        console.log('✅ Preview playback started successfully');
         setIsPlaying(true);
       }).catch((err) => {
-        console.error('❌ Preview play failed:', {
-          error: err.message,
-          name: err.name,
-          audioUrl: audioUrl
-        });
         setIsPlaying(false);
         currentAudioRef.current = null;
         toast.error('❌ Failed to play preview: ' + err.message, { duration: 3000 });
@@ -588,14 +445,13 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   const handleStopRecording = () => {
     if (!isRecording) {
-      console.log('VoiceRecorder: Not recording, ignoring stop request');
       return;
     }
     
     try {
       stopRecording();
     } catch (error) {
-      console.error('VoiceRecorder: Failed to stop recording:', error);
+      console.error('Failed to stop recording:', error);
       clearRecording();
     }
   };
@@ -604,7 +460,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     if (audioUrl && duration > 0) {
       // Check minimum duration
       if (duration < MIN_RECORDING_DURATION) {
-        console.warn('Recording too short, minimum duration required');
         toast.error('❌ Recording too short. Please record for at least 1 second.', { duration: 3000 });
         return;
       }
@@ -621,12 +476,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
                          blob.type.includes('ogg') ? 'ogg' : 'webm';
         const file = new File([blob], `voice-message.${extension}`, { type: blob.type });
         
-        console.log('📦 Uploading audio:', { 
-          type: blob.type, 
-          size: blob.size, 
-          sizeKB: (blob.size / 1024).toFixed(2) + ' KB' 
-        });
-        
         // Upload audio file
         const formData = new FormData();
         formData.append('audio', file);
@@ -641,18 +490,14 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         }
         
         const uploadData = await uploadResponse.json();
-        console.log('📤 Upload response:', uploadData);
         
         if (uploadData.success) {
-          // Use filePath (which contains the CDN URL) or fallback to audioUrl
           const audioFileUrl = uploadData.filePath || uploadData.audioUrl;
-          console.log('✅ Upload successful, audio URL:', audioFileUrl);
           
           if (!audioFileUrl) {
             throw new Error('No audio URL returned from server');
           }
           
-          // Send message with uploaded audio URL (S3 CDN)
           onSendVoiceMessage(audioFileUrl, duration, waveformData);
           toast.success('✅ Voice message sent!', { duration: 2000 });
           clearRecording();
@@ -674,7 +519,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       onCancel();
     } catch (error) {
       console.error('Failed to cancel recording:', error);
-      // Force reset
       clearRecording();
       onCancel();
     }
@@ -690,85 +534,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     }
   };
 
-  // Test speakers/headphones by playing a beep
-  const testSpeakers = () => {
-    console.log('🔊 Testing speakers/headphones...');
-    
-    try {
-      // Create a simple beep tone using Web Audio API
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 440; // A4 note
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
-      
-      console.log('✅ Test tone playing - if you hear a beep, your speakers work!');
-      toast.success('🔊 If you hear a beep, your speakers are working!', { duration: 3000 });
-      
-      oscillator.onended = () => {
-        console.log('✅ Test tone finished');
-      };
-    } catch (err) {
-      console.error('❌ Failed to play test tone:', err);
-      toast.error('❌ Could not test speakers', { duration: 3000 });
-    }
-  };
-
-  // Test microphone by playing back what you hear (echo test)
-  const testMicrophone = async () => {
-    console.log('🎤 Testing microphone with live playback...');
-    toast.info('🎤 Speak now - you should hear yourself!', { duration: 3000 });
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
-        }
-      });
-      
-      console.log('✅ Microphone stream obtained');
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      
-      source.connect(analyser);
-      analyser.connect(audioContext.destination); // This creates echo - you hear yourself
-      
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      
-      const checkLevel = setInterval(() => {
-        analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        console.log('🎚️ Live mic level:', Math.round(average), '/ 255');
-      }, 500);
-      
-      // Stop after 3 seconds
-      setTimeout(() => {
-        clearInterval(checkLevel);
-        stream.getTracks().forEach(track => track.stop());
-        source.disconnect();
-        analyser.disconnect();
-        toast.success('✅ Microphone test complete!', { duration: 2000 });
-        console.log('✅ Microphone test finished');
-      }, 3000);
-      
-    } catch (err) {
-      console.error('❌ Microphone test failed:', err);
-      toast.error('❌ Microphone test failed: ' + err.message, { duration: 5000 });
-    }
-  };
 
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -966,9 +731,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
               onChange={(e) => {
                 const newMicId = e.target.value;
                 setSelectedMicrophoneId(newMicId);
-                // Save to localStorage for future use
                 localStorage.setItem('preferredMicrophoneId', newMicId);
-                console.log('💾 Saved microphone preference:', newMicId);
                 toast.success('✅ Microphone preference saved!', { duration: 2000 });
               }}
               className="w-full px-3 py-2 text-sm border rounded-md bg-background"
@@ -998,30 +761,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       <span className="text-sm text-muted-foreground">
         {isInitializing ? 'Initializing...' : 'Tap to record'}
       </span>
-      
-      {/* Test buttons for debugging */}
-      <div className="flex gap-2">
-        <Button 
-          onClick={testMicrophone}
-          variant="outline"
-          size="sm"
-        >
-          <Mic className="h-4 w-4 mr-2" />
-          Test Mic
-        </Button>
-        <Button 
-          onClick={testSpeakers}
-          variant="outline"
-          size="sm"
-        >
-          <Volume2 className="h-4 w-4 mr-2" />
-          Test Speakers
-        </Button>
-      </div>
-      
-      <p className="text-xs text-muted-foreground text-center">
-        Click "Test Mic" - you should hear yourself speak
-      </p>
     </div>
   );
 }
