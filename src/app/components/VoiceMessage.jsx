@@ -34,6 +34,7 @@ export function VoiceMessage({
 
   useEffect(() => {
     if (audioUrl && !isInitialized) {
+      console.log('🎵 VoiceMessage: Loading audio URL:', audioUrl);
       load(audioUrl);
       setIsInitialized(true);
     }

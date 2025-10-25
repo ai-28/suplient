@@ -5,10 +5,10 @@ import { Mic, Square, Send, X, AlertCircle, Trash2, Play, Pause } from 'lucide-r
 import { cn } from '@/app/lib/utils';
 import { toast } from 'sonner';
 
-// Recording time limits following best practices
-const MAX_RECORDING_DURATION = 60; // 1 minute maximum (industry standard)
+// Recording time limits following best practices (Discord/Telegram standard)
+const MAX_RECORDING_DURATION = 300; // 5 minutes maximum (Discord: ~5min, Telegram: 1hr)
 const MIN_RECORDING_DURATION = 1; // 1 second minimum
-const WARNING_DURATION = 10; // Show warning in last 10 seconds
+const WARNING_DURATION = 30; // Show warning in last 30 seconds
 
 export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoStart = false }) {
   const [permissionError, setPermissionError] = useState(null);
@@ -26,11 +26,53 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   const durationIntervalRef = useRef(null);
   const currentAudioRef = useRef(null);
 
+  // Generate real waveform from audio blob (like Discord/Telegram)
+  const generateWaveform = async (audioBlob) => {
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    
+    const rawData = audioBuffer.getChannelData(0); // Get first channel
+    const samples = 32; // Number of bars in waveform
+    const blockSize = Math.floor(rawData.length / samples);
+    const waveform = [];
+    
+    for (let i = 0; i < samples; i++) {
+      const start = blockSize * i;
+      let sum = 0;
+      
+      // Calculate RMS (Root Mean Square) for this block
+      for (let j = 0; j < blockSize; j++) {
+        sum += rawData[start + j] ** 2;
+      }
+      
+      const rms = Math.sqrt(sum / blockSize);
+      waveform.push(Math.min(1, rms * 5)); // Scale and cap at 1
+    }
+    
+    // Normalize waveform data
+    const max = Math.max(...waveform);
+    return max > 0 ? waveform.map(v => v / max) : waveform;
+  };
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      const mediaRecorder = new MediaRecorder(stream);
+      // Use Opus codec in WebM container (Discord/Telegram standard)
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? 'audio/ogg;codecs=opus'
+        : 'audio/webm'; // Fallback
+      
+      console.log('🎤 Recording with format:', mimeType);
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 32000 // 32kbps - good quality for voice (Discord uses 32-64kbps)
+      });
+      
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -40,15 +82,33 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         }
       };
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+      mediaRecorder.onstop = async () => {
+        console.log('🎙️ Recording stopped, processing audio...');
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        console.log('📦 Audio blob created:', { 
+          type: mimeType, 
+          size: audioBlob.size, 
+          sizeKB: (audioBlob.size / 1024).toFixed(2) + ' KB' 
+        });
+        
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
+        console.log('🔗 Blob URL created for preview:', url);
         
-        // Generate mock waveform data (in a real app, you'd analyze the audio)
-        setWaveformData(Array.from({ length: 32 }, () => Math.random() * 0.8 + 0.1));
+        // Generate REAL waveform data by analyzing audio
+        try {
+          console.log('📊 Generating waveform...');
+          const waveform = await generateWaveform(audioBlob);
+          setWaveformData(waveform);
+          console.log('✅ Waveform generated successfully');
+        } catch (error) {
+          console.warn('⚠️ Failed to generate waveform, using fallback:', error);
+          // Fallback to mock data if waveform generation fails
+          setWaveformData(Array.from({ length: 32 }, () => Math.random() * 0.8 + 0.1));
+        }
         
         setIsProcessing(false);
+        console.log('✅ Recording ready for preview!');
         
         // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
@@ -135,6 +195,8 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   const play = () => {
     if (audioUrl) {
+      console.log('▶️ Preview playing from blob URL:', audioUrl);
+      
       // Stop any currently playing audio
       if (currentAudioRef.current) {
         currentAudioRef.current.pause();
@@ -145,18 +207,24 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       currentAudioRef.current = audio;
       
       audio.play().then(() => {
+        console.log('✅ Preview playback started successfully');
         setIsPlaying(true);
         audio.onended = () => {
+          console.log('⏹️ Preview playback ended');
           setIsPlaying(false);
           currentAudioRef.current = null;
         };
-        audio.onerror = () => {
+        audio.onerror = (e) => {
+          console.error('❌ Preview playback error:', e);
           setIsPlaying(false);
           currentAudioRef.current = null;
+          toast.error('❌ Failed to play preview', { duration: 3000 });
         };
-      }).catch(() => {
+      }).catch((err) => {
+        console.error('❌ Preview play failed:', err);
         setIsPlaying(false);
         currentAudioRef.current = null;
+        toast.error('❌ Failed to play preview', { duration: 3000 });
       });
     }
   };
@@ -249,7 +317,17 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         // Convert blob URL to file for upload
         const response = await fetch(audioUrl);
         const blob = await response.blob();
-        const file = new File([blob], 'voice-message.wav', { type: 'audio/wav' });
+        
+        // Determine file extension based on mime type
+        const extension = blob.type.includes('webm') ? 'webm' : 
+                         blob.type.includes('ogg') ? 'ogg' : 'webm';
+        const file = new File([blob], `voice-message.${extension}`, { type: blob.type });
+        
+        console.log('📦 Uploading audio:', { 
+          type: blob.type, 
+          size: blob.size, 
+          sizeKB: (blob.size / 1024).toFixed(2) + ' KB' 
+        });
         
         // Upload audio file
         const formData = new FormData();
@@ -268,26 +346,21 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         console.log('📤 Upload response:', uploadData);
         
         if (uploadData.success) {
-          console.log('✅ Upload successful, audio URL:', uploadData.audioUrl);
-          // Verify the file exists before sending
-          try {
-            const verifyResponse = await fetch(uploadData.audioUrl, { method: 'HEAD' });
-            if (!verifyResponse.ok) {
-              console.warn('⚠️ Uploaded file not accessible:', uploadData.audioUrl, 'Status:', verifyResponse.status);
-            } else {
-              console.log('✅ File verified accessible');
-            }
-          } catch (verifyError) {
-            console.warn('⚠️ Could not verify file:', verifyError);
+          // Use filePath (which contains the CDN URL) or fallback to audioUrl
+          const audioFileUrl = uploadData.filePath || uploadData.audioUrl;
+          console.log('✅ Upload successful, audio URL:', audioFileUrl);
+          
+          if (!audioFileUrl) {
+            throw new Error('No audio URL returned from server');
           }
           
-          // Send message with uploaded audio URL
-          onSendVoiceMessage(uploadData.audioUrl, duration, waveformData);
+          // Send message with uploaded audio URL (S3 CDN)
+          onSendVoiceMessage(audioFileUrl, duration, waveformData);
           toast.success('✅ Voice message sent!', { duration: 2000 });
           clearRecording();
           onCancel();
         } else {
-          throw new Error(uploadData.error || 'Upload failed');
+          throw new Error(uploadData.error || uploadData.details || 'Upload failed');
         }
       } catch (error) {
         console.error('Error sending voice message:', error);

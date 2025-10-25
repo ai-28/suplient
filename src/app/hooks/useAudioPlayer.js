@@ -42,6 +42,12 @@ export function useAudioPlayer() {
             });
 
             audioRef.current.addEventListener('error', (e) => {
+                console.error('❌ Audio loading error:', {
+                    error: e,
+                    src: audioRef.current?.src,
+                    errorCode: audioRef.current?.error?.code,
+                    errorMessage: audioRef.current?.error?.message
+                });
                 setError('Failed to load audio');
                 setIsLoading(false);
                 setIsPlaying(false);
@@ -70,6 +76,7 @@ export function useAudioPlayer() {
     const load = useCallback((url) => {
         if (!audioRef.current) return;
 
+        console.log('🎵 Loading audio:', url);
         setError(null);
         setIsLoading(true);
         audioRef.current.src = url;
@@ -79,7 +86,9 @@ export function useAudioPlayer() {
     const play = useCallback(() => {
         if (!audioRef.current) return;
 
+        console.log('▶️ Playing audio from:', audioRef.current.src);
         audioRef.current.play().catch((err) => {
+            console.error('❌ Play error:', err);
             setError('Failed to play audio');
             setIsPlaying(false);
         });
