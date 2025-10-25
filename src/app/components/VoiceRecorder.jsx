@@ -21,6 +21,9 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   const [isPlaying, setIsPlaying] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0); // Real-time audio level indicator
+  const [availableMicrophones, setAvailableMicrophones] = useState([]);
+  const [selectedMicrophoneId, setSelectedMicrophoneId] = useState('default');
+  const [currentMicrophoneName, setCurrentMicrophoneName] = useState('');
   
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -28,6 +31,36 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   const currentAudioRef = useRef(null);
   const audioLevelIntervalRef = useRef(null);
   const isRecordingRef = useRef(false);
+
+  // Get all available microphones
+  const enumerateMicrophones = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const microphones = devices.filter(device => device.kind === 'audioinput');
+      console.log('🎤 Available microphones:', microphones.map(m => ({ id: m.deviceId, label: m.label })));
+      setAvailableMicrophones(microphones);
+      return microphones;
+    } catch (err) {
+      console.error('Error enumerating microphones:', err);
+      return [];
+    }
+  };
+
+  // Load microphones and saved preference on mount
+  useEffect(() => {
+    const loadMicrophones = async () => {
+      await enumerateMicrophones();
+      
+      // Load saved microphone preference
+      const savedMicId = localStorage.getItem('preferredMicrophoneId');
+      if (savedMicId) {
+        setSelectedMicrophoneId(savedMicId);
+        console.log('💾 Loaded saved microphone preference:', savedMicId);
+      }
+    };
+    
+    loadMicrophones();
+  }, []);
 
   // Generate real waveform from audio blob (like Discord/Telegram)
   const generateWaveform = async (audioBlob) => {
@@ -67,20 +100,78 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         throw new Error('Your browser does not support audio recording');
       }
       
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+      // Try to use the "communications" device first (like Discord/Telegram)
+      // This automatically selects the microphone Windows uses for calls
+      const audioConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      };
+      
+      // Check if user previously selected a specific microphone
+      const savedMicrophoneId = localStorage.getItem('preferredMicrophoneId');
+      
+      if (selectedMicrophoneId && selectedMicrophoneId !== 'default') {
+        // User manually selected a microphone
+        audioConstraints.deviceId = { exact: selectedMicrophoneId };
+        console.log('🎤 Using user-selected microphone:', selectedMicrophoneId);
+      } else if (savedMicrophoneId && savedMicrophoneId !== 'default') {
+        // Use previously saved microphone
+        audioConstraints.deviceId = { exact: savedMicrophoneId };
+        console.log('🎤 Using saved microphone:', savedMicrophoneId);
+      } else {
+        // Try to get the "communications" device (what Discord/Telegram use)
+        // This is supported in modern browsers
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const audioInputs = devices.filter(d => d.kind === 'audioinput');
+          
+          // Look for communication device keywords
+          const commDevice = audioInputs.find(d => 
+            d.label.toLowerCase().includes('communication') ||
+            d.label.toLowerCase().includes('headset') ||
+            d.label.toLowerCase().includes('headphone')
+          );
+          
+          if (commDevice) {
+            audioConstraints.deviceId = { exact: commDevice.deviceId };
+            console.log('🎤 Auto-selected communication device:', commDevice.label);
+          } else {
+            console.log('🎤 Using browser default microphone');
+          }
+        } catch (err) {
+          console.log('🎤 Could not auto-select microphone, using default');
         }
+      }
+      
+      console.log('🎤 Requesting microphone with constraints:', audioConstraints);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: audioConstraints
       });
       
       console.log('✅ Microphone access granted');
+      
+      // Get the actual microphone being used
+      const audioTrack = stream.getAudioTracks()[0];
+      const micName = audioTrack.label;
+      setCurrentMicrophoneName(micName);
+      console.log('🎤 Using microphone:', micName);
+      
       console.log('📡 Stream info:', {
         active: stream.active,
         id: stream.id,
-        tracks: stream.getTracks().length
+        tracks: stream.getTracks().length,
+        audioTrack: {
+          label: audioTrack.label,
+          enabled: audioTrack.enabled,
+          muted: audioTrack.muted,
+          readyState: audioTrack.readyState
+        }
       });
+      
+      // Refresh microphone list after permission is granted
+      await enumerateMicrophones();
       
       // Test multiple formats and choose the best one
       const formats = [
@@ -656,12 +747,19 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     
     return (
       <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
-        <div className="flex items-center gap-2">
-          <div className={cn(
-            "w-3 h-3 rounded-full animate-pulse",
-            isNearLimit ? "bg-orange-500" : "bg-red-500"
-          )} />
-          <span className="text-sm font-medium">Recording...</span>
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "w-3 h-3 rounded-full animate-pulse",
+              isNearLimit ? "bg-orange-500" : "bg-red-500"
+            )} />
+            <span className="text-sm font-medium">Recording...</span>
+          </div>
+          {currentMicrophoneName && (
+            <span className="text-xs text-muted-foreground">
+              🎤 {currentMicrophoneName}
+            </span>
+          )}
         </div>
         
         {/* Audio Level Indicator */}
@@ -681,12 +779,37 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
               style={{ width: `${levelPercentage}%` }}
             />
           </div>
-          {audioLevel < 5 && (
-            <p className="text-xs text-destructive text-center">
-              🎤 Speak louder or check microphone volume!
-            </p>
+          {audioLevel < 5 && duration > 2 && (
+            <div className="text-xs text-destructive text-center space-y-1">
+              <p className="font-medium">⚠️ Microphone not detecting sound!</p>
+              <p>Check Windows sound settings or select a different microphone.</p>
+            </div>
           )}
         </div>
+        
+        {/* Show microphone selector if having issues */}
+        {availableMicrophones.length > 1 && audioLevel < 5 && duration > 2 && (
+          <div className="w-full max-w-xs space-y-2 border border-destructive/20 rounded-md p-3 bg-destructive/5">
+            <label className="text-xs font-medium text-foreground">Try a different microphone:</label>
+            <select
+              value={selectedMicrophoneId}
+              onChange={(e) => {
+                const newMicId = e.target.value;
+                setSelectedMicrophoneId(newMicId);
+                localStorage.setItem('preferredMicrophoneId', newMicId);
+                toast.info('🔄 Microphone changed. Please stop and start recording again.', { duration: 3000 });
+              }}
+              className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+            >
+              <option value="default">Auto-detect</option>
+              {availableMicrophones.map((mic) => (
+                <option key={mic.deviceId} value={mic.deviceId}>
+                  {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         
         <div className={cn(
           "text-2xl font-mono",
@@ -755,6 +878,40 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   // Default state - show record button
   return (
     <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
+      {/* Microphone selector - only show if multiple microphones or having issues */}
+      {availableMicrophones.length > 1 && (
+        <details className="w-full max-w-xs">
+          <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground">
+            ⚙️ Microphone Settings ({availableMicrophones.length} devices)
+          </summary>
+          <div className="mt-2 space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Select Microphone:</label>
+            <select
+              value={selectedMicrophoneId}
+              onChange={(e) => {
+                const newMicId = e.target.value;
+                setSelectedMicrophoneId(newMicId);
+                // Save to localStorage for future use
+                localStorage.setItem('preferredMicrophoneId', newMicId);
+                console.log('💾 Saved microphone preference:', newMicId);
+                toast.success('✅ Microphone preference saved!', { duration: 2000 });
+              }}
+              className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+            >
+              <option value="default">Auto-detect (Recommended)</option>
+              {availableMicrophones.map((mic) => (
+                <option key={mic.deviceId} value={mic.deviceId}>
+                  {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Your choice will be remembered for next time
+            </p>
+          </div>
+        </details>
+      )}
+      
       <Button 
         onClick={handleStartRecording} 
         size="lg" 
