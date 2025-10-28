@@ -374,7 +374,7 @@ export function UniversalChatInterface({
       </div>
 
       {/* Messages Area - Adjusted for fixed header and input on client */}
-      <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `pt-24 ${showVoiceRecorder ? "pb-52" : "pb-20"}` : ""}`}>
+      <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `pt-24 ${showVoiceRecorder ? "pb-72" : "pb-40"}` : ""}`}>
         <TooltipProvider>
           <div className="space-y-1">
             {/* Load More Button */}
