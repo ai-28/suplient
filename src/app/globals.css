@@ -181,6 +181,7 @@ All colors MUST be HSL.
 
 @layer base {
   * {
+    box-sizing: border-box;
     @apply border-border;
   }
 

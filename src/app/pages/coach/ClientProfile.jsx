@@ -1082,7 +1082,7 @@ export default function ClientProfile() {
                           currentUserId={session?.user?.id}
                           currentUserRole="coach"
                           title={clientData.name}
-                          className="h-full"
+                          className="h-[calc(100vh-100px)]"
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">

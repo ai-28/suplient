@@ -266,7 +266,7 @@ export function UniversalChatInterface({
   if (loading && messages.length === 0) {
     return (
       <div className={`flex flex-col bg-background border border-border rounded-lg overflow-hidden ${className}`}>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-[calc(100vh-100px)]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Loading messages...</p>
@@ -374,7 +374,7 @@ export function UniversalChatInterface({
       </div>
 
       {/* Messages Area - Adjusted for fixed header and input on client */}
-      <ScrollArea className={`flex-1 p-4 ${currentUserRole === "client" ? "pt-24 pb-20" : ""}`}>
+      <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `pt-24 ${showVoiceRecorder ? "pb-52" : "pb-20"}` : ""}`}>
         <TooltipProvider>
           <div className="space-y-1">
             {/* Load More Button */}
@@ -520,8 +520,21 @@ export function UniversalChatInterface({
       </ScrollArea>
 
       {/* Voice Recorder - Normal positioning for both client and coach */}
-      {showVoiceRecorder && allowVoiceMessages && <div className="p-4 border-t border-border bg-card">
-          <VoiceRecorder onSendVoiceMessage={handleSendVoiceMessage} onCancel={() => setShowVoiceRecorder(false)} autoStart={true} />
+      {showVoiceRecorder && allowVoiceMessages && <div className="p-4 border-t border-border bg-card fixed bottom-[93px] left-0 right-0 z-40">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => setShowVoiceRecorder(false)}
+              className="h-10 w-10 flex-shrink-0 border-2 border-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+              title="Return to text input"
+            >
+              <ArrowLeft className="h-5 w-5 font-bold" />
+            </Button>
+            <div className="flex-1">
+              <VoiceRecorder onSendVoiceMessage={handleSendVoiceMessage} onCancel={() => setShowVoiceRecorder(false)} autoStart={true} />
+            </div>
+          </div>
         </div>}
 
 

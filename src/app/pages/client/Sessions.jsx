@@ -40,7 +40,7 @@ export default function ClientSessions() {
   const ChatTab = () => {
     if (coachLoading || conversationLoading) {
       return (
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center h-[calc(100vh-100px)]">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       );
@@ -48,7 +48,7 @@ export default function ClientSessions() {
 
     if (!coach) {
       return (
-        <div className="flex items-center justify-center h-screen text-muted-foreground">
+        <div className="flex items-center justify-center h-[calc(100vh-100px)] text-muted-foreground">
           <div className="text-center">
             <p>No coach assigned</p>
             {coachError && (
@@ -61,7 +61,7 @@ export default function ClientSessions() {
 
     if (!conversationId) {
       return (
-        <div className="flex items-center justify-center h-screen text-muted-foreground">
+        <div className="flex items-center justify-center h-[calc(100vh-100px)] text-muted-foreground">
           Unable to load chat
         </div>
       );
@@ -77,7 +77,7 @@ export default function ClientSessions() {
         currentUserRole="client"
         allowScheduling={true}
         title={coach.name}
-        className="h-screen rounded-none border-none"
+        className="h-[calc(100vh-100px)] rounded-none border-none"
       />
     );
   };
@@ -85,7 +85,7 @@ export default function ClientSessions() {
   const GroupsTab = () => {
     if (groupsLoading) {
       return (
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center h-[calc(100vh-100px)]">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       );
@@ -93,7 +93,7 @@ export default function ClientSessions() {
 
     if (groupsError) {
       return (
-        <div className="flex items-center justify-center h-screen text-muted-foreground">
+        <div className="flex items-center justify-center h-[calc(100vh-100px)] text-muted-foreground">
           Error loading groups: {groupsError}
         </div>
       );
@@ -208,7 +208,7 @@ export default function ClientSessions() {
 
         {/* Tab Content - Adjusted for fixed header */}
         <div className="flex-1 pt-12">
-          <TabsContent value="chat" className="mt-0 h-full">
+          <TabsContent value="chat" className="mt-0 h-[calc(100vh-48px)]">
             <ChatTab />
           </TabsContent>
           

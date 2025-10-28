@@ -104,7 +104,7 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
         groupMembers={members}
         activeMembers={activeMembers}
         title={`${groupName} Chat`}
-        className="h-full rounded-lg border border-border"
+        className="h-[calc(100vh-100px)] rounded-lg border border-border"
         showBackButton={showBackButton}
         backButtonAction={backButtonAction}
         groupId={groupId}
