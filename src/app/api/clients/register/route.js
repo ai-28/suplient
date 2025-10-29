@@ -23,7 +23,6 @@ export async function POST(request) {
             phone,
             dateOfBirth,
             address,
-            referralSource,
             concerns
         } = body;
 
@@ -56,8 +55,8 @@ export async function POST(request) {
       RETURNING id, name, email, phone, role
     `;
         const [newClient] = await sql`
-      INSERT INTO "Client" ("userId", "coachId","name","email","type","status","referralSource", "primaryConcerns", "createdAt", "updatedAt")
-      VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${'personal'}, ${'active'}, ${referralSource}, ${concerns}, NOW(), NOW())
+      INSERT INTO "Client" ("userId", "coachId","name","email","type","status", "primaryConcerns", "createdAt", "updatedAt")
+      VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${'personal'}, ${'active'}, ${concerns}, NOW(), NOW())
       RETURNING id, name, email
     `;
         // Send welcome email for clients

@@ -127,19 +127,21 @@ export function AppSidebar() {
   return (
     <Sidebar
       side="left"
-      className={`${!open ? "w-16" : "w-64"} transition-all duration-300 bg-sidebar border-r border-sidebar-border shadow-medium`}
+      className="transition-all duration-300 bg-sidebar border-r border-sidebar-border shadow-medium"
       collapsible="icon"
     >
       <SidebarContent className="py-6">
         {/* Logo Section */}
-        <div className="px-6 mb-4 flex justify-center">
-          <img 
-            src="/assets/logo.png" 
-            alt="Suplient logo" 
-            className="object-contain" 
-            style={{ width: '150px', height: '150px' }}
-          />
-        </div>
+        {open && (
+          <div className="px-6 mb-4 flex justify-center">
+            <img 
+              src="/assets/logo.png" 
+              alt="Suplient logo" 
+              className="object-contain" 
+              style={{ width: '150px', height: '150px' }}
+            />
+          </div>
+        )}
 
         {/* Global Search */}
         {open && (
@@ -233,19 +235,21 @@ export function AppSidebar() {
         )}
 
         {/* Main Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/60 text-xs uppercase tracking-wider px-6 mb-4">
-            {isAdmin ? 'Admin' : 'Coach'} Navigation
-          </SidebarGroupLabel>
+        <SidebarGroup className={!open ? "mt-12" : ""}>
+          {open && (
+            <SidebarGroupLabel className="text-sidebar-foreground text-xs uppercase tracking-wider px-6 mb-4">
+              {isAdmin ? 'Admin' : 'Coach'} Navigation
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {main.map((item) => (
                 <SidebarMenuItem key={item.title} className="list-none">
                   <Link 
                     href={item.url} 
-                    className={`flex items-center px-6 py-3 transition-colors rounded-none ${getNavCls({ isActive: isActive(item.url) })}`}
+                    className={`flex items-center ${open ? 'px-6' : 'px-2 justify-center'} py-3 transition-colors rounded-none ${getNavCls({ isActive: isActive(item.url) })}`}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className={`${open ? 'h-5 w-5' : 'h-6 w-6'} flex-shrink-0`} />
                     {open && <span className="ml-3">{item.title}</span>}
                   </Link>
                 </SidebarMenuItem>
@@ -263,9 +267,9 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title} className="list-none">
                     <Link 
                       href={item.url} 
-                      className={`flex items-center px-6 py-3 transition-colors rounded-none ${getNavCls({ isActive: isActive(item.url) })}`}
+                      className={`flex items-center ${open ? 'px-6' : 'px-2 justify-center'} py-3 transition-colors rounded-none ${getNavCls({ isActive: isActive(item.url) })}`}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className={`${open ? 'h-5 w-5' : 'h-6 w-6'} flex-shrink-0`} />
                       {open && <span className="ml-3">{item.title}</span>}
                     </Link>
                   </SidebarMenuItem>

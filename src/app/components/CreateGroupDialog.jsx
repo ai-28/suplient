@@ -257,8 +257,9 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
             </Button>
             <Button
               type="submit"
+              variant="outline"
               disabled={isLoading}
-              className="bg-gradient-primary text-white hover:shadow-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>

@@ -21,16 +21,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/app/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
+import { toast } from "sonner";
 
 // Force refresh to clear any cached modules
 
@@ -43,7 +37,6 @@ const getFormSchema = () => z.object({
   }),
   address: z.string().min(5, "Address must be at least 5 characters"),
   concerns: z.string().optional(),
-  referralSource: z.string().min(1, "Please select how you heard about us"),
 });
 
 export function CreateClientDialog({ onClientCreated }) {
@@ -59,7 +52,6 @@ export function CreateClientDialog({ onClientCreated }) {
       phone: "",
       address: "",
       concerns: "",
-      referralSource: "",
     },
   });
 
@@ -77,7 +69,6 @@ export function CreateClientDialog({ onClientCreated }) {
           phone: data.phone,
           dateOfBirth: data.dateOfBirth,
           address: data.address,
-          referralSource: data.referralSource,
           concerns: data.concerns,
         }),
       });
@@ -89,7 +80,9 @@ export function CreateClientDialog({ onClientCreated }) {
       }
       
       // Show success message with temporary password
-      alert(`Client created successfully!\n\nClient Details:\nName: ${result.client.name}\nEmail: ${result.client.email}\nTemporary Password: ${result.client.tempPassword}\n\nPlease share the temporary password with the client so they can log in and change it.`);
+      toast.success(`Client created successfully!`, {
+        description: `Name: ${result.client.name}\nEmail: ${result.client.email}\nTemporary Password: ${result.client.tempPassword}`
+      });
       
       setIsOpen(false);
       form.reset();
@@ -264,32 +257,6 @@ export function CreateClientDialog({ onClientCreated }) {
                 <Briefcase className="h-5 w-5 text-accent" />
                 <h3 className="text-lg font-semibold text-foreground">Session Information</h3>
               </div>
-              
-              <FormField
-                control={form.control}
-                name="referralSource"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-foreground font-medium">How did you hear about us?</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="bg-background border-border">
-                          <SelectValue placeholder="Select referral source" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="google">Google Search</SelectItem>
-                        <SelectItem value="referral">Referral</SelectItem>
-                        <SelectItem value="doctor">Doctor Recommendation</SelectItem>
-                        <SelectItem value="insurance">Insurance Provider</SelectItem>
-                        <SelectItem value="social">Social Media</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <FormField
                 control={form.control}
