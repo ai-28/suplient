@@ -74,7 +74,7 @@ const LandingPage = () => {
             <div className="flex items-center space-x-4">
               <button className="text-black hover:text-black/80 transition-colors font-medium" onClick={() => router.push('/login')}>Login</button>
               <Button className="bg-primary hover:bg-primary/90 text-white font-medium">
-                Sign up free
+                Sign up
               </Button>
             </div>
           </div>
