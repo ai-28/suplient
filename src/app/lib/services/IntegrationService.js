@@ -97,13 +97,17 @@ export class GoogleCalendarService {
             // Extract reminder time from integration settings
             // Values are stored as strings: "30"=30min, "60"=1hr, "120"=2hr, "24"=24hr, "48"=48hr, "none"=no reminder
             const reminderTimeValue = eventData.integrationSettings?.reminderTime || "24";
-            let reminderTimeMinutes;
-
-            if (reminderTimeValue === "none") {
-                reminderTimeMinutes = 0; // No email reminder
-            } else {
-                reminderTimeMinutes = parseInt(reminderTimeValue);
-            }
+            // Map UI values to Google Calendar minutes
+            // 30, 60, 120 are minutes; 24 and 48 represent hours; "none" disables email reminder
+            const reminderMap = {
+                "30": 30,
+                "60": 60,
+                "120": 120,
+                "24": 24 * 60,
+                "48": 48 * 60,
+                "none": 0,
+            };
+            const reminderTimeMinutes = reminderMap[reminderTimeValue] ?? 24 * 60;
 
 
             const googleEvent = {

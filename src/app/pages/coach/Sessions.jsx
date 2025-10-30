@@ -645,7 +645,7 @@ export default function Sessions() {
                         <div className="flex items-center gap-1">
                           <span className="text-lg">{session.moodEmoji}</span>
                           <Badge variant="secondary" className="text-xs">
-                            {session.type === 'Group' ? '45 min' : '60 min'}
+                            {session?.duration ? `${session.duration} min` : (session.type === 'Group' ? '45 min' : '60 min')}
                           </Badge>
                         </div>
                       </div>
@@ -798,36 +798,6 @@ export default function Sessions() {
                 >
                   <Video className="h-4 w-4 mr-2" />
                   Join Session
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => {
-                    // Find the full session object from sessions array
-                    const fullSession = sessions.find(session => {
-                      const sessionDate = new Date(session.sessionDate);
-                      const sessionTime = session.sessionTime.substring(0, 5);
-                      return sessionDate.toISOString().split('T')[0] === selectedSessionDetail.date &&
-                             sessionTime === selectedSessionDetail.time;
-                    });
-                    
-                    if (fullSession) {
-                      setSelectedSession(fullSession);
-                      setIsEditDialogOpen(true);
-                      setIsSessionDetailOpen(false);
-                    }
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleMessageSession(selectedSessionDetail)}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Message
                 </Button>
               </div>
             </div>

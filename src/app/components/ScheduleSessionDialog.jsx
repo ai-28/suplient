@@ -854,7 +854,10 @@ export function ScheduleSessionDialog({
                   <Clock className="h-4 w-4" />
                   Duration (minutes)
                 </Label>
-                <Select onValueChange={(value) => handleInputChange("duration", value)} defaultValue="90">
+                <Select
+                  onValueChange={(value) => handleInputChange("duration", value)}
+                  value={formData.duration}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

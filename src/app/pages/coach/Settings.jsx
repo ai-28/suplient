@@ -58,18 +58,18 @@ export default function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [pipelineStages, setPipelineStages] = useState([
-    { id: "light", name: "Light", color: "bg-blue-500", isVisible: true },
-    { id: "group", name: "Group", color: "bg-yellow-500", isVisible: true },
-    { id: "personal", name: "Personal", color: "bg-purple-500", isVisible: true },
-    { id: "completed", name: "Completed", color: "bg-green-500", isVisible: true },
+    { id: "light", name: "Light", color: "bg-blue-500", isVisible: false },
+    { id: "group", name: "Group", color: "bg-yellow-500", isVisible: false },
+    { id: "personal", name: "Personal", color: "bg-purple-500", isVisible: false },
+    { id: "completed", name: "Completed", color: "bg-green-500", isVisible: false },
     { id: "inactive", name: "Inactive", color: "bg-red-500", isVisible: false }
   ]);
 
   const [groupPipelineStages, setGroupPipelineStages] = useState([
-    { id: "upcoming", name: "Upcoming", color: "bg-blue-500", description: "Groups scheduled to start", isVisible: true },
-    { id: "ongoing", name: "Ongoing", color: "bg-green-500", description: "Active groups", isVisible: true },
-    { id: "completed", name: "Completed", color: "bg-purple-500", description: "Finished groups", isVisible: true },
-    { id: "inactive", name: "Inactive", color: "bg-gray-500", description: "Paused groups", isVisible: true }
+    { id: "upcoming", name: "Upcoming", color: "bg-blue-500", description: "Groups scheduled to start", isVisible: false },
+    { id: "ongoing", name: "Ongoing", color: "bg-green-500", description: "Active groups", isVisible: false },
+    { id: "completed", name: "Completed", color: "bg-purple-500", description: "Finished groups", isVisible: false },
+    { id: "inactive", name: "Inactive", color: "bg-gray-500", description: "Paused groups", isVisible: false }
   ]);
 
   const [showAddClientStageDialog, setShowAddClientStageDialog] = useState(false);
