@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { 
   Home, 
   User, 
@@ -21,7 +21,8 @@ import {
   FileText,
   Database,
   Bell,
-  UserCog
+  UserCog,
+  Loader2
 } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
@@ -49,6 +50,10 @@ export function AppSidebar() {
   const currentPath = usePathname();
 
   const searchRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [debounceTimer, setDebounceTimer] = useState(null);
 
   // Determine if we're in admin or coach section
   const isAdmin = currentPath.startsWith('/admin');
@@ -68,6 +73,65 @@ export function AppSidebar() {
       ? "bg-primary/10 text-primary font-medium" 
       : "text-sidebar-foreground hover:bg-muted/50 hover:text-foreground";
 
+  // Perform search
+  const performSearch = useCallback(async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults({ results: {}, totalResults: 0, query });
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+
+    if (searchQuery.trim().length >= 2) {
+      const timer = setTimeout(() => {
+        performSearch(searchQuery);
+      }, 300); // 300ms debounce
+      setDebounceTimer(timer);
+    } else {
+      setSearchResults(null);
+      setIsSearching(false);
+    }
+
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [searchQuery, performSearch]);
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchResults(null);
+    setIsSearching(false);
+  };
+
   // Handle search result click
   const handleResultClick = (url) => {
     router.push(url);
@@ -80,6 +144,46 @@ export function AppSidebar() {
       clearSearch();
     }
   };
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        // Don't close if clicking on a result
+        if (!event.target.closest('[data-search-result]')) {
+          // Keep search query but close dropdown after a delay
+          // Actually, let's keep it open while typing
+        }
+      }
+    };
+
+    if (searchResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [searchResults]);
+
+  // Prepare results by category
+  const getResultsByCategory = () => {
+    if (!searchResults || !searchResults.results) return [];
+
+    const categories = [
+      ['Clients', searchResults.results.clients || [], User],
+      ['Groups', searchResults.results.groups || [], Users],
+      ['Sessions', searchResults.results.sessions || [], Calendar],
+      ['Tasks', searchResults.results.tasks || [], ClipboardList],
+      ['Notes', searchResults.results.notes || [], FileText],
+      ['Library', searchResults.results.resources || [], Library],
+    ];
+
+    return categories.filter(([_, results]) => results.length > 0);
+  };
+
+  const categoriesWithResults = getResultsByCategory();
+  const totalResults = searchResults?.totalResults || 0;
+  const showResults = searchQuery.trim().length >= 2 && searchResults !== null;
 
   // Navigation items based on role
   const getMainNavItems = () => {
@@ -145,50 +249,63 @@ export function AppSidebar() {
 
         {/* Global Search */}
         {open && (
-          <div className="px-6 mb-2" ref={searchRef}>
+          <div className="px-6 mb-2 relative" ref={searchRef}>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-sidebar-foreground/60" />
               <Input
-                placeholder="Search"
-                value={""}
-                onChange={(e) => {}}
+                placeholder="Search clients, notes, files, groups, sessions..."
+                value={searchQuery}
+                onChange={handleSearchChange}
                 onKeyDown={handleKeyDown}
-                className="pl-10 bg-sidebar-accent/30 border-sidebar-border/50 text-sidebar-foreground placeholder:text-sidebar-foreground/50 focus:bg-sidebar-accent/50 focus:border-sidebar-primary/50 focus:ring-1 focus:ring-sidebar-primary/30 transition-all"
+                className="pl-10 pr-10 bg-sidebar-accent/30 border-sidebar-border/50 text-sidebar-foreground placeholder:text-sidebar-foreground/50 focus:bg-sidebar-accent/50 focus:border-sidebar-primary/50 focus:ring-1 focus:ring-sidebar-primary/30 transition-all"
               />
-              {"" && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {}}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-sidebar-accent"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+              {searchQuery && (
+                <>
+                  {isSearching ? (
+                    <Loader2 className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-sidebar-foreground/60" />
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearSearch}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-sidebar-accent"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </>
               )}
             </div>
 
             {/* Search Results Dropdown */}
-            {"" && (
-              <Card className="absolute left-6 right-6 top-full mt-2 z-50 max-h-96 overflow-hidden shadow-lg border-sidebar-border bg-sidebar">
+            {showResults && (
+              <Card className="text-white absolute left-6 right-6 top-full mt-2 z-50 max-h-96 overflow-hidden shadow-lg border-sidebar-border bg-sidebar">
                 <CardContent className="p-0">
-                  {totalResults > 0 ? (
+                  {isSearching ? (
+                    <div className="p-6 text-center">
+                      <Loader2 className="h-6 w-6 text-sidebar-foreground/60 mx-auto mb-2 animate-spin" />
+                      <div className="text-sm text-sidebar-foreground/60">Searching...</div>
+                    </div>
+                  ) : totalResults > 0 ? (
                     <div className="max-h-96 overflow-y-auto">
                       <div className="p-3 border-b border-sidebar-border">
                         <div className="text-sm font-medium text-sidebar-foreground">
-                          {""} {"" === 1 ? 'result' : 'results'} found
+                          {totalResults} {totalResults === 1 ? 'result' : 'results'} found
                         </div>
                       </div>
-                      {categoriesWithResults.map(([category, results]) => (
+                      {categoriesWithResults.map(([category, results, Icon]) => (
                         <div key={category} className="border-b border-sidebar-border/50 last:border-b-0">
-                          <div className="px-3 py-2 bg-sidebar-accent/20">
+                          <div className="px-3 py-2 bg-sidebar-accent/20 flex items-center gap-2">
+                            <Icon className="h-3 w-3 text-sidebar-foreground/70" />
                             <div className="text-xs font-medium text-sidebar-foreground/70 uppercase tracking-wide">
-                              {""} ({results.length})
+                              {category} ({results.length})
                             </div>
                           </div>
                           <div className="max-h-32 overflow-y-auto">
                             {results.slice(0, 3).map((result) => (
                               <button
                                 key={result.id}
+                                data-search-result
                                 onClick={() => handleResultClick(result.url)}
                                 className="w-full px-3 py-2 text-left hover:bg-sidebar-accent/30 transition-colors group"
                               >
@@ -207,8 +324,13 @@ export function AppSidebar() {
                             ))}
                             {results.length > 3 && (
                               <button
-                                onClick={() => handleResultClick(results[0].url.split('/').slice(0, -1).join('/'))}
-                                className="w-full px-3 py-1 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/20 transition-colors"
+                                data-search-result
+                                onClick={() => {
+                                  // Navigate to the category page instead of specific item
+                                  const baseUrl = results[0]?.url?.split('/').slice(0, -1).join('/') || (isAdmin ? `/admin/${category.toLowerCase()}` : `/coach/${category.toLowerCase()}`);
+                                  handleResultClick(baseUrl);
+                                }}
+                                className="text-white w-full px-3 py-1 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/20 transition-colors"
                               >
                                 View all {results.length} {category} results
                               </button>
@@ -218,13 +340,13 @@ export function AppSidebar() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-6 text-center">
+                    <div className="p-6 text-center text-white">
                       <Search className="h-8 w-8 text-sidebar-foreground/40 mx-auto mb-2" />
                       <div className="text-sm text-sidebar-foreground/60">
-                        No results found for ""
+                        No results found for "{searchResults?.query || searchQuery}"
                       </div>
                       <div className="text-xs text-sidebar-foreground/40 mt-1">
-                        Try searching for clients, groups, tasks, or library content
+                        Try searching for clients, groups, tasks, sessions, notes, or library content
                       </div>
                     </div>
                   )}

@@ -25,10 +25,10 @@ const notificationIcons = {
 };
 
 const notificationColors = {
-  low: 'text-gray-600',
-  normal: 'text-blue-600',
-  high: 'text-orange-600',
-  urgent: 'text-red-600'
+  low: 'text-gray-600 dark:text-gray-400',
+  normal: 'text-blue-600 dark:text-blue-400',
+  high: 'text-orange-600 dark:text-orange-400',
+  urgent: 'text-red-600 dark:text-red-400'
 };
 
 export function NotificationBell({ userRole = 'client' }) {
@@ -134,17 +134,19 @@ export function NotificationBell({ userRole = 'client' }) {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <Card className="border-0 shadow-none">
-          <CardHeader className="pb-3">
+      <PopoverContent className="w-80 p-0 bg-background dark:bg-background" align="end">
+        <Card className="border-0 shadow-none bg-background dark:bg-background">
+          <CardHeader className="pb-3 border-b border-border dark:border-border">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Notifications ({filteredUnreadCount})</CardTitle>
+              <CardTitle className="text-sm font-medium text-foreground dark:text-foreground">
+                Notifications ({filteredUnreadCount})
+              </CardTitle>
               {filteredUnreadCount > 0 && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={handleMarkAllRead}
-                  className="text-xs"
+                  className="text-xs text-foreground dark:text-foreground hover:bg-muted dark:hover:bg-muted"
                 >
                   Mark all read
                 </Button>
@@ -154,11 +156,11 @@ export function NotificationBell({ userRole = 'client' }) {
           <CardContent className="p-0">
             <ScrollArea className="h-96">
               {loading ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
+                <div className="p-4 text-center text-sm text-muted-foreground dark:text-muted-foreground">
                   Loading notifications...
                 </div>
               ) : filteredNotifications.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
+                <div className="p-4 text-center text-sm text-muted-foreground dark:text-muted-foreground">
                   <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   No unread notifications
                 </div>
@@ -167,8 +169,10 @@ export function NotificationBell({ userRole = 'client' }) {
                   {filteredNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-3 border-b cursor-pointer hover:bg-muted/50 transition-colors ${
-                        !notification.isRead ? 'bg-blue-50/50' : ''
+                      className={`p-3 border-b border-border dark:border-border cursor-pointer transition-colors ${
+                        !notification.isRead 
+                          ? 'bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/50 dark:hover:bg-blue-950/40' 
+                          : 'bg-background dark:bg-background hover:bg-muted/50 dark:hover:bg-muted/50'
                       }`}
                       onClick={() => handleNotificationClick(notification)}
                     >
@@ -178,8 +182,8 @@ export function NotificationBell({ userRole = 'client' }) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <h4 className={`text-sm font-medium truncate ${
-                              !notification.isRead ? 'font-semibold' : ''
+                            <h4 className={`text-sm truncate text-foreground dark:text-foreground ${
+                              !notification.isRead ? 'font-semibold' : 'font-medium'
                             }`}>
                               {notification.title}
                             </h4>
@@ -191,21 +195,21 @@ export function NotificationBell({ userRole = 'client' }) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => handleDeleteNotification(e, notification.id)}
-                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 dark:hover:bg-destructive/20"
                               >
-                                <X className="h-3 w-3" />
+                                <X className="h-3 w-3 text-foreground dark:text-foreground" />
                               </Button>
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1 line-clamp-2">
                             {notification.message}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
                             {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                           </p>
                         </div>
                         {!notification.isRead && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
+                          <div className="w-2 h-2 bg-blue-500 dark:bg-blue-400 rounded-full flex-shrink-0 mt-2" />
                         )}
                       </div>
                     </div>

@@ -45,7 +45,7 @@ export default function EnrolledMembersDialog({
   enrolledClients
 }) {
   const router = useRouter();
-
+console.log("enrolledClients", enrolledClients);
   const handleClientClick = (clientId) => {
     router.push(`/coach/clients/${clientId}?tab=programs`);
     onClose();
@@ -83,8 +83,15 @@ export default function EnrolledMembersDialog({
                   onClick={() => handleClientClick(client.id)}
                 >
                   <Avatar className="h-12 w-12">
+                    {client.avatar && (
+                      <AvatarImage
+                        src={client.avatar}
+                        alt={client.name || 'Client'}
+                        className="object-cover"
+                      />
+                    )}
                     <AvatarFallback>
-                      {client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                      {client.name ? client.name.split(' ').map(n => n && n[0] ? n[0] : '').filter(Boolean).join('').toUpperCase().slice(0, 2) || 'U' : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   

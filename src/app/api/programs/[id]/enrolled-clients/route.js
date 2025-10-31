@@ -19,38 +19,63 @@ export async function GET(request, { params }) {
 
         const enrolledClients = await getEnrolledClientsForTemplate(id, session.user.id);
 
+        console.log('🔍 Raw enrolledClients from DB:', JSON.stringify(enrolledClients, null, 2));
+
         // Transform the data to match the expected format
         const transformedClients = enrolledClients.map(client => {
-            const completedElementsCount = Array.isArray(client.completedElements)
-                ? client.completedElements.length
-                : 0;
+            // Handle potential case sensitivity issues with PostgreSQL column names
+            const clientName = client.clientName || client["clientName"] || null;
+            const clientEmail = client.clientEmail || client["clientEmail"] || null;
+            const clientAvatar = client.clientAvatar || client["clientAvatar"] || null;
+            const enrolledDate = client.enrolledDate || client["enrolledDate"] || null;
+            const clientId = client.clientId || client["clientId"] || null;
+            const enrollmentId = client.enrollmentId || client["enrollmentId"] || null;
+            const status = client.status || client["status"] || 'enrolled';
+            const completedElements = client.completedElements || client["completedElements"] || [];
+            const totalElements = client.totalElements || client["totalElements"] || 0;
+            const startDate = client.startDate || client["startDate"] || null;
+
+            console.log('🔍 Processing client - All properties:', Object.keys(client));
+            console.log('🔍 Processing client:', {
+                clientId,
+                clientName,
+                clientEmail,
+                clientAvatar,
+                enrolledDate,
+                status,
+                completedElements,
+                totalElements,
+                startDate
+            });
+
+            const completedElementsCount = Array.isArray(completedElements)
+                ? completedElements.length
+                : (typeof completedElements === 'number' ? completedElements : 0);
 
             // Calculate current day based on start date
             let currentDay = 0;
-            if (client.startDate) {
-                const startDate = new Date(client.startDate);
+            if (startDate) {
+                const start = new Date(startDate);
                 const today = new Date();
-                const diffTime = Math.abs(today - startDate);
+                const diffTime = Math.abs(today - start);
                 currentDay = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }
 
-            // Use the actual database status
-            const status = client.status;
-
             return {
-                id: client.clientId,
-                enrollmentId: client.enrollmentId,
-                name: client.clientName,
-                email: client.clientEmail,
-                enrolledDate: new Date(client.enrolledDate),
-                status: client.status,
+                id: clientId,
+                enrollmentId: enrollmentId,
+                name: clientName || 'Unknown Client',
+                email: clientEmail || 'No email',
+                avatar: clientAvatar || null,
+                enrolledDate: enrolledDate ? new Date(enrolledDate) : null,
+                status: status || 'enrolled',
                 progress: {
                     completedElements: completedElementsCount,
-                    totalElements: parseInt(client.totalElements) || 0,
+                    totalElements: parseInt(totalElements) || 0,
                     currentDay: currentDay,
-                    status: client.status,
-                    completionRate: client.totalElements > 0
-                        ? Math.round((completedElementsCount / client.totalElements) * 100)
+                    status: status || 'enrolled',
+                    completionRate: totalElements > 0
+                        ? Math.round((completedElementsCount / totalElements) * 100)
                         : 0
                 }
             };

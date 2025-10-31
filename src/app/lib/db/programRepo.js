@@ -489,33 +489,37 @@ export async function getEnrolledClientsForTemplate(templateId, coachId) {
 
         const result = await sql`
             SELECT 
-                pe.id as enrollmentId,
+                pe.id as "enrollmentId",
                 pe.status,
                 pe."completedElements",
                 pe."startDate",
-                pe."createdAt" as enrolledDate,
+                pe."createdAt" as "enrolledDate",
                 pe."updatedAt",
-                c.id as clientId,
-                c.name as clientName,
-                c.email as clientEmail,
-                pt.id as templateId,
-                pt.name as templateName,
-                pt.description as templateDescription,
-                pt.duration as templateDuration,
-                COUNT(pte.id) as totalElements
+                c.id as "clientId",
+                c."userId",
+                u.name as "clientName",
+                u.email as "clientEmail",
+                u.avatar as "clientAvatar",
+                pt.id as "templateId",
+                pt.name as "templateName",
+                pt.description as "templateDescription",
+                pt.duration as "templateDuration",
+                COUNT(pte.id) as "totalElements"
             FROM "ProgramEnrollment" pe
             JOIN "Client" c ON pe."clientId" = c.id
+            LEFT JOIN "User" u ON c."userId" = u.id
             JOIN "ProgramTemplate" pt ON pe."programTemplateId" = pt.id
             LEFT JOIN "ProgramTemplateElement" pte ON pt.id = pte."programTemplateId"
             WHERE pe."programTemplateId" = ${templateId} 
             AND pe."coachId" = ${coachId}
             GROUP BY 
                 pe.id, pe.status, pe."completedElements", pe."startDate", 
-                pe."createdAt", pe."updatedAt", c.id, c.name, c.email,
+                pe."createdAt", pe."updatedAt", c.id, c."userId", u.name, u.email, u.avatar,
                 pt.id, pt.name, pt.description, pt.duration
             ORDER BY pe."createdAt" DESC
         `;
 
+        console.log('🔍 getEnrolledClientsForTemplate result:', JSON.stringify(result, null, 2));
         return result;
     } catch (error) {
         console.error('Error getting enrolled clients for template:', error);
