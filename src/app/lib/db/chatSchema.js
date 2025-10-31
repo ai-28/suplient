@@ -339,6 +339,33 @@ export const chatRepo = {
     }
   },
 
+  // Add a participant to a conversation
+  async addParticipant(conversationId, userId, role = 'member') {
+    try {
+      // Check if participant already exists
+      const existing = await sql`
+        SELECT id FROM "ConversationParticipant"
+        WHERE "conversationId" = ${conversationId} AND "userId" = ${userId}
+      `;
+
+      if (existing.length > 0) {
+        return existing[0]; // Already a participant
+      }
+
+      // Add participant
+      const [participant] = await sql`
+        INSERT INTO "ConversationParticipant" ("conversationId", "userId", role)
+        VALUES (${conversationId}, ${userId}, ${role})
+        RETURNING *
+      `;
+
+      return participant;
+    } catch (error) {
+      console.error('Error adding participant:', error);
+      throw error;
+    }
+  },
+
   // Mark messages as read for a user in a conversation
   async markMessagesAsRead(conversationId, userId) {
     try {

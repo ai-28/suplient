@@ -60,9 +60,18 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Verify user is participant
+    // For chat messages: use admin ID if impersonating, otherwise use current user ID
+    // This ensures chat messages show as sent by the admin, not the impersonated user
+    const senderId = session.user.isImpersonating && session.user.originalAdminId
+      ? session.user.originalAdminId
+      : session.user.id;
+
+    // Verify user is participant (check both current user and admin if impersonating)
     const participants = await chatRepo.getConversationParticipants(conversationId);
-    const isParticipant = participants.some(p => p.id === session.user.id);
+    const isParticipant = participants.some(p =>
+      p.id === session.user.id ||
+      (session.user.isImpersonating && session.user.originalAdminId && p.id === session.user.originalAdminId)
+    );
 
     if (!isParticipant) {
       return NextResponse.json(
@@ -71,7 +80,16 @@ export async function POST(request, { params }) {
       );
     }
 
-    const message = await chatRepo.sendMessage(conversationId, session.user.id, content, type, {
+    // For impersonation: we need to add the admin as a participant if not already
+    if (session.user.isImpersonating && session.user.originalAdminId) {
+      const isAdminParticipant = participants.some(p => p.id === session.user.originalAdminId);
+      if (!isAdminParticipant) {
+        // Add admin as participant to this conversation
+        await chatRepo.addParticipant(conversationId, session.user.originalAdminId);
+      }
+    }
+
+    const message = await chatRepo.sendMessage(conversationId, senderId, content, type, {
       replyToId,
       fileUrl,
       fileName,
@@ -123,11 +141,22 @@ export async function POST(request, { params }) {
           // Only create notification if user is NOT currently in the conversation
           if (!isInConversation) {
             console.log(`Creating notification for user ${participant.id} - not in conversation ${conversationId}`);
+            // Use admin info for notifications if impersonating
+            const notifSenderId = session.user.isImpersonating && session.user.originalAdminId
+              ? session.user.originalAdminId
+              : session.user.id;
+            const notifSenderName = session.user.isImpersonating && session.user.originalAdminName
+              ? session.user.originalAdminName
+              : session.user.name;
+            const notifSenderRole = session.user.isImpersonating && session.user.originalAdminRole
+              ? session.user.originalAdminRole
+              : session.user.role;
+
             await NotificationService.notifyNewMessage(
               participant.id,
-              session.user.id,
-              session.user.name,
-              session.user.role,
+              notifSenderId,
+              notifSenderName,
+              notifSenderRole,
               conversationId,
               content,
               type
@@ -146,13 +175,21 @@ export async function POST(request, { params }) {
       console.error('Error creating notifications or emitting updates:', notificationError);
     }
 
+    // Return message with admin info if impersonating
+    const senderName = session.user.isImpersonating && session.user.originalAdminName
+      ? session.user.originalAdminName
+      : session.user.name;
+    const senderRole = session.user.isImpersonating && session.user.originalAdminRole
+      ? session.user.originalAdminRole
+      : session.user.role;
+
     return NextResponse.json({
       success: true,
       message: {
         ...message,
-        senderId: session.user.id,
-        senderName: session.user.name,
-        senderRole: session.user.role,
+        senderId: senderId,
+        senderName: senderName,
+        senderRole: senderRole,
         timestamp: message.createdAt
       }
     });

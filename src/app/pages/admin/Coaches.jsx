@@ -4,9 +4,16 @@ import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, MessageSquare, User, Mail, Phone, Calendar, DollarSign, Users } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2, MessageSquare, User, Mail, Phone, Calendar, DollarSign, Users, LogIn, ArrowUpDown } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,12 +32,18 @@ import {
 } from "@/app/components/ui/alert-dialog";
 import { CreateCoachDialog } from "@/app/components/CreateCoachDialog";
 import { EditCoachDialog } from "@/app/components/EditCoachDialog";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function AdminCoaches() {
+  const { data: session, update } = useSession();
+  const router = useRouter();
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [impersonating, setImpersonating] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name-asc"); // Default: Name A-Z
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -71,11 +84,59 @@ export default function AdminCoaches() {
     }
   };
 
+  // Filter coaches
   const filteredCoaches = coaches.filter(coach =>
     coach.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     coach.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (coach.specialization && coach.specialization.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Sort coaches
+  const sortedAndFilteredCoaches = [...filteredCoaches].sort((a, b) => {
+    const [field, direction] = sortBy.split('-');
+    const isAsc = direction === 'asc';
+    
+    switch (field) {
+      case 'name':
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return isAsc 
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA);
+      
+      case 'clients':
+        const clientsA = parseInt(a.clients) || 0;
+        const clientsB = parseInt(b.clients) || 0;
+        return isAsc 
+          ? clientsA - clientsB
+          : clientsB - clientsA;
+      
+      case 'email':
+        const emailA = (a.email || '').toLowerCase();
+        const emailB = (b.email || '').toLowerCase();
+        return isAsc
+          ? emailA.localeCompare(emailB)
+          : emailB.localeCompare(emailA);
+      
+      case 'status':
+        // Active status comes first in ascending, last in descending
+        const statusA = a.status === 'Active' ? 0 : 1;
+        const statusB = b.status === 'Active' ? 0 : 1;
+        return isAsc
+          ? statusA - statusB
+          : statusB - statusA;
+      
+      case 'joinDate':
+        const dateA = new Date(a.joinDate || 0).getTime();
+        const dateB = new Date(b.joinDate || 0).getTime();
+        return isAsc
+          ? dateA - dateB
+          : dateB - dateA;
+      
+      default:
+        return 0;
+    }
+  });
 
   const handleCreateCoach = async (coachData) => {
     try {
@@ -193,6 +254,55 @@ export default function AdminCoaches() {
     setShowDetailDialog(true);
   };
 
+  const handleLoginAs = async (coach) => {
+    try {
+      setImpersonating(true);
+      const response = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetUserId: coach.id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update session to start impersonation
+        await update({
+          impersonate: {
+            targetUserId: data.targetUser.id,
+            targetUserRole: data.targetUser.role,
+            targetUserName: data.targetUser.name,
+            targetUserEmail: data.targetUser.email
+          }
+        });
+
+        toast.success('Impersonation started', {
+          description: `You are now viewing as ${data.targetUser.name}`
+        });
+
+        // Redirect to dashboard based on role
+        if (data.targetUser.role === 'coach') {
+          router.push('/coach/dashboard');
+        } else if (data.targetUser.role === 'client') {
+          router.push('/client/dashboard');
+        }
+      } else {
+        throw new Error(data.error || 'Failed to start impersonation');
+      }
+    } catch (error) {
+      console.error('Error starting impersonation:', error);
+      toast.error('Failed to start impersonation', {
+        description: error.message
+      });
+    } finally {
+      setImpersonating(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -219,6 +329,26 @@ export default function AdminCoaches() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[200px]">
+            <div className="flex items-center">
+              <ArrowUpDown className="mr-2 h-4 w-4 text-muted-foreground" />
+              <SelectValue placeholder="Sort by..." />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+            <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+            <SelectItem value="clients-desc">Most Clients</SelectItem>
+            <SelectItem value="clients-asc">Fewest Clients</SelectItem>
+            <SelectItem value="email-asc">Email (A-Z)</SelectItem>
+            <SelectItem value="email-desc">Email (Z-A)</SelectItem>
+            <SelectItem value="status-asc">Status (Active First)</SelectItem>
+            <SelectItem value="status-desc">Status (Inactive First)</SelectItem>
+            <SelectItem value="joinDate-desc">Newest First</SelectItem>
+            <SelectItem value="joinDate-asc">Oldest First</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Coaches Summary List */}
@@ -230,7 +360,7 @@ export default function AdminCoaches() {
             </div>
           ) : (
             <div className="divide-y">
-              {filteredCoaches.map((coach) => (
+              {sortedAndFilteredCoaches.map((coach) => (
               <div
                 key={coach.id}
                 className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
@@ -266,6 +396,10 @@ export default function AdminCoaches() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleLoginAs(coach); }} disabled={impersonating}>
+                          <LogIn className="mr-2 h-4 w-4" />
+                          {impersonating ? 'Logging in...' : 'Login as Coach'}
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditClick(coach); }}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit

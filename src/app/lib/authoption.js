@@ -58,7 +58,7 @@ const authOptions = {
     secret: process.env.NEXTAUTH_SECRET,
     debug: process.env.NODE_ENV === 'development',
     callbacks: {
-        async jwt({ token, account, user }) {
+        async jwt({ token, account, user, trigger, session: jwtSession }) {
             if (account) {
                 token.accessToken = account.access_token;
                 token.refreshToken = account.refresh_token;
@@ -71,6 +71,33 @@ const authOptions = {
                 token.phone = user.phone;
                 token.sub = user.id;
             }
+
+            // Handle impersonation updates
+            if (trigger === "update" && jwtSession?.impersonate) {
+                const { targetUserId, targetUserRole, targetUserName, targetUserEmail } = jwtSession.impersonate;
+                if (targetUserId) {
+                    // Store original admin info
+                    token.originalAdminId = token.originalAdminId || token.sub;
+                    token.originalAdminRole = token.originalAdminRole || token.role;
+                    token.originalAdminName = token.originalAdminName || token.name;
+                    // Set active user (impersonated)
+                    token.sub = targetUserId;
+                    token.role = targetUserRole;
+                    token.name = targetUserName;
+                    token.email = targetUserEmail;
+                } else {
+                    // Stop impersonation - restore original admin
+                    if (token.originalAdminId) {
+                        token.sub = token.originalAdminId;
+                        token.role = token.originalAdminRole;
+                        token.name = token.originalAdminName;
+                        delete token.originalAdminId;
+                        delete token.originalAdminRole;
+                        delete token.originalAdminName;
+                    }
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {
@@ -83,6 +110,16 @@ const authOptions = {
                 session.accessToken = token.accessToken;
                 session.refreshToken = token.refreshToken;
                 session.expiresAt = token.expiresAt;
+
+                // Add impersonation info if active
+                if (token.originalAdminId) {
+                    session.user.originalAdminId = token.originalAdminId;
+                    session.user.originalAdminRole = token.originalAdminRole;
+                    session.user.originalAdminName = token.originalAdminName;
+                    session.user.isImpersonating = true;
+                } else {
+                    session.user.isImpersonating = false;
+                }
             }
             return session;
         },

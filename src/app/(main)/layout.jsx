@@ -19,6 +19,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/app/components/ui/avatar"
 import { BookMarked, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
+import { ImpersonationBanner } from "@/app/components/ImpersonationBanner";
 
 const Layout = ({ children }) => {
     const pathname = usePathname();
@@ -58,6 +59,9 @@ const Layout = ({ children }) => {
           {shouldShowSidebar && <AppSidebar />}
           
           <div className={`flex-1 flex flex-col ${shouldShowSidebar ? '' : 'w-full'}`}>
+            {/* Impersonation Banner */}
+            {!isClientRoute && <ImpersonationBanner />}
+            
             {/* Header - show for all routes except client (client has its own navigation) */}
             {!isClientRoute && (
               <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 shadow-soft">

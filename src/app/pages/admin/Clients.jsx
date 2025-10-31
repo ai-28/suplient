@@ -53,11 +53,16 @@ import {
   Calendar,
   User,
   Loader2,
-  Ban
+  Ban,
+  LogIn
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function AdminClients() {
+  const { data: session, update } = useSession();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [coachFilter, setCoachFilter] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -68,6 +73,7 @@ export default function AdminClients() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [suspending, setSuspending] = useState(false);
+  const [impersonating, setImpersonating] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -297,6 +303,58 @@ export default function AdminClients() {
     setIsEditOpen(true);
   };
 
+  const handleLoginAs = async (client) => {
+    try {
+      setImpersonating(true);
+      
+      // client.id is the User ID (from GET /api/admin/clients response)
+      // This is what we need for impersonation
+      const response = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetUserId: client.id // This is the User table ID
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update session to start impersonation
+        await update({
+          impersonate: {
+            targetUserId: data.targetUser.id,
+            targetUserRole: data.targetUser.role,
+            targetUserName: data.targetUser.name,
+            targetUserEmail: data.targetUser.email
+          }
+        });
+
+        toast.success('Impersonation started', {
+          description: `You are now viewing as ${data.targetUser.name}`
+        });
+
+        // Redirect to dashboard based on role
+        if (data.targetUser.role === 'coach') {
+          router.push('/coach/dashboard');
+        } else if (data.targetUser.role === 'client') {
+          router.push('/client/dashboard');
+        }
+      } else {
+        throw new Error(data.error || 'Failed to start impersonation');
+      }
+    } catch (error) {
+      console.error('Error starting impersonation:', error);
+      toast.error('Failed to start impersonation', {
+        description: error.message
+      });
+    } finally {
+      setImpersonating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -468,6 +526,19 @@ export default function AdminClients() {
                   <TableCell>{client.sessionsCount}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleLoginAs(client)}
+                        disabled={impersonating}
+                        title="Login as this client"
+                      >
+                        {impersonating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <LogIn className="h-3 w-3" />
+                        )}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
