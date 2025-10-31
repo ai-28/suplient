@@ -677,35 +677,33 @@ export function ScheduleSessionDialog({
         // Create notifications for each group member
         const notificationPromises = fetchedGroupMembers.map(async (member) => {
           try {
-            // Get the userId for this member
-            const memberResponse = await fetch(`/api/clients/by-user/${member.id}`);
-            if (memberResponse.ok) {
-              const memberData = await memberResponse.json();
-              const userId = memberData.client?.userId;
-              
-              if (userId) {
-                await fetch('/api/notifications', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
+            // Use userId directly from member data (already included in group members API)
+            const userId = member.userId;
+            
+            if (userId) {
+              await fetch('/api/notifications', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  userId: userId,
+                  type: 'system',
+                  title: 'New Group Session Scheduled',
+                  message: `Your coach has scheduled a group session "${sessionData.title}" for ${sessionData.sessionDate} at ${sessionData.sessionTime}`,
+                  data: {
+                    sessionId: result.session.id,
+                    sessionTitle: sessionData.title,
+                    sessionDate: sessionData.sessionDate,
+                    sessionTime: sessionData.sessionTime,
+                    groupName: selectedGroup?.name,
+                    meetingLink: formData.meetingType !== 'none' ? 'Check your calendar for meeting link' : null
                   },
-                  body: JSON.stringify({
-                    userId: userId,
-                    type: 'system',
-                    title: 'New Group Session Scheduled',
-                    message: `Your coach has scheduled a group session "${sessionData.title}" for ${sessionData.sessionDate} at ${sessionData.sessionTime}`,
-                    data: {
-                      sessionId: result.session.id,
-                      sessionTitle: sessionData.title,
-                      sessionDate: sessionData.sessionDate,
-                      sessionTime: sessionData.sessionTime,
-                      groupName: selectedGroup?.name,
-                      meetingLink: formData.meetingType !== 'none' ? 'Check your calendar for meeting link' : null
-                    },
-                    priority: 'high'
-                  }),
-                });
-              }
+                  priority: 'high'
+                }),
+              });
+            } else {
+              console.warn(`No userId found for group member ${member.name} (client ID: ${member.id})`);
             }
           } catch (error) {
             console.error(`Failed to create notification for group member ${member.name}:`, error);

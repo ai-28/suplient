@@ -15,7 +15,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { signOut } from "next-auth/react";
 import { Button } from "@/app/components/ui/button";
-import { Avatar } from "@/app/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/app/components/ui/avatar";
 import { BookMarked, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
@@ -77,9 +77,16 @@ const Layout = ({ children }) => {
                 className="relative h-12 w-12 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all duration-200 p-0"
               >
                 <Avatar className="h-12 w-12 rounded-lg border-2 border-gray-200">
-                  <div className="justify-center items-center h-full w-full text-3xl text-gray-700 font-bold">
+                  {user?.avatar && (
+                    <AvatarImage 
+                      src={user.avatar} 
+                      alt={user?.name || 'Profile'} 
+                      className="object-cover"
+                    />
+                  )}
+                  <AvatarFallback className="flex justify-center items-center h-full w-full text-3xl text-gray-700 font-bold bg-gray-100">
                     {user?.name ? user.name.slice(0, 2).toUpperCase() : "U"}
-                  </div>
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

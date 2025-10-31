@@ -4,7 +4,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Badge } from "@/app/components/ui/badge";
 import { Switch } from "@/app/components/ui/switch";
@@ -28,7 +28,10 @@ import {
   EyeOff,
   Plus,
   Trash2,
-  TrendingDown
+  TrendingDown,
+  Camera,
+  X,
+  Loader2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -287,6 +290,10 @@ export default function ClientProfile() {
     bio: ""
   });
 
+  // Avatar upload state
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
   // Fetch user data on component mount
   useEffect(() => {
     const fetchUserData = async () => {
@@ -323,6 +330,11 @@ export default function ClientProfile() {
             birthdate: formattedBirthdate,
             bio: data.user.bio || ''
           });
+          
+          // Set avatar preview if exists
+          if (data.user.avatar) {
+            setAvatarPreview(data.user.avatar);
+          }
         } else {
           toast.error('Failed to load user data');
         }
@@ -457,6 +469,110 @@ export default function ClientProfile() {
   const handleViewGroup = (group) => {
     setSelectedGroup(group);
     setGroupOverviewOpen(true);
+  };
+
+  // Handle avatar file selection
+  const handleAvatarFileSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle avatar upload
+  const handleAvatarUpload = async () => {
+    const fileInput = document.getElementById('avatar-upload-client');
+    const file = fileInput?.files?.[0];
+    
+    if (!file) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+
+      const formDataUpload = new FormData();
+      formDataUpload.append('avatar', file);
+
+      const response = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Avatar uploaded successfully!');
+        // Update user data with new avatar
+        setUserData(prev => ({
+          ...prev,
+          avatar: data.avatarUrl
+        }));
+        // Refresh session to get updated avatar
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      } else {
+        toast.error(data.error || 'Failed to upload avatar');
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  // Handle avatar removal
+  const handleAvatarRemove = async () => {
+    try {
+      setUploadingAvatar(true);
+
+      const response = await fetch('/api/user/avatar', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Avatar removed successfully!');
+        setAvatarPreview(null);
+        // Update user data
+        setUserData(prev => ({
+          ...prev,
+          avatar: null
+        }));
+        // Refresh session
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      } else {
+        toast.error(data.error || 'Failed to remove avatar');
+      }
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      toast.error('Failed to remove avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   // Handle save profile
@@ -669,17 +785,95 @@ export default function ClientProfile() {
                 <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>Profile Picture</CardTitle>
               </CardHeader>
               <CardContent className={`text-center space-y-4 ${isMobile ? 'py-4' : ''}`}>
-                <Avatar className={`mx-auto ${isMobile ? 'h-20 w-20' : 'h-24 w-24'}`}>
-                  <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-                    {userData ? 
-                      (userData.name ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U') 
-                      : 'U'
-                    }
-                  </AvatarFallback>
-                </Avatar>
-                <Button variant="outline" size={isMobile ? "sm" : "sm"} className="w-full">
-                  Change Photo
-                </Button>
+                <div className="relative mx-auto inline-block">
+                  <Avatar className={`${isMobile ? 'h-20 w-20' : 'h-24 w-24'}`}>
+                    {avatarPreview || userData?.avatar ? (
+                      <AvatarImage 
+                        src={avatarPreview || userData?.avatar} 
+                        alt={userData?.name || 'Profile'} 
+                      />
+                    ) : null}
+                    <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                      {userData ? 
+                        (userData.name ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U') 
+                        : 'U'
+                      }
+                    </AvatarFallback>
+                  </Avatar>
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-full">
+                      <Loader2 className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} animate-spin text-primary`} />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    id="avatar-upload-client"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarFileSelect}
+                    disabled={uploadingAvatar}
+                  />
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      variant="outline" 
+                      size={isMobile ? "sm" : "sm"} 
+                      className="w-full"
+                      onClick={() => document.getElementById('avatar-upload-client')?.click()}
+                      disabled={uploadingAvatar}
+                    >
+                      <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
+                      {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                    </Button>
+                    {avatarPreview && (
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAvatarUpload}
+                          disabled={uploadingAvatar}
+                          className="flex-1"
+                        >
+                          {uploadingAvatar ? (
+                            <>
+                              <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2 animate-spin`} />
+                              Uploading...
+                            </>
+                          ) : (
+                            'Save Photo'
+                          )}
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setAvatarPreview(userData?.avatar || null);
+                            const fileInput = document.getElementById('avatar-upload-client');
+                            if (fileInput) fileInput.value = '';
+                          }}
+                          disabled={uploadingAvatar}
+                        >
+                          <X className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                        </Button>
+                      </div>
+                    )}
+                    {userData?.avatar && !avatarPreview && (
+                      <Button 
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleAvatarRemove}
+                        disabled={uploadingAvatar}
+                        className="w-full text-destructive hover:text-destructive"
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className={`text-xs text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>
+                    JPG, PNG or WebP. Max 5MB.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

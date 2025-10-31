@@ -9,6 +9,7 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
   const [conversationId, setConversationId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [groupMembers, setGroupMembers] = useState(Array.isArray(members) ? members : []);
 
   useEffect(() => {
     if (!groupId || !session?.user?.id) {
@@ -20,6 +21,19 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch group members if not provided or if members is just a number
+        if (!Array.isArray(members) || members.length === 0 || typeof members === 'number') {
+          try {
+            const membersResponse = await fetch(`/api/groups/${groupId}/members`);
+            if (membersResponse.ok) {
+              const membersData = await membersResponse.json();
+              setGroupMembers(membersData.members || []);
+            }
+          } catch (err) {
+            console.warn('Failed to fetch group members:', err);
+          }
+        }
 
         // Call API to get or create group conversation
         const response = await fetch(`/api/chat/groups/${groupId}/conversation`, {
@@ -47,7 +61,7 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
     };
 
     getOrCreateGroupConversation();
-  }, [groupId, session?.user?.id]);
+  }, [groupId, session?.user?.id, members]);
 
   if (loading) {
     return (
@@ -101,7 +115,7 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
         participantInitials="GC"
         currentUserId={session?.user?.id}
         currentUserRole={session?.user?.role || "client"}
-        groupMembers={members}
+        groupMembers={groupMembers.length > 0 ? groupMembers : (Array.isArray(members) ? members : [])}
         activeMembers={activeMembers}
         title={`${groupName} Chat`}
         className="h-[calc(100vh-100px)] rounded-lg border border-border"

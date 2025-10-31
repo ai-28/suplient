@@ -165,15 +165,25 @@ export async function GET(request, { params }) {
         const members = [];
 
         for (const memberId of memberIds) {
-            // Get member basic info
+            // Get member basic info with avatar
             const memberInfo = await sql`
-                SELECT c.id, c.name, c.status
+                SELECT 
+                    c.id, 
+                    c.name, 
+                    c.status,
+                    u.avatar
                 FROM "Client" c
+                LEFT JOIN "User" u ON c."userId" = u.id
                 WHERE c.id = ${memberId}
             `;
 
             if (memberInfo.length === 0) continue;
             const member = memberInfo[0];
+
+            // Generate initials from name
+            const initials = member.name
+                ? member.name.split(' ').map(n => n[0]).join('').toUpperCase()
+                : 'U';
 
             // Get member's check-ins for wellbeing calculation
             const memberCheckIns = await sql`
@@ -334,6 +344,8 @@ export async function GET(request, { params }) {
             members.push({
                 id: member.id,
                 name: member.name,
+                avatar: member.avatar,
+                initials: initials,
                 status: member.status === "on-hold" || member.status === "inactive" ? "Inactive" : "Active",
                 totalCheckIns: memberCheckIns.length,
                 totalTasksCompleted: memberTasks.length,

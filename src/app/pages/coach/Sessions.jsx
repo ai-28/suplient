@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useSessions } from "@/app/hooks/useSessions";
 
@@ -670,12 +670,26 @@ export default function Sessions() {
                         ) : (
                           <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                                {session.client?.split(' ').map((n) => n[0]).join('')}
+                              {session.clientAvatar ? (
+                                <AvatarImage 
+                                  src={session.clientAvatar} 
+                                  alt={session.client || 'Client'} 
+                                  className="object-cover"
+                                  onError={(e) => {
+                                    console.error('Avatar image failed to load:', session.clientAvatar);
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              ) : null}
+                              <AvatarFallback className="bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                                {session.client && session.client.trim() 
+                                  ? session.client.split(' ').map((n) => n && n[0] ? n[0] : '').filter(Boolean).join('').toUpperCase().slice(0, 2) || 'U'
+                                  : 'U'
+                                }
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <span className="text-sm font-medium text-foreground block">{session.client}</span>
+                              <span className="text-sm font-medium text-foreground block">{session.client || 'Unknown Client'}</span>
                               <span className="text-xs text-muted-foreground">Individual Session</span>
                             </div>
                           </div>

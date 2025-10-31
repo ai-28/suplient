@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Checkbox } from "@/app/components/ui/checkbox";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { ScheduleSessionDialog } from "@/app/components/ScheduleSessionDialog";
@@ -186,6 +186,13 @@ export default function ClientProfile() {
         
         const result = await response.json();
         const data = result.data;
+        
+        // Debug: Log client data including avatar
+        console.log('📋 Client data received:', {
+          name: data.client?.name,
+          avatar: data.client?.avatar,
+          hasAvatar: !!data.client?.avatar
+        });
         
         setClientData(data.client);
         setClientTasks(data.tasks);
@@ -968,6 +975,13 @@ export default function ClientProfile() {
                   <CardContent className="pt-6">
                     <div className="text-center space-y-4">
                       <Avatar className="h-20 w-20 mx-auto">
+                        {clientData.avatar && (
+                          <AvatarImage 
+                            src={clientData.avatar} 
+                            alt={clientData.name} 
+                            className="object-cover"
+                          />
+                        )}
                         <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
                           {clientData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                         </AvatarFallback>
@@ -1079,6 +1093,7 @@ export default function ClientProfile() {
                           chatType="personal"
                           participantName={clientData.name}
                           participantInitials={clientData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          participantAvatar={clientData.avatar || null}
                           currentUserId={session?.user?.id}
                           currentUserRole="coach"
                           title={clientData.name}

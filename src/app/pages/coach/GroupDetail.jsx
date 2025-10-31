@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
@@ -207,6 +207,7 @@ export default function GroupDetail() {
     detailedMembers: groupData.members?.map((member, index) => ({
       id: member.id,
       name: member.name,
+      avatar: member.avatar,
       initials: member.initials,
       status: member.status,
       joinDate: formatDate(member.joinDate),
@@ -462,9 +463,18 @@ console.log(groupProgressData)
                             <TableRow key={member.id}>
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                                    {member.initials}
-                                  </div>
+                                  <Avatar className="h-8 w-8">
+                                    {member.avatar && (
+                                      <AvatarImage 
+                                        src={member.avatar} 
+                                        alt={member.name} 
+                                        className="object-cover"
+                                      />
+                                    )}
+                                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                                      {member.initials}
+                                    </AvatarFallback>
+                                  </Avatar>
                                   <span className="font-medium">{member.name}</span>
                                 </div>
                               </TableCell>

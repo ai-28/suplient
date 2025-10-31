@@ -1,7 +1,7 @@
 "use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/app/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -107,6 +107,10 @@ const useUpcomingSessions = () => {
           throw new Error('Failed to fetch upcoming sessions');
         }
         const data = await response.json();
+        console.log('📅 Upcoming sessions data:', data.upcomingSessions);
+        if (data.upcomingSessions && data.upcomingSessions.length > 0) {
+          console.log('👤 First session therapist avatar:', data.upcomingSessions[0].therapistAvatar);
+        }
         setSessions(data.upcomingSessions || []);
       } catch (err) {
         setSessionsError(err.message);
@@ -244,6 +248,13 @@ export default function ClientDashboard() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <Avatar className="h-8 w-8">
+                    {user?.avatar && (
+                      <AvatarImage
+                        src={user.avatar}
+                        alt={user?.name || 'Profile'}
+                        className="object-cover"
+                      />
+                    )}
                     <AvatarFallback>
                       {user?.name ? user.name.slice(0, 2).toUpperCase() : "U"}
                     </AvatarFallback>
@@ -332,8 +343,25 @@ export default function ClientDashboard() {
             <CardContent>
               <div className="flex items-center space-x-4">
                 <Avatar>
-                  <AvatarFallback>
-                    {upcomingSessions[0].therapist.slice(0, 2).toUpperCase()}
+                  {upcomingSessions[0].therapistAvatar ? (
+                    <AvatarImage
+                      src={upcomingSessions[0].therapistAvatar}
+                      alt={upcomingSessions[0].therapist || 'Therapist'}
+                      className="object-cover"
+                      onError={(e) => {
+                        console.error('❌ Avatar image failed to load:', upcomingSessions[0].therapistAvatar);
+                        e.target.style.display = 'none';
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Avatar image loaded successfully:', upcomingSessions[0].therapistAvatar);
+                      }}
+                    />
+                  ) : null}
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {upcomingSessions[0].therapist && upcomingSessions[0].therapist.trim()
+                      ? upcomingSessions[0].therapist.split(' ').map((n) => n && n[0] ? n[0] : '').filter(Boolean).join('').toUpperCase().slice(0, 2) || 'U'
+                      : 'U'
+                    }
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">

@@ -18,18 +18,37 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: 'Group ID is required' }, { status: 400 });
         }
 
-        // Verify the group belongs to the current coach
+        // Verify the group exists and user has access (coach owns it OR client is a member)
         const groupResult = await sql`
             SELECT g.id, g.name, g."selectedMembers", g."coachId"
             FROM "Group" g
-            WHERE g.id = ${groupId} AND g."coachId" = ${session.user.id}
+            WHERE g.id = ${groupId}
         `;
 
         if (groupResult.length === 0) {
-            return NextResponse.json({ error: 'Group not found or access denied' }, { status: 404 });
+            return NextResponse.json({ error: 'Group not found' }, { status: 404 });
         }
 
         const group = groupResult[0];
+
+        // Check access: coach owns it OR client is a member
+        const isCoachOwner = session.user.role === 'coach' && group.coachId === session.user.id;
+        let isClientMember = false;
+
+        if (session.user.role === 'client') {
+            const clientRecord = await sql`
+                SELECT id FROM "Client" WHERE "userId" = ${session.user.id}
+            `;
+            if (clientRecord.length > 0) {
+                const clientId = clientRecord[0].id;
+                isClientMember = group.selectedMembers && group.selectedMembers.includes(clientId);
+            }
+        }
+
+        if (!isCoachOwner && !isClientMember) {
+            return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+        }
+
         const memberIds = group.selectedMembers || [];
 
         if (memberIds.length === 0) {
@@ -43,25 +62,30 @@ export async function GET(request, { params }) {
             });
         }
 
-        // Get detailed information about each member
+        // Get detailed information about each member with avatars
         const membersResult = await sql`
             SELECT 
                 c.id,
-                c.name,
-                c.email,
+                c."userId",
+                u.name,
+                u.email,
+                u.avatar,
                 c.status,
                 c."createdAt",
                 c."updatedAt"
             FROM "Client" c
+            LEFT JOIN "User" u ON c."userId" = u.id
             WHERE c.id = ANY(${memberIds})
-            ORDER BY c.name ASC
+            ORDER BY u.name ASC
         `;
 
         // Transform the data to match expected format
         const members = membersResult.map(client => ({
             id: client.id,
+            userId: client.userId, // Include userId for notifications
             name: client.name,
             email: client.email,
+            avatar: client.avatar, // Include avatar
             initial: client.name.charAt(0).toUpperCase(),
             status: client.status === 'active' ? 'active' : 'inactive',
             joinDate: new Date(client.createdAt).toISOString().split('T')[0],

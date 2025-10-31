@@ -213,7 +213,7 @@ const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) 
       data-sidebar="trigger"
       variant="outline"
       size="icon"
-      style={{ backgroundColor: "forestgreen" }}
+      style={{ backgroundColor: "#32497b" }}
       className={cn(
         "h-9 w-9 border-2 border-sidebar-border shadow-md hover:bg-sidebar-accent hover:border-sidebar-accent hover:scale-105 active:scale-95 transition-all duration-200",
         className

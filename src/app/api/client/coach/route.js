@@ -24,7 +24,8 @@ export async function GET(request) {
                 u_coach.id as "coachUserId",
                 u_coach.name as "coachName",
                 u_coach.email as "coachEmail",
-                u_coach.phone as "coachPhone"
+                u_coach.phone as "coachPhone",
+                u_coach.avatar as "coachAvatar"
             FROM "User" u
             JOIN "User" u_coach ON u."coachId" = u_coach.id
             WHERE u.id = ${session.user.id}
@@ -67,7 +68,8 @@ export async function GET(request) {
             id: clientCoachData.coachUserId,
             name: clientCoachData.coachName,
             email: clientCoachData.coachEmail,
-            phone: clientCoachData.coachPhone
+            phone: clientCoachData.coachPhone,
+            avatar: clientCoachData.coachAvatar
         };
 
         return NextResponse.json({

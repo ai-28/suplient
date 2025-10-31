@@ -95,7 +95,8 @@ async function getGroupById(groupId, coachId) {
                 c.status,
                 c."lastActive",
                 c."createdAt" as "joinDate",
-                u.name as "userName"
+                u.name as "userName",
+                u.avatar
             FROM "Client" c
             LEFT JOIN "User" u ON c."userId" = u.id
             WHERE c.id = ANY(${group.selectedMembers})
@@ -147,6 +148,7 @@ async function getGroupById(groupId, coachId) {
                     id: member.id,
                     name: member.name,
                     email: member.email,
+                    avatar: member.avatar,
                     initials,
                     status: member.status || 'active',
                     joinDate: member.joinDate,

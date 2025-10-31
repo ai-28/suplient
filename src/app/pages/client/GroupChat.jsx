@@ -3,6 +3,8 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { GroupChatInterface } from "@/app/components/GroupChatInterface";
 import { Button } from "@/app/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function GroupChat() {
   const router = useRouter();
@@ -10,11 +12,47 @@ export default function GroupChat() {
   const searchParams = useSearchParams();
   const groupId = params?.id; // Changed from groupId to id to match route
   const groupName = searchParams?.get('groupName') || "Group Chat";
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!groupId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/groups/${groupId}/members`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch group members');
+        }
+        const data = await response.json();
+        setMembers(data.members || []);
+      } catch (error) {
+        console.error('Error fetching group members:', error);
+        setMembers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMembers();
+  }, [groupId]);
 
   if (!groupId) {
     return (
       <div className="flex items-center justify-center h-screen text-muted-foreground">
         Invalid Group ID
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -25,8 +63,8 @@ export default function GroupChat() {
       <GroupChatInterface
         groupId={groupId}
         groupName={groupName}
-        members={[]} 
-        activeMembers={0}
+        members={members} 
+        activeMembers={members.length}
         className="h-full"
         showBackButton={true}
         backButtonAction={() => router.push('/client/sessions')}

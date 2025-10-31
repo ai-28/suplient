@@ -27,8 +27,10 @@ export async function GET(request) {
         const clients = await sql`
             SELECT 
                 c.id,
+                c."userId",
                 u.name,
                 u.email,
+                u.avatar,
                 c.type,
                 c.status,
                 c.mood,
@@ -98,8 +100,10 @@ export async function GET(request) {
         const formattedClients = clients.map(client => {
             return {
                 id: client.id,
+                userId: client.userId, // Include userId for notifications
                 name: client.name,
                 email: client.email, // Include email field
+                avatar: client.avatar, // Include avatar field
                 type: client.type || 'Personal',
                 status: client.status ? client.status.charAt(0).toUpperCase() + client.status.slice(1).toLowerCase() : 'Active',
                 lastActive: client.lastActive ? formatDate(client.lastActive) : 'Never',

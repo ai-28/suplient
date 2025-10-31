@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { 
   Users,
@@ -113,6 +113,13 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 border-2 border-primary/20">
+                        {member.avatar && (
+                          <AvatarImage 
+                            src={member.avatar} 
+                            alt={member.name} 
+                            className="object-cover"
+                          />
+                        )}
                         <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                           {member.initials}
                         </AvatarFallback>
@@ -150,6 +157,13 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                       >
                         <div className="flex items-center gap-2">
                           <Avatar className="h-8 w-8 border-2 border-warning/30">
+                            {member.avatar && (
+                              <AvatarImage 
+                                src={member.avatar} 
+                                alt={member.name} 
+                                className="object-cover"
+                              />
+                            )}
                             <AvatarFallback className="bg-warning/10 text-warning text-sm">
                               {member.initials}
                             </AvatarFallback>
@@ -233,6 +247,13 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                         className="h-8 w-8 border-2 border-muted/30 cursor-pointer hover:border-muted/50 transition-colors"
                         onClick={() => onMemberClick?.(member.id.toString(), member.name)}
                       >
+                        {member.avatar && (
+                          <AvatarImage 
+                            src={member.avatar} 
+                            alt={member.name} 
+                            className="object-cover"
+                          />
+                        )}
                         <AvatarFallback className="bg-muted text-muted-foreground text-sm">
                           {member.initials}
                         </AvatarFallback>

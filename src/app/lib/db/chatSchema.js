@@ -261,6 +261,7 @@ export const chatRepo = {
           m."updatedAt",
           u.id as "senderId",
           u.name as "senderName",
+          u.avatar as "senderAvatar",
           u.role as "senderRole",
           -- Get reply message if exists
           (

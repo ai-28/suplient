@@ -6,7 +6,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { 
   MessageCircle, 
   Clock,
@@ -198,6 +198,13 @@ export default function CoachChatDashboard() {
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
+                      {client.avatar && (
+                        <AvatarImage 
+                          src={client.avatar} 
+                          alt={client.name} 
+                          className="object-cover"
+                        />
+                      )}
                       <AvatarFallback className={`${getClientTypeColor(client.type)} text-white`}>
                         {client.initials}
                       </AvatarFallback>
@@ -251,6 +258,13 @@ export default function CoachChatDashboard() {
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar className="h-10 w-10">
+                        {client.avatar && (
+                          <AvatarImage 
+                            src={client.avatar} 
+                            alt={client.name} 
+                            className="object-cover"
+                          />
+                        )}
                         <AvatarFallback className={`${getClientTypeColor(client.type)} text-white`}>
                           {client.initials}
                         </AvatarFallback>
@@ -301,6 +315,7 @@ export default function CoachChatDashboard() {
               chatType={selectedClient.type}
               participantName={selectedClient.name}
               participantInitials={selectedClient.initials}
+              participantAvatar={selectedClient.avatar || null}
               currentUserId="coach"
               currentUserRole="coach"
               allowScheduling={selectedClient.type === "light" || selectedClient.type === "group"}

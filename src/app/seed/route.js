@@ -28,6 +28,7 @@ async function seedUser() {
         "dateofBirth" DATE,
         "address" VARCHAR(255),
         bio TEXT,
+        avatar TEXT,
         "coachId" UUID REFERENCES "User"("id"),
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP

@@ -9,7 +9,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Switch } from "@/app/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
 import { Separator } from "@/app/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
@@ -33,7 +33,9 @@ import {
   Edit2,
   Edit3,
   Minus,
-  Loader2
+  Loader2,
+  Camera,
+  X
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 
@@ -48,6 +50,8 @@ export default function Settings() {
     phone: '',
     license: ''
   });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [passwordData, setPasswordData] = useState({
@@ -463,6 +467,11 @@ export default function Settings() {
             phone: data.user.phone || '',
             license: data.user.license || ''
           });
+          
+          // Set avatar preview if exists
+          if (data.user.avatar) {
+            setAvatarPreview(data.user.avatar);
+          }
         } else {
           toast.error('Failed to load coach data');
         }
@@ -619,6 +628,110 @@ export default function Settings() {
     }
   };
 
+  // Handle avatar file selection
+  const handleAvatarFileSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle avatar upload
+  const handleAvatarUpload = async () => {
+    const fileInput = document.getElementById('avatar-upload');
+    const file = fileInput?.files?.[0];
+    
+    if (!file) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const response = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Avatar uploaded successfully!');
+        // Update coach data with new avatar
+        setCoachData(prev => ({
+          ...prev,
+          avatar: data.avatarUrl
+        }));
+        // Refresh session to get updated avatar
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      } else {
+        toast.error(data.error || 'Failed to upload avatar');
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  // Handle avatar removal
+  const handleAvatarRemove = async () => {
+    try {
+      setUploadingAvatar(true);
+
+      const response = await fetch('/api/user/avatar', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Avatar removed successfully!');
+        setAvatarPreview(null);
+        // Update coach data
+        setCoachData(prev => ({
+          ...prev,
+          avatar: null
+        }));
+        // Refresh session
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      } else {
+        toast.error(data.error || 'Failed to remove avatar');
+      }
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      toast.error('Failed to remove avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   // Handle save changes
   const handleSaveChanges = async () => {
     if (!session?.user?.id) {
@@ -701,17 +814,89 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4 mb-6">
-                  <Avatar className="h-20 w-20">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                      {coachData?.name ? 
-                        coachData.name.split(' ').map(n => n[0]).join('').toUpperCase() : 
-                        'DR'
-                      }
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Button variant="outline">Change Photo</Button>
-                    <p className="text-xs text-muted-foreground mt-1">Change your profile photo</p>
+                  <div className="relative">
+                    <Avatar className="h-20 w-20">
+                      {avatarPreview || coachData?.avatar ? (
+                        <AvatarImage 
+                          src={avatarPreview || coachData?.avatar} 
+                          alt={coachData?.name || 'Profile'} 
+                        />
+                      ) : null}
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                        {coachData?.name ? 
+                          coachData.name.split(' ').map(n => n[0]).join('').toUpperCase() : 
+                          'DR'
+                        }
+                      </AvatarFallback>
+                    </Avatar>
+                    {uploadingAvatar && (
+                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-full">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        id="avatar-upload"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarFileSelect}
+                        disabled={uploadingAvatar}
+                      />
+                      <Button 
+                        variant="outline" 
+                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                        disabled={uploadingAvatar}
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                      </Button>
+                      {avatarPreview && (
+                        <>
+                          <Button 
+                            variant="outline"
+                            onClick={handleAvatarUpload}
+                            disabled={uploadingAvatar}
+                          >
+                            {uploadingAvatar ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              'Save Photo'
+                            )}
+                          </Button>
+                          <Button 
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setAvatarPreview(coachData?.avatar || null);
+                              const fileInput = document.getElementById('avatar-upload');
+                              if (fileInput) fileInput.value = '';
+                            }}
+                            disabled={uploadingAvatar}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      {coachData?.avatar && !avatarPreview && (
+                        <Button 
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleAvatarRemove}
+                          disabled={uploadingAvatar}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      JPG, PNG or WebP. Max 5MB.
+                    </p>
                   </div>
                 </div>
 

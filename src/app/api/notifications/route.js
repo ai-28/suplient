@@ -70,6 +70,17 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
+        // Validate that userId exists in User table to prevent foreign key constraint errors
+        const { sql } = await import('@/app/lib/db/postgresql');
+        const userCheck = await sql`SELECT id FROM "User" WHERE id = ${userId} LIMIT 1`;
+
+        if (userCheck.length === 0) {
+            console.error(`❌ Notification creation failed: User ID ${userId} does not exist in User table`);
+            return NextResponse.json({
+                error: `User with ID ${userId} does not exist`
+            }, { status: 400 });
+        }
+
         const notificationData = {
             userId,
             type,
@@ -83,6 +94,19 @@ export async function POST(request) {
 
         if (!result.success) {
             return NextResponse.json({ error: result.error }, { status: 500 });
+        }
+
+        // Emit real-time notification via socket
+        try {
+            if (global.globalSocketIO) {
+                const roomName = `notifications_${userId}`;
+                global.globalSocketIO.to(roomName).emit('new_notification', result.data);
+                console.log(`✅ Real-time notification sent to user ${userId} via socket`);
+            } else {
+                console.warn('⚠️ Global socket not available, notification saved but not emitted in real-time');
+            }
+        } catch (socketError) {
+            console.warn('⚠️ Socket emission failed, notification saved but not emitted in real-time:', socketError.message);
         }
 
         return NextResponse.json(result.data);

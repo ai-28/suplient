@@ -48,6 +48,7 @@ export async function GET(request) {
                 s."groupId",
                 u.name as "coachName",
                 u.email as "coachEmail",
+                u.avatar as "coachAvatar",
                 g.name as "groupName"
             FROM "Session" s
             LEFT JOIN "User" u ON s."coachId" = u.id
@@ -100,6 +101,7 @@ export async function GET(request) {
                 therapist: session.sessionType === 'group'
                     ? session.groupName || 'Group Session'
                     : session.coachName || 'Coach',
+                therapistAvatar: session.sessionType === 'group' ? null : (session.coachAvatar || null),
                 date: relativeDate,
                 time: time,
                 type: session.sessionType === 'group' ? 'Group' : 'Individual',

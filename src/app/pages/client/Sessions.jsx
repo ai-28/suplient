@@ -73,6 +73,7 @@ export default function ClientSessions() {
         chatType="personal"
         participantName={coach.name}
         participantInitials={coach.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+        participantAvatar={coach.avatar || null}
         currentUserId={session?.user?.id}
         currentUserRole="client"
         allowScheduling={true}
@@ -106,7 +107,7 @@ export default function ClientSessions() {
         <GroupChatInterface
           groupId={group.id}
           groupName={group.name}
-          members={group.members}
+          members={[]} // Empty array - GroupChatInterface will fetch members with avatars
           activeMembers={group.members} // Use actual member count
         />
       );

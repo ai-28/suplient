@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Textarea } from "@/app/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Separator } from "@/app/components/ui/separator";
@@ -38,6 +38,7 @@ export function UniversalChatInterface({
   chatType,
   participantName = "User",
   participantInitials = "U",
+  participantAvatar = null,
   currentUserId,
   currentUserRole,
   allowReplies = true,
@@ -304,6 +305,13 @@ export function UniversalChatInterface({
           )}
           <div className="relative">
             <Avatar className={`bg-primary text-primary-foreground ${currentUserRole === "client" && chatType === "personal" ? "h-9 w-9" : "h-10 w-10"}`}>
+              {participantAvatar && (
+                <AvatarImage 
+                  src={participantAvatar} 
+                  alt={participantName} 
+                  className="object-cover"
+                />
+              )}
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {participantInitials}
               </AvatarFallback>
@@ -421,6 +429,13 @@ export function UniversalChatInterface({
                     <TooltipTrigger asChild>
                       <div id={`message-${msg.id}`} className={`group flex gap-2 items-start ${isOwnMessage ? "justify-end" : "justify-start"} ${group.isFirstInGroup ? "mt-3" : "mt-1"}`}>
                         {!isOwnMessage && <Avatar className={`h-8 w-8 flex-shrink-0 ${group.isFirstInGroup ? "opacity-100" : "opacity-0"}`}>
+                            {msg.senderAvatar && (
+                              <AvatarImage 
+                                src={msg.senderAvatar} 
+                                alt={msg.senderName || 'User'} 
+                                className="object-cover"
+                              />
+                            )}
                             <AvatarFallback className="bg-secondary text-secondary-foreground text-sm">
                               {getAvatarInitials(msg.senderName)}
                             </AvatarFallback>

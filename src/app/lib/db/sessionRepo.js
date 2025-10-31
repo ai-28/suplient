@@ -48,9 +48,11 @@ export const sessionRepo = {
             const result = await sql`
                 SELECT s.*, 
                        u1.name as "clientName",
+                       u1.avatar as "clientAvatar",
                        g.name as "groupName"
                 FROM "Session" s
-                LEFT JOIN "User" u1 ON s."clientId" = u1.id
+                LEFT JOIN "Client" c ON s."clientId" = c.id
+                LEFT JOIN "User" u1 ON c."userId" = u1.id
                 LEFT JOIN "Group" g ON s."groupId" = g.id
                 WHERE s.id = ${sessionId}
             `;
@@ -67,9 +69,11 @@ export const sessionRepo = {
             const result = await sql`
                 SELECT s.*, 
                        u1.name as "clientName",
+                       u1.avatar as "clientAvatar",
                        g.name as "groupName"
                 FROM "Session" s
-                LEFT JOIN "User" u1 ON s."clientId" = u1.id
+                LEFT JOIN "Client" c ON s."clientId" = c.id
+                LEFT JOIN "User" u1 ON c."userId" = u1.id
                 LEFT JOIN "Group" g ON s."groupId" = g.id
                 WHERE s."coachId" = ${coachId}
                 ORDER BY s."sessionDate" DESC, s."sessionTime" DESC
@@ -87,9 +91,11 @@ export const sessionRepo = {
             const result = await sql`
                 SELECT s.*, 
                        u1.name as "clientName",
+                       u1.avatar as "clientAvatar",
                        g.name as "groupName"
                 FROM "Session" s
-                LEFT JOIN "User" u1 ON s."clientId" = u1.id
+                LEFT JOIN "Client" c ON s."clientId" = c.id
+                LEFT JOIN "User" u1 ON c."userId" = u1.id
                 LEFT JOIN "Group" g ON s."groupId" = g.id
                 WHERE s."coachId" = ${coachId}
                   AND s."sessionDate" >= CURRENT_DATE
@@ -170,9 +176,11 @@ export const sessionRepo = {
             const result = await sql`
                 SELECT s.*, 
                        u1.name as "clientName",
+                       u1.avatar as "clientAvatar",
                        g.name as "groupName"
                 FROM "Session" s
-                LEFT JOIN "User" u1 ON s."clientId" = u1.id
+                LEFT JOIN "Client" c ON s."clientId" = c.id
+                LEFT JOIN "User" u1 ON c."userId" = u1.id
                 LEFT JOIN "Group" g ON s."groupId" = g.id
                 WHERE s."coachId" = ${coachId}
                   AND s."sessionDate" >= ${startDate}

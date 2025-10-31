@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -43,6 +43,7 @@ import {
 } from "@/app/components/ui/popover";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Badge } from "@/app/components/ui/badge";
+import { ScrollArea } from "@/app/components/ui/scroll-area";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Task title is required"),
@@ -93,6 +94,7 @@ export function CreateTaskDialog({
   const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [groupSearchOpen, setGroupSearchOpen] = useState(false);
   const [groupSearchQuery, setGroupSearchQuery] = useState("");
+  const popoverContentRef = useRef(null);
 
   const form = useForm({
     resolver: zodResolver(taskSchema),
@@ -215,13 +217,13 @@ export function CreateTaskDialog({
       console.log('✅ Adding client to selection:', newSelectedClients);
       setSelectedClients(newSelectedClients);
       form.setValue("selectedClients", newSelectedClients);
+      // Clear search query after selection for better UX
+      setClientSearchQuery("");
     } else {
       console.log('⚠️ Client already selected:', clientId);
     }
-    // Add a small delay before closing to ensure state updates
-    setTimeout(() => {
-      setClientSearchOpen(false);
-    }, 100);
+    // Don't close popover automatically - let user select multiple clients
+    // Popover will close when clicking outside or pressing Escape
   };
 
   const handleClientRemove = (clientId) => {
@@ -235,7 +237,10 @@ export function CreateTaskDialog({
     if (group) {
       setSelectedGroup(group);
       form.setValue("selectedGroup", groupId);
+      // Clear search query after selection
+      setGroupSearchQuery("");
     }
+    // Don't close popover automatically - but for groups we only select one, so close it
     setGroupSearchOpen(false);
   };
 
@@ -510,7 +515,11 @@ export function CreateTaskDialog({
                             ))}
                           </div>
                         )}
-                        <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                        <Popover 
+                          open={clientSearchOpen} 
+                          onOpenChange={setClientSearchOpen}
+                          modal={false}
+                        >
                           <PopoverTrigger asChild>
                             <Button 
                               variant="outline" 
@@ -527,14 +536,39 @@ export function CreateTaskDialog({
                               </div>
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[400px] p-0">
+                          <PopoverContent 
+                            ref={popoverContentRef}
+                            className="w-[400px] p-0 z-[60] pointer-events-auto"
+                            onOpenAutoFocus={(e) => e.preventDefault()}
+                            onPointerDownOutside={(e) => {
+                              // Check if the click is actually inside our popover content
+                              if (popoverContentRef.current && popoverContentRef.current.contains(e.target)) {
+                                // Click is inside popover, don't close
+                                e.preventDefault();
+                                return;
+                              }
+                              // Check if clicking inside the dialog (but outside popover)
+                              const target = e.target;
+                              const dialog = document.querySelector('[role="dialog"]');
+                              const isTrigger = target.closest && target.closest('button[role="combobox"]');
+                              if (dialog && dialog.contains(target) && !isTrigger) {
+                                // Keep popover open when clicking elsewhere in dialog
+                                e.preventDefault();
+                              }
+                            }}
+                            onEscapeKeyDown={() => {
+                              setClientSearchOpen(false);
+                            }}
+                          >
                             <div className="p-3 space-y-2">
                               <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                   placeholder="Search clients..."
                                   value={clientSearchQuery}
-                                  onChange={(e) => setClientSearchQuery(e.target.value)}
+                                  onChange={(e) => {
+                                    setClientSearchQuery(e.target.value);
+                                  }}
                                   className="pl-9"
                                 />
                               </div>
@@ -555,20 +589,31 @@ export function CreateTaskDialog({
                                   filteredClients.map((client) => (
                                     <div
                                       key={client.id}
-                                      className="w-full cursor-pointer hover:bg-muted rounded-md p-2 transition-colors"
-                                      onClick={(e) => {
+                                      className="w-full text-left cursor-pointer hover:bg-muted rounded-md p-2 transition-colors flex items-center gap-3 select-none"
+                                      style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
+                                      onPointerDown={(e) => {
+                                        console.log('📌 PointerDown event fired for:', client.id, client.name, e);
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleClientSelect(client.id);
+                                      }}
+                                      onMouseDown={(e) => {
+                                        console.log('🖱️ MouseDown event fired for:', client.id, client.name, e);
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        console.log('🖱️ Client clicked:', client.id, client.name);
+                                        handleClientSelect(client.id);
+                                      }}
+                                      onClick={(e) => {
+                                        console.log('👆 Click event fired for:', client.id, client.name, e);
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                         handleClientSelect(client.id);
                                       }}
                                     >
-                                      <div className="flex items-center gap-3 w-full">
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                                          {client.initials}
-                                        </div>
-                                        <span>{client.name}</span>
+                                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary flex-shrink-0">
+                                        {client.initials}
                                       </div>
+                                      <span className="flex-1">{client.name}</span>
                                     </div>
                                   ))
                                 )}
@@ -630,7 +675,11 @@ export function CreateTaskDialog({
                   </div>
                 )}
                       {mode !== "group" && (
-                        <Popover open={groupSearchOpen} onOpenChange={setGroupSearchOpen}>
+                        <Popover 
+                          open={groupSearchOpen} 
+                          onOpenChange={setGroupSearchOpen}
+                          modal={false}
+                        >
                           <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
@@ -647,7 +696,23 @@ export function CreateTaskDialog({
                             </div>
                               </Button>
                           </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0">
+                        <PopoverContent 
+                          className="w-[400px] p-0 z-[60] pointer-events-auto"
+                          onOpenAutoFocus={(e) => e.preventDefault()}
+                          onPointerDownOutside={(e) => {
+                            // Check if the click is actually inside our popover content
+                            const target = e.target;
+                            const dialog = document.querySelector('[role="dialog"]');
+                            const isTrigger = target.closest && target.closest('button[role="combobox"]');
+                            if (dialog && dialog.contains(target) && !isTrigger) {
+                              // Keep popover open when clicking elsewhere in dialog
+                              e.preventDefault();
+                            }
+                          }}
+                          onEscapeKeyDown={() => {
+                            setGroupSearchOpen(false);
+                          }}
+                        >
                           <div className="p-3 space-y-2">
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -673,22 +738,34 @@ export function CreateTaskDialog({
                                 </div>
                               ) : (
                                 filteredGroups.map((group) => (
-                              <Button
+                                  <div
                                     key={group.id}
-                                    variant="ghost"
-                                    className="w-full justify-start h-auto p-3"
-                                    onClick={() => handleGroupSelect(group.id)}
+                                    className="w-full text-left cursor-pointer hover:bg-muted rounded-md p-3 transition-colors flex items-center gap-3 select-none"
+                                    style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
+                                    onPointerDown={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      handleGroupSelect(group.id);
+                                    }}
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleGroupSelect(group.id);
+                                    }}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleGroupSelect(group.id);
+                                    }}
                                   >
-                                    <div className="flex items-center gap-3 w-full">
-                                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                                        {group.avatar}
-                                      </div>
-                                      <div className="flex-1 text-left">
-                                        <p className="font-medium">{group.name}</p>
-                                        <p className="text-xs text-muted-foreground">{group.memberCount} members</p>
-                                      </div>
+                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary flex-shrink-0">
+                                      {group.avatar}
                                     </div>
-                                  </Button>
+                                    <div className="flex-1">
+                                      <p className="font-medium text-sm">{group.name}</p>
+                                      <p className="text-xs text-muted-foreground">{group.memberCount} members</p>
+                                    </div>
+                                  </div>
                                 ))
                               )}
                             </div>

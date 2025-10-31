@@ -31,6 +31,16 @@ export function useSessions() {
             const data = await response.json();
             const fetchedSessions = data.sessions;
 
+            // Debug: Log first session to check data structure
+            if (fetchedSessions && fetchedSessions.length > 0) {
+                console.log('📋 First session data:', {
+                    id: fetchedSessions[0].id,
+                    clientName: fetchedSessions[0].clientName,
+                    clientAvatar: fetchedSessions[0].clientAvatar,
+                    clientId: fetchedSessions[0].clientId
+                });
+            }
+
             // Transform the data to match the expected format for the Sessions page
             const transformedSessions = fetchedSessions.map(session => ({
                 id: session.id,
@@ -42,6 +52,7 @@ export function useSessions() {
                 duration: session.duration,
                 sessionType: session.sessionType,
                 client: session.clientName,
+                clientAvatar: session.clientAvatar, // Include client avatar
                 group: session.groupName,
                 clientId: session.clientId,
                 groupId: session.groupId,
