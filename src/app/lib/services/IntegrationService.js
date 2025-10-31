@@ -91,8 +91,22 @@ export class GoogleCalendarService {
 
 
             // Format the event data for Google Calendar API
-            const startDateTime = new Date(`${eventData.sessionDate}T${eventData.sessionTime}:00`);
-            const endDateTime = new Date(startDateTime.getTime() + (eventData.duration || 60) * 60 * 1000);
+            // Build start/end in the provided time zone rather than coercing to UTC
+            const tz = eventData.timeZone || 'UTC';
+            const startLocal = `${eventData.sessionDate}T${eventData.sessionTime}:00`;
+            const toEndHHMM = (hhmm, addMinutes) => {
+                try {
+                    const [h, m] = hhmm.split(':').map(Number);
+                    const d = new Date(0, 0, 0, h, m || 0);
+                    d.setMinutes(d.getMinutes() + addMinutes);
+                    const eh = d.getHours().toString().padStart(2, '0');
+                    const em = d.getMinutes().toString().padStart(2, '0');
+                    return `${eh}:${em}:00`;
+                } catch {
+                    return hhmm + ':00';
+                }
+            };
+            const endLocal = `${eventData.sessionDate}T${toEndHHMM(eventData.sessionTime, (eventData.duration || 60))}`;
 
             // Extract reminder time from integration settings
             // Values are stored as strings: "30"=30min, "60"=1hr, "120"=2hr, "24"=24hr, "48"=48hr, "none"=no reminder
@@ -114,12 +128,12 @@ export class GoogleCalendarService {
                 summary: eventData.title || 'Session',
                 description: eventData.description || '',
                 start: {
-                    dateTime: startDateTime.toISOString(),
-                    timeZone: 'UTC',
+                    dateTime: startLocal,
+                    timeZone: tz,
                 },
                 end: {
-                    dateTime: endDateTime.toISOString(),
-                    timeZone: 'UTC',
+                    dateTime: endLocal,
+                    timeZone: tz,
                 },
                 conferenceData: eventData.platform === 'google_calendar' ? {
                     createRequest: {
@@ -545,15 +559,15 @@ export class ZoomService {
             await this.ensureValidToken();
 
 
-            const startDateTime = new Date(`${meetingData.sessionDate}T${meetingData.sessionTime}:00`);
             const duration = meetingData.duration || 60;
+            const tz = meetingData.timeZone || 'UTC';
 
             const zoomMeeting = {
                 topic: meetingData.title || 'Session',
                 type: 2, // Scheduled meeting
-                start_time: startDateTime.toISOString().replace('Z', ''), // Remove Z suffix for Zoom API
+                start_time: `${meetingData.sessionDate}T${meetingData.sessionTime}:00`,
                 duration: duration,
-                timezone: 'UTC',
+                timezone: tz,
                 agenda: meetingData.description || '',
                 settings: {
                     host_video: true,

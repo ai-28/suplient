@@ -51,6 +51,11 @@ export function ScheduleSessionDialog({
     meetingType: "none",
   });
 
+  // Availability for time selection
+  const [coachSessions, setCoachSessions] = useState([]);
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [timesLoading, setTimesLoading] = useState(false);
+
   // Meeting type options
   const meetingTypes = [
     { 
@@ -86,6 +91,90 @@ export function ScheduleSessionDialog({
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  // Load coach sessions once when dialog opens
+  useEffect(() => {
+    const loadSessions = async () => {
+      try {
+        const res = await fetch('/api/sessions');
+        const data = await res.json();
+        if (res.ok && data.sessions) setCoachSessions(data.sessions);
+      } catch (e) {
+        console.warn('Failed to load sessions for availability:', e);
+      }
+    };
+    if (open) {
+      loadSessions();
+    }
+  }, [open]);
+
+  // Recompute available times whenever date, duration or session list changes
+  useEffect(() => {
+    const computeAvailable = () => {
+      if (!date) { setAvailableTimes([]); return; }
+      setTimesLoading(true);
+      try {
+        const dateStr = date.toISOString().split('T')[0];
+
+        // Convert stored UTC date/time to local date/time for comparison and overlap checks
+        const viewerTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const utcToLocalParts = (dateStrUTC, timeHHMMUTC) => {
+          try {
+            const iso = `${String(dateStrUTC).slice(0,10)}T${(timeHHMMUTC||'').substring(0,5)}:00Z`;
+            const d = new Date(iso);
+            const fmt = new Intl.DateTimeFormat('en-CA', {
+              timeZone: viewerTZ,
+              year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit', hour12: false
+            });
+            const parts = Object.fromEntries(fmt.formatToParts(d).map(p => [p.type, p.value]));
+            return { localDate: `${parts.year}-${parts.month}-${parts.day}`, localTime: `${parts.hour}:${parts.minute}` };
+          } catch {
+            return { localDate: String(dateStrUTC).slice(0,10), localTime: (timeHHMMUTC||'').substring(0,5) };
+          }
+        };
+
+        const daySessions = coachSessions
+          .map(s => {
+            const { localDate, localTime } = utcToLocalParts(s.sessionDate, s.sessionTime);
+            return { ...s, _localDate: localDate, _localTime: localTime };
+          })
+          .filter(s => s._localDate === dateStr);
+
+        const toMinutes = (hhmm) => {
+          if (!hhmm) return 0;
+          const [h,m] = hhmm.substring(0,5).split(':').map(Number);
+          return (h*60) + (m||0);
+        };
+
+        const overlaps = (start, dur) => {
+          const end = start + dur;
+          return daySessions.some(s => {
+            const sStart = toMinutes((s._localTime||'').substring(0,5));
+            const sEnd = sStart + (s.duration || 60);
+            return (start < sEnd) && (end > sStart);
+          });
+        };
+
+        const dur = parseInt(formData.duration || '60', 10);
+        const slots = timeSlots.filter(t => {
+          const start = toMinutes(t);
+          return !overlaps(start, dur);
+        });
+        setAvailableTimes(slots);
+
+        // If current time is no longer valid, clear it
+        if (formData.time && !slots.includes(formData.time)) {
+          setFormData(prev => ({ ...prev, time: '' }));
+        }
+      } finally {
+        setTimesLoading(false);
+      }
+    };
+
+    computeAvailable();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, formData.duration, coachSessions]);
 
   // Fetch group members when group is selected
   const fetchGroupMembers = async (groupId) => {
@@ -355,6 +444,7 @@ export function ScheduleSessionDialog({
         description: formData.notes || null,
         sessionDate: date.toISOString().split('T')[0], // YYYY-MM-DD format
         sessionTime: formData.time,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         duration: parseInt(formData.duration),
         sessionType: formData.sessionType,
         clientId: formData.sessionType === 'individual' ? selectedClient.id : null,
@@ -381,6 +471,15 @@ export function ScheduleSessionDialog({
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 409) {
+          const conflictList = (errorData.conflicts || [])
+            .map(c => `${(c.sessionTime || '').substring(0,5)}–${(() => { try { const [h,m]=(c.sessionTime||'').substring(0,5).split(':').map(Number); const end=new Date(0,0,0,h,m||0); end.setMinutes(end.getMinutes() + (c.duration||60)); return `${end.getHours().toString().padStart(2,'0')}:${end.getMinutes().toString().padStart(2,'0')}`;} catch { return ''; }})()} (${c.title || 'Session'})`)
+            .join('\n');
+          toast.error('This time conflicts with another session.', {
+            description: conflictList || 'Please choose a different time.'
+          });
+          throw new Error('Time conflict');
+        }
         throw new Error(errorData.error || 'Failed to create session');
       }
 
@@ -833,12 +932,22 @@ export function ScheduleSessionDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="time">Time *</Label>
-                <Select onValueChange={(value) => handleInputChange("time", value)}>
+                <Select onValueChange={(value) => handleInputChange("time", value)} value={formData.time}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
+                    <SelectValue placeholder={timesLoading ? 'Loading...' : (date ? 'Select time' : 'Pick a date first')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {timeSlots.map((time) => (
+                    {(!date || timesLoading) && (
+                      <SelectItem value="placeholder" disabled>
+                        {timesLoading ? 'Loading...' : 'Pick a date first'}
+                      </SelectItem>
+                    )}
+                    {date && !timesLoading && availableTimes.length === 0 && (
+                      <SelectItem value="no-times" disabled>
+                        No available times
+                      </SelectItem>
+                    )}
+                    {date && !timesLoading && availableTimes.map((time) => (
                       <SelectItem key={time} value={time}>
                         {time}
                       </SelectItem>

@@ -164,6 +164,9 @@ export async function POST(request) {
                     notes
                 },
                 mood: notes || 'Daily check-in completed'
+            }, {
+                nameProvided: true,
+                userName: session.user.name || null
             });
         } catch (activityError) {
             console.error('❌ Error creating daily check-in activity:', activityError);

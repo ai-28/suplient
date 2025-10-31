@@ -62,6 +62,24 @@ export default function Sessions() {
     deleteSession
   } = useSessions();
 
+  // Helper: convert stored UTC date/time to viewer's local date/time (YYYY-MM-DD, HH:MM)
+  const toLocalFromUTC = (dateStrUTC, timeHHMMUTC) => {
+    try {
+      const viewerTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      const iso = `${String(dateStrUTC).slice(0,10)}T${(timeHHMMUTC||'').substring(0,5)}:00Z`;
+      const d = new Date(iso);
+      const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: viewerTZ,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      });
+      const parts = Object.fromEntries(fmt.formatToParts(d).map(p => [p.type, p.value]));
+      return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
+    } catch {
+      return { date: String(dateStrUTC).slice(0,10), time: (timeHHMMUTC||'').substring(0,5) };
+    }
+  };
+
   // Generate calendar data from real sessions
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
@@ -89,8 +107,8 @@ export default function Sessions() {
       
       // Check if there are sessions on this date
       const daySessions = sessions.filter(session => {
-        const sessionDate = new Date(session.sessionDate);
-        return sessionDate.toISOString().split('T')[0] === dateStr;
+        const local = toLocalFromUTC(session.sessionDate, session.sessionTime);
+        return local.date === dateStr;
       });
       
       calendarDays.push({
@@ -123,16 +141,16 @@ export default function Sessions() {
       
       // Check if there are sessions on this date
       const daySessions = sessions.filter(session => {
-        const sessionDate = new Date(session.sessionDate);
-        return sessionDate.toISOString().split('T')[0] === dateStr;
+        const local = toLocalFromUTC(session.sessionDate, session.sessionTime);
+        return local.date === dateStr;
       });
       
       weekDays.push({
         day,
-        date: formattedDate,
+        date: dateStr, // Use ISO date for consistency with month view
         isEmpty: false,
         hasSession: daySessions.length > 0,
-        dateStr,
+        dateStr, // Keep for any existing callers of dateStr
         sessions: daySessions
       });
     }
@@ -157,24 +175,40 @@ export default function Sessions() {
       
       // Find session at this hour
       const sessionAtHour = daySessions.find(session => {
-        const sessionTime = session.sessionTime.substring(0, 5); // Get HH:MM
-        return sessionTime === timeStr;
+        const local = toLocalFromUTC(session.sessionDate, session.sessionTime);
+        return local.time === timeStr;
       });
       
       hours.push({
         hour: timeStr,
         isEmpty: false,
         hasSession: !!sessionAtHour,
-        session: sessionAtHour ? {
+          session: sessionAtHour ? {
           client: sessionAtHour.client,
           group: sessionAtHour.group,
           type: sessionAtHour.type,
-          title: sessionAtHour.title
+          title: sessionAtHour.title,
+          duration: sessionAtHour.duration,
+          sessionTime: toLocalFromUTC(sessionAtHour.sessionDate, sessionAtHour.sessionTime).time
         } : null
       });
     }
     
     return hours;
+  };
+
+  // Helper to compute end time string (HH:MM) given start "HH:MM" and duration minutes
+  const getEndTime = (startHHMM, durationMinutes) => {
+    try {
+      const [h, m] = startHHMM.split(':').map(Number);
+      const start = new Date(0, 0, 0, h, m || 0, 0, 0);
+      const end = new Date(start.getTime() + (Number(durationMinutes || 0) * 60000));
+      const eh = end.getHours().toString().padStart(2, '0');
+      const em = end.getMinutes().toString().padStart(2, '0');
+      return `${eh}:${em}`;
+    } catch {
+      return '';
+    }
   };
 
   // Calendar navigation handlers
@@ -219,18 +253,19 @@ export default function Sessions() {
   // Generate session details for calendar clicks
   const getSessionDetailsForDate = (dateStr) => {
     const daySessions = sessions.filter(session => {
-      const sessionDate = new Date(session.sessionDate);
-      return sessionDate.toISOString().split('T')[0] === dateStr;
+      const local = toLocalFromUTC(session.sessionDate, session.sessionTime);
+      return local.date === dateStr;
     });
     
     return daySessions.map(session => ({
-      time: session.sessionTime.substring(0, 5), // HH:MM format
+      time: toLocalFromUTC(session.sessionDate, session.sessionTime).time,
       client: session.client,
       group: session.group,
       type: session.type,
       mood: session.mood,
       moodEmoji: session.moodEmoji,
       title: session.title,
+      duration: session.duration,
       id: session.id,
       clientId: session.clientId,
       groupId: session.groupId,
@@ -242,13 +277,16 @@ export default function Sessions() {
     // Update selected date for day view
     if (day.date) {
       setSelectedDate(new Date(day.date));
+    } else if (day.dateStr) {
+      setSelectedDate(new Date(day.dateStr));
     }
     
     if (day.hasSession && day.sessions && day.sessions.length > 0) {
-      const sessionDetails = getSessionDetailsForDate(day.date);
+      const dateKey = day.date || day.dateStr;
+      const sessionDetails = getSessionDetailsForDate(dateKey);
       setSelectedSessionDetail({
         ...sessionDetails[0],
-        date: day.date,
+        date: dateKey,
         day: day.day,
         allSessions: sessionDetails
       });
@@ -402,7 +440,7 @@ export default function Sessions() {
                 <button
                   key={index}
                   className={`
-                    h-32 w-full text-sm rounded-lg transition-all relative p-2 flex flex-col
+                    h-48 md:h-56 w-full text-sm rounded-lg transition-all relative p-2 flex flex-col
                     ${dayObj.hasSession
                       ? 'bg-primary/20 text-primary font-medium hover:bg-primary/30 cursor-pointer border-2 border-primary/50' 
                       : 'text-foreground hover:bg-muted/50 border border-transparent hover:border-border'
@@ -411,12 +449,17 @@ export default function Sessions() {
                   onClick={() => handleDayClick(dayObj)}
                 >
                   {dayObj.hasSession && (
-                    <div className="space-y-1">
-                      {dayObj.sessions?.map((session, idx) => (
-                        <div key={idx} className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-                          {session.sessionTime.substring(0, 5)}
-                        </div>
-                      ))}
+                    <div className="space-y-1 overflow-y-auto max-h-40 pr-1">
+                      {dayObj.sessions?.map((session, idx) => {
+                        const start = toLocalFromUTC(session.sessionDate, session.sessionTime).time;
+                        const end = getEndTime(start, session.duration);
+                        return (
+                          <div key={idx} className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded flex items-center justify-between">
+                            <span>{start}{end ? `–${end}` : ''}</span>
+                            {session.title && <span className="ml-2 truncate max-w-[120px]">{session.title}</span>}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </button>
@@ -449,6 +492,9 @@ export default function Sessions() {
                   {hour.hasSession && hour.session && (
                     <div className="flex-1 flex items-center gap-2 ml-4">
                       <div className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm">
+                        {(hour.session.sessionTime || hour.hour)}{hour.session.duration ? `–${getEndTime(hour.session.sessionTime || hour.hour, hour.session.duration)}` : ''}
+                      </div>
+                      <div className="bg-accent text-accent-foreground px-3 py-1 rounded text-sm">
                         {hour.session.client || hour.session.group || hour.session.title}
                       </div>
                       <Badge variant="outline" className="text-xs">
@@ -606,11 +652,14 @@ export default function Sessions() {
                     className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all border border-transparent hover:border-border hover:shadow-sm"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="text-center min-w-[80px]">
-                        <p className="text-sm font-medium text-foreground">
-                          {session.date}
-                        </p>
-                      </div>
+                    <div className="text-center min-w-[120px]">
+                      <p className="text-sm font-medium text-foreground">
+                        {toLocalFromUTC(session.sessionDate, session.sessionTime).date}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {(() => { const t = toLocalFromUTC(session.sessionDate, session.sessionTime).time; return `${t}${session.duration ? `–${getEndTime(t, session.duration)}` : ''}`; })()}
+                      </p>
+                    </div>
                       
                       <div className="flex items-center gap-3">
                         {session.group ? (
@@ -740,25 +789,14 @@ export default function Sessions() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{selectedSessionDetail.time}</span>
+                    <span className="font-medium">
+                      {selectedSessionDetail.time}
+                      {selectedSessionDetail.duration ? `–${getEndTime(selectedSessionDetail.time, selectedSessionDetail.duration)}` : ''}
+                    </span>
                   </div>
                   
-                  {selectedSessionDetail.group ? (
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span>{selectedSessionDetail.group}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-5 w-5">
-                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                          {selectedSessionDetail.client?.split(' ').map((n) => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{selectedSessionDetail.client}</span>
-                    </div>
-                  )}
-                  
+                  <span className="text-sm">{selectedSessionDetail.title}</span>
+
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="border-primary text-primary">
                       {selectedSessionDetail.type}
@@ -772,17 +810,20 @@ export default function Sessions() {
               {selectedSessionDetail.allSessions && selectedSessionDetail.allSessions.length > 1 && (
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm text-muted-foreground">All Sessions Today:</h4>
-                  {selectedSessionDetail.allSessions.map((session, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/20 border">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{session.time}</span>
-                        <span className="text-sm">{session.group || session.client}</span>
-                        <Badge variant="outline" className="text-xs">{session.type}</Badge>
+                  {selectedSessionDetail.allSessions.map((session, index) => {
+                    const end = session.duration ? getEndTime(session.time, session.duration) : '';
+                    return (
+                      <div key={index} className="flex items-center justify-between p-2 rounded bg-muted/20 border">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-sm">{session.time}{end ? `–${end}` : ''}</span>
+                          <span className="text-sm">{session.group || session.client || session.title}</span>
+                          <Badge variant="outline" className="text-xs">{session.type}</Badge>
+                        </div>
+                        <span className="text-sm">{session.moodEmoji}</span>
                       </div>
-                      <span className="text-sm">{session.moodEmoji}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               

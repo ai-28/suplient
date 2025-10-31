@@ -369,14 +369,46 @@ export const activitySchema = {
 
 // Helper functions for common activity types
 export const activityHelpers = {
+    // Helper to fetch user/client names if not provided
+    async fetchNames(userId, clientId = null) {
+        let userName = null;
+        let clientName = null;
+
+        try {
+            if (userId) {
+                const userResult = await sql`SELECT name FROM "User" WHERE id = ${userId} LIMIT 1`;
+                if (userResult.length > 0) {
+                    userName = userResult[0].name;
+                }
+            }
+
+            if (clientId) {
+                const clientResult = await sql`SELECT name FROM "Client" WHERE id = ${clientId} LIMIT 1`;
+                if (clientResult.length > 0) {
+                    clientName = clientResult[0].name;
+                }
+            }
+        } catch (error) {
+            console.warn('Error fetching names for activity:', error);
+        }
+
+        return { userName, clientName };
+    },
+
     // Create signup activity
-    async createSignupActivity(userId, clientId = null) {
+    async createSignupActivity(userId, clientId = null, options = {}) {
+        const { userName, clientName } = options.nameProvided
+            ? { userName: options.userName, clientName: options.clientName }
+            : await this.fetchNames(userId, clientId);
+
+        const displayName = userName || clientName || 'User';
+
         return await activitySchema.createActivity({
             userId,
             clientId,
             type: 'signup',
             title: 'New Account Created',
-            description: 'User successfully created their account',
+            description: `${displayName} successfully created their account`,
             pointsEarned: 10,
             activityData: {
                 event: 'account_creation',
@@ -386,13 +418,19 @@ export const activityHelpers = {
     },
 
     // Create task completion activity
-    async createTaskCompletionActivity(userId, clientId, taskData) {
+    async createTaskCompletionActivity(userId, clientId, taskData, options = {}) {
+        const { userName, clientName } = options.nameProvided
+            ? { userName: options.userName, clientName: options.clientName }
+            : await this.fetchNames(userId, clientId);
+
+        const displayName = userName || clientName || 'User';
+
         return await activitySchema.createActivity({
             userId,
             clientId,
             type: 'task_completed',
             title: `Task Completed: ${taskData.title || 'Untitled Task'}`,
-            description: taskData.description || 'User completed a task',
+            description: taskData.description || `${displayName} completed a task`,
             pointsEarned: taskData.points || 5,
             activityData: {
                 taskId: taskData.id,
@@ -404,13 +442,19 @@ export const activityHelpers = {
     },
 
     // Create daily check-in activity
-    async createDailyCheckinActivity(userId, clientId, checkinData) {
+    async createDailyCheckinActivity(userId, clientId, checkinData, options = {}) {
+        const { userName, clientName } = options.nameProvided
+            ? { userName: options.userName, clientName: options.clientName }
+            : await this.fetchNames(userId, clientId);
+
+        const displayName = userName || clientName || 'User';
+
         return await activitySchema.createActivity({
             userId,
             clientId,
             type: 'daily_checkin',
             title: 'Daily Check-in Completed',
-            description: 'User completed their daily check-in',
+            description: `${displayName} completed their daily check-in`,
             pointsEarned: 3,
             activityData: {
                 checkinId: checkinData.id,
@@ -422,13 +466,19 @@ export const activityHelpers = {
     },
 
     // Create session attendance activity
-    async createSessionAttendanceActivity(userId, clientId, sessionData) {
+    async createSessionAttendanceActivity(userId, clientId, sessionData, options = {}) {
+        const { userName, clientName } = options.nameProvided
+            ? { userName: options.userName, clientName: options.clientName }
+            : await this.fetchNames(userId, clientId);
+
+        const displayName = userName || clientName || 'User';
+
         return await activitySchema.createActivity({
             userId,
             clientId,
             type: 'session_attended',
             title: `Session Attended: ${sessionData.title || 'Session'}`,
-            description: 'User attended a coaching session',
+            description: `${displayName} attended a coaching session`,
             pointsEarned: 15,
             activityData: {
                 sessionId: sessionData.id,
@@ -440,13 +490,19 @@ export const activityHelpers = {
     },
 
     // Create goal achievement activity
-    async createGoalAchievementActivity(userId, clientId, goalData) {
+    async createGoalAchievementActivity(userId, clientId, goalData, options = {}) {
+        const { userName, clientName } = options.nameProvided
+            ? { userName: options.userName, clientName: options.clientName }
+            : await this.fetchNames(userId, clientId);
+
+        const displayName = userName || clientName || 'User';
+
         return await activitySchema.createActivity({
             userId,
             clientId,
             type: 'goal_achieved',
             title: `Goal Achieved: ${goalData.title || 'Goal'}`,
-            description: 'User achieved a personal goal',
+            description: `${displayName} achieved a personal goal`,
             pointsEarned: 25,
             activityData: {
                 goalId: goalData.id,

@@ -34,7 +34,10 @@ export async function POST(request) {
             actualClientId = clientResult[0].id;
         }
 
-        const result = await activityHelpers.createDailyCheckinActivity(userId, actualClientId, checkinData);
+        const result = await activityHelpers.createDailyCheckinActivity(userId, actualClientId, checkinData, {
+            nameProvided: !!session.user.name,
+            userName: session.user.name || null
+        });
 
         if (!result.success) {
             return NextResponse.json({ error: result.error }, { status: 500 });

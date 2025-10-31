@@ -68,7 +68,11 @@ export async function POST(request) {
         // Create signup activity
         try {
             const { activityHelpers } = await import('@/app/lib/db/activitySchema');
-            await activityHelpers.createSignupActivity(newUser.id, newClient.id);
+            await activityHelpers.createSignupActivity(newUser.id, newClient.id, {
+                nameProvided: true,
+                userName: newUser.name,
+                clientName: newClient.name
+            });
         } catch (activityError) {
             console.error('❌ Error creating signup activity:', activityError);
             // Don't fail the registration if activity creation fails
