@@ -178,10 +178,11 @@ async function seedTask() {
         title VARCHAR(255) NOT NULL,
         description TEXT,
         "dueDate" TIMESTAMP,
-        "taskType" VARCHAR(20) NOT NULL CHECK ("taskType" IN ('personal', 'client', 'group')),
+        "taskType" VARCHAR(20) NOT NULL CHECK ("taskType" IN ('personal', 'client', 'group', 'admin_assigned')),
         "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
         "clientId" UUID REFERENCES "Client"(id) ON DELETE CASCADE,
         "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
+        "assignedBy" UUID REFERENCES "User"(id) ON DELETE SET NULL,
         "isRepetitive" BOOLEAN DEFAULT FALSE,
         "repetitiveFrequency" VARCHAR(20) CHECK ("repetitiveFrequency" IN ('daily', 'weekly', 'monthly')),
         "repetitiveCount" INTEGER CHECK ("repetitiveCount" > 0 AND "repetitiveCount" <= 50),
@@ -247,14 +248,22 @@ async function seedTask() {
     await sql`CREATE INDEX IF NOT EXISTS idx_task_completion_task_id ON "TaskCompletion"("taskId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_task_completion_client_id ON "TaskCompletion"("clientId")`;
 
-    // Add constraints to ensure data integrity (only if they don't exist)
+    // Add constraints to ensure data integrity
+    // Drop and recreate constraint to ensure it includes admin_assigned
+    try {
+      await sql`ALTER TABLE "Task" DROP CONSTRAINT IF EXISTS chk_task_type_client;`;
+    } catch (error) {
+      // Ignore if constraint doesn't exist
+    }
+
     try {
       await sql`
         ALTER TABLE "Task" ADD CONSTRAINT chk_task_type_client 
         CHECK (
           ("taskType" = 'personal' AND "clientId" IS NULL AND "groupId" IS NULL) OR
           ("taskType" = 'client' AND "clientId" IS NOT NULL AND "groupId" IS NULL) OR
-          ("taskType" = 'group' AND "clientId" IS NULL AND "groupId" IS NOT NULL)
+          ("taskType" = 'group' AND "clientId" IS NULL AND "groupId" IS NOT NULL) OR
+          ("taskType" = 'admin_assigned' AND "clientId" IS NULL AND "groupId" IS NULL AND "assignedBy" IS NOT NULL)
         );
       `;
     } catch (error) {
@@ -360,15 +369,22 @@ async function seedNote() {
         description TEXT,
         "clientId" UUID REFERENCES "Client"(id) ON DELETE CASCADE,
         "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
+        "coachId" UUID REFERENCES "User"(id) ON DELETE CASCADE,
+        "createdBy" UUID REFERENCES "User"(id) ON DELETE SET NULL,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        CHECK (("clientId" IS NOT NULL AND "groupId" IS NULL) OR ("clientId" IS NULL AND "groupId" IS NOT NULL))
+        CHECK (
+          ("clientId" IS NOT NULL AND "groupId" IS NULL AND "coachId" IS NULL) OR 
+          ("clientId" IS NULL AND "groupId" IS NOT NULL AND "coachId" IS NULL) OR
+          ("clientId" IS NULL AND "groupId" IS NULL AND "coachId" IS NOT NULL)
+        )
       );
     `;
 
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_note_client_id ON "Note"("clientId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_note_group_id ON "Note"("groupId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_note_coach_id ON "Note"("coachId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_note_created_at ON "Note"("createdAt")`;
 
   } catch (error) {
@@ -505,7 +521,7 @@ async function createChatTables() {
     await sql`
       CREATE TABLE IF NOT EXISTS "Conversation" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        type VARCHAR(20) NOT NULL CHECK (type IN ('personal', 'group')),
+        type VARCHAR(20) NOT NULL CHECK (type IN ('personal', 'group', 'admin_coach')),
         name VARCHAR(255),
         "createdBy" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
         "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,

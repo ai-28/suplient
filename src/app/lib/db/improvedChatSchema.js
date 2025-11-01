@@ -7,7 +7,7 @@ export async function createImprovedChatTables() {
     await sql`
       CREATE TABLE IF NOT EXISTS "Conversation" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        type VARCHAR(20) NOT NULL CHECK (type IN ('personal', 'group')),
+        type VARCHAR(20) NOT NULL CHECK (type IN ('personal', 'group', 'admin_coach')),
         name VARCHAR(255),
         description TEXT,
         "createdBy" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
@@ -19,7 +19,8 @@ export async function createImprovedChatTables() {
         -- Add constraints for data integrity
         CONSTRAINT chk_personal_conversation CHECK (
           (type = 'personal' AND "groupId" IS NULL) OR 
-          (type = 'group' AND "groupId" IS NOT NULL)
+          (type = 'group' AND "groupId" IS NOT NULL) OR
+          (type = 'admin_coach' AND "groupId" IS NULL)
         )
       );
     `;
@@ -57,8 +58,6 @@ export async function createImprovedChatTables() {
         metadata JSONB DEFAULT '{}' CHECK (jsonb_typeof(metadata) = 'object'),
         "isEdited" BOOLEAN DEFAULT false,
         "editedAt" TIMESTAMP WITH TIME ZONE,
-        "isDeleted" BOOLEAN DEFAULT false,
-        "deletedAt" TIMESTAMP WITH TIME ZONE,
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         
@@ -143,7 +142,7 @@ export async function createImprovedChatTables() {
 
     await sql`CREATE INDEX IF NOT EXISTS "idx_message_conversation_created" ON "Message"("conversationId", "createdAt" DESC)`;
     await sql`CREATE INDEX IF NOT EXISTS "idx_message_sender_created" ON "Message"("senderId", "createdAt" DESC)`;
-    await sql`CREATE INDEX IF NOT EXISTS "idx_message_type_active" ON "Message"(type, "isDeleted")`;
+    await sql`CREATE INDEX IF NOT EXISTS "idx_message_type" ON "Message"(type)`;
     await sql`CREATE INDEX IF NOT EXISTS "idx_message_reply_to" ON "Message"("replyToId")`;
 
     await sql`CREATE INDEX IF NOT EXISTS "idx_attachment_message" ON "MessageAttachment"("messageId")`;
@@ -307,7 +306,6 @@ export const queryHelpers = {
       SELECT * FROM "MessageWithReactions"
       WHERE "conversationId" = ${conversationId}
       AND content ILIKE ${'%' + searchTerm + '%'}
-      AND "isDeleted" = false
       ORDER BY "createdAt" DESC
       LIMIT ${limit}
     `;
@@ -322,7 +320,7 @@ export const queryHelpers = {
         MAX(m."createdAt") as "lastMessageAt",
         COUNT(DISTINCT cp."userId") as "participantCount"
       FROM "Conversation" c
-      LEFT JOIN "Message" m ON c.id = m."conversationId" AND m."isDeleted" = false
+      LEFT JOIN "Message" m ON c.id = m."conversationId"
       LEFT JOIN "ConversationParticipant" cp ON c.id = cp."conversationId" AND cp."isActive" = true
       WHERE c.id = ${conversationId}
       GROUP BY c.id

@@ -82,9 +82,12 @@ export function useTasks() {
     };
 
     // Categorize tasks by type
-    const personalTasks = tasks.filter(task => task.taskType === 'personal');
+    // Personal tasks: created by coach themselves (no assignedBy)
+    const personalTasks = tasks.filter(task => task.taskType === 'personal' && !task.assignedBy);
     const clientTasks = tasks.filter(task => task.taskType === 'client');
     const groupTasks = tasks.filter(task => task.taskType === 'group');
+    // Admin-assigned tasks: tasks assigned by admin (has assignedBy field)
+    const adminAssignedTasks = tasks.filter(task => task.assignedBy != null);
 
     // Calculate stats
     const stats = {
@@ -99,7 +102,8 @@ export function useTasks() {
         }).length,
         personalTasks: personalTasks.length,
         clientTasks: clientTasks.length,
-        groupTasks: groupTasks.length
+        groupTasks: groupTasks.length,
+        adminAssignedTasks: adminAssignedTasks.length
     };
 
     return {
@@ -107,6 +111,7 @@ export function useTasks() {
         personalTasks,
         clientTasks,
         groupTasks,
+        adminAssignedTasks,
         stats,
         loading,
         error,

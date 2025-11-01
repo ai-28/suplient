@@ -69,6 +69,96 @@ export const chatRepo = {
     }
   },
 
+  // Create an admin-coach conversation
+  async createAdminCoachConversation(adminId, coachId) {
+    try {
+      // First, validate that both users exist
+      const users = await sql`
+        SELECT id, role FROM "User" 
+        WHERE id IN (${adminId}, ${coachId}) 
+        AND "isActive" = true
+      `;
+
+      if (users.length !== 2) {
+        const foundIds = users.map(u => u.id);
+        const missingIds = [adminId, coachId].filter(id => !foundIds.includes(id));
+        throw new Error(`Users not found: ${missingIds.join(', ')}`);
+      }
+
+      // Validate roles
+      const admin = users.find(u => u.id === adminId);
+      const coach = users.find(u => u.id === coachId);
+
+      if (!admin || admin.role !== 'admin') {
+        throw new Error(`Invalid admin ID: ${adminId}`);
+      }
+
+      if (!coach || coach.role !== 'coach') {
+        throw new Error(`Invalid coach ID: ${coachId}`);
+      }
+
+      // Check if conversation already exists
+      const existing = await sql`
+        SELECT c.id 
+        FROM "Conversation" c
+        JOIN "ConversationParticipant" cp1 ON c.id = cp1."conversationId"
+        JOIN "ConversationParticipant" cp2 ON c.id = cp2."conversationId"
+        WHERE c.type = 'admin_coach'
+        AND cp1."userId" = ${adminId}
+        AND cp2."userId" = ${coachId}
+        AND cp1."isActive" = true
+        AND cp2."isActive" = true
+      `;
+
+      if (existing.length > 0) {
+        return existing[0].id;
+      }
+
+      // Create new conversation
+      const [conversation] = await sql`
+        INSERT INTO "Conversation" (type, "createdBy")
+        VALUES ('admin_coach', ${adminId})
+        RETURNING id
+      `;
+
+      // Add participants
+      await sql`
+        INSERT INTO "ConversationParticipant" ("conversationId", "userId", role)
+        VALUES 
+          (${conversation.id}, ${adminId}, 'admin'),
+          (${conversation.id}, ${coachId}, 'member')
+      `;
+
+      return conversation.id;
+    } catch (error) {
+      console.error('Error creating admin-coach conversation:', error);
+      throw error;
+    }
+  },
+
+  // Get admin-coach conversation ID
+  async getAdminCoachConversationId(adminId, coachId) {
+    try {
+      const [conversation] = await sql`
+        SELECT c.id 
+        FROM "Conversation" c
+        JOIN "ConversationParticipant" cp1 ON c.id = cp1."conversationId"
+        JOIN "ConversationParticipant" cp2 ON c.id = cp2."conversationId"
+        WHERE c.type = 'admin_coach'
+        AND cp1."userId" = ${adminId}
+        AND cp2."userId" = ${coachId}
+        AND cp1."isActive" = true
+        AND cp2."isActive" = true
+        LIMIT 1
+      `;
+
+      return conversation?.id || null;
+    } catch (error) {
+      console.error('Error getting admin-coach conversation ID:', error);
+      throw error;
+    }
+  },
+
   // Create a group conversation
   async createGroupConversation(groupId, userId) {
     try {
@@ -191,7 +281,6 @@ export const chatRepo = {
             FROM "Message" m
             JOIN "User" u ON m."senderId" = u.id
             WHERE m."conversationId" = c.id
-            AND m."isDeleted" = false
             ORDER BY m."createdAt" DESC
             LIMIT 1
           ) as "lastMessage",
@@ -200,7 +289,6 @@ export const chatRepo = {
             SELECT COUNT(*)
             FROM "Message" m
             WHERE m."conversationId" = c.id
-            AND m."isDeleted" = false
             AND m."createdAt" > COALESCE(cp."lastReadAt", cp."joinedAt")
             AND m."senderId" != ${userId}
           ) as "unreadCount"

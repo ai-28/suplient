@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, MessageSquare, User, Mail, Phone, Calendar, DollarSign, Users, LogIn, ArrowUpDown } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash2, MessageSquare, User, Mail, Phone, Calendar, DollarSign, Users, LogIn, ArrowUpDown, FileText, ClipboardList } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { toast } from "sonner";
 import {
@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import {
@@ -250,8 +251,8 @@ export default function AdminCoaches() {
   };
 
   const handleCoachClick = (coach) => {
-    setSelectedCoach(coach);
-    setShowDetailDialog(true);
+    // Navigate to coach detail page
+    router.push(`/admin/coaches/${coach.id}`);
   };
 
   const handleLoginAs = async (coach) => {
@@ -396,6 +397,19 @@ export default function AdminCoaches() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=chat`); }}>
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          Chat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=notes`); }}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Notes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=tasks`); }}>
+                          <ClipboardList className="mr-2 h-4 w-4" />
+                          Tasks
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleLoginAs(coach); }} disabled={impersonating}>
                           <LogIn className="mr-2 h-4 w-4" />
                           {impersonating ? 'Logging in...' : 'Login as Coach'}

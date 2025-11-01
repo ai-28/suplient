@@ -22,7 +22,8 @@ import {
   Database,
   Bell,
   UserCog,
-  Loader2
+  Loader2,
+  MessageCircle
 } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
@@ -42,6 +43,21 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/app/components/ui/sidebar";
+import { useAdminCommunicationStats } from "@/app/hooks/useAdminCommunicationStats";
+import { Badge } from "@/app/components/ui/badge";
+
+// Component for Admin Communication Badge
+function AdminCommunicationBadge() {
+  const { totalNotifications } = useAdminCommunicationStats();
+  
+  if (totalNotifications === 0) return null;
+  
+  return (
+    <Badge variant="destructive" className="ml-2 h-5 px-1.5 text-xs">
+      {totalNotifications > 99 ? '99+' : totalNotifications}
+    </Badge>
+  );
+}
 
 
 export function AppSidebar() {
@@ -205,6 +221,7 @@ export function AppSidebar() {
         { title: "Programs", url: "/coach/programs", icon: Target },
         { title: "Tasks", url: "/coach/tasks", icon: ClipboardList },
         { title: "Sessions", url: "/coach/sessions", icon: Calendar },
+        { title: "Admin", url: "/coach/admin-communication", icon: MessageCircle },
       ];
     }
     return [];
@@ -365,17 +382,25 @@ export function AppSidebar() {
           )}
           <SidebarGroupContent>
             <SidebarMenu>
-              {main.map((item) => (
-                <SidebarMenuItem key={item.title} className="list-none">
-                  <Link 
-                    href={item.url} 
-                    className={`flex items-center ${open ? 'px-6' : 'px-2 justify-center'} py-3 transition-colors rounded-none ${getNavCls({ isActive: isActive(item.url) })}`}
-                  >
-                    <item.icon className={`${open ? 'h-5 w-5' : 'h-6 w-6'} flex-shrink-0`} />
-                    {open && <span className="ml-3">{item.title}</span>}
-                  </Link>
-                </SidebarMenuItem>
-              ))}
+              {main.map((item) => {
+                const isAdminComm = item.url === '/coach/admin-communication' && isCoach;
+                return (
+                  <SidebarMenuItem key={item.title} className="list-none">
+                    <Link 
+                      href={item.url} 
+                      className={`flex items-center justify-between ${open ? 'px-6' : 'px-2 justify-center'} py-3 transition-colors rounded-none ${getNavCls({ isActive: isActive(item.url) })}`}
+                    >
+                      <div className="flex items-center">
+                        <item.icon className={`${open ? 'h-5 w-5' : 'h-6 w-6'} flex-shrink-0`} />
+                        {open && <span className="ml-3">{item.title}</span>}
+                      </div>
+                      {isAdminComm && open && (
+                        <AdminCommunicationBadge />
+                      )}
+                    </Link>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

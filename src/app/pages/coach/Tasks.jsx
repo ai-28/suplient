@@ -28,7 +28,7 @@ import {
   TrendingUp,
   TrendingDown,
   Search,
-  
+  Shield
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
@@ -85,6 +85,7 @@ export default function Tasks() {
   const [clientFilter, setClientFilter] = useState("all");
   const [myTaskFilter, setMyTaskFilter] = useState("all");
   const [groupTaskFilter, setGroupTaskFilter] = useState("all");
+  const [adminTaskFilter, setAdminTaskFilter] = useState("all");
   const [editingTask, setEditingTask] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -93,7 +94,8 @@ export default function Tasks() {
   const { 
     personalTasks, 
     clientTasks, 
-    groupTasks, 
+    groupTasks,
+    adminAssignedTasks,
     stats, 
     loading, 
     error, 
@@ -125,6 +127,15 @@ export default function Tasks() {
     if (groupTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
     if (groupTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (groupTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
+    return tasks;
+  };
+
+  const filterAdminTasks = (tasks) => {
+    if (adminTaskFilter === "all") return tasks;
+    if (adminTaskFilter === "today") return tasks.filter(task => getTaskStatus(task).label === "Due Today");
+    if (adminTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
+    if (adminTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
+    if (adminTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
   };
 
@@ -315,6 +326,17 @@ export default function Tasks() {
     return tasks;
   }, [groupTasks, groupTaskFilter, searchTerm]);
 
+  const filteredAdminTasks = useMemo(() => {
+    let tasks = filterAdminTasks(adminAssignedTasks);
+    if (searchTerm) {
+      tasks = tasks.filter(task => 
+        (task.assignedByName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    return tasks;
+  }, [adminAssignedTasks, adminTaskFilter, searchTerm]);
+
   return (
     <div className="page-container">
       {/* Page Header */}
@@ -369,7 +391,7 @@ export default function Tasks() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between mb-4">
-                <TabsList className="grid w-full grid-cols-3 bg-muted">
+                <TabsList className="grid w-full grid-cols-4 bg-muted">
                   <TabsTrigger value="my-tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     My Tasks
                   </TabsTrigger>
@@ -378,6 +400,14 @@ export default function Tasks() {
                   </TabsTrigger>
                   <TabsTrigger value="group-tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                     Group Tasks
+                  </TabsTrigger>
+                  <TabsTrigger value="admin-tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    Admin Tasks
+                    {adminAssignedTasks.length > 0 && (
+                      <Badge variant="default" className="ml-2 h-5 px-1.5">
+                        {adminAssignedTasks.filter(t => t.status !== 'completed').length}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -732,6 +762,128 @@ export default function Tasks() {
                               <Badge variant={status.variant} className="text-xs h-4 px-1.5">
                                 {status.label}
                               </Badge>
+                            </div>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0 hover-scale"
+                            onClick={() => handleEditTask(task)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="admin-tasks" className="px-6 pb-6">
+              <div className="space-y-4">
+                {/* Filter Buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant={adminTaskFilter === "all" ? "default" : "outline"}
+                    onClick={() => setAdminTaskFilter("all")}
+                    className="h-8 hover-scale"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={adminTaskFilter === "today" ? "default" : "outline"}
+                    onClick={() => setAdminTaskFilter("today")}
+                    className="h-8 hover-scale"
+                  >
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Today
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={adminTaskFilter === "open" ? "default" : "outline"}
+                    onClick={() => setAdminTaskFilter("open")}
+                    className="h-8 hover-scale"
+                  >
+                    <Clock className="h-3 w-3 mr-1" />
+                    Open
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={adminTaskFilter === "overdue" ? "default" : "outline"}
+                    onClick={() => setAdminTaskFilter("overdue")}
+                    className="h-8 hover-scale"
+                  >
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Overdue
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={adminTaskFilter === "completed" ? "default" : "outline"}
+                    onClick={() => setAdminTaskFilter("completed")}
+                    className="h-8 hover-scale"
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Completed
+                  </Button>
+                </div>
+
+                {/* Enhanced Task List */}
+                <div className="max-h-[32rem] overflow-y-auto space-y-3">
+                  {loading ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">Loading tasks...</div>
+                    </div>
+                  ) : error ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-destructive">Error loading tasks: {error}</div>
+                    </div>
+                  ) : filteredAdminTasks.length === 0 ? (
+                    <div className="flex items-center justify-center p-8">
+                      <div className="text-muted-foreground">No admin-assigned tasks found</div>
+                    </div>
+                  ) : (
+                    filteredAdminTasks.map((task) => {
+                      const status = getTaskStatus(task);
+                      
+                      return (
+                        <div 
+                          key={task.id} 
+                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
+                        >
+                          <Checkbox 
+                            id={`admin-task-${task.id}`} 
+                            checked={task.status === 'completed'}
+                            onCheckedChange={() => handleTaskStatusChange(task.id, task.status)}
+                            className="transition-transform hover:scale-110"
+                          />
+                          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Shield className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <label 
+                                htmlFor={`admin-task-${task.id}`} 
+                                className={`text-sm font-medium cursor-pointer transition-all ${
+                                  task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
+                                }`}
+                              >
+                                Admin Task
+                              </label>
+                            </div>
+                            <p className={`text-sm truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                              {task.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-muted-foreground">{formatTaskDueDate(task.dueDate)}</span>
+                              <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                                {status.label}
+                              </Badge>
+                              {task.assignedByName && (
+                                <span className="text-xs text-muted-foreground">by {task.assignedByName}</span>
+                              )}
                             </div>
                           </div>
                           <Button 

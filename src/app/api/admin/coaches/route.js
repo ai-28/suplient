@@ -100,26 +100,77 @@ export async function POST(request) {
 
 export async function GET(request) {
     try {
+        const { searchParams } = new URL(request.url);
+        const coachId = searchParams.get('id');
+
+        // If coachId is provided, return single coach
+        if (coachId) {
+            const [coach] = await sql`
+                SELECT 
+                    u.id, 
+                    u.name, 
+                    u.email, 
+                    u.phone, 
+                    u.bio, 
+                    u.role, 
+                    u."isActive", 
+                    u."createdAt",
+                    u."updatedAt",
+                    COUNT(c.id) as client_count
+                FROM "User" u
+                LEFT JOIN "User" c ON c."coachId" = u.id AND c.role = 'client'
+                WHERE u.role = 'coach' AND u.id = ${coachId}
+                GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."createdAt", u."updatedAt"
+            `;
+
+            if (!coach) {
+                return NextResponse.json(
+                    { error: 'Coach not found' },
+                    { status: 404 }
+                );
+            }
+
+            const coachData = {
+                id: coach.id,
+                name: coach.name,
+                email: coach.email,
+                phone: coach.phone,
+                bio: coach.bio,
+                role: coach.role,
+                isActive: coach.isActive,
+                joinDate: coach.createdAt,
+                status: coach.isActive ? 'Active' : 'Pending',
+                clients: parseInt(coach.client_count) || 0,
+                specialization: 'Not specified',
+                experience: '0',
+                qualifications: 'Not specified'
+            };
+
+            return NextResponse.json({
+                success: true,
+                coach: coachData
+            });
+        }
+
         // Get all coaches with their client count
         const coaches = await sql`
-      SELECT 
-        u.id, 
-        u.name, 
-        u.email, 
-        u.phone, 
-        u.bio, 
-        u.role, 
-        u."isActive", 
-        u."createdAt",
-        u."updatedAt",
-        COUNT(c.id) as client_count
-      FROM "User" u
-      LEFT JOIN "User" c ON c."coachId" = u.id AND c.role = 'client'
-      WHERE u.role = 'coach'
-      GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."createdAt", u."updatedAt"
-      ORDER BY u."createdAt" DESC
-    `;
-
+            SELECT 
+                u.id, 
+                u.name, 
+                u.email, 
+                u.phone, 
+                u.bio, 
+                u.role, 
+                u."isActive", 
+                u."createdAt",
+                u."updatedAt",
+                COUNT(c.id) as client_count
+            FROM "User" u
+            LEFT JOIN "User" c ON c."coachId" = u.id AND c.role = 'client'
+            WHERE u.role = 'coach'
+            GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."createdAt", u."updatedAt"
+            ORDER BY u."createdAt" DESC
+        `;
 
         // Transform data for frontend
         const coachesData = coaches.map(coach => ({
