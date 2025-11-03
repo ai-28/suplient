@@ -17,7 +17,8 @@ import {
   Settings as SettingsIcon,
   Camera,
   X,
-  Loader2
+  Loader2,
+  Bell
 } from "lucide-react";
 
 // Simple translation function for demo purposes
@@ -43,6 +44,189 @@ const t = (key) => {
   return translations[key] || key;
 };
 
+function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState({
+    platformName: 'Mental Coach Platform',
+    supportEmail: 'support@mentalcoach.com',
+    maxClientsPerCoach: 20,
+    language: 'en',
+    twoFactorAuthEnabled: false
+  });
+
+  useEffect(() => {
+    fetchPlatformSettings();
+  }, []);
+
+  const fetchPlatformSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/platform/settings');
+      const data = await response.json();
+      
+      if (data.success && data.settings) {
+        setSettings(data.settings);
+      }
+    } catch (error) {
+      console.error('Error fetching platform settings:', error);
+      toast.error('Failed to load platform settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const response = await fetch('/api/platform/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Platform settings saved successfully!');
+        // Reload page to update top bar
+        window.location.reload();
+      } else {
+        toast.error(data.error || 'Failed to save platform settings');
+      }
+    } catch (error) {
+      console.error('Error saving platform settings:', error);
+      toast.error('Failed to save platform settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-6">
+      {/* General Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings:general.title')}</CardTitle>
+          <CardDescription>{t('settings:general.description')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="platform-name">{t('settings:general.platformName')}</Label>
+            <Input 
+              id="platform-name" 
+              value={settings.platformName}
+              onChange={(e) => setSettings({...settings, platformName: e.target.value})}
+              disabled={saving}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="support-email">{t('settings:general.supportEmail')}</Label>
+            <Input 
+              id="support-email" 
+              type="email" 
+              value={settings.supportEmail}
+              onChange={(e) => setSettings({...settings, supportEmail: e.target.value})}
+              disabled={saving}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="max-clients">{t('settings:general.maxClients')}</Label>
+            <Input 
+              id="max-clients" 
+              type="number" 
+              min="1"
+              value={settings.maxClientsPerCoach}
+              onChange={(e) => setSettings({...settings, maxClientsPerCoach: parseInt(e.target.value) || 1})}
+              disabled={saving}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Language Settings */}
+
+          <LanguageSelector />
+
+
+      {/* Security Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings:security.title')}</CardTitle>
+          <CardDescription>{t('settings:security.description')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>{t('settings:security.twoFactorAuth')}</Label>
+              <p className="text-sm text-muted-foreground">
+                Require 2FA for all admin accounts
+              </p>
+            </div>
+            <Switch 
+              checked={settings.twoFactorAuthEnabled}
+              onCheckedChange={(checked) => setSettings({...settings, twoFactorAuthEnabled: checked})}
+              disabled={saving}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notification Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            Notification Settings
+          </CardTitle>
+          <CardDescription>Choose what notifications you receive</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable Notifications</Label>
+              <p className="text-sm text-muted-foreground">
+                Receive notifications for messages, tasks, sessions, and updates
+              </p>
+            </div>
+            <Switch 
+              checked={notificationsEnabled} 
+              onCheckedChange={handleNotificationToggle}
+              disabled={saving}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end space-x-4">
+        <Button variant="outline" onClick={fetchPlatformSettings} disabled={saving}>
+          {t('common:buttons.cancel')}
+        </Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            t('common:buttons.save')
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
@@ -55,6 +239,7 @@ export default function AdminSettings() {
   });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // Fetch admin data on component mount
   useEffect(() => {
@@ -80,6 +265,19 @@ export default function AdminSettings() {
           // Set avatar preview if exists
           if (data.user.avatar) {
             setAvatarPreview(data.user.avatar);
+          }
+
+          // Load notification preference from database
+          if (data.user.notificationsEnabled !== undefined) {
+            setNotificationsEnabled(data.user.notificationsEnabled !== false);
+            // Also sync to localStorage for backward compatibility
+            localStorage.setItem('notificationsEnabled', (data.user.notificationsEnabled !== false).toString());
+          } else {
+            // Fallback to localStorage if database doesn't have it yet
+            const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
+            if (savedNotificationPreference !== null) {
+              setNotificationsEnabled(savedNotificationPreference === 'true');
+            }
           }
         } else {
           toast.error('Failed to load admin data');
@@ -204,6 +402,50 @@ export default function AdminSettings() {
       toast.error('Failed to remove avatar');
     } finally {
       setUploadingAvatar(false);
+    }
+  };
+
+  // Handle notification toggle
+  const handleNotificationToggle = async (enabled) => {
+    setNotificationsEnabled(enabled);
+    
+    try {
+      // Save notification preference to database
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          notificationsEnabled: enabled
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Also save to localStorage for backward compatibility
+        localStorage.setItem('notificationsEnabled', enabled.toString());
+        
+        toast.success(
+          enabled ? "Notifications enabled" : "Notifications disabled",
+          {
+            description: enabled 
+              ? "You'll receive notifications for messages, tasks, and updates"
+              : "You won't receive any notifications"
+          }
+        );
+      } else {
+        throw new Error(data.error || 'Failed to save notification preference');
+      }
+    } catch (error) {
+      console.error('Error saving notification preference:', error);
+      toast.error("Failed to save notification preference");
+      // Revert state on error
+      setNotificationsEnabled(!enabled);
     }
   };
 
@@ -414,116 +656,14 @@ export default function AdminSettings() {
             </Card>
           </div>
           
-          {/* Language Settings */}
-          <div className="mt-6">
-            <Card className="card-standard">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <SettingsIcon className="h-5 w-5 text-primary" />
-                  Language Localization
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <LanguageSelector variant="compact" />
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
 
         {/* Platform Settings */}
         <TabsContent value="platform">
-          <div className="grid gap-6">
-            {/* General Settings */}
-            <Card>
-          <CardHeader>
-            <CardTitle>{t('settings:general.title')}</CardTitle>
-            <CardDescription>{t('settings:general.description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="platform-name">{t('settings:general.platformName')}</Label>
-              <Input id="platform-name" defaultValue="Mental Health Coach Platform" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="support-email">{t('settings:general.supportEmail')}</Label>
-              <Input id="support-email" type="email" defaultValue="support@mentalhealth.com" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="max-clients">{t('settings:general.maxClients')}</Label>
-              <Input id="max-clients" type="number" defaultValue="20" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Language Settings */}
-        <LanguageSelector />
-
-        {/* Security Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('settings:security.title')}</CardTitle>
-            <CardDescription>{t('settings:security.description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>{t('settings:security.twoFactorAuth')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  Require 2FA for all admin accounts
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>{t('settings:security.sessionTimeout')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  Auto logout after inactivity
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="session-duration">{t('settings:general.sessionDuration')}</Label>
-              <Input id="session-duration" type="number" defaultValue="60" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Notification Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('settings:notifications.title')}</CardTitle>
-            <CardDescription>{t('settings:notifications.description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>{t('settings:notifications.emailNotifications')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  Send email alerts for critical events
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>{t('settings:notifications.weeklyReports')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  Automated weekly platform reports
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-          </CardContent>
-        </Card>
-
-            <div className="flex justify-end space-x-4">
-              <Button variant="outline">{t('common:buttons.cancel')}</Button>
-              <Button>{t('common:buttons.save')}</Button>
-            </div>
-          </div>
+          <PlatformSettingsTab 
+            notificationsEnabled={notificationsEnabled}
+            handleNotificationToggle={handleNotificationToggle}
+          />
         </TabsContent>
       </Tabs>
     </div>

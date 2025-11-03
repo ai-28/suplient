@@ -76,7 +76,11 @@ export function CreateClientDialog({ onClientCreated }) {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to create client");
+        const errorMessage = result.error || "Failed to create client";
+        toast.error(errorMessage, {
+          duration: 5000,
+        });
+        throw new Error(errorMessage);
       }
       
       // Show success message with temporary password
@@ -94,7 +98,7 @@ export function CreateClientDialog({ onClientCreated }) {
       
     } catch (error) {
       console.error("Error creating client:", error);
-      alert(`Error creating client: ${error.message}`);
+      // Error toast already shown in the catch block above
     } finally {
       setIsLoading(false);
     }

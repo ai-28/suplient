@@ -68,7 +68,8 @@ export async function POST(request) {
 
                 // Create notifications for all admins
                 for (const admin of admins) {
-                    await sql`
+                    // Insert notification and get the actual ID
+                    const insertedNotifications = await sql`
                         INSERT INTO "Notification" 
                         ("userId", type, title, message, "isRead", priority, data, "createdAt")
                         VALUES (
@@ -81,24 +82,27 @@ export async function POST(request) {
                             ${JSON.stringify({ coachId: newUser.id, coachName: newUser.name, coachEmail: newUser.email })},
                             CURRENT_TIMESTAMP
                         )
+                        RETURNING *
                     `;
 
                     // Send real-time notification via socket
-                    try {
-                        if (global.globalSocketIO) {
-                            const notification = {
-                                id: Math.random().toString(36).substr(2, 9),
-                                userId: admin.id,
-                                type: 'system',
-                                title: 'New Coach Signup',
-                                message: `${newUser.name} (${newUser.email}) has registered as a coach.`,
-                                isRead: false,
-                                priority: 'normal',
-                                data: { coachId: newUser.id, coachName: newUser.name, coachEmail: newUser.email },
-                                createdAt: new Date().toISOString(),
-                            };
-                            global.globalSocketIO.to(`notifications_${admin.id}`).emit('new_notification', notification);
-                            console.log(`✅ Admin notification sent to ${admin.id} for coach signup`);
+                    if (insertedNotifications.length > 0) {
+                        try {
+                            if (global.globalSocketIO) {
+                                const notification = insertedNotifications[0];
+                                const socketNotification = {
+                                    id: notification.id,
+                                    userId: notification.userId,
+                                    type: notification.type,
+                                    title: notification.title,
+                                    message: notification.message,
+                                    isRead: notification.isRead,
+                                    priority: notification.priority,
+                                    createdAt: notification.createdAt ? new Date(notification.createdAt).toISOString() : new Date().toISOString(),
+                                    data: notification.data ? (typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data) : null
+                                };
+                                global.globalSocketIO.to(`notifications_${admin.id}`).emit('new_notification', socketNotification);
+                                console.log(`✅ Admin notification sent to ${admin.id} for coach signup with ID: ${notification.id}`);
                         }
                     } catch (socketError) {
                         console.warn(`⚠️ Socket emission failed for admin ${admin.id}:`, socketError.message);

@@ -43,6 +43,29 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
+        // Check max clients per coach limit
+        const [platformSettings] = await sql`
+            SELECT "maxClientsPerCoach" FROM "PlatformSettings" LIMIT 1
+        `;
+
+        const maxClients = platformSettings?.maxClientsPerCoach || 20;
+
+        // Count current clients for this coach
+        const clientCount = await sql`
+            SELECT COUNT(*) as count 
+            FROM "User" 
+            WHERE "coachId" = ${session.user.id} AND role = 'client' AND "isActive" = true
+        `;
+
+        const currentClientCount = parseInt(clientCount[0]?.count || 0);
+
+        if (currentClientCount >= maxClients) {
+            return Response.json({
+                success: false,
+                error: `Maximum client limit reached. You can only have ${maxClients} active clients. Please contact admin to increase the limit.`
+            }, { status: 400 });
+        }
+
         // Generate a temporary password for the client
         const tempPassword = 'password123';
         // const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
@@ -102,7 +125,8 @@ export async function POST(request) {
 
             // Create notifications for all admins
             for (const admin of admins) {
-                await sql`
+                // Insert notification and get the actual ID
+                const insertedNotifications = await sql`
                     INSERT INTO "Notification" 
                     ("userId", type, title, message, "isRead", priority, data, "createdAt")
                     VALUES (
@@ -121,33 +145,31 @@ export async function POST(request) {
                 })},
                         CURRENT_TIMESTAMP
                     )
+                    RETURNING *
                 `;
 
                 // Send real-time notification via socket
-                try {
-                    if (global.globalSocketIO) {
-                        const notification = {
-                            id: Math.random().toString(36).substr(2, 9),
-                            userId: admin.id,
-                            type: 'client_signup',
-                            title: 'New Client Signup',
-                            message: `${newUser.name} (${newUser.email}) was registered by coach ${coachName}.`,
-                            isRead: false,
-                            priority: 'normal',
-                            data: {
-                                clientId: newClient.id,
-                                clientName: newUser.name,
-                                clientEmail: newUser.email,
-                                coachId: session.user.id,
-                                coachName: coachName
-                            },
-                            createdAt: new Date().toISOString(),
-                        };
-                        global.globalSocketIO.to(`notifications_${admin.id}`).emit('new_notification', notification);
-                        console.log(`✅ Admin notification sent to ${admin.id} for client signup`);
+                if (insertedNotifications.length > 0) {
+                    try {
+                        if (global.globalSocketIO) {
+                            const notification = insertedNotifications[0];
+                            const socketNotification = {
+                                id: notification.id,
+                                userId: notification.userId,
+                                type: notification.type,
+                                title: notification.title,
+                                message: notification.message,
+                                isRead: notification.isRead,
+                                priority: notification.priority,
+                                createdAt: notification.createdAt ? new Date(notification.createdAt).toISOString() : new Date().toISOString(),
+                                data: notification.data ? (typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data) : null
+                            };
+                            global.globalSocketIO.to(`notifications_${admin.id}`).emit('new_notification', socketNotification);
+                            console.log(`✅ Admin notification sent to ${admin.id} for client signup with ID: ${notification.id}`);
+                        }
+                    } catch (socketError) {
+                        console.warn(`⚠️ Socket emission failed for admin ${admin.id}:`, socketError.message);
                     }
-                } catch (socketError) {
-                    console.warn(`⚠️ Socket emission failed for admin ${admin.id}:`, socketError.message);
                 }
             }
             console.log(`📧 Notified ${admins.length} admin(s) about new client signup`);

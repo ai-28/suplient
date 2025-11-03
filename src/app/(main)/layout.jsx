@@ -26,6 +26,7 @@ const Layout = ({ children }) => {
     const { user } = useAuth();
     
     const [mounted, setMounted] = useState(false);
+    const [platformName, setPlatformName] = useState('Mental Coach Platform');
     
     // Only show sidebar for coach and admin routes, not for client routes
     const shouldShowSidebar = pathname.startsWith('/coach') || pathname.startsWith('/admin');
@@ -35,6 +36,24 @@ const Layout = ({ children }) => {
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Fetch platform name
+    useEffect(() => {
+        const fetchPlatformName = async () => {
+            try {
+                const response = await fetch('/api/platform/settings/public');
+                const data = await response.json();
+                if (data.success && data.settings?.platformName) {
+                    setPlatformName(data.settings.platformName);
+                }
+            } catch (error) {
+                console.error('Error fetching platform name:', error);
+            }
+        };
+        if (mounted) {
+            fetchPlatformName();
+        }
+    }, [mounted]);
 
     // For client routes, just render children without any main layout wrapper
     if (isClientRoute) {
@@ -67,7 +86,7 @@ const Layout = ({ children }) => {
               <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 shadow-soft">
                 <div className="flex items-center">
                   <div className="ml-4">
-                    <h1 className="text-xl font-semibold text-foreground">Mental Coach Platform</h1>
+                    <h1 className="text-xl font-semibold text-foreground">{platformName}</h1>
                   </div>
                 </div>
                 

@@ -101,7 +101,14 @@ export default function RootLayout({ children }) {
           <AuthProvider>
             <SocketProvider>
               {children}
-              <Toaster position="top-right" richColors />
+              <Toaster
+                position="top-right"
+                richColors
+                closeButton
+                classes={{
+                  closeButton: 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20'
+                }}
+              />
             </SocketProvider>
           </AuthProvider>
         </AuthSessionProvider>

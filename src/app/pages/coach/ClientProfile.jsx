@@ -64,6 +64,7 @@ import { LibraryPickerModal } from "@/app/components/LibraryPickerModal";
 
 import { EnrollClientDialog } from "@/app/components/EnrollClientDialog";
 import { CreateNoteDialog } from "@/app/components/CreateNoteDialog";
+import { EditNoteDialog } from "@/app/components/EditNoteDialog";
 
 // Demo data for files (these will be replaced with real data later)
 
@@ -92,6 +93,8 @@ export default function ClientProfile() {
   const [clientGroups, setClientGroups] = useState([]);
   const [clientFiles, setClientFiles] = useState([]);
   const [clientNotes, setClientNotes] = useState([]);
+  const [isEditNoteOpen, setIsEditNoteOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
   const [clientActivities, setClientActivities] = useState([]);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -890,13 +893,29 @@ export default function ClientProfile() {
             note.id === noteId ? result.note : note
           )
         );
+        return result.note;
       } else {
         throw new Error('Failed to update note');
       }
     } catch (error) {
       console.error('Error updating note:', error);
-      alert('Failed to update note');
+      throw error;
     }
+  };
+
+  const handleEditNote = (note) => {
+    setEditingNote(note);
+    setIsEditNoteOpen(true);
+  };
+
+  const handleNoteUpdated = (updatedNote) => {
+    setClientNotes(prev => 
+      prev.map(note => 
+        note.id === updatedNote.id ? updatedNote : note
+      )
+    );
+    setIsEditNoteOpen(false);
+    setEditingNote(null);
   };
 
   const handleDeleteNote = async (noteId) => {
@@ -1147,18 +1166,7 @@ export default function ClientProfile() {
                                     size="sm" 
                                     variant="ghost" 
                                     className="h-5 w-5 p-0"
-                                    onClick={() => {
-                                      const newTitle = prompt('Edit title:', note.title);
-                                      if (newTitle !== null) {
-                                        const newDescription = prompt('Edit description:', note.description || '');
-                                        if (newDescription !== null) {
-                                          handleUpdateNote(note.id, { 
-                                            title: newTitle, 
-                                            description: newDescription 
-                                          });
-                                        }
-                                      }
-                                    }}
+                                    onClick={() => handleEditNote(note)}
                                     title="Edit note"
                                   >
                                     <FileText className="h-3 w-3" />
@@ -1997,6 +2005,14 @@ export default function ClientProfile() {
         )}
 
       </div>
+
+      {/* Edit Note Dialog */}
+      <EditNoteDialog
+        open={isEditNoteOpen}
+        onOpenChange={setIsEditNoteOpen}
+        note={editingNote}
+        onNoteUpdated={handleNoteUpdated}
+      />
     </div>
   );
 }

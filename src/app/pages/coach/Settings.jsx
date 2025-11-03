@@ -472,6 +472,19 @@ export default function Settings() {
           if (data.user.avatar) {
             setAvatarPreview(data.user.avatar);
           }
+
+          // Load notification preference from database
+          if (data.user.notificationsEnabled !== undefined) {
+            setNotificationsEnabled(data.user.notificationsEnabled !== false);
+            // Also sync to localStorage for backward compatibility
+            localStorage.setItem('notificationsEnabled', (data.user.notificationsEnabled !== false).toString());
+          } else {
+            // Fallback to localStorage if database doesn't have it yet
+            const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
+            if (savedNotificationPreference !== null) {
+              setNotificationsEnabled(savedNotificationPreference === 'true');
+            }
+          }
         } else {
           toast.error('Failed to load coach data');
         }
@@ -515,14 +528,6 @@ export default function Settings() {
     fetchPipelineStages();
   }, [session?.user?.id]);
 
-  // Load notification preference from localStorage
-  useEffect(() => {
-    const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
-    if (savedNotificationPreference !== null) {
-      setNotificationsEnabled(savedNotificationPreference === 'true');
-    }
-  }, []);
-
   // Handle form input changes
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -536,7 +541,24 @@ export default function Settings() {
     setNotificationsEnabled(enabled);
     
     try {
-      // Save notification preference to localStorage
+      // Save notification preference to database
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          notificationsEnabled: enabled
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Also save to localStorage for backward compatibility
       localStorage.setItem('notificationsEnabled', enabled.toString());
       
       toast.success(
@@ -547,9 +569,14 @@ export default function Settings() {
             : "You won't receive any notifications"
         }
       );
+      } else {
+        throw new Error(data.error || 'Failed to save notification preference');
+      }
     } catch (error) {
       console.error('Error saving notification preference:', error);
       toast.error("Failed to save notification preference");
+      // Revert state on error
+      setNotificationsEnabled(!enabled);
     }
   };
 

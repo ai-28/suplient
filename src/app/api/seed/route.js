@@ -28,6 +28,7 @@ async function seedUser() {
         "dateofBirth" DATE,
         "address" VARCHAR(255),
         "coachId" UUID REFERENCES "User"("id"),
+        "notificationsEnabled" BOOLEAN DEFAULT true,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -686,11 +687,12 @@ export async function GET() {
     await createUserStatsTable(); // Create user stats table
     await createResourceCompletionTable(); // Create resource completion table
     await createIntegrationTables(); // Create integration tables
+    await createPlatformSettingsTable(); // Create platform settings table
     console.log('Database seeded successfully');
 
     return new Response(JSON.stringify({
       message: 'Database seeded successfully',
-      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, CheckIn, and Integration tables created with sample data'
+      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, CheckIn, Integration, and PlatformSettings tables created with sample data'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -704,6 +706,52 @@ export async function GET() {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+}
+
+async function createPlatformSettingsTable() {
+  try {
+    // Create PlatformSettings table
+    await sql`
+      CREATE TABLE IF NOT EXISTS "PlatformSettings" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "platformName" VARCHAR(255) DEFAULT 'Mental Coach Platform',
+        "supportEmail" VARCHAR(255) DEFAULT 'support@mentalcoach.com',
+        "maxClientsPerCoach" INTEGER DEFAULT 20,
+        "language" VARCHAR(10) DEFAULT 'en',
+        "twoFactorAuthEnabled" BOOLEAN DEFAULT false,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Insert default settings if none exist
+    const existingSettings = await sql`SELECT id FROM "PlatformSettings" LIMIT 1`;
+
+    if (existingSettings.length === 0) {
+      await sql`
+        INSERT INTO "PlatformSettings" ("platformName", "supportEmail", "maxClientsPerCoach", "language", "twoFactorAuthEnabled", "updatedAt")
+        VALUES ('Mental Coach Platform', 'support@mentalcoach.com', 20, 'en', false, NOW())
+      `;
+      console.log('✅ Default platform settings created');
+    } else {
+      console.log('✅ PlatformSettings table already has data');
+    }
+
+    // Create unique index to ensure only one row (using a constant value)
+    // This ensures only one row can exist by making all rows have the same index value
+    try {
+      await sql`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_platform_settings_single_row 
+        ON "PlatformSettings" ((1))
+      `;
+    } catch (indexError) {
+      // Index might already exist or fail, that's okay - we'll rely on application logic
+      console.log('Note: Single row index may already exist');
+    }
+
+  } catch (error) {
+    console.error('Error creating PlatformSettings table:', error);
+    throw error;
   }
 }
 

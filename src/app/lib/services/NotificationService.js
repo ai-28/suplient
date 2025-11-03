@@ -5,6 +5,27 @@
 class NotificationService {
     static async createAndEmitNotification(notificationData) {
         try {
+            // Check if notifications are enabled for this user
+            const { sql } = await import('@/app/lib/db/postgresql');
+            const userCheck = await sql`
+                SELECT "notificationsEnabled" 
+                FROM "User" 
+                WHERE id = ${notificationData.userId}
+            `;
+
+            // If user doesn't exist or notifications are disabled, skip creating notification
+            if (userCheck.length === 0) {
+                console.log(`⚠️ User ${notificationData.userId} not found, skipping notification`);
+                return null;
+            }
+
+            // Check if notifications are enabled (default to true if column doesn't exist yet)
+            const notificationsEnabled = userCheck[0].notificationsEnabled !== false;
+            if (!notificationsEnabled) {
+                console.log(`🔕 Notifications disabled for user ${notificationData.userId}, skipping notification`);
+                return null;
+            }
+
             // First create the notification in the database
             const { notificationSchema } = await import('@/app/lib/db/notificationSchema');
             const result = await notificationSchema.createNotification(notificationData);
@@ -28,6 +49,19 @@ class NotificationService {
                 return null;
             }
         } catch (error) {
+            // If column doesn't exist yet, log warning but still create notification (backward compatibility)
+            if (error.message && error.message.includes('notificationsEnabled')) {
+                console.warn('⚠️ notificationsEnabled column not found, creating notification anyway (backward compatibility)');
+                // Fall through to create notification
+                try {
+                    const { notificationSchema } = await import('@/app/lib/db/notificationSchema');
+                    const result = await notificationSchema.createNotification(notificationData);
+                    return result.success ? result.data : null;
+                } catch (fallbackError) {
+                    console.error('Error creating notification (fallback):', fallbackError);
+                    return null;
+                }
+            }
             console.error('Error creating and emitting notification:', error);
             return null;
         }
@@ -135,6 +169,17 @@ class NotificationService {
             title: 'New Task Assigned',
             message: `${coachName} assigned you a new task: "${taskTitle}"`,
             data: { userId, coachId, coachName, taskTitle, notificationType: 'task_created' },
+            priority: 'normal'
+        });
+    }
+
+    static async notifyNoteCreated(userId, coachId, coachName, noteTitle) {
+        return await this.createAndEmitNotification({
+            userId: userId,
+            type: 'system',
+            title: 'New Note Added',
+            message: `${coachName} added a note about you: "${noteTitle}"`,
+            data: { userId, coachId, coachName, noteTitle, notificationType: 'note_created' },
             priority: 'normal'
         });
     }

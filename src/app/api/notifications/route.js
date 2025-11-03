@@ -70,15 +70,31 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
-        // Validate that userId exists in User table to prevent foreign key constraint errors
+        // Validate that userId exists in User table and check notification preference
         const { sql } = await import('@/app/lib/db/postgresql');
-        const userCheck = await sql`SELECT id FROM "User" WHERE id = ${userId} LIMIT 1`;
+        const userCheck = await sql`
+            SELECT id, "notificationsEnabled" 
+            FROM "User" 
+            WHERE id = ${userId} 
+            LIMIT 1
+        `;
 
         if (userCheck.length === 0) {
             console.error(`❌ Notification creation failed: User ID ${userId} does not exist in User table`);
             return NextResponse.json({
                 error: `User with ID ${userId} does not exist`
             }, { status: 400 });
+        }
+
+        // Check if notifications are enabled (default to true if column doesn't exist yet)
+        const notificationsEnabled = userCheck[0].notificationsEnabled !== false;
+        if (!notificationsEnabled) {
+            console.log(`🔕 Notifications disabled for user ${userId}, skipping notification creation`);
+            return NextResponse.json({
+                success: false,
+                message: 'Notifications are disabled for this user',
+                notificationSkipped: true
+            }, { status: 200 }); // Return 200 to indicate success but notification was skipped
         }
 
         const notificationData = {

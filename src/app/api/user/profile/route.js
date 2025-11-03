@@ -24,6 +24,7 @@ export async function GET() {
                 u.avatar,
                 u."createdAt",
                 u."updatedAt",
+                COALESCE(u."notificationsEnabled", true) as "notificationsEnabled",
                 c.id as "clientId",
                 c.type as "clientType",
                 c.status as "clientStatus",
@@ -60,7 +61,7 @@ export async function PUT(request) {
         }
 
         const body = await request.json();
-        const { name, email, phone, birthdate, bio } = body;
+        const { name, email, phone, birthdate, bio, notificationsEnabled } = body;
 
         // Validate required fields
         if (!name || !email) {
@@ -84,6 +85,17 @@ export async function PUT(request) {
         }
 
         // Update user profile
+        // First, ensure notificationsEnabled column exists (migration)
+        try {
+            await sql`
+                ALTER TABLE "User" 
+                ADD COLUMN IF NOT EXISTS "notificationsEnabled" BOOLEAN DEFAULT true
+            `;
+        } catch (migrationError) {
+            // Column might already exist, ignore error
+            console.log('Migration check for notificationsEnabled:', migrationError.message);
+        }
+
         const updatedUser = await sql`
             UPDATE "User" 
             SET 
@@ -92,6 +104,7 @@ export async function PUT(request) {
                 phone = ${phone || null},
                 "dateofBirth" = ${birthdate || null},
                 bio = ${bio || null},
+                "notificationsEnabled" = ${notificationsEnabled !== undefined ? notificationsEnabled : true},
                 "updatedAt" = CURRENT_TIMESTAMP
             WHERE id = ${session.user.id}
             RETURNING 
@@ -104,6 +117,7 @@ export async function PUT(request) {
                 avatar,
                 role,
                 "isActive",
+                COALESCE("notificationsEnabled", true) as "notificationsEnabled",
                 "createdAt",
                 "updatedAt"
         `;

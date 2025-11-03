@@ -34,6 +34,7 @@ const notificationColors = {
 export function NotificationBell({ userRole = 'client' }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const { 
     notifications, 
     loading, 
@@ -43,12 +44,46 @@ export function NotificationBell({ userRole = 'client' }) {
     deleteNotification 
   } = useNotifications({ limit: 20, isRead: false });
 
-  // Filter notifications based on user role and relationships
+  // Check notification preference on mount
+  useEffect(() => {
+    const checkPreference = async () => {
+      try {
+        const response = await fetch('/api/user/profile');
+        const data = await response.json();
+        if (data.success && data.user?.notificationsEnabled !== undefined) {
+          setNotificationsEnabled(data.user.notificationsEnabled !== false);
+        } else {
+          // Fallback to localStorage
+          const saved = localStorage.getItem('notificationsEnabled');
+          setNotificationsEnabled(saved !== 'false');
+        }
+      } catch (error) {
+        // Fallback to localStorage
+        const saved = localStorage.getItem('notificationsEnabled');
+        setNotificationsEnabled(saved !== 'false');
+      }
+    };
+    checkPreference();
+  }, []);
+
+  // If notifications are disabled, return empty bell
+  if (!notificationsEnabled) {
+    return (
+      <Button variant="ghost" size="sm" className="relative">
+        <Bell className="h-5 w-5 opacity-50" />
+      </Button>
+    );
+  }
+
+  // Filter notifications based on user role, relationships, and read status
   const filteredNotifications = notifications.filter(notification => {
+    // Only show unread notifications
+    if (notification.isRead) return false;
+    
     if (userRole === 'admin') {
       // Admins see: system notifications and all admin-related notifications
       // Admins can receive notifications from the "Note" feature and other admin-specific events
-      return true; // Admins see all their notifications
+      return true; // Admins see all their unread notifications
     } else if (userRole === 'coach') {
       // Coaches see: client signup, task completion, daily checkin, new messages from THEIR OWN CLIENTS, system notifications, and group join requests
       const allowedTypes = ['client_signup', 'task_completed', 'daily_checkin', 'new_message', 'system', 'group_join_request'];
@@ -86,10 +121,10 @@ export function NotificationBell({ userRole = 'client' }) {
       
       return true;
     }
-    return true; // Default: show all notifications
+    return true; // Default: show all unread notifications
   });
 
-  // Calculate filtered unread count (since we already fetch only unread notifications, this is just the length)
+  // Calculate filtered unread count (filteredNotifications already contains only unread notifications)
   const filteredUnreadCount = filteredNotifications.length;
 
   const handleNotificationClick = async (notification) => {

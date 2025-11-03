@@ -335,6 +335,19 @@ export default function ClientProfile() {
           if (data.user.avatar) {
             setAvatarPreview(data.user.avatar);
           }
+
+          // Load notification preference from database
+          if (data.user.notificationsEnabled !== undefined) {
+            setNotificationsEnabled(data.user.notificationsEnabled !== false);
+            // Also sync to localStorage for backward compatibility
+            localStorage.setItem('notificationsEnabled', (data.user.notificationsEnabled !== false).toString());
+          } else {
+            // Fallback to localStorage if database doesn't have it yet
+            const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
+            if (savedNotificationPreference !== null) {
+              setNotificationsEnabled(savedNotificationPreference === 'true');
+            }
+          }
         } else {
           toast.error('Failed to load user data');
         }
@@ -373,12 +386,6 @@ export default function ClientProfile() {
       setIsMobile(width < 640); // sm breakpoint
       setIsTablet(width >= 640 && width < 1024); // md breakpoint
     };
-
-    // Load notification preference from localStorage
-    const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
-    if (savedNotificationPreference !== null) {
-      setNotificationsEnabled(savedNotificationPreference === 'true');
-    }
 
     // Check on mount
     checkScreenSize();
@@ -440,20 +447,44 @@ export default function ClientProfile() {
     setNotificationsEnabled(enabled);
     
     try {
-      // Save notification preference to user profile or localStorage
-      localStorage.setItem('notificationsEnabled', enabled.toString());
-      
-      toast.success(
-        enabled ? "Notifications enabled" : "Notifications disabled",
-        {
-          description: enabled 
-            ? "You'll receive notifications for messages, tasks, and sessions"
-            : "You won't receive any notifications"
-        }
-      );
+      // Save notification preference to database
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          birthdate: formData.birthdate,
+          bio: formData.bio,
+          notificationsEnabled: enabled
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Also save to localStorage for backward compatibility
+        localStorage.setItem('notificationsEnabled', enabled.toString());
+        
+        toast.success(
+          enabled ? "Notifications enabled" : "Notifications disabled",
+          {
+            description: enabled 
+              ? "You'll receive notifications for messages, tasks, and sessions"
+              : "You won't receive any notifications"
+          }
+        );
+      } else {
+        throw new Error(data.error || 'Failed to save notification preference');
+      }
     } catch (error) {
       console.error('Error saving notification preference:', error);
       toast.error("Failed to save notification preference");
+      // Revert state on error
+      setNotificationsEnabled(!enabled);
     }
   };
 

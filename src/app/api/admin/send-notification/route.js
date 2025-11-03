@@ -35,8 +35,30 @@ export async function POST(request) {
         // Create notifications for all recipients
         for (const userId of recipientIds) {
             try {
-                // Insert notification into database
-                await sql`
+                // Check if notifications are enabled for this user
+                const userCheck = await sql`
+                    SELECT "notificationsEnabled" 
+                    FROM "User" 
+                    WHERE id = ${userId}
+                `;
+
+                // Skip if user doesn't exist or notifications are disabled
+                if (userCheck.length === 0) {
+                    console.log(`⚠️ User ${userId} not found, skipping admin notification`);
+                    failCount++;
+                    continue;
+                }
+
+                // Check if notifications are enabled (default to true if column doesn't exist yet)
+                const notificationsEnabled = userCheck[0].notificationsEnabled !== false;
+                if (!notificationsEnabled) {
+                    console.log(`🔕 Notifications disabled for user ${userId}, skipping admin notification`);
+                    failCount++;
+                    continue;
+                }
+
+                // Insert notification into database and get the actual ID
+                const insertedNotification = await sql`
           INSERT INTO "Notification" 
           ("userId", type, title, message, "isRead", priority, "createdAt")
           VALUES (
@@ -48,28 +70,34 @@ export async function POST(request) {
             'high',
             CURRENT_TIMESTAMP
           )
+          RETURNING *
         `;
 
                 // Try to send real-time notification if socket is available
-                try {
-                    if (global.globalSocketIO) {
-                        const notification = {
-                            id: Math.random().toString(36).substr(2, 9), // Temporary ID for real-time
-                            userId: userId,
-                            type: 'system',
-                            title: 'Admin Notification',
-                            message: message.trim(),
-                            isRead: false,
-                            priority: 'high',
-                            createdAt: new Date().toISOString(),
-                        };
+                if (insertedNotification.length > 0) {
+                    try {
+                        if (global.globalSocketIO) {
+                            const notification = insertedNotification[0];
+                            // Convert notification to proper format for socket emission
+                            const socketNotification = {
+                                id: notification.id,
+                                userId: notification.userId,
+                                type: notification.type,
+                                title: notification.title,
+                                message: notification.message,
+                                isRead: notification.isRead,
+                                priority: notification.priority,
+                                createdAt: notification.createdAt ? new Date(notification.createdAt).toISOString() : new Date().toISOString(),
+                                data: notification.data ? (typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data) : null
+                            };
 
-                        // Emit to user's notification room
-                        global.globalSocketIO.to(`notifications_${userId}`).emit('new_notification', notification);
-                        console.log(`✅ Real-time notification sent to user ${userId}`);
+                            // Emit to user's notification room
+                            global.globalSocketIO.to(`notifications_${userId}`).emit('new_notification', socketNotification);
+                            console.log(`✅ Real-time notification sent to user ${userId} with ID: ${notification.id}`);
+                        }
+                    } catch (socketError) {
+                        console.warn(`⚠️ Socket emission failed for user ${userId}, but notification saved:`, socketError.message);
                     }
-                } catch (socketError) {
-                    console.warn(`⚠️ Socket emission failed for user ${userId}, but notification saved:`, socketError.message);
                 }
 
                 successCount++;
