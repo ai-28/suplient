@@ -10,11 +10,13 @@ import { useRouter } from "next/navigation";
 import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
 import { useGroups } from "@/app/hooks/useGroups";
 import { useSession } from "next-auth/react";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 
 function ClientGroupsComponent() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTranslation();
   const [filter, setFilter] = useState("all");
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -50,31 +52,31 @@ function ClientGroupsComponent() {
           <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
             <ArrowLeft className="h-5 w-5" />
           </Button> 
-          <h1 className="ml-4 text-xl font-semibold">Support Circles</h1>
+          <h1 className="ml-4 text-xl font-semibold">{t('groups.supportCircles', 'Support Circles')}</h1>
         </div>
 
         <div className="flex items-center justify-center h-[calc(100vh-80px)]">
           <div className="text-center p-6">
             <div className="text-red-500 mb-4">
               <Users className="h-12 w-12 mx-auto mb-2" />
-              <h3 className="text-lg font-medium">Connection Error</h3>
+              <h3 className="text-lg font-medium">{t('groups.connectionError', 'Connection Error')}</h3>
             </div>
             <p className="text-muted-foreground mb-4">
-              Unable to load groups. This might be a temporary network issue.
+              {t('groups.unableToLoad', 'Unable to load groups. This might be a temporary network issue.')}
             </p>
             <div className="space-y-2">
               <Button 
                 onClick={() => window.location.reload()} 
                 className="w-full"
               >
-                Try Again
+                {t('common.buttons.tryAgain', 'Try Again')}
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => router.push('/client')}
                 className="w-full"
               >
-                Back to Sessions
+                {t('sessions.backToSessions', 'Back to Sessions')}
               </Button>
             </div>
           </div>
@@ -109,13 +111,16 @@ function ClientGroupsComponent() {
       
       if (!data.success || !data.session) {
         // No active session available
-        alert(`No active session available for ${groupName}. Please check back later or contact your coach.`);
+        // Using toast instead of alert for better UX
+        const { toast } = await import('sonner');
+        toast.error(t('groups.noActiveSession', `No active session available for ${groupName}. Please check back later or contact your coach.`));
         return;
       }
       
       if (!data.session.meetingUrl) {
         // Session exists but no meeting link
-        alert(`Session "${data.session.title}" is scheduled but no meeting link is available yet. Please contact your coach.`);
+        const { toast } = await import('sonner');
+        toast.error(t('groups.noMeetingLink', `Session "${data.session.title}" is scheduled but no meeting link is available yet. Please contact your coach.`));
         return;
       }
       
@@ -124,7 +129,8 @@ function ClientGroupsComponent() {
       
     } catch (error) {
       console.error('Error joining session:', error);
-      alert(`Unable to join session for ${groupName}. Please try again or contact your coach.`);
+      const { toast } = await import('sonner');
+      toast.error(t('groups.joinSessionError', `Unable to join session for ${groupName}. Please try again or contact your coach.`));
     }
   };
 
@@ -135,7 +141,7 @@ function ClientGroupsComponent() {
         <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
           <ArrowLeft className="h-5 w-5" />
         </Button> 
-        <h1 className="ml-4 text-lg sm:text-xl font-semibold">Support Circles</h1>
+        <h1 className="ml-4 text-lg sm:text-xl font-semibold">{t('groups.supportCircles', 'Support Circles')}</h1>
       </div>
 
       {/* Scrollable Content */}
@@ -149,7 +155,7 @@ function ClientGroupsComponent() {
             onClick={() => setFilter("all")}
             className="flex-1 sm:flex-none"
           >
-            All Groups
+            {t('groups.allGroups', 'All Groups')}
           </Button>
           <Button
             variant={filter === "joined" ? "default" : "outline"}
@@ -157,7 +163,7 @@ function ClientGroupsComponent() {
             onClick={() => setFilter("joined")}
             className="flex-1 sm:flex-none"
           >
-            My Groups
+            {t('groups.myGroups', 'My Groups')}
           </Button>
           <Button
             variant={filter === "available" ? "default" : "outline"}
@@ -165,7 +171,7 @@ function ClientGroupsComponent() {
             onClick={() => setFilter("available")}
             className="flex-1 sm:flex-none"
           >
-            Available
+            {t('groups.available', 'Available')}
           </Button>
         </div>
 
@@ -180,7 +186,7 @@ function ClientGroupsComponent() {
                       <CardTitle className="text-base sm:text-lg truncate">{group.name}</CardTitle>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {group.isJoined && (
-                          <Badge variant="secondary" className="text-xs">Joined</Badge>
+                          <Badge variant="secondary" className="text-xs">{t('groups.joined', 'Joined')}</Badge>
                         )}
                         {group.unreadMessages > 0 && (
                           <Badge variant="destructive" className="text-xs">
@@ -220,30 +226,29 @@ function ClientGroupsComponent() {
                           className="w-full sm:w-auto"
                         >
                           <MessageCircle className="h-4 w-4 mr-2" />
-                          Chat
+                          {t('groups.chat', 'Chat')}
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" className="w-full sm:w-auto">
                               <Calendar className="h-4 w-4 mr-2" />
-                              Join Session
+                              {t('groups.joinSession', 'Join Session')}
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent className="mx-4 sm:mx-0">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Join {group.name} Session</AlertDialogTitle>
+                              <AlertDialogTitle>{t('groups.joinSessionTitle', 'Join {name} Session', { name: group.name })}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                You're about to join a session for {group.name}. 
-                                Make sure you're in a quiet, private space for the best experience.
+                                {t('groups.joinSessionDesc', "You're about to join a session for {name}. Make sure you're in a quiet, private space for the best experience.", { name: group.name })}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                              <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+                              <AlertDialogCancel className="w-full sm:w-auto">{t('common.buttons.cancel')}</AlertDialogCancel>
                               <AlertDialogAction 
                                 onClick={() => handleJoinSession(group.id, group.name)}
                                 className="w-full sm:w-auto"
                               >
-                                Join Session
+                                {t('groups.joinSession', 'Join Session')}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -258,10 +263,10 @@ function ClientGroupsComponent() {
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         {group.maxMembers && group.members >= group.maxMembers 
-                          ? "Full" 
+                          ? t('groups.full', "Full")
                           : hasPendingRequest(group.id)
-                            ? "Request Pending"
-                            : "Request to Join"
+                            ? t('groups.requestPending', "Request Pending")
+                            : t('groups.requestToJoin', "Request to Join")
                         }
                       </Button>
                     )}
@@ -279,12 +284,12 @@ function ClientGroupsComponent() {
               <div className="text-center py-6 sm:py-8">
                 <Users className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-base sm:text-lg font-medium mb-2">
-                  {filter === "joined" ? "No Joined Groups" : "No Groups Available"}
+                  {filter === "joined" ? t('groups.noJoined', "No Joined Groups") : t('groups.noAvailable', "No Groups Available")}
                 </h3>
                 <p className="text-sm sm:text-base text-muted-foreground mb-4">
                   {filter === "joined" 
-                    ? "You haven't joined any support circles yet."
-                    : "No groups match your current filter."
+                    ? t('groups.noJoinedDesc', "You haven't joined any support circles yet.")
+                    : t('groups.noMatchFilter', "No groups match your current filter.")
                   }
                 </p>
                 {filter === "joined" && (
@@ -292,7 +297,7 @@ function ClientGroupsComponent() {
                     onClick={() => setFilter("available")}
                     className="w-full sm:w-auto"
                   >
-                    Browse Available Groups
+                    {t('groups.browseAvailable', 'Browse Available Groups')}
                   </Button>
                 )}
               </div>

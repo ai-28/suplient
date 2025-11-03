@@ -81,6 +81,7 @@ const formatDate = (dateStr) => {
 
 export default function Tasks() {
   const router = useRouter();
+  const t = useTranslation();
   const [activeTab, setActiveTab] = useState("my-tasks");
   const [clientFilter, setClientFilter] = useState("all");
   const [myTaskFilter, setMyTaskFilter] = useState("all");

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Plus, Users, Target, Clock, Copy, Edit, CheckCircle, Trash2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -17,6 +18,7 @@ import { toast } from 'sonner';
 
 export default function Programs() {
   const router = useRouter();
+  const t = useTranslation();
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [enrolledMembersDialogOpen, setEnrolledMembersDialogOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState(null);
@@ -125,7 +127,7 @@ export default function Programs() {
 
       // Refresh the programs list
       await fetchPrograms();
-      toast.success('Program deleted successfully!');
+      toast.success(t('programs.programDeleted'));
     } catch (error) {
       console.error('Error deleting program:', error);
       throw error;
@@ -202,40 +204,40 @@ export default function Programs() {
     <div className="page-container">
       {/* Page Header */}
       <PageHeader 
-        title={"Programs"} 
-        subtitle={"Manage your programs"}
+        title={t('navigation.programs')} 
+        subtitle={t('programs.managePrograms', 'Manage your programs')}
       >
         <Button onClick={() => router.push('/coach/programs/create')} className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center gap-2">
           <Plus className="h-4 w-4 text-[#1A2D4D]"/>
-          Create New Program
+          {t('programs.createProgram')}
         </Button>
       </PageHeader>
 
       {/* KPI Dashboard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatsCard
-          title={"Total Programs"}
+          title={t('programs.totalPrograms', 'Total Programs')}
           value={stats.totalPrograms}
           icon={Target}
           iconColor="bg-primary"
         />
         
         <StatsCard
-          title={"Clients Enrolled"}
+          title={t('programs.clientsEnrolled', 'Clients Enrolled')}
           value={stats.clientsEnrolled}
           icon={Users}
           iconColor="bg-blue-500"
         />
         
         <StatsCard
-          title={"Clients Completed"}
+          title={t('programs.clientsCompleted', 'Clients Completed')}
           value={stats.clientsCompleted}
           icon={CheckCircle}
           iconColor="bg-green-500"
         />
         
         <StatsCard
-          title={"Total Elements"}
+          title={t('programs.totalElements', 'Total Elements')}
           value={stats.totalElements}
           icon={Target}
           iconColor="bg-purple-500"
@@ -247,17 +249,17 @@ export default function Programs() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading programs...</p>
+            <p className="text-muted-foreground">{t('programs.loading', 'Loading programs...')}</p>
           </div>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Error Loading Programs</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('programs.errorLoading', 'Error Loading Programs')}</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={fetchPrograms} variant="outline">
-              Try Again
+              {t('common.buttons.tryAgain', 'Try Again')}
             </Button>
           </div>
         </div>
@@ -265,8 +267,8 @@ export default function Programs() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Programs Yet</h3>
-            <p className="text-muted-foreground mb-4">Create your first program to get started</p>
+            <h3 className="text-lg font-semibold mb-2">{t('programs.noPrograms', 'No Programs Yet')}</h3>
+            <p className="text-muted-foreground mb-4">{t('programs.createFirstProgram', 'Create your first program to get started')}</p>
           </div>
         </div>
       ) : (
@@ -294,15 +296,15 @@ export default function Programs() {
                 
                 <div className="grid grid-cols-3 gap-4 text-center py-3 bg-muted/50 rounded-lg">
                   <div>
-                    <p className="text-xs text-muted-foreground">Duration</p>
-                    <p className="text-sm font-semibold">{program.duration} weeks</p>
+                    <p className="text-xs text-muted-foreground">{t('programs.duration')}</p>
+                    <p className="text-sm font-semibold">{program.duration} {t('programs.weeks')}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Elements</p>
+                    <p className="text-xs text-muted-foreground">{t('programs.elements')}</p>
                     <p className="text-sm font-semibold">{program.elementCount || 0}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Enrolled</p>
+                    <p className="text-xs text-muted-foreground">{t('programs.enrolled')}</p>
                     <p className="text-sm font-semibold">
                       {loadingClients[program.id] ? '...' : clientCount}
                     </p>
@@ -319,12 +321,12 @@ export default function Programs() {
                     {editingProgramId === program.id ? (
                       <>
                         <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                        Opening...
+                        {t('programs.opening', 'Opening...')}
                       </>
                     ) : (
                       <>
                         <Edit className="h-3 w-3" />
-                        Edit Program
+                        {t('programs.editProgram')}
                       </>
                     )}
                   </Button>
@@ -361,19 +363,19 @@ export default function Programs() {
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
                       <DialogHeader>
-                        <DialogTitle>Duplicate Program</DialogTitle>
+                        <DialogTitle>{t('programs.duplicateProgram')}</DialogTitle>
                         <DialogDescription>
-                          Duplicate {selectedProgram?.name}
+                          {t('programs.duplicateProgramDesc')} {selectedProgram?.name}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="program-name">Program Name</Label>
+                          <Label htmlFor="program-name">{t('programs.programName')}</Label>
                           <Input
                             id="program-name"
                             value={newProgramName}
                             onChange={(e) => setNewProgramName(e.target.value)}
-                            placeholder="Enter Program Name"
+                            placeholder={t('programs.programName')}
                             className="mt-2"
                           />
                         </div>
@@ -384,7 +386,7 @@ export default function Programs() {
                           onClick={() => setDuplicateDialogOpen(false)}
                           disabled={isDuplicating}
                         >
-                          Cancel
+                          {t('common.buttons.cancel')}
                         </Button>
                         <Button 
                           onClick={handleDuplicate}
@@ -394,7 +396,7 @@ export default function Programs() {
                           {isDuplicating && (
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                           )}
-                          {isDuplicating ? 'Creating Copy...' : 'Create Copy'}
+                          {isDuplicating ? t('programs.creatingCopy', 'Creating Copy...') : t('programs.createCopy', 'Create Copy')}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -414,19 +416,19 @@ export default function Programs() {
                       <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
                           <AlertTriangle className="h-5 w-5 text-destructive" />
-                          Delete Program
+                          {t('programs.deleteProgram')}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Delete {program.name}
+                          {t('common.messages.confirmDelete', 'Are you sure you want to delete')} {program.name}?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.buttons.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(program.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          Delete Program
+                          {t('programs.deleteProgram')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

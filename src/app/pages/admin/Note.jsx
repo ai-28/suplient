@@ -14,6 +14,7 @@ import { ScrollArea } from "@/app/components/ui/scroll-area";
 
 export default function AdminNote() {
   const { data: session } = useSession();
+  const t = useTranslation();
   const [clients, setClients] = useState([]);
   const [coaches, setCoaches] = useState([]);
   const [selectedClients, setSelectedClients] = useState([]);
@@ -46,7 +47,7 @@ export default function AdminNote() {
 
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Failed to load users');
+        toast.error(t('common.messages.error'));
       } finally {
         setFetchingData(false);
       }
@@ -96,12 +97,12 @@ export default function AdminNote() {
   // Send notification
   const handleSendNotification = async () => {
     if (!message.trim()) {
-      toast.error('Please enter a message');
+      toast.error(t('notes.pleaseEnterMessage', 'Please enter a message'));
       return;
     }
 
     if (selectedClients.length === 0 && selectedCoaches.length === 0) {
-      toast.error('Please select at least one recipient');
+      toast.error(t('notes.selectRecipient', 'Please select at least one recipient'));
       return;
     }
 
@@ -123,7 +124,7 @@ export default function AdminNote() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success(`Notification sent to ${data.recipientCount} user(s)`);
+        toast.success(t('notes.notificationSent', `Notification sent to ${data.recipientCount} user(s)`));
         // Reset form
         setMessage('');
         setSelectedClients([]);
@@ -145,7 +146,7 @@ export default function AdminNote() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">{t('common.messages.loading')}</p>
           </div>
         </div>
       </div>
@@ -155,8 +156,8 @@ export default function AdminNote() {
   return (
     <div className="page-container">
       <PageHeader 
-        title="Send Notification" 
-        subtitle="Send real-time notifications to clients and coaches"
+        title={t('notes.sendNotification', 'Send Notification')} 
+        subtitle={t('notes.sendNotificationDesc', 'Send real-time notifications to clients and coaches')}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
@@ -168,7 +169,7 @@ export default function AdminNote() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
-                  Clients ({selectedClients.length}/{clients.length})
+                  {t('navigation.clients')} ({selectedClients.length}/{clients.length})
                 </CardTitle>
                 <div className="flex items-center gap-4">
                   <Button
@@ -176,7 +177,7 @@ export default function AdminNote() {
                     size="sm"
                     onClick={() => setShowClients(!showClients)}
                   >
-                    {showClients ? 'Hide' : 'Show'}
+                    {showClients ? t('common.buttons.hide', 'Hide') : t('common.buttons.view', 'Show')}
                   </Button>
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -185,7 +186,7 @@ export default function AdminNote() {
                       onCheckedChange={handleSelectAllClients}
                     />
                     <Label htmlFor="select-all-clients" className="cursor-pointer">
-                      Select All
+                      {t('common.buttons.selectAll', 'Select All')}
                     </Label>
                   </div>
                 </div>
@@ -195,7 +196,7 @@ export default function AdminNote() {
               <CardContent>
                 <ScrollArea className="h-[300px] pr-4">
                   {clients.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No clients found</p>
+                    <p className="text-muted-foreground text-center py-8">{t('clients.noClients')}</p>
                   ) : (
                     <div className="space-y-3">
                       {clients.map((client) => (
@@ -230,7 +231,7 @@ export default function AdminNote() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5 text-primary" />
-                  Coaches ({selectedCoaches.length}/{coaches.length})
+                  {t('navigation.coaches')} ({selectedCoaches.length}/{coaches.length})
                 </CardTitle>
                 <div className="flex items-center gap-4">
                   <Button
@@ -238,7 +239,7 @@ export default function AdminNote() {
                     size="sm"
                     onClick={() => setShowCoaches(!showCoaches)}
                   >
-                    {showCoaches ? 'Hide' : 'Show'}
+                    {showCoaches ? t('common.buttons.hide', 'Hide') : t('common.buttons.view', 'Show')}
                   </Button>
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -247,7 +248,7 @@ export default function AdminNote() {
                       onCheckedChange={handleSelectAllCoaches}
                     />
                     <Label htmlFor="select-all-coaches" className="cursor-pointer">
-                      Select All
+                      {t('common.buttons.selectAll', 'Select All')}
                     </Label>
                   </div>
                 </div>
@@ -257,7 +258,7 @@ export default function AdminNote() {
               <CardContent>
                 <ScrollArea className="h-[300px] pr-4">
                   {coaches.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No coaches found</p>
+                    <p className="text-muted-foreground text-center py-8">{t('coaches.noCoaches')}</p>
                   ) : (
                     <div className="space-y-3">
                       {coaches.map((coach) => (
@@ -293,38 +294,38 @@ export default function AdminNote() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5 text-primary" />
-                Message
+                {t('common.labels.message', 'Message')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="message">Notification Message</Label>
+                <Label htmlFor="message">{t('notes.notificationMessage', 'Notification Message')}</Label>
                 <Textarea
                   id="message"
-                  placeholder="Enter your notification message here..."
+                  placeholder={t('notes.enterMessage', 'Enter your notification message here...')}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={8}
                   className="mt-2"
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  {message.length} characters
+                  {message.length} {t('common.labels.characters', 'characters')}
                 </p>
               </div>
 
               <div className="pt-4 border-t border-border space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Recipients:</span>
+                  <span className="text-muted-foreground">{t('notes.recipients', 'Recipients')}:</span>
                   <span className="font-medium">
                     {selectedClients.length + selectedCoaches.length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Clients:</span>
+                  <span className="text-muted-foreground">{t('navigation.clients')}:</span>
                   <span className="font-medium">{selectedClients.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Coaches:</span>
+                  <span className="text-muted-foreground">{t('navigation.coaches')}:</span>
                   <span className="font-medium">{selectedCoaches.length}</span>
                 </div>
               </div>
@@ -337,12 +338,12 @@ export default function AdminNote() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
+                    {t('common.messages.loading')}
                   </>
                 ) : (
                   <>
                     <Send className="mr-2 h-4 w-4" />
-                    Send Notification
+                    {t('notes.sendNotification', 'Send Notification')}
                   </>
                 )}
               </Button>

@@ -59,10 +59,12 @@ import {
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function AdminClients() {
   const { data: session, update } = useSession();
   const router = useRouter();
+  const t = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [coachFilter, setCoachFilter] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -98,20 +100,20 @@ export default function AdminClients() {
       if (data.success) {
         setClients(data.clients);
         if (data.clients.length > 0) {
-          toast.success('Clients loaded successfully!', {
+          toast.success(t('clients.loadingClients'), {
             description: `Found ${data.clients.length} client${data.clients.length === 1 ? '' : 's'}.`
           });
         }
       } else {
         console.error('Failed to fetch clients:', data.error);
-        toast.error('Failed to load clients', {
+        toast.error(t('clients.errorLoadingClients'), {
           description: data.error
         });
       }
     } catch (error) {
       console.error('Error fetching clients:', error);
-      toast.error('Error loading clients', {
-        description: 'Please refresh the page to try again.'
+      toast.error(t('clients.errorLoadingClients'), {
+        description: t('common.messages.pleaseWait')
       });
     } finally {
       setLoading(false);
@@ -156,11 +158,11 @@ export default function AdminClients() {
       if (data.success) {
         // Add the new client to the list
         setClients([...clients, data.client]);
-        setIsCreateOpen(false);
-        setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "" });
-        toast.success('Client created successfully!', {
-          description: `${data.client.name} has been added to the platform.`
-        });
+          setIsCreateOpen(false);
+          setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "" });
+          toast.success(t('clients.clientCreated'), {
+            description: `${data.client.name} has been added to the platform.`
+          });
       } else {
         console.error('Failed to create client:', data.error);
         toast.error('Failed to create client', {
@@ -201,19 +203,19 @@ export default function AdminClients() {
           setIsEditOpen(false);
           setSelectedClient(null);
           setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "" });
-          toast.success('Client updated successfully!', {
+          toast.success(t('clients.clientUpdated'), {
             description: `${data.client.name}'s profile has been updated.`
           });
         } else {
           console.error('Failed to update client:', data.error);
-          toast.error('Failed to update client', {
+          toast.error(t('common.messages.operationFailed'), {
             description: data.error
           });
         }
       } catch (error) {
         console.error('Error updating client:', error);
-        toast.error('Error updating client', {
-          description: 'Please try again.'
+        toast.error(t('common.messages.operationFailed'), {
+          description: t('common.messages.pleaseWait')
         });
       }
     }
@@ -230,19 +232,19 @@ export default function AdminClients() {
       if (data.success) {
         // Remove the client from the list
         setClients(clients.filter(client => client.id !== clientId));
-        toast.success('Client deleted successfully!', {
+        toast.success(t('clients.clientDeleted'), {
           description: data.message
         });
       } else {
         console.error('Failed to delete client:', data.error);
-        toast.error('Failed to delete client', {
+        toast.error(t('common.messages.operationFailed'), {
           description: data.error
         });
       }
     } catch (error) {
       console.error('Error deleting client:', error);
-      toast.error('Error deleting client', {
-        description: 'Please try again.'
+      toast.error(t('common.messages.operationFailed'), {
+        description: t('common.messages.pleaseWait')
       });
     }
   };
@@ -359,29 +361,29 @@ export default function AdminClients() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Client Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('clients.title')}</h1>
           <p className="text-muted-foreground">
-            Manage all clients in the platform
+            {t('clients.title')}
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Add Client
+              {t('clients.addClient')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Create New Client</DialogTitle>
+              <DialogTitle>{t('clients.createClient')}</DialogTitle>
               <DialogDescription>
-                Add a new client to the platform
+                {t('clients.createClient')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">{t('common.labels.name')}</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -389,7 +391,7 @@ export default function AdminClients() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('common.labels.email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -400,7 +402,7 @@ export default function AdminClients() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('common.labels.phone')}</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
@@ -408,7 +410,7 @@ export default function AdminClients() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="location">{t('clients.location')}</Label>
                   <Input
                     id="location"
                     value={formData.location}
@@ -418,10 +420,10 @@ export default function AdminClients() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="coach">Assigned Coach</Label>
+                  <Label htmlFor="coach">{t('clients.assignedCoach')}</Label>
                   <Select value={formData.coachId} onValueChange={(value) => setFormData({...formData, coachId: value})}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a coach" />
+                      <SelectValue placeholder={t('common.labels.select')} />
                     </SelectTrigger>
                     <SelectContent>
                       {coaches.map((coach) => (
@@ -434,27 +436,27 @@ export default function AdminClients() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes">{t('clients.notes')}</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes || ""}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  placeholder="Additional notes..."
+                  placeholder={t('clients.notes')}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                Cancel
+                {t('common.buttons.cancel')}
               </Button>
               <Button onClick={handleCreate} disabled={!formData.name || !formData.email || !formData.coachId || creating}>
                 {creating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    {t('common.messages.loading')}
                   </>
                 ) : (
-                  'Create Client'
+                  t('clients.createClient')
                 )}
               </Button>
             </DialogFooter>
@@ -466,7 +468,7 @@ export default function AdminClients() {
         <div className="flex items-center space-x-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search clients..."
+            placeholder={t('clients.searchClients')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -474,10 +476,10 @@ export default function AdminClients() {
         </div>
         <Select value={coachFilter || undefined} onValueChange={setCoachFilter}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by coach" />
+            <SelectValue placeholder={t('clients.filterByCoach')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All coaches</SelectItem>
+            <SelectItem value="all">{t('clients.allCoaches')}</SelectItem>
             {coaches.map((coach) => (
               <SelectItem key={coach.id} value={coach.id}>
                 {coach.name}
@@ -491,22 +493,28 @@ export default function AdminClients() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Coach</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Join Date</TableHead>
-              <TableHead>Sessions</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>{t('common.labels.name')}</TableHead>
+              <TableHead>{t('common.labels.email')}</TableHead>
+              <TableHead>{t('common.labels.phone')}</TableHead>
+              <TableHead>{t('navigation.coaches')}</TableHead>
+              <TableHead>{t('common.labels.status')}</TableHead>
+              <TableHead>{t('clients.location')}</TableHead>
+              <TableHead>{t('common.labels.date')}</TableHead>
+              <TableHead>{t('navigation.sessions')}</TableHead>
+              <TableHead>{t('common.labels.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8">
-                  <p className="text-muted-foreground">Loading clients...</p>
+                  <p className="text-muted-foreground">{t('clients.loadingClients')}</p>
+                </TableCell>
+              </TableRow>
+            ) : filteredClients.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-8">
+                  <p className="text-muted-foreground">{t('clients.noClients')}</p>
                 </TableCell>
               </TableRow>
             ) : (

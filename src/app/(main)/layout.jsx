@@ -4,6 +4,7 @@ import { AppSidebar } from "@/app/components/AppSidebar";
 import { SidebarProvider } from "@/app/components/ui/sidebar";
 import { NotificationBell } from "@/app/components/NotificationBell";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { usePathname } from "next/navigation";
 import {
   DropdownMenu,
@@ -92,6 +93,7 @@ const Layout = ({ children }) => {
                 
                 <div className="flex items-center gap-4">
                     <NotificationBell userRole={pathname.startsWith('/admin') ? 'admin' : 'coach'} />
+                  <LanguageSelector variant="header" />
                   <ThemeToggle />
                   <DropdownMenu>
             <DropdownMenuTrigger asChild>

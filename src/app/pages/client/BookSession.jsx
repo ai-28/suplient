@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { ArrowLeft, Clock, User, CheckCircle, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/app/context/LanguageContext";
 const generateTimeSlots = () => {
   const slots = [];
   for (let i = 9; i <= 17; i++) {
@@ -39,6 +40,7 @@ const coaches = [{
 }];
 export default function BookSession() {
   const router = useRouter();
+  const t = useTranslation();
   const [selectedDate, setSelectedDate] = useState(() => new Date(2024, 0, 1));
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedCoach, setSelectedCoach] = useState(1);
@@ -74,14 +76,14 @@ export default function BookSession() {
         <Card className="w-full max-w-md text-center">
           <CardContent className="pt-6">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Session Booked!</h2>
+            <h2 className="text-xl font-semibold mb-2">{t('sessions.booked', 'Session Booked!')}</h2>
             <p className="text-muted-foreground mb-4">
-              Your session has been scheduled successfully. You'll receive a confirmation email shortly.
+              {t('sessions.bookedSuccess', "Your session has been scheduled successfully. You'll receive a confirmation email shortly.")}
             </p>
             <div className="text-sm text-muted-foreground">
-              <p><strong>Date:</strong> {selectedDate?.toLocaleDateString()}</p>
-              <p><strong>Time:</strong> {selectedTime}</p>
-              <p><strong>Coach:</strong> {coaches.find(c => c.id === selectedCoach)?.name}</p>
+              <p><strong>{t('common.labels.date', 'Date')}:</strong> {selectedDate?.toLocaleDateString()}</p>
+              <p><strong>{t('common.labels.time', 'Time')}:</strong> {selectedTime}</p>
+              <p><strong>{t('navigation.coaches', 'Coach')}:</strong> {coaches.find(c => c.id === selectedCoach)?.name}</p>
             </div>
           </CardContent>
         </Card>
@@ -95,7 +97,7 @@ export default function BookSession() {
         </Button>
         <h1 className="ml-4 text-xl font-semibold flex items-center gap-2">
           <Video className="h-5 w-5" />
-          Book 1-1 Video Call
+          {t('sessions.bookVideoCall', 'Book 1-1 Video Call')}
         </h1>
       </div>
 
@@ -103,8 +105,8 @@ export default function BookSession() {
         {/* Select Date */}
         <Card>
           <CardHeader>
-            <CardTitle>Select Date</CardTitle>
-            <CardDescription>Choose your preferred date</CardDescription>
+            <CardTitle>{t('sessions.selectDate', 'Select Date')}</CardTitle>
+            <CardDescription>{t('sessions.chooseDate', 'Choose your preferred date')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} disabled={date => date < new Date() || date.getDay() === 0 || date.getDay() === 6} className="rounded-md border" />
@@ -114,8 +116,8 @@ export default function BookSession() {
         {/* Select Time */}
         <Card>
           <CardHeader>
-            <CardTitle>Select Time</CardTitle>
-            <CardDescription>Choose your preferred time slot</CardDescription>
+            <CardTitle>{t('sessions.selectTime', 'Select Time')}</CardTitle>
+            <CardDescription>{t('sessions.chooseTime', 'Choose your preferred time slot')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
@@ -126,7 +128,7 @@ export default function BookSession() {
             </div>
             <div className="mt-4 p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground text-center">
-                💡 Sessions are 50 minutes long. Please be ready at your scheduled time.
+                {t('sessions.durationNotice', '💡 Sessions are 50 minutes long. Please be ready at your scheduled time.')}
               </p>
             </div>
           </CardContent>
@@ -135,36 +137,36 @@ export default function BookSession() {
         {/* Session Topic */}
         <Card>
           <CardHeader>
-            <CardTitle>What would you like to discuss?</CardTitle>
-            <CardDescription>Brief topic to help me prepare for our session</CardDescription>
+            <CardTitle>{t('sessions.discussTopic', 'What would you like to discuss?')}</CardTitle>
+            <CardDescription>{t('sessions.topicDescription', 'Brief topic to help me prepare for our session')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Input placeholder="e.g., Work anxiety and coping strategies" value={sessionTopic} onChange={e => setSessionTopic(e.target.value)} className="w-full" />
+            <Input placeholder={t('sessions.topicPlaceholder', 'e.g., Work anxiety and coping strategies')} value={sessionTopic} onChange={e => setSessionTopic(e.target.value)} className="w-full" />
           </CardContent>
         </Card>
 
         {/* Conditions */}
         <Card>
           <CardHeader>
-            <CardTitle>Session Conditions</CardTitle>
-            <CardDescription>Please review and accept the terms for your 1-1 video session request.</CardDescription>
+            <CardTitle>{t('sessions.conditions', 'Session Conditions')}</CardTitle>
+            <CardDescription>{t('sessions.conditionsDescription', 'Please review and accept the terms for your 1-1 video session request.')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm font-medium mb-2">Session Details:</p>
+                <p className="text-sm font-medium mb-2">{t('sessions.details', 'Session Details')}:</p>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Duration: 50 minutes</li>
-                  <li>• Price: 1,000 DKK</li>
+                  <li>• {t('sessions.duration', 'Duration')}: {t('sessions.durationValue', '50 minutes')}</li>
+                  <li>• {t('sessions.price', 'Price')}: {t('sessions.priceValue', '1,000 DKK')}</li>
                   
-                  <li>• Cancellation: 24 hours notice required</li>
+                  <li>• {t('sessions.cancellation', 'Cancellation')}: {t('sessions.cancellationNotice', '24 hours notice required')}</li>
                 </ul>
               </div>
               
               <div className="flex items-center space-x-2">
                 <Checkbox id="conditions" checked={acceptedConditions} onCheckedChange={checked => setAcceptedConditions(checked)} />
                 <Label htmlFor="conditions" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  I accept the conditions for the paid 1-1 session (1,000 DKK)
+                  {t('sessions.acceptConditions', "I accept the conditions for the paid 1-1 session (1,000 DKK)")}
                 </Label>
               </div>
             </div>
@@ -174,7 +176,7 @@ export default function BookSession() {
         {/* Book Button */}
         <div className="pb-6">
           <Button className="w-full" size="lg" onClick={handleBookSession} disabled={!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions || isBooking}>
-            {isBooking ? "Booking..." : "Book Video Call"}
+            {isBooking ? t('sessions.booking', 'Booking...') : t('sessions.bookVideoCall', 'Book Video Call')}
           </Button>
         </div>
       </div>

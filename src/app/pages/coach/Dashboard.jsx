@@ -10,6 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslation } from "@/app/context/LanguageContext";
+import { toast } from "sonner";
 import { 
   Users, 
   TrendingUp, 
@@ -37,6 +39,7 @@ const earningsData = [
 export default function Dashboard() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTranslation();
   const [tasks, setTasks] = useState([]);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [taskUpdating, setTaskUpdating] = useState(null);
@@ -88,7 +91,7 @@ export default function Dashboard() {
         setTasks(data.tasks || []);
       } catch (error) {
         console.error('Error fetching today\'s tasks:', error);
-        toast.error('Failed to load today\'s tasks');
+        toast.error(t('dashboard.coach.todaysTasks'));
         setTasks([]);
       } finally {
         setTasksLoading(false);
@@ -121,7 +124,7 @@ export default function Dashboard() {
         });
       } catch (error) {
         console.error('Error fetching client statistics:', error);
-        toast.error('Failed to load client statistics');
+        toast.error(t('common.messages.error'));
         setClientStats({
           activeClients: 0,
           newClientsThisMonth: 0,
@@ -183,8 +186,8 @@ export default function Dashboard() {
     <div className="page-container">
       {/* Page Header */}
       <PageHeader 
-        title={"Dashboard"} 
-        subtitle={"Dashboard"} 
+        title={t('dashboard.coach.title')} 
+        subtitle={t('dashboard.coach.overview')} 
       />
 
       {/* First Row - My Tasks and Client Overview */}
@@ -194,19 +197,19 @@ export default function Dashboard() {
           <CardHeader className="pb-4">
             <CardTitle className="text-foreground flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-primary" />
-              {"My Tasks"}
+              {t('tasks.myTasks')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {tasksLoading ? (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                <span className="text-sm text-muted-foreground">Loading tasks...</span>
+                <span className="text-sm text-muted-foreground">{t('common.messages.loading')}</span>
               </div>
             ) : tasks.length === 0 ? (
               <div className="text-center p-4">
                 <CheckCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No tasks for today</p>
+                <p className="text-sm text-muted-foreground">{t('dashboard.coach.noTasks')}</p>
               </div>
             ) : (
               tasks.map((task) => (
@@ -235,22 +238,22 @@ export default function Dashboard() {
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>
-                          {task.completed ? 'Mark as Pending?' : 'Mark as Completed?'}
+                          {task.completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                           {task.completed 
-                            ? `Are you sure you want to mark "${task.text}" as pending?`
-                            : `Are you sure you want to mark "${task.text}" as completed?`
+                            ? `${t('common.messages.confirmDelete')} "${task.text}"?`
+                            : `${t('common.messages.confirmDelete')} "${task.text}"?`
                           }
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.buttons.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleTaskCompletion(task.id, task.text, !task.completed)}
                           className="bg-primary text-primary-foreground hover:bg-primary/90"
                         >
-                          {task.completed ? 'Mark as Pending' : 'Mark as Completed'}
+                          {task.completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -260,15 +263,15 @@ export default function Dashboard() {
             )}
             <div className="pt-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-foreground">• {"Today's Tasks"}</span>
+                <span className="text-foreground">• {t('dashboard.coach.todaysTasks')}</span>
                 <Badge variant="secondary" className="bg-primary text-primary-foreground">
                   {tasksLoading ? "..." : tasks.length}
                 </Badge>
               </div>
               <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-foreground">• {"Completed"}</span>
+                <span className="text-foreground">• {t('common.status.completed')}</span>
                 <Badge variant="secondary" className="bg-green-500 text-white">
-                  {tasksLoading ? "..." : tasks.filter(t => t.completed).length}
+                  {tasksLoading ? "..." : tasks.filter(task => task.completed).length}
                 </Badge>
               </div>
               <Button 
@@ -276,7 +279,7 @@ export default function Dashboard() {
                 className="w-full mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 onClick={handleViewAllTasks}
               >
-                {"View All"}
+                {t('dashboard.coach.viewAllTasks')}
               </Button>
             </div>
           </CardContent>
@@ -287,37 +290,37 @@ export default function Dashboard() {
           <CardHeader className="pb-4">
             <CardTitle className="text-foreground flex items-center gap-2">
               <Users className="h-5 w-5 text-secondary" />
-              {"Client Overview"}
+              {t('dashboard.coach.stats.totalClients')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {clientStatsLoading ? (
               <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                <span className="text-sm text-muted-foreground">Loading client stats...</span>
+                <span className="text-sm text-muted-foreground">{t('common.messages.loading')}</span>
               </div>
             ) : (
               <>
                 <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-foreground font-medium">{"Active Clients"}</span>
+                  <span className="text-foreground font-medium">{t('dashboard.coach.stats.activeClients')}</span>
                   <Badge className="bg-primary text-primary-foreground text-lg px-3 py-1">
                     {clientStats.activeClients}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-foreground font-medium">{"New Clients This Month"}</span>
+                  <span className="text-foreground font-medium">{t('dashboard.coach.stats.newThisMonth')}</span>
                   <Badge className="bg-accent text-accent-foreground text-lg px-3 py-1">
                     {clientStats.newClientsThisMonth}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-foreground font-medium">{"Churned Clients This Month"}</span>
+                  <span className="text-foreground font-medium">{t('dashboard.coach.stats.churnedThisMonth')}</span>
                   <Badge className="bg-secondary text-secondary-foreground text-lg px-3 py-1">
                     {clientStats.churnedClientsThisMonth}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-foreground font-medium">{"Total Clients"}</span>
+                  <span className="text-foreground font-medium">{t('dashboard.coach.stats.totalClients')}</span>
                   <Badge className="bg-muted text-muted-foreground text-lg px-3 py-1">
                     {clientStats.totalClients}
                   </Badge>
@@ -336,7 +339,7 @@ export default function Dashboard() {
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-accent" />
-              {"Earnings Overview"}
+              {t('dashboard.coach.earnings')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -389,20 +392,20 @@ export default function Dashboard() {
           <CardHeader className="pb-4">
             <CardTitle className="text-foreground flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-blue-teal" />
-                {"Latest Activity"}
+                {t('dashboard.coach.recentActivity')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {activitiesLoading ? (
               <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                <span className="text-sm text-muted-foreground">Loading activities...</span>
+                <span className="text-sm text-muted-foreground">{t('common.messages.loading')}</span>
               </div>
             ) : activities.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No recent activities</p>
-                <p className="text-sm">Activities will appear here as clients engage with the platform</p>
+                <p>{t('common.messages.noData')}</p>
+                <p className="text-sm">{t('dashboard.coach.recentActivity')}</p>
               </div>
             ) : (
               activities.map((activity) => (

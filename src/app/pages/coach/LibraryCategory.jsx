@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -31,33 +32,36 @@ import { ShareFileDialog } from "@/app/components/ShareFileDialog";
 import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group";
 import { toast } from "sonner";
 
-const categoryData = {
+// Note: categoryData is now using translations in the component
+const getCategoryData = (t) => ({
   videos: {
-    title: "Videos",
+    title: t('library.videos', 'Videos'),
     icon: Video,
     color: "bg-primary"
   },
   images: {
-    title: "Images",
+    title: t('library.images', 'Images'),
     icon: Image,
     color: "bg-accent"
   },
   articles: {
-    title: "Articles",
+    title: t('library.articles', 'Articles'),
     icon: FileText,
     color: "bg-secondary"
   },
   sounds: {
-    title: "Sounds",
+    title: t('library.sounds', 'Sounds'),
     icon: Music,
     color: "bg-blue-teal"
   },
-};
+});
 
 export default function LibraryCategory() {
   const { category } = useParams();
   const router = useRouter();
+  const t = useTranslation();
   
+  const categoryData = getCategoryData(t);
   const categoryInfo = categoryData[category];
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [viewMode, setViewMode] = useState('grid');
@@ -140,13 +144,13 @@ export default function LibraryCategory() {
     // Verify the transformed file has required fields
     if (!transformedFile.id) {
       console.error('Transformed file missing ID:', transformedFile);
-      toast.error('Uploaded file is missing required ID. Please refresh the page.');
+      toast.error(t('library.uploadMissingId', 'Uploaded file is missing required ID. Please refresh the page.'));
       return;
     }
     
     // Add the new file to the items list
     setItems(prev => [transformedFile, ...prev]);
-    toast.success("File uploaded successfully");
+    toast.success(t('library.fileUploaded', 'File uploaded successfully'));
   };
 
   const handleFileShare = (file, shareData) => {
@@ -173,8 +177,8 @@ export default function LibraryCategory() {
   const handleShareSelected = (shareData) => {
     const selectedItems = items.filter(item => selectedFiles.includes(item.id));
     
-    toast.success("Files Shared Successfully", {
-      description: `${selectedFiles.length} files have been shared.`
+    toast.success(t('library.filesShared', 'Files Shared Successfully'), {
+      description: t('library.filesSharedDesc', '{count} files have been shared.', { count: selectedFiles.length })
     });
     
     // Clear selection after sharing
@@ -234,15 +238,15 @@ export default function LibraryCategory() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        toast.success("Download started");
+        toast.success(t('library.downloadStarted', 'Download started'));
       } else {
         const errorData = await response.json();
         console.error('Download failed:', errorData);
-        toast.error(`Download failed: ${errorData.message || 'Unknown error'}`);
+        toast.error(t('library.downloadFailed', 'Download failed') + (errorData.message ? `: ${errorData.message}` : ''));
       }
     } catch (error) {
       console.error('Download error:', error);
-      toast.error("Download failed");
+      toast.error(t('library.downloadFailed', 'Download failed'));
     } finally {
       setDownloadingItemId(null);
     }
@@ -251,7 +255,7 @@ export default function LibraryCategory() {
   if (!categoryInfo) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Category not found</p>
+        <p className="text-muted-foreground">{t('library.categoryNotFound')}</p>
       </div>
     );
   }
@@ -278,8 +282,8 @@ export default function LibraryCategory() {
             <div>
               <h2 className="text-3xl font-bold text-foreground">{categoryInfo.title}</h2>
               <p className="text-muted-foreground">
-                {loading ? 'Loading...' : `${items.length} items available`}
-                {selectedFiles.length > 0 && ` • ${selectedFiles.length} selected`}
+                {loading ? t('common.messages.loading') : t('library.itemsAvailable', '{count} items available', { count: items.length })}
+                {selectedFiles.length > 0 && ` • ${t('library.selectedCount', '{count} selected', { count: selectedFiles.length })}`}
               </p>
             </div>
           </div>
@@ -292,7 +296,7 @@ export default function LibraryCategory() {
           >
             <Button variant="outline" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
-              Upload
+              {t('library.uploadFile', 'Upload')}
             </Button>
           </FileUploadDialog>
           
@@ -302,10 +306,10 @@ export default function LibraryCategory() {
             onValueChange={(value) => value && setViewMode(value)}
             className="border rounded-lg"
           >
-            <ToggleGroupItem value="grid" aria-label="Grid View">
+            <ToggleGroupItem value="grid" aria-label={t('library.gridView')}>
               <Grid3X3 className="h-4 w-4" />
             </ToggleGroupItem>
-            <ToggleGroupItem value="list" aria-label="List View">
+            <ToggleGroupItem value="list" aria-label={t('library.listView')}>
               <List className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
@@ -318,12 +322,12 @@ export default function LibraryCategory() {
             {selectedFiles.length === items.length ? (
               <>
                 <CheckSquare className="h-4 w-4" />
-                Deselect All
+                {t('library.deselectAll', 'Deselect All')}
               </>
             ) : (
               <>
                 <Square className="h-4 w-4" />
-                Select All
+                {t('library.selectAll', 'Select All')}
               </>
             )}
           </Button>
@@ -335,7 +339,7 @@ export default function LibraryCategory() {
             >
               <Button className="flex items-center gap-2">
                 <Share2 className="h-4 w-4" />
-                Share Selected ({selectedFiles.length})
+                {t('library.shareSelected', 'Share Selected')} ({selectedFiles.length})
               </Button>
             </ShareFileDialog>
           )}
@@ -347,7 +351,7 @@ export default function LibraryCategory() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading {categoryInfo.title.toLowerCase()}...</p>
+            <p className="text-muted-foreground">{t('library.loading', 'Loading')} {categoryInfo.title.toLowerCase()}...</p>
           </div>
         </div>
       )}
@@ -400,13 +404,13 @@ export default function LibraryCategory() {
 
                   {/* Item Details */}
                   <div className="space-y-2 text-xs text-muted-foreground">
-                    {item.size && <div>Size: {item.size}</div>}
-                    {item.duration && <div>Duration: {item.duration}</div>}
-                    {item.pages && <div>Pages: {item.pages}</div>}
-                    {item.author && <div>Author: {item.author}</div>}
-                    {item.dimensions && <div>Dimensions: {item.dimensions}</div>}
-                    {item.sessions && <div>Sessions: {item.sessions}</div>}
-                    {item.level && <div>Level: {item.level}</div>}
+                    {item.size && <div>{t('library.size', 'Size')}: {item.size}</div>}
+                    {item.duration && <div>{t('library.duration', 'Duration')}: {item.duration}</div>}
+                    {item.pages && <div>{t('library.pages', 'Pages')}: {item.pages}</div>}
+                    {item.author && <div>{t('library.author', 'Author')}: {item.author}</div>}
+                    {item.dimensions && <div>{t('library.dimensions', 'Dimensions')}: {item.dimensions}</div>}
+                    {item.sessions && <div>{t('library.sessions', 'Sessions')}: {item.sessions}</div>}
+                    {item.level && <div>{t('library.level', 'Level')}: {item.level}</div>}
                   </div>
                 </div>
 
@@ -450,26 +454,26 @@ export default function LibraryCategory() {
                       ) : category === 'articles' ? (
                         <div className="text-center space-y-2">
                           <FileText className="h-8 w-8 text-muted-foreground mx-auto" />
-                          <p className="text-xs text-muted-foreground">Click to preview</p>
-                          <p className="text-xs text-muted-foreground/70">PDF/Document</p>
+                          <p className="text-xs text-muted-foreground">{t('library.clickToPreview', 'Click to preview')}</p>
+                          <p className="text-xs text-muted-foreground/70">PDF/{t('common.labels.document', 'Document')}</p>
                         </div>
                       ) : category === 'sounds' ? (
                         <div className="text-center space-y-2">
                           <Music className="h-8 w-8 text-muted-foreground mx-auto" />
-                          <p className="text-xs text-muted-foreground">Click to preview</p>
-                          <p className="text-xs text-muted-foreground/70">Audio</p>
+                          <p className="text-xs text-muted-foreground">{t('library.clickToPreview', 'Click to preview')}</p>
+                          <p className="text-xs text-muted-foreground/70">{t('library.audio', 'Audio')}</p>
                         </div>
                       ) : (
                         <div className="text-center space-y-2">
                           <IconComponent className="h-8 w-8 text-muted-foreground mx-auto" />
-                          <p className="text-xs text-muted-foreground">Click to preview</p>
+                          <p className="text-xs text-muted-foreground">{t('library.clickToPreview', 'Click to preview')}</p>
                         </div>
                       )}
                     </div>
                   ) : (
                   <div className="text-center space-y-2">
                     <IconComponent className="h-8 w-8 text-muted-foreground mx-auto" />
-                      <p className="text-xs text-muted-foreground">No preview available</p>
+                      <p className="text-xs text-muted-foreground">{t('library.noPreviewAvailable', 'No preview available')}</p>
                   </div>
                   )}
                 </div>
@@ -479,7 +483,7 @@ export default function LibraryCategory() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    title="Preview" 
+                    title={t('library.preview', 'Preview')} 
                     className="px-3"
                     onClick={() => handlePreview(item)}
                   >
@@ -488,7 +492,7 @@ export default function LibraryCategory() {
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    title="Download" 
+                    title={t('library.download', 'Download')} 
                     className="px-3"
                     disabled={downloadingItemId === item.id}
                     onClick={() => handleDownload(item)}
@@ -503,7 +507,7 @@ export default function LibraryCategory() {
                     file={item}
                     onShare={(shareData) => handleFileShare(item, shareData)}
                   >
-                    <Button size="sm" className="px-3 bg-primary hover:bg-primary/90" title="Share">
+                    <Button size="sm" className="px-3 bg-primary hover:bg-primary/90" title={t('library.share', 'Share')}>
                       <Share2 className="h-4 w-4" />
                     </Button>
                   </ShareFileDialog>
@@ -560,20 +564,20 @@ export default function LibraryCategory() {
                   
                   <div className="flex items-center gap-4">
                     <div className="text-xs text-muted-foreground space-y-1">
-                      {item.size && <div>Size: {item.size}</div>}
-                      {item.duration && <div>Duration: {item.duration}</div>}
-                      {item.pages && <div>Pages: {item.pages}</div>}
-                      {item.author && <div>Author: {item.author}</div>}
-                      {item.dimensions && <div>Dimensions: {item.dimensions}</div>}
-                      {item.sessions && <div>Sessions: {item.sessions}</div>}
-                      {item.level && <div>Level: {item.level}</div>}
+                      {item.size && <div>{t('library.size', 'Size')}: {item.size}</div>}
+                      {item.duration && <div>{t('library.duration', 'Duration')}: {item.duration}</div>}
+                      {item.pages && <div>{t('library.pages', 'Pages')}: {item.pages}</div>}
+                      {item.author && <div>{t('library.author', 'Author')}: {item.author}</div>}
+                      {item.dimensions && <div>{t('library.dimensions', 'Dimensions')}: {item.dimensions}</div>}
+                      {item.sessions && <div>{t('library.sessions', 'Sessions')}: {item.sessions}</div>}
+                      {item.level && <div>{t('library.level', 'Level')}: {item.level}</div>}
                     </div>
                     
                     <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        title="Preview" 
+                        title={t('library.preview', 'Preview')} 
                         className="px-3"
                         onClick={() => handlePreview(item)}
                       >
@@ -582,7 +586,7 @@ export default function LibraryCategory() {
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        title="Download" 
+                        title={t('library.download', 'Download')} 
                         className="px-3"
                         disabled={downloadingItemId === item.id}
                         onClick={() => handleDownload(item)}
@@ -597,7 +601,7 @@ export default function LibraryCategory() {
                         file={item}
                         onShare={(shareData) => handleFileShare(item, shareData)}
                       >
-                        <Button size="sm" className="px-3 bg-primary hover:bg-primary/90" title="Share">
+                        <Button size="sm" className="px-3 bg-primary hover:bg-primary/90" title={t('library.share', 'Share')}>
                           <Share2 className="h-4 w-4" />
                         </Button>
                       </ShareFileDialog>
@@ -731,11 +735,11 @@ export default function LibraryCategory() {
               ) : previewType === 'pdf' ? (
                 <div>
                   <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">PDF Preview</h4>
+                    <h4 className="text-sm font-medium mb-2">{t('library.pdfPreview', 'PDF Preview')}</h4>
                     <iframe
                       src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
                       className="w-full h-[60vh] border rounded"
-                      title="PDF Preview"
+                      title={t('library.pdfPreview', 'PDF Preview')}
                       onLoad={() => {
                         console.log('✅ PDF loaded successfully via API');
                       }}
@@ -753,14 +757,14 @@ export default function LibraryCategory() {
                         window.open(apiUrl, '_blank');
                       }}
                     >
-                      Open in New Tab
+                      {t('common.buttons.openInNewTab', 'Open in New Tab')}
                     </Button>
                   </div>
                 </div>
               ) : previewType === 'document' ? (
                 <div>
                   <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Document Preview</h4>
+                    <h4 className="text-sm font-medium mb-2">{t('library.documentPreview', 'Document Preview')}</h4>
                     <div className="w-full h-[60vh] border rounded bg-gray-50 flex items-center justify-center">
                       <div className="text-center p-8">
                         <div className="mb-4">
@@ -768,10 +772,9 @@ export default function LibraryCategory() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Document Preview</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('library.documentPreview', 'Document Preview')}</h3>
                         <p className="text-sm text-gray-500 mb-6">
-                          This document type cannot be previewed directly in the browser. 
-                          Please download the file to view it in a compatible application.
+                          {t('library.documentPreviewUnavailable', 'This document type cannot be previewed directly in the browser. Please download the file to view it in a compatible application.')}
                         </p>
                         <div className="space-y-3">
                           <Button 
@@ -787,7 +790,7 @@ export default function LibraryCategory() {
                               document.body.removeChild(link);
                             }}
                           >
-                            Download Document
+                            {t('library.downloadDocument', 'Download Document')}
                           </Button>
                           <Button 
                             variant="outline" 
@@ -797,7 +800,7 @@ export default function LibraryCategory() {
                               window.open(apiUrl, '_blank');
                             }}
                           >
-                            Open in New Tab
+                            {t('common.buttons.openInNewTab', 'Open in New Tab')}
                           </Button>
                         </div>
                       </div>
@@ -807,11 +810,11 @@ export default function LibraryCategory() {
               ) : (
                 <div>
                   <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Document Preview</h4>
+                    <h4 className="text-sm font-medium mb-2">{t('library.documentPreview', 'Document Preview')}</h4>
                     <iframe
                       src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
                       className="w-full h-[60vh] border rounded"
-                      title="Document Preview"
+                      title={t('library.documentPreview', 'Document Preview')}
                       onLoad={() => {
                         console.log('✅ Document loaded successfully via API');
                       }}

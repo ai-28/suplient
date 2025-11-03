@@ -45,6 +45,7 @@ import {
 } from "@/app/components/ui/sidebar";
 import { useAdminCommunicationStats } from "@/app/hooks/useAdminCommunicationStats";
 import { Badge } from "@/app/components/ui/badge";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Component for Admin Communication Badge
 function AdminCommunicationBadge() {
@@ -64,6 +65,7 @@ export function AppSidebar() {
   const { open } = useSidebar();
   const router = useRouter();
   const currentPath = usePathname();
+  const t = useTranslation();
 
   const searchRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -186,12 +188,12 @@ export function AppSidebar() {
     if (!searchResults || !searchResults.results) return [];
 
     const categories = [
-      ['Clients', searchResults.results.clients || [], User],
-      ['Groups', searchResults.results.groups || [], Users],
-      ['Sessions', searchResults.results.sessions || [], Calendar],
-      ['Tasks', searchResults.results.tasks || [], ClipboardList],
-      ['Notes', searchResults.results.notes || [], FileText],
-      ['Library', searchResults.results.resources || [], Library],
+      [t('navigation.clients', 'Clients'), searchResults.results.clients || [], User],
+      [t('navigation.groups', 'Groups'), searchResults.results.groups || [], Users],
+      [t('navigation.sessions', 'Sessions'), searchResults.results.sessions || [], Calendar],
+      [t('navigation.tasks', 'Tasks'), searchResults.results.tasks || [], ClipboardList],
+      [t('navigation.notes', 'Notes'), searchResults.results.notes || [], FileText],
+      [t('navigation.library', 'Library'), searchResults.results.resources || [], Library],
     ];
 
     return categories.filter(([_, results]) => results.length > 0);
@@ -205,23 +207,23 @@ export function AppSidebar() {
   const getMainNavItems = () => {
     if (isAdmin) {
       return [
-        { title: "Dashboard", url: "/admin/dashboard", icon: Home },
-        { title: "Coaches", url: "/admin/coaches", icon: User },
-        { title: "Clients", url: "/admin/clients", icon: Users },
-        { title: "Note", url: "/admin/note", icon: Bell },
-        { title: "Admin Users", url: "/admin/admin-users", icon: UserCog },
+        { title: t('navigation.dashboard', 'Dashboard'), url: "/admin/dashboard", icon: Home },
+        { title: t('navigation.coaches', 'Coaches'), url: "/admin/coaches", icon: User },
+        { title: t('navigation.clients', 'Clients'), url: "/admin/clients", icon: Users },
+        { title: t('navigation.notes', 'Note'), url: "/admin/note", icon: Bell },
+        { title: t('navigation.adminUsers', 'Admin Users'), url: "/admin/admin-users", icon: UserCog },
         // { title: "Chat", url: "/admin/chat", icon: MessageSquare },
       ];
     } else if (isCoach) {
       return [
-        { title: "Dashboard", url: "/coach/dashboard", icon: Home },
-        { title: "Clients", url: "/coach/clients", icon: User },
-        { title: "Groups", url: "/coach/groups", icon: Users },
-        { title: "Library", url: "/coach/library", icon: Library },
-        { title: "Programs", url: "/coach/programs", icon: Target },
-        { title: "Tasks", url: "/coach/tasks", icon: ClipboardList },
-        { title: "Sessions", url: "/coach/sessions", icon: Calendar },
-        { title: "Admin", url: "/coach/admin-communication", icon: MessageCircle },
+        { title: t('navigation.dashboard', 'Dashboard'), url: "/coach/dashboard", icon: Home },
+        { title: t('navigation.clients', 'Clients'), url: "/coach/clients", icon: User },
+        { title: t('navigation.groups', 'Groups'), url: "/coach/groups", icon: Users },
+        { title: t('navigation.resources', 'Library'), url: "/coach/library", icon: Library },
+        { title: t('navigation.programs', 'Programs'), url: "/coach/programs", icon: Target },
+        { title: t('navigation.tasks', 'Tasks'), url: "/coach/tasks", icon: ClipboardList },
+        { title: t('navigation.sessions', 'Sessions'), url: "/coach/sessions", icon: Calendar },
+        { title: t('navigation.admin', 'Admin'), url: "/coach/admin-communication", icon: MessageCircle },
       ];
     }
     return [];
@@ -230,13 +232,13 @@ export function AppSidebar() {
   const getBottomNavItems = () => {
     if (isAdmin) {
       return [
-        { title: "Settings", url: "/admin/settings", icon: Settings },
-        { title: "Help", url: "/admin/help", icon: HelpCircle },
+        { title: t('navigation.settings', 'Settings'), url: "/admin/settings", icon: Settings },
+        { title: t('navigation.help', 'Help'), url: "/admin/help", icon: HelpCircle },
       ];
     } else if (isCoach) {
       return [
-        { title: "Settings", url: "/coach/settings", icon: Settings },
-        { title: "Help", url: "/coach/help", icon: HelpCircle },
+        { title: t('navigation.settings', 'Settings'), url: "/coach/settings", icon: Settings },
+        { title: t('navigation.help', 'Help'), url: "/coach/help", icon: HelpCircle },
       ];
     }
     return [];
@@ -270,7 +272,7 @@ export function AppSidebar() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-sidebar-foreground/60" />
               <Input
-                placeholder="Search clients, notes, files, groups, sessions..."
+                placeholder={t('sidebar.searchPlaceholder', 'Search clients, notes, files, groups, sessions...')}
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onKeyDown={handleKeyDown}
@@ -301,13 +303,15 @@ export function AppSidebar() {
                   {isSearching ? (
                     <div className="p-6 text-center">
                       <Loader2 className="h-6 w-6 text-sidebar-foreground/60 mx-auto mb-2 animate-spin" />
-                      <div className="text-sm text-sidebar-foreground/60">Searching...</div>
+                      <div className="text-sm text-sidebar-foreground/60">{t('sidebar.searching', 'Searching...')}</div>
                     </div>
                   ) : totalResults > 0 ? (
                     <div className="max-h-96 overflow-y-auto">
                       <div className="p-3 border-b border-sidebar-border">
                         <div className="text-sm font-medium text-sidebar-foreground">
-                          {totalResults} {totalResults === 1 ? 'result' : 'results'} found
+                          {totalResults === 1 
+                            ? t('sidebar.searchResultFound', '{count} result found', { count: totalResults })
+                            : t('sidebar.searchResultsFound', '{count} results found', { count: totalResults })}
                         </div>
                       </div>
                       {categoriesWithResults.map(([category, results, Icon]) => (
@@ -349,7 +353,7 @@ export function AppSidebar() {
                                 }}
                                 className="text-white w-full px-3 py-1 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/20 transition-colors"
                               >
-                                View all {results.length} {category} results
+                                {t('sidebar.viewAllResults', 'View all {count} {category} results', { count: results.length, category })}
                               </button>
                             )}
                           </div>
@@ -360,10 +364,10 @@ export function AppSidebar() {
                     <div className="p-6 text-center text-white">
                       <Search className="h-8 w-8 text-sidebar-foreground/40 mx-auto mb-2" />
                       <div className="text-sm text-sidebar-foreground/60">
-                        No results found for "{searchResults?.query || searchQuery}"
+                        {t('sidebar.noResultsFound', 'No results found for "{query}"', { query: searchResults?.query || searchQuery })}
                       </div>
                       <div className="text-xs text-sidebar-foreground/40 mt-1">
-                        Try searching for clients, groups, tasks, sessions, notes, or library content
+                        {t('sidebar.trySearching', 'Try searching for clients, groups, tasks, sessions, notes, or library content')}
                       </div>
                     </div>
                   )}
@@ -377,7 +381,7 @@ export function AppSidebar() {
         <SidebarGroup className={!open ? "mt-12" : ""}>
           {open && (
             <SidebarGroupLabel className="text-sidebar-foreground text-xs uppercase tracking-wider px-6 mb-4">
-              {isAdmin ? 'Admin' : 'Coach'} Navigation
+              {isAdmin ? t('navigation.adminNavigation', 'Admin Navigation') : t('navigation.coachNavigation', 'Coach Navigation')}
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>

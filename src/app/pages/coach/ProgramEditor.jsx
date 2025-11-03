@@ -12,12 +12,14 @@ import { ArrowLeft, CheckSquare, MessageSquare, Upload, AlertTriangle } from "lu
 import { AddElementDialog } from "@/app/components/AddElementDialog";
 import { EditElementDialog } from "@/app/components/EditElementDialog";
 import { ProgramFlowChart } from "@/app/components/ProgramFlowChart";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { toast } from "sonner";
 
 
 export default function ProgramEditor() {
   const { id } = useParams();
   const router = useRouter();
+  const t = useTranslation();
   
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -103,7 +105,7 @@ export default function ProgramEditor() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading program...</p>
+            <p className="text-muted-foreground">{t('programs.loadingProgram', 'Loading program...')}</p>
           </div>
         </div>
       </div>
@@ -116,10 +118,10 @@ export default function ProgramEditor() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Error Loading Program</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('programs.errorLoadingProgram', 'Error Loading Program')}</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={fetchProgram} variant="outline">
-              Try Again
+              {t('common.buttons.tryAgain', 'Try Again')}
             </Button>
           </div>
         </div>
@@ -131,9 +133,9 @@ export default function ProgramEditor() {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Program Not Found</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-4">{t('programs.programNotFound', 'Program Not Found')}</h1>
           <Button onClick={() => router.push('/coach/programs')}>
-            Back to Programs
+            {t('programs.backToPrograms', 'Back to Programs')}
           </Button>
         </div>
       </div>
@@ -173,7 +175,7 @@ export default function ProgramEditor() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      toast.error('Please fill in the required fields');
+      toast.error(t('common.messages.fillRequiredFields', 'Please fill in the required fields'));
       return;
     }
 
@@ -218,16 +220,16 @@ export default function ProgramEditor() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => router.push('/coach/programs')}>
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t('common.buttons.back', 'Back')}
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              {isProgram ? 'View Program' : 'Edit Program Template'}
+              {isProgram ? t('programs.viewProgram', 'View Program') : t('programs.editProgramTemplate', 'Edit Program Template')}
             </h1>
             <p className="text-muted-foreground">{formData.name}</p>
             {isProgram && (
               <Badge variant="secondary" className="mt-2">
-                Active Program Instance
+                {t('programs.activeProgramInstance', 'Active Program Instance')}
               </Badge>
             )}
           </div>
@@ -237,31 +239,31 @@ export default function ProgramEditor() {
           {saving && (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           )}
-          {saving ? 'Saving...' : (isProgram ? 'Update Program' : 'Save Template')}
+          {saving ? t('common.messages.loading') : (isProgram ? t('programs.updateProgram', 'Update Program') : t('programs.saveTemplate', 'Save Template'))}
         </Button>
       </div>
 
       {/* Program Setup - Horizontal Layout */}
       <Card className="border-2 border-border/60 shadow-md bg-card/95">
         <CardHeader>
-          <CardTitle className="text-lg">Program Setup</CardTitle>
-          <CardDescription>Basic information about your program</CardDescription>
+          <CardTitle className="text-lg">{t('programs.programSetup')}</CardTitle>
+          <CardDescription>{t('programs.basicInfo')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">Program Name *</Label>
+              <Label htmlFor="name" className="text-sm font-medium">{t('programs.programName')} *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g. Anxiety Management Program"
+                placeholder={t('programs.programNamePlaceholder', 'e.g. Anxiety Management Program')}
                 className="h-10"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+              <Label htmlFor="description" className="text-sm font-medium">{t('programs.description')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -271,17 +273,17 @@ export default function ProgramEditor() {
                     setFormData(prev => ({ ...prev, description: value }));
                   }
                 }}
-                placeholder="What does this program help with?"
+                placeholder={t('programs.descriptionPlaceholder', 'What does this program help with?')}
                 className="resize-none"
                 rows={5}
               />
               <div className="text-xs text-muted-foreground mt-1">
-                {formData.description.length}/300 characters
+                {formData.description.length}/300 {t('common.labels.characters')}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="duration" className="text-sm font-medium">Duration</Label>
+              <Label htmlFor="duration" className="text-sm font-medium">{t('programs.duration')}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="duration"
@@ -292,7 +294,7 @@ export default function ProgramEditor() {
                   onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 1 }))}
                   className="h-10 w-20"
                 />
-                <span className="text-sm text-muted-foreground">weeks</span>
+                <span className="text-sm text-muted-foreground">{t('programs.weeks')}</span>
               </div>
             </div>
           </div>

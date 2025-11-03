@@ -7,6 +7,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } f
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/app/components/ui/carousel";
 import { useState } from "react";
 import PolarAreaChart from "./PolarAreaChart";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export function GoalAnalyticsChart({ 
   data, 
@@ -14,8 +15,7 @@ export function GoalAnalyticsChart({
   onTimePeriodChange,
   selectedPeriod = 'today'
 }) {
-  
-
+  const t = useTranslation();
 
   const handleTimePeriodChange = (period) => {
     onTimePeriodChange?.(period);
@@ -39,9 +39,9 @@ export function GoalAnalyticsChart({
         <CardContent>
           <div className="text-center py-8">
             <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Active Goals</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('analytics.noActiveGoals', 'No Active Goals')}</h3>
             <p className="text-muted-foreground">
-              Set up some goals to see your progress visualization.
+              {t('analytics.setupGoalsForVisualization', 'Set up some goals to see your progress visualization.')}
             </p>
           </div>
         </CardContent>
@@ -55,7 +55,7 @@ export function GoalAnalyticsChart({
       labels: data.map(item => item.name),
       datasets: [
         {
-          label: 'Goal Performance',
+          label: t('analytics.goalPerformance', 'Goal Performance'),
           data: data.map(item => item.value),
           backgroundColor: data.map(item => item.color + '80'), // Add transparency
           borderColor: '#ffffff', // White border color
@@ -110,8 +110,8 @@ export function GoalAnalyticsChart({
     return (
       <div className="space-y-4">
         <div className="text-center">
-          <h3 className="text-lg font-semibold">Polar Area Chart</h3>
-          <p className="text-sm text-muted-foreground">Today's goal performance</p>
+          <h3 className="text-lg font-semibold">{t('analytics.polarAreaChart', 'Polar Area Chart')}</h3>
+          <p className="text-sm text-muted-foreground">{t('analytics.todaysGoalPerformance', "Today's goal performance")}</p>
         </div>
         
         {/* Polar Area Chart */}
@@ -128,7 +128,7 @@ export function GoalAnalyticsChart({
             onClick={() => handleTimePeriodChange('today')}
             className="text-xs px-3 py-1"
           >
-            Today
+            {t('common.time.today', 'Today')}
           </Button>
           <Button 
             key="week"
@@ -137,7 +137,7 @@ export function GoalAnalyticsChart({
             onClick={() => handleTimePeriodChange('week')}
             className="text-xs px-3 py-1"
           >
-            Week
+            {t('analytics.week', 'Week')}
           </Button>
           <Button 
             key="month"
@@ -146,7 +146,7 @@ export function GoalAnalyticsChart({
             onClick={() => handleTimePeriodChange('month')}
             className="text-xs px-3 py-1"
           >
-            Month
+            {t('analytics.month', 'Month')}
           </Button>
         </div>
 
@@ -174,13 +174,13 @@ export function GoalAnalyticsChart({
       return (
         <div className="space-y-4">
           <div className="text-center">
-            <h3 className="text-lg font-semibold">Line Graph View</h3>
-            <p className="text-sm text-muted-foreground">Progress trends over time</p>
+            <h3 className="text-lg font-semibold">{t('analytics.lineGraphView', 'Line Graph View')}</h3>
+            <p className="text-sm text-muted-foreground">{t('analytics.progressTrendsOverTime', 'Progress trends over time')}</p>
           </div>
           <div className="h-80 w-full flex items-center justify-center">
             <div className="text-center text-muted-foreground">
-              <p>No historical data available</p>
-              <p className="text-sm">Complete some check-ins to see your progress trends</p>
+              <p>{t('analytics.noHistoricalData', 'No historical data available')}</p>
+              <p className="text-sm">{t('analytics.completeCheckInsForTrends', 'Complete some check-ins to see your progress trends')}</p>
             </div>
           </div>
         </div>
@@ -190,8 +190,8 @@ export function GoalAnalyticsChart({
     return (
       <div className="space-y-4">
         <div className="text-center">
-          <h3 className="text-lg font-semibold">Line Graph View</h3>
-          <p className="text-sm text-muted-foreground">Progress trends over time</p>
+          <h3 className="text-lg font-semibold">{t('analytics.lineGraphView', 'Line Graph View')}</h3>
+          <p className="text-sm text-muted-foreground">{t('analytics.progressTrendsOverTime', 'Progress trends over time')}</p>
         </div>
         
         {/* Line Chart */}
@@ -207,7 +207,7 @@ export function GoalAnalyticsChart({
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
                 domain={[0, 5]}
-                label={{ value: 'Rating (0-5)', angle: -90, position: 'insideLeft' }}
+                label={{ value: t('analytics.rating', 'Rating (0-5)'), angle: -90, position: 'insideLeft' }}
               />
               <Tooltip 
                 contentStyle={{

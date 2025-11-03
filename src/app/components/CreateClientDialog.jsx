@@ -25,6 +25,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Force refresh to clear any cached modules
 
@@ -42,6 +43,7 @@ const getFormSchema = () => z.object({
 export function CreateClientDialog({ onClientCreated }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const t = useTranslation();
   const formSchema = getFormSchema();
 
   const form = useForm({
@@ -84,8 +86,8 @@ export function CreateClientDialog({ onClientCreated }) {
       }
       
       // Show success message with temporary password
-      toast.success(`Client created successfully!`, {
-        description: `Name: ${result.client.name}\nEmail: ${result.client.email}\nTemporary Password: ${result.client.tempPassword}`
+      toast.success(t('clients.clientCreated'), {
+        description: `${t('common.labels.name')}: ${result.client.name}\n${t('common.labels.email')}: ${result.client.email}\nTemporary Password: ${result.client.tempPassword}`
       });
       
       setIsOpen(false);
@@ -109,14 +111,14 @@ export function CreateClientDialog({ onClientCreated }) {
       <DialogTrigger asChild>
         <Button className="bg-gradient-primary text-[#1A2D4D] shadow-medium border-1px border-[#B6D7D1] hover:shadow-medium hover:text-white transition-all">
           <UserPlus className="h-4 w-4 mr-2" />
-          Add New Client
+          {t('clients.addClient')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border shadow-strong">
         <DialogHeader className="pb-4 border-b border-border">
           <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
             <UserPlus className="h-6 w-6 text-primary" />
-            Create New Client
+            {t('clients.createClient')}
           </DialogTitle>
         </DialogHeader>
 
@@ -126,7 +128,7 @@ export function CreateClientDialog({ onClientCreated }) {
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-muted">
                 <User className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold text-foreground">Personal Information</h3>
+                <h3 className="text-lg font-semibold text-foreground">{t('profile.personalInfo')}</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -135,10 +137,10 @@ export function CreateClientDialog({ onClientCreated }) {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-foreground font-medium">Name</FormLabel>
+                      <FormLabel className="text-foreground font-medium">{t('common.labels.name')}</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="Enter name" 
+                          placeholder={t('common.labels.name')} 
                           className="bg-background border-border focus:border-primary" 
                           {...field} 
                         />
@@ -155,7 +157,7 @@ export function CreateClientDialog({ onClientCreated }) {
                     <FormItem>
                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                          <Mail className="h-4 w-4" />
-                         Email Address
+                         {t('common.labels.email')}
                        </FormLabel>
                        <FormControl>
                          <Input 
@@ -179,11 +181,11 @@ export function CreateClientDialog({ onClientCreated }) {
                     <FormItem>
                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                          <Phone className="h-4 w-4" />
-                         Phone Number
+                         {t('common.labels.phone')}
                        </FormLabel>
                        <FormControl>
                          <Input 
-                           placeholder="Enter phone number" 
+                           placeholder={t('common.labels.phone')} 
                            className="bg-background border-border focus:border-primary" 
                            {...field} 
                          />
@@ -200,8 +202,8 @@ export function CreateClientDialog({ onClientCreated }) {
                     <FormItem className="flex flex-col">
                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                          <CalendarIcon2 className="h-4 w-4" />
-                         Date of Birth
-                         <span className="text-xs text-muted-foreground font-normal">(Click to open calendar)</span>
+                         {t('settings.profile.birthdate')}
+                         <span className="text-xs text-muted-foreground font-normal">({t('common.labels.select')})</span>
                        </FormLabel>
                           <FormControl>
                         <Input
@@ -240,11 +242,11 @@ export function CreateClientDialog({ onClientCreated }) {
                   <FormItem>
                      <FormLabel className="text-foreground font-medium flex items-center gap-2">
                        <MapPin className="h-4 w-4" />
-                       Address
+                       {t('clients.location')}
                      </FormLabel>
                      <FormControl>
                        <Input 
-                         placeholder="Enter full address" 
+                         placeholder={t('clients.location')} 
                          className="bg-background border-border focus:border-primary" 
                          {...field} 
                        />
@@ -259,7 +261,7 @@ export function CreateClientDialog({ onClientCreated }) {
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-muted">
                 <Briefcase className="h-5 w-5 text-accent" />
-                <h3 className="text-lg font-semibold text-foreground">Session Information</h3>
+                <h3 className="text-lg font-semibold text-foreground">{t('sessions.title')}</h3>
               </div>
 
               <FormField
@@ -267,10 +269,10 @@ export function CreateClientDialog({ onClientCreated }) {
                 name="concerns"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-foreground font-medium">Primary Concerns</FormLabel>
+                    <FormLabel className="text-foreground font-medium">{t('common.labels.description')}</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Describe the primary concerns or goals for therapy"
+                        placeholder={t('common.labels.description')}
                         className="bg-background border-border focus:border-primary min-h-[80px]"
                         {...field} 
                       />
@@ -290,7 +292,7 @@ export function CreateClientDialog({ onClientCreated }) {
                 disabled={isLoading}
                 className="border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                {t('common.buttons.cancel')}
               </Button>
               <Button 
                 type="submit" 
@@ -300,12 +302,12 @@ export function CreateClientDialog({ onClientCreated }) {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating Client...
+                    {t('common.messages.loading')}
                   </>
                 ) : (
                   <>
                     <UserPlus className="h-4 w-4 mr-2" />
-                    Add Client
+                    {t('clients.addClient')}
                   </>
                 )}
               </Button>

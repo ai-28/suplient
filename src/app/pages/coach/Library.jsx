@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Add cache-busting timestamp to force fresh image loading
 const cacheBuster = Date.now();
@@ -48,6 +49,7 @@ const getSizeInMB = (bytes) => {
 
 export default function Library() {
   const router = useRouter();
+  const t = useTranslation();
   const [libraryItems, setLibraryItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageErrors, setImageErrors] = useState(new Set());
@@ -156,7 +158,7 @@ export default function Library() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading library data...</p>
+            <p className="text-muted-foreground">{t('common.messages.loading')}</p>
           </div>
         </div>
       </div>
@@ -168,8 +170,8 @@ export default function Library() {
       {/* Page Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Library</h1>
-          <p className="text-muted-foreground">Manage your library of resources</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">{t('navigation.library')}</h1>
+          <p className="text-muted-foreground">{t('library.title')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-4 text-sm bg-muted/50 rounded-md px-4 py-2.5 h-10">

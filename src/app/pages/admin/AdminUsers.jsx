@@ -22,9 +22,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/app/components/ui/alert-dialog";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function AdminUsers() {
   const { data: session } = useSession();
+  const t = useTranslation();
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUserIsSuperAdmin, setCurrentUserIsSuperAdmin] = useState(false);
@@ -63,11 +65,11 @@ export default function AdminUsers() {
           const currentUser = data.admins.find(a => a.id === session?.user?.id);
           setCurrentUserIsSuperAdmin(currentUser?.isSuperAdmin || false);
         } else {
-          toast.error('Failed to load admin users');
+          toast.error(t('common.messages.error'));
         }
       } catch (error) {
         console.error('Error fetching admins:', error);
-        toast.error('Failed to load admin users');
+        toast.error(t('common.messages.error'));
       } finally {
         setLoading(false);
       }
@@ -80,7 +82,7 @@ export default function AdminUsers() {
 
   const handleCreateAdmin = async () => {
     if (!formData.name || !formData.email || !formData.password) {
-      toast.error('Please fill in all required fields');
+      toast.error(t('adminUsers.fillRequiredFields'));
       return;
     }
 
@@ -96,7 +98,7 @@ export default function AdminUsers() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Admin created successfully');
+        toast.success(t('adminUsers.adminCreated'));
         setShowCreateDialog(false);
         setFormData({ name: '', email: '', password: '', phone: '', isSuperAdmin: false, isActive: true });
         // Refresh admins list
@@ -106,11 +108,11 @@ export default function AdminUsers() {
           setAdmins(refreshData.admins || []);
         }
       } else {
-        toast.error(data.error || 'Failed to create admin');
+        toast.error(data.error || t('common.messages.error'));
       }
     } catch (error) {
       console.error('Error creating admin:', error);
-      toast.error('Failed to create admin');
+      toast.error(t('common.messages.error'));
     } finally {
       setCreatingAdmin(false);
     }
@@ -126,19 +128,19 @@ export default function AdminUsers() {
     if (showPasswordEdit) {
       // Always require current password for security verification
       if (!passwordData.currentPassword) {
-        toast.error('Your current password is required to change any password');
+        toast.error(t('adminUsers.currentPasswordRequired'));
         return;
       }
 
       // Check if new password is provided
       if (passwordData.newPassword || passwordData.confirmPassword) {
         if (passwordData.newPassword.length < 8) {
-          toast.error('New password must be at least 8 characters long');
+          toast.error(t('adminUsers.passwordMinLength'));
           return;
         }
 
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-          toast.error('New passwords do not match');
+          toast.error(t('adminUsers.passwordsDoNotMatch'));
           return;
         }
       } else {
@@ -182,7 +184,7 @@ export default function AdminUsers() {
       }
 
       // Success case
-      toast.success('Admin updated successfully');
+      toast.success(t('adminUsers.adminUpdated'));
       setShowEditDialog(false);
       setSelectedAdmin(null);
       setFormData({ name: '', email: '', password: '', phone: '', isSuperAdmin: false, isActive: true });
@@ -197,7 +199,7 @@ export default function AdminUsers() {
       }
     } catch (error) {
       console.error('Error updating admin:', error);
-      toast.error('Network error: Failed to update admin');
+      toast.error(t('common.messages.error'));
     } finally {
       setUpdatingAdmin(false);
     }
@@ -216,7 +218,7 @@ export default function AdminUsers() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Admin deleted successfully');
+        toast.success(t('adminUsers.adminDeleted'));
         setShowDeleteDialog(false);
         setSelectedAdmin(null);
         // Refresh admins list
@@ -226,11 +228,11 @@ export default function AdminUsers() {
           setAdmins(refreshData.admins || []);
         }
       } else {
-        toast.error(data.error || 'Failed to delete admin');
+        toast.error(data.error || t('common.messages.error'));
       }
     } catch (error) {
       console.error('Error deleting admin:', error);
-      toast.error('Failed to delete admin');
+      toast.error(t('common.messages.error'));
     } finally {
       setDeletingAdmin(false);
     }
@@ -294,58 +296,58 @@ export default function AdminUsers() {
   return (
     <div className="page-container">
       <PageHeader 
-        title="Admin Users" 
-        subtitle={`Manage system administrators ${currentUserIsSuperAdmin ? '(Super Admin)' : '(Admin)'}`}
+        title={t('navigation.adminUsers')} 
+        subtitle={t('navigation.adminUsers')}
       >
         {currentUserIsSuperAdmin && (
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <UserPlus className="h-4 w-4" />
-                Add Admin
+                {t('adminUsers.addAdmin', 'Add Admin')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New Admin</DialogTitle>
+                <DialogTitle>{t('adminUsers.createAdmin', 'Create New Admin')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name *</Label>
+                  <Label htmlFor="name">{t('common.labels.name')} *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Admin name"
+                    placeholder={t('common.labels.name')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">{t('common.labels.email')} *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="admin@example.com"
+                    placeholder={t('common.labels.email')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
+                  <Label htmlFor="password">{t('settings.profile.newPassword')} *</Label>
                   <Input
                     id="password"
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Enter password"
+                    placeholder={t('settings.profile.newPassword')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (Optional)</Label>
+                  <Label htmlFor="phone">{t('common.labels.phone')} ({t('common.labels.optional', 'Optional')})</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+1234567890"
+                    placeholder={t('common.labels.phone')}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -356,7 +358,7 @@ export default function AdminUsers() {
                   />
                   <Label htmlFor="isSuperAdmin" className="cursor-pointer flex items-center gap-2">
                     <Crown className="h-4 w-4 text-yellow-600" />
-                    Make Super Admin
+                    {t('adminUsers.makeSuperAdmin', 'Make Super Admin')}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -366,22 +368,22 @@ export default function AdminUsers() {
                     onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                   />
                   <Label htmlFor="isActive" className="cursor-pointer">
-                    Active Account
+                    {t('adminUsers.activeAccount', 'Active Account')}
                   </Label>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={creatingAdmin}>
-                  Cancel
+                  {t('common.buttons.cancel')}
                 </Button>
                 <Button onClick={handleCreateAdmin} disabled={creatingAdmin}>
                   {creatingAdmin ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
+                      {t('common.messages.loading')}
                     </>
                   ) : (
-                    'Create Admin'
+                    t('adminUsers.createAdmin', 'Create Admin')
                   )}
                 </Button>
               </div>
@@ -394,24 +396,24 @@ export default function AdminUsers() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserCog className="h-5 w-5 text-primary" />
-            Administrators ({admins.length})
+            {t('adminUsers.administrators', 'Administrators')} ({admins.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-1">
             {/* Header Row */}
             <div className="grid grid-cols-5 gap-4 p-4 text-sm font-medium text-muted-foreground bg-muted/30 rounded-lg">
-              <div>Name</div>
-              <div>Email</div>
-              <div>Role</div>
-              <div>Status</div>
-              <div>Actions</div>
+              <div>{t('common.labels.name')}</div>
+              <div>{t('common.labels.email')}</div>
+              <div>{t('common.labels.role', 'Role')}</div>
+              <div>{t('common.labels.status')}</div>
+              <div>{t('common.labels.actions')}</div>
             </div>
 
             {/* Admin Rows */}
             {admins.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No admin users found
+                {t('adminUsers.noAdminUsers')}
               </div>
             ) : (
               admins.map((admin) => (
@@ -430,7 +432,7 @@ export default function AdminUsers() {
                     <div>
                       <div className="font-medium">{admin.name}</div>
                       {admin.id === session?.user?.id && (
-                        <div className="text-xs text-muted-foreground">(You)</div>
+                        <div className="text-xs text-muted-foreground">{t('adminUsers.you')}</div>
                       )}
                     </div>
                   </div>
@@ -447,7 +449,7 @@ export default function AdminUsers() {
                         : 'bg-blue-100 text-blue-800 border-blue-300'
                       }`}
                     >
-                      {admin.isSuperAdmin ? 'Super Admin' : 'Admin'}
+                      {admin.isSuperAdmin ? t('adminUsers.superAdmin') : t('adminUsers.admin')}
                     </Badge>
                   </div>
                   <div className="flex items-center">
@@ -457,7 +459,7 @@ export default function AdminUsers() {
                         : 'bg-muted text-muted-foreground'
                       }`}
                     >
-                      {admin.isActive ? 'Active' : 'Inactive'}
+                      {admin.isActive ? t('common.status.active') : t('common.status.inactive')}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
@@ -595,7 +597,7 @@ export default function AdminUsers() {
                 />
                 <Label htmlFor="edit-isSuperAdmin" className="cursor-pointer flex items-center gap-2">
                   <Crown className="h-4 w-4 text-yellow-600" />
-                  Super Admin
+                  {t('adminUsers.makeSuperAdmin')}
                 </Label>
               </div>
             )}
@@ -606,22 +608,22 @@ export default function AdminUsers() {
                 onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
               />
               <Label htmlFor="edit-isActive" className="cursor-pointer">
-                Active Account
+                {t('adminUsers.activeAccount')}
               </Label>
             </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={updatingAdmin}>
-              Cancel
+              {t('common.buttons.cancel')}
             </Button>
             <Button onClick={handleUpdateAdmin} disabled={updatingAdmin}>
               {updatingAdmin ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  {t('common.messages.loading')}
                 </>
               ) : (
-                'Save Changes'
+                t('common.buttons.saveChanges')
               )}
             </Button>
           </div>
@@ -632,14 +634,14 @@ export default function AdminUsers() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Admin User</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.buttons.delete')} {t('adminUsers.admin')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{selectedAdmin?.name}</strong>? 
-              This action cannot be undone.
+              {t('common.messages.confirmDelete', 'Are you sure you want to delete')} <strong>{selectedAdmin?.name}</strong>? 
+              {t('common.messages.cannotUndo', 'This action cannot be undone.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingAdmin}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deletingAdmin}>{t('common.buttons.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteAdmin} 
               disabled={deletingAdmin}
@@ -648,10 +650,10 @@ export default function AdminUsers() {
               {deletingAdmin ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
+                  {t('common.messages.loading')}
                 </>
               ) : (
-                'Delete'
+                t('common.buttons.delete')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -20,6 +20,7 @@ import {
   Users
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Mock data for shared files
 const sharedFiles = [
@@ -99,6 +100,7 @@ const categoryColors = {
 };
 
 export default function ClientLibrary() {
+  const t = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -119,9 +121,9 @@ export default function ClientLibrary() {
     const sharedDate = new Date(timestamp);
     const diffInDays = Math.floor((now.getTime() - sharedDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffInDays === 0) return "Today";
-    if (diffInDays === 1) return "Yesterday";
-    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays === 0) return t('common.time.today', "Today");
+    if (diffInDays === 1) return t('common.time.yesterday', "Yesterday");
+    if (diffInDays < 7) return t('common.time.daysAgo', "{count} days ago", { count: diffInDays });
     return sharedDate.toLocaleDateString();
   };
 
@@ -130,8 +132,8 @@ export default function ClientLibrary() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">Shared Library</h2>
-          <p className="text-muted-foreground mt-1">Resources shared by your coach</p>
+          <h2 className="text-3xl font-bold text-foreground">{t('library.sharedLibrary', 'Shared Library')}</h2>
+          <p className="text-muted-foreground mt-1">{t('library.subtitle', 'Resources shared by your coach')}</p>
         </div>
       </div>
 
@@ -140,7 +142,7 @@ export default function ClientLibrary() {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search shared resources..."
+            placeholder={t('library.searchPlaceholder', 'Search shared resources...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -151,11 +153,11 @@ export default function ClientLibrary() {
       {/* Category Tabs */}
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="all">All ({sharedFiles.length})</TabsTrigger>
-          <TabsTrigger value="videos">Videos ({categoryCounts.videos || 0})</TabsTrigger>
-          <TabsTrigger value="images">Images ({categoryCounts.images || 0})</TabsTrigger>
-          <TabsTrigger value="articles">Articles ({categoryCounts.articles || 0})</TabsTrigger>
-          <TabsTrigger value="sounds">Sounds ({categoryCounts.sounds || 0})</TabsTrigger>
+          <TabsTrigger value="all">{t('library.all', 'All')} ({sharedFiles.length})</TabsTrigger>
+          <TabsTrigger value="videos">{t('library.videos', 'Videos')} ({categoryCounts.videos || 0})</TabsTrigger>
+          <TabsTrigger value="images">{t('library.images', 'Images')} ({categoryCounts.images || 0})</TabsTrigger>
+          <TabsTrigger value="articles">{t('library.articles', 'Articles')} ({categoryCounts.articles || 0})</TabsTrigger>
+          <TabsTrigger value="sounds">{t('library.sounds', 'Sounds')} ({categoryCounts.sounds || 0})</TabsTrigger>
         </TabsList>
 
         <TabsContent value={selectedCategory} className="space-y-4">
@@ -163,9 +165,9 @@ export default function ClientLibrary() {
             <Card className="p-8">
               <div className="text-center">
                 <LibraryIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No shared resources found</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('library.noResources', 'No shared resources found')}</h3>
                 <p className="text-muted-foreground">
-                  {searchQuery ? "Try adjusting your search terms" : "Your coach hasn't shared any resources yet"}
+                  {searchQuery ? t('library.adjustSearch', "Try adjusting your search terms") : t('library.noResourcesYet', "Your coach hasn't shared any resources yet")}
                 </p>
               </div>
             </Card>
@@ -186,7 +188,7 @@ export default function ClientLibrary() {
                           </Badge>
                           {!file.viewed && (
                             <Badge variant="destructive" className="text-xs">
-                              New
+                              {t('library.new', 'New')}
                             </Badge>
                           )}
                         </div>
@@ -200,17 +202,17 @@ export default function ClientLibrary() {
 
                       {/* File Details */}
                       <div className="space-y-2 text-xs text-muted-foreground">
-                        {file.size && <div>Size: {file.size}</div>}
-                        {file.duration && <div>Duration: {file.duration}</div>}
-                        {file.pages && <div>Pages: {file.pages}</div>}
-                        {file.author && <div>Author: {file.author}</div>}
+                        {file.size && <div>{t('library.size', 'Size')}: {file.size}</div>}
+                        {file.duration && <div>{t('library.duration', 'Duration')}: {file.duration}</div>}
+                        {file.pages && <div>{t('library.pages', 'Pages')}: {file.pages}</div>}
+                        {file.author && <div>{t('library.author', 'Author')}: {file.author}</div>}
                       </div>
 
                       {/* Share Info */}
                       <div className="bg-muted/30 rounded-lg p-3 space-y-2">
                         <div className="flex items-center gap-2 text-sm">
                           <User className="h-4 w-4" />
-                          <span>Shared by {file.sharedBy}</span>
+                          <span>{t('library.sharedBy', 'Shared by')} {file.sharedBy}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
@@ -235,7 +237,7 @@ export default function ClientLibrary() {
                           <div className={`${colorClass} rounded-lg p-2 w-fit mx-auto`}>
                             <IconComponent className="h-6 w-6 text-white" />
                           </div>
-                          <p className="text-xs text-muted-foreground">Preview</p>
+                          <p className="text-xs text-muted-foreground">{t('library.preview', 'Preview')}</p>
                         </div>
                       </div>
 
@@ -243,11 +245,11 @@ export default function ClientLibrary() {
                       <div className="flex gap-2">
                         <Button size="sm" className="flex-1">
                           <Eye className="h-3 w-3 mr-1" />
-                          View
+                          {t('library.view', 'View')}
                         </Button>
                         <Button size="sm" variant="outline">
                           <Download className="h-3 w-3 mr-1" />
-                          Download
+                          {t('library.download', 'Download')}
                         </Button>
                       </div>
                     </CardContent>

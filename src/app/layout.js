@@ -1,5 +1,6 @@
 import AuthSessionProvider from "@/app/components/providers/SessionProvider";
 import { AuthProvider } from "@/app/context/AuthContext";
+import { LanguageProvider } from "@/app/context/LanguageContext";
 import SocketProvider from "@/app/components/providers/SocketProvider";
 import { Toaster } from "sonner";
 import { Inter } from "next/font/google";
@@ -99,17 +100,19 @@ export default function RootLayout({ children }) {
       <body className={inter.className}>
         <AuthSessionProvider>
           <AuthProvider>
+            <LanguageProvider>
             <SocketProvider>
               {children}
-              <Toaster
-                position="top-right"
-                richColors
-                closeButton
-                classes={{
-                  closeButton: 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20'
-                }}
-              />
+                <Toaster
+                  position="top-right"
+                  richColors
+                  closeButton
+                  classes={{
+                    closeButton: 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20'
+                  }}
+                />
             </SocketProvider>
+            </LanguageProvider>
           </AuthProvider>
         </AuthSessionProvider>
       </body>

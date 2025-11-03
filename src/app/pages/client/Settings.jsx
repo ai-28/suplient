@@ -10,7 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { Separator } from "@/app/components/ui/separator";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { useTimeFormat } from "@/app/contexts/TimeFormatContext";
+import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { 
   Settings as SettingsIcon, 
@@ -26,6 +28,7 @@ import {
 } from "lucide-react";
 
 export default function ClientSettings() {
+  const t = useTranslation();
   const { timeFormat, setTimeFormat } = useTimeFormat();
   const [notifications, setNotifications] = useState({
     email: true,
@@ -49,10 +52,11 @@ export default function ClientSettings() {
         <div>
           <h2 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <SettingsIcon className="h-8 w-8 text-primary" />
-            {t('common:navigation.settings')}
+            {t('navigation.settings', 'Settings')}
           </h2>
-          <p className="text-muted-foreground mt-1">{t('settings:profile.description')}</p>
+          <p className="text-muted-foreground mt-1">{t('settings.title', 'Manage your settings')}</p>
         </div>
+        <LanguageSelector variant="header" />
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">

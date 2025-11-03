@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Target, TrendingDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Fixed goal fields from the image
 const goalFields = [
@@ -119,6 +120,7 @@ const useDailyTracking = (goals, habits) => {
 
 export default function ClientJournal() {
   const router = useRouter();
+  const t = useTranslation();
   const activeGoals = getActiveGoals();
   const activeBadHabits = getActiveBadHabits();
   const { saveDailyEntry, getTodayEntry, isLoading } = useDailyTracking(activeGoals, activeBadHabits);
@@ -177,14 +179,14 @@ export default function ClientJournal() {
       
       // Show different messages based on whether it was inserted or updated
       if (result.isUpdate) {
-        toast.success("Daily tracking updated successfully! +1 point for engagement");
+        toast.success(t('journal.updatedSuccess', "Daily tracking updated successfully! +1 point for engagement"));
       } else {
-        toast.success("Daily tracking saved successfully! +1 point for engagement");
+        toast.success(t('journal.savedSuccess', "Daily tracking saved successfully! +1 point for engagement"));
       }
       
       router.push('/client');
     } catch (error) {
-      toast.error(error.message || "Failed to save daily tracking");
+      toast.error(error.message || t('journal.saveFailed', "Failed to save daily tracking"));
       console.error('Error saving daily entry:', error);
     }
   };
@@ -214,11 +216,11 @@ export default function ClientJournal() {
         <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="ml-3 text-lg font-semibold">Quick Daily Check-in</h1>
+        <h1 className="ml-3 text-lg font-semibold">{t('journal.quickCheckIn', 'Quick Daily Check-in')}</h1>
         <div className="ml-auto">
           <Button onClick={handleSave} disabled={isLoading} size="sm">
             <Save className="h-4 w-4 mr-1" />
-            {isLoading ? 'Saving...' : 'Save'}
+            {isLoading ? t('common.messages.saving', 'Saving...') : t('common.buttons.save', 'Save')}
           </Button>
         </div>
       </div>
@@ -229,7 +231,7 @@ export default function ClientJournal() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Goals</h2>
+              <h2 className="font-semibold">{t('journal.goals', 'Goals')}</h2>
             </div>
             
             <div className="space-y-4">
@@ -238,7 +240,7 @@ export default function ClientJournal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🌙</span>
-                    <span className="font-medium">Sleep Quality</span>
+                    <span className="font-medium">{t('journal.sleepQuality', 'Sleep Quality')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getScoreEmoji(formData.sleepQuality)}</span>
@@ -255,8 +257,8 @@ export default function ClientJournal() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Poor</span>
-                    <span>Amazing</span>
+                    <span>{t('journal.poor', 'Poor')}</span>
+                    <span>{t('journal.amazing', 'Amazing')}</span>
                   </div>
                 </div>
               </div>
@@ -266,7 +268,7 @@ export default function ClientJournal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🥗</span>
-                    <span className="font-medium">Nutrition</span>
+                    <span className="font-medium">{t('journal.nutrition', 'Nutrition')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getScoreEmoji(formData.nutrition)}</span>
@@ -283,8 +285,8 @@ export default function ClientJournal() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Poor</span>
-                    <span>Amazing</span>
+                    <span>{t('journal.poor', 'Poor')}</span>
+                    <span>{t('journal.amazing', 'Amazing')}</span>
                   </div>
                 </div>
               </div>
@@ -294,7 +296,7 @@ export default function ClientJournal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">🏃‍♂️</span>
-                    <span className="font-medium">Physical Activity</span>
+                    <span className="font-medium">{t('journal.physicalActivity', 'Physical Activity')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getScoreEmoji(formData.physicalActivity)}</span>
@@ -311,8 +313,8 @@ export default function ClientJournal() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Poor</span>
-                    <span>Amazing</span>
+                    <span>{t('journal.poor', 'Poor')}</span>
+                    <span>{t('journal.amazing', 'Amazing')}</span>
                   </div>
                 </div>
               </div>
@@ -322,7 +324,7 @@ export default function ClientJournal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">📚</span>
-                    <span className="font-medium">Learning</span>
+                    <span className="font-medium">{t('journal.learning', 'Learning')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getScoreEmoji(formData.learning)}</span>
@@ -339,8 +341,8 @@ export default function ClientJournal() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Poor</span>
-                    <span>Amazing</span>
+                    <span>{t('journal.poor', 'Poor')}</span>
+                    <span>{t('journal.amazing', 'Amazing')}</span>
                   </div>
                 </div>
               </div>
@@ -350,7 +352,7 @@ export default function ClientJournal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">❤️</span>
-                    <span className="font-medium">Maintaining Relationships</span>
+                    <span className="font-medium">{t('journal.maintainingRelationships', 'Maintaining Relationships')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getScoreEmoji(formData.maintainingRelationships)}</span>
@@ -367,8 +369,8 @@ export default function ClientJournal() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Poor</span>
-                    <span>Amazing</span>
+                    <span>{t('journal.poor', 'Poor')}</span>
+                    <span>{t('journal.amazing', 'Amazing')}</span>
                   </div>
                 </div>
               </div>
@@ -381,7 +383,7 @@ export default function ClientJournal() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-destructive" />
-              <h2 className="font-semibold">Reduce These</h2>
+              <h2 className="font-semibold">{t('journal.reduceThese', 'Reduce These')}</h2>
             </div>
             
             <div className="space-y-4">
@@ -390,7 +392,7 @@ export default function ClientJournal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">📱</span>
-                    <span className="font-medium">Excessive Social Media</span>
+                    <span className="font-medium">{t('journal.excessiveSocialMedia', 'Excessive Social Media')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getBadHabitEmoji(formData.excessiveSocialMedia)}</span>
@@ -407,8 +409,8 @@ export default function ClientJournal() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>None</span>
-                    <span>Overdid it</span>
+                    <span>{t('journal.none', 'None')}</span>
+                    <span>{t('journal.overdidIt', 'Overdid it')}</span>
                   </div>
                 </div>
               </div>
@@ -418,7 +420,7 @@ export default function ClientJournal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">⏰</span>
-                    <span className="font-medium">Procrastination</span>
+                    <span className="font-medium">{t('journal.procrastination', 'Procrastination')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getBadHabitEmoji(formData.procrastination)}</span>
@@ -435,8 +437,8 @@ export default function ClientJournal() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>None</span>
-                    <span>Overdid it</span>
+                    <span>{t('journal.none', 'None')}</span>
+                    <span>{t('journal.overdidIt', 'Overdid it')}</span>
                   </div>
                 </div>
               </div>
@@ -446,7 +448,7 @@ export default function ClientJournal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-xl">☁️</span>
-                    <span className="font-medium">Negative Thinking</span>
+                    <span className="font-medium">{t('journal.negativeThinking', 'Negative Thinking')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getBadHabitEmoji(formData.negativeThinking)}</span>
@@ -463,8 +465,8 @@ export default function ClientJournal() {
                     className="w-full"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>None</span>
-                    <span>Overdid it</span>
+                    <span>{t('journal.none', 'None')}</span>
+                    <span>{t('journal.overdidIt', 'Overdid it')}</span>
                   </div>
                 </div>
               </div>
@@ -475,9 +477,9 @@ export default function ClientJournal() {
         {/* Quick Notes */}
         {(
           <div className="space-y-3">
-            <h2 className="font-semibold">How was today?</h2>
+            <h2 className="font-semibold">{t('journal.howWasToday', 'How was today?')}</h2>
             <Textarea
-              placeholder="Optional quick note about your day..."
+              placeholder={t('journal.optionalNote', "Optional quick note about your day...")}
               value={formData.notes}
               onChange={(e) => updateFormData('notes', e.target.value)}
               className="min-h-[80px] bg-card/50 border-none"
@@ -491,9 +493,9 @@ export default function ClientJournal() {
           <div className="text-center py-8 space-y-4">
             <Target className="h-12 w-12 text-muted-foreground mx-auto" />
             <div>
-              <h3 className="font-semibold">No Active Goals</h3>
+              <h3 className="font-semibold">{t('journal.noActiveGoals', 'No Active Goals')}</h3>
               <p className="text-muted-foreground text-sm">
-                Set up your goals to start quick daily tracking.
+                {t('journal.setupGoalsDesc', 'Set up your goals to start quick daily tracking.')}
               </p>
             </div>
             <Button 
@@ -501,7 +503,7 @@ export default function ClientJournal() {
               onClick={() => router.push('/client/profile')}
               size="sm"
             >
-              Set Up Goals
+              {t('journal.setUpGoals', 'Set Up Goals')}
             </Button>
           </div>
         )}

@@ -5,13 +5,15 @@ import { Button } from "@/app/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function GroupChat() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
+  const t = useTranslation();
   const groupId = params?.id; // Changed from groupId to id to match route
-  const groupName = searchParams?.get('groupName') || "Group Chat";
+  const groupName = searchParams?.get('groupName') || t('groups.groupChat', 'Group Chat');
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +46,7 @@ export default function GroupChat() {
   if (!groupId) {
     return (
       <div className="flex items-center justify-center h-screen text-muted-foreground">
-        Invalid Group ID
+        {t('groups.invalidGroupId', 'Invalid Group ID')}
       </div>
     );
   }

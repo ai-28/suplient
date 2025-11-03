@@ -42,6 +42,7 @@ import {
   StickyNote
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Default icons for group stages
 const defaultGroupIcons = {
@@ -54,6 +55,7 @@ const defaultGroupIcons = {
 export default function Groups() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTranslation();
   const { groups, loading, error, refetchGroups, updateGroupStage } = useGroups();
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -310,8 +312,8 @@ export default function Groups() {
     <div className="page-container">
       {/* Page Header */}
       <PageHeader 
-        title={"Groups"} 
-        subtitle={"Manage your groups"}
+        title={t('navigation.groups')} 
+        subtitle={t('groups.title')}
       >
         {/* View Toggle */}
         <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">

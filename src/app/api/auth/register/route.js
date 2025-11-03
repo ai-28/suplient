@@ -87,8 +87,8 @@ export async function POST(request) {
 
                     // Send real-time notification via socket
                     if (insertedNotifications.length > 0) {
-                        try {
-                            if (global.globalSocketIO) {
+                    try {
+                        if (global.globalSocketIO) {
                                 const notification = insertedNotifications[0];
                                 const socketNotification = {
                                     id: notification.id,
@@ -100,7 +100,7 @@ export async function POST(request) {
                                     priority: notification.priority,
                                     createdAt: notification.createdAt ? new Date(notification.createdAt).toISOString() : new Date().toISOString(),
                                     data: notification.data ? (typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data) : null
-                                };
+                            };
                                 global.globalSocketIO.to(`notifications_${admin.id}`).emit('new_notification', socketNotification);
                                 console.log(`✅ Admin notification sent to ${admin.id} for coach signup with ID: ${notification.id}`);
                         }

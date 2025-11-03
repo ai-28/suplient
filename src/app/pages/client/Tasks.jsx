@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { TaskCelebration } from "@/app/components/TaskCelebration";
 import { StreakCounter } from "@/app/components/StreakCounter";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Demo data for tasks
 const demoTasks = [
@@ -192,7 +193,7 @@ const useClientTasks = () => {
       return true;
     } catch (error) {
       console.error('Error toggling task completion:', error);
-      toast.error(error.message || 'Failed to update task completion');
+      toast.error(error.message || t('tasks.updateFailed', 'Failed to update task completion'));
       
       // Revert the optimistic update
       setTasks(prev => prev.map(task => 
@@ -300,28 +301,18 @@ const useClientGamification = () => {
 };
 
 // Mock utility functions
-const formatTaskDueDate = (dueDate) => {
-  const date = new Date(dueDate);
-  const now = new Date();
-  const diffTime = date - now;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays < 0) return "Overdue";
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Tomorrow";
-  if (diffDays < 7) return `In ${diffDays} days`;
-  return date.toLocaleDateString();
-};
+// formatTaskDueDate will be updated inline where it's used
 
-const getTaskStatusBadge = (task) => {
-  if (task.isCompleted) return { variant: "default", text: "Completed" };
-  if (new Date(task.dueDate) < new Date()) return { variant: "destructive", text: "Overdue" };
-  if (task.priority === "high") return { variant: "secondary", text: "High Priority" };
-  return { variant: "outline", text: "Active" };
+const getTaskStatusBadge = (task, t) => {
+  if (task.isCompleted) return { variant: "default", text: t('tasks.status.completed', "Completed") };
+  if (new Date(task.dueDate) < new Date()) return { variant: "destructive", text: t('tasks.status.overdue', "Overdue") };
+  if (task.priority === "high") return { variant: "secondary", text: t('tasks.status.highPriority', "High Priority") };
+  return { variant: "outline", text: t('tasks.status.active', "Active") };
 };
 
 export default function ClientTasks() {
   const router = useRouter();
+  const t = useTranslation();
   const [filter, setFilter] = useState("open");
   const [expandedTasks, setExpandedTasks] = useState(new Set());
   const [showCelebration, setShowCelebration] = useState(false);
@@ -341,13 +332,13 @@ export default function ClientTasks() {
   
   const [recentMilestone, setRecentMilestone] = useState(null);
   
-  // Mock motivational quotes
+  // Motivational quotes
   const motivationalQuotes = [
-    "Progress, not perfection. 💪",
-    "One step at a time. 🌱", 
-    "You've got this! ✨",
-    "Building resilience daily. 🌟",
-    "Growing stronger every day. 🚀"
+    t('tasks.quotes.progress', "Progress, not perfection. 💪"),
+    t('tasks.quotes.oneStep', "One step at a time. 🌱"), 
+    t('tasks.quotes.youGotThis', "You've got this! ✨"),
+    t('tasks.quotes.resilience', "Building resilience daily. 🌟"),
+    t('tasks.quotes.stronger', "Growing stronger every day. 🚀")
   ];
   const todayQuote = motivationalQuotes[new Date().getDay() % motivationalQuotes.length];
   
@@ -394,7 +385,7 @@ export default function ClientTasks() {
         <div className="p-4">
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading tasks...</p>
+            <p className="text-muted-foreground">{t('tasks.loading', 'Loading tasks...')}</p>
           </div>
         </div>
       )}
@@ -406,10 +397,10 @@ export default function ClientTasks() {
             <CardContent className="pt-6">
               <div className="text-center py-8">
                 <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Error loading tasks</h3>
+                <h3 className="text-lg font-medium mb-2">{t('tasks.errorLoading', 'Error loading tasks')}</h3>
                 <p className="text-muted-foreground mb-4">{error}</p>
                 <Button onClick={() => window.location.reload()} variant="outline">
-                  Try Again
+                  {t('common.buttons.tryAgain', 'Try Again')}
                 </Button>
               </div>
             </CardContent>
@@ -427,7 +418,7 @@ export default function ClientTasks() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           <div className="flex-1">
-            <h1 className="text-xl font-semibold text-foreground">My Tasks</h1>
+            <h1 className="text-xl font-semibold text-foreground">{t('tasks.myTasks', 'My Tasks')}</h1>
             <p className="text-sm text-muted-foreground mt-1">{todayQuote}</p>
           </div>
         </div>
@@ -439,19 +430,19 @@ export default function ClientTasks() {
         <Tabs value={filter} onValueChange={setFilter}>
           <TabsList className="grid w-full grid-cols-3 h-10">
             <TabsTrigger value="open" className="text-sm px-3">
-              Open
+              {t('tasks.open', 'Open')}
               {taskStats.pendingCount > 0 && (
                 <span className="ml-1 text-xs opacity-70">({taskStats.pendingCount})</span>
               )}
             </TabsTrigger>
             <TabsTrigger value="overdue" className="text-sm px-3">
-              Overdue
+              {t('tasks.overdue', 'Overdue')}
               {taskStats.overdueCount > 0 && (
                 <span className="ml-1 text-xs opacity-70">({taskStats.overdueCount})</span>
               )}
             </TabsTrigger>
             <TabsTrigger value="completed" className="text-sm px-3">
-              Completed
+              {t('tasks.completed', 'Completed')}
               {completedTasks > 0 && (
                 <span className="ml-1 text-xs opacity-70">({completedTasks})</span>
               )}
@@ -462,7 +453,7 @@ export default function ClientTasks() {
         {/* Tasks List - Mobile Optimized with Expansion */}
         <div className="space-y-4">
           {filteredTasks.map((task) => {
-            const statusBadge = getTaskStatusBadge(task);
+            const statusBadge = getTaskStatusBadge(task, t);
             const isExpanded = expandedTasks.has(task.id);
             
             return (
@@ -515,7 +506,17 @@ export default function ClientTasks() {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {formatTaskDueDate(task.dueDate)}
+                            {(() => {
+                              const date = new Date(task.dueDate);
+                              const now = new Date();
+                              const diffTime = date - now;
+                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              if (diffDays < 0) return t('tasks.status.overdue', "Overdue");
+                              if (diffDays === 0) return t('common.time.today', "Today");
+                              if (diffDays === 1) return t('common.time.tomorrow', "Tomorrow");
+                              if (diffDays < 7) return t('common.time.inDays', "In {count} days", { count: diffDays });
+                              return date.toLocaleDateString();
+                            })()}
                           </div>
                           {task.estimatedTime && (
                             <div className="flex items-center gap-1">
@@ -528,17 +529,17 @@ export default function ClientTasks() {
                         <CollapsibleContent className="space-y-3">
                           <div className="pt-2 border-t border-border">
                             <div className="space-y-2">
-                              <p className="text-sm font-medium text-foreground">Task Details</p>
+                              <p className="text-sm font-medium text-foreground">{t('tasks.details', 'Task Details')}</p>
                               <div className="space-y-1 text-sm text-muted-foreground">
                                 {task.category && (
                                   <div className="flex items-center gap-2">
                                     <Target className="h-4 w-4" />
-                                    <span>Category: {task.category}</span>
+                                    <span>{t('tasks.category', 'Category')}: {task.category}</span>
                                   </div>
                                 )}
                                 <div className="flex items-center gap-2">
                                   <Target className="h-4 w-4" />
-                                  <span>Type: {task.category === 'daily' ? 'Daily Activity' : 'Weekly Goal'}</span>
+                                  <span>{t('tasks.type', 'Type')}: {task.category === 'daily' ? t('tasks.dailyActivity', 'Daily Activity') : t('tasks.weeklyGoal', 'Weekly Goal')}</span>
                                 </div>
                               </div>
                               
@@ -546,8 +547,8 @@ export default function ClientTasks() {
                               {/* Progress Note for Completed Tasks */}
                               {task.isCompleted && (
                                 <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
-                                  <p className="text-sm text-success font-medium">✓ Great job! Task completed successfully.</p>
-                                  <p className="text-xs text-success/80 mt-1">You earned +10 XP for this completion.</p>
+                                  <p className="text-sm text-success font-medium">✓ {t('tasks.completedSuccess', 'Great job! Task completed successfully.')}</p>
+                                  <p className="text-xs text-success/80 mt-1">{t('tasks.earnedXP', 'You earned +10 XP for this completion.')}</p>
                                 </div>
                               )}
                             </div>
@@ -568,13 +569,13 @@ export default function ClientTasks() {
             <CardContent className="pt-6">
               <div className="text-center py-8">
                 <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No tasks found</h3>
+                <h3 className="text-lg font-medium mb-2">{t('tasks.noTasks', 'No tasks found')}</h3>
                 <p className="text-muted-foreground">
                   {filter === "completed" 
-                    ? "You haven't completed any tasks yet."
+                    ? t('tasks.noCompleted', "You haven't completed any tasks yet.")
                     : filter === "overdue"
-                    ? "No overdue tasks - you're up to date!"
-                    : "No open tasks to show."
+                    ? t('tasks.noOverdue', "No overdue tasks - you're up to date!")
+                    : t('tasks.noOpen', "No open tasks to show.")
                   }
                 </p>
               </div>

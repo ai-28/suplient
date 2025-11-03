@@ -27,6 +27,7 @@ import {
   User as UserIcon
 } from "lucide-react";
 import { NotificationBell } from "@/app/components/NotificationBell";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { GoalAnalyticsChart } from "@/app/components/GoalAnalyticsChart";
@@ -34,6 +35,7 @@ import { StreakCounter } from "@/app/components/StreakCounter";
 import { useAuth } from "../../context/AuthContext";
 import { signOut } from "next-auth/react";
 import { useSocket } from "@/app/hooks/useSocket";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 
 // Custom hooks with real data
@@ -137,6 +139,7 @@ const useUpcomingSessions = () => {
 
 export default function ClientDashboard() {
   const router = useRouter();
+  const t = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState("today");
   const [selectedSession, setSelectedSession] = useState(null);
@@ -231,18 +234,21 @@ export default function ClientDashboard() {
       {/* Offline Indicator */}
       {!isOnline && (
         <div className="bg-red-50 border-b border-red-200 p-2 text-center">
-          <p className="text-sm text-red-800">You're offline. Some features may be limited.</p>
+          <p className="text-sm text-red-800">{t('client.offlineMessage', "You're offline. Some features may be limited.")}</p>
         </div>
       )}
       {/* Sticky Topbar: header + date controls */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
         {/* Header with Profile */}
         <div className="flex items-center justify-between p-4">
-          <h1 className="text-xl font-semibold text-foreground">Mental Health</h1>
+          <h1 className="text-xl font-semibold text-foreground">{t('client.dashboard.title', 'Mental Health')}</h1>
 
           <div className="flex items-center gap-2">
             {/* Notifications */}
             <NotificationBell userRole="client" />
+            
+            {/* Language Selector */}
+            <LanguageSelector variant="header" />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -264,11 +270,11 @@ export default function ClientDashboard() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem onClick={() => router.push('/client/profile')}>
                   <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
+                  <span>{t('client.navigation.profile', 'Profile')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign Out</span>
+                  <span>{t('client.navigation.signOut', 'Sign Out')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -304,13 +310,13 @@ export default function ClientDashboard() {
         {loading ? (
           <Card>
             <CardContent className="p-6">
-              <div className="text-center">Loading analytics...</div>
+              <div className="text-center">{t('client.dashboard.loadingAnalytics', 'Loading analytics...')}</div>
             </CardContent>
           </Card>
         ) : error ? (
           <Card>
             <CardContent className="p-6">
-              <div className="text-center text-red-500">Error loading analytics: {error}</div>
+              <div className="text-center text-red-500">{t('client.dashboard.errorLoadingAnalytics', 'Error loading analytics')}: {error}</div>
             </CardContent>
           </Card>
         ) : (
@@ -326,19 +332,19 @@ export default function ClientDashboard() {
         {sessionsLoading ? (
           <Card>
             <CardContent className="p-6">
-              <div className="text-center">Loading upcoming sessions...</div>
+              <div className="text-center">{t('client.dashboard.loadingSessions', 'Loading upcoming sessions...')}</div>
             </CardContent>
           </Card>
         ) : sessionsError ? (
           <Card>
             <CardContent className="p-6">
-              <div className="text-center text-red-500">Error loading sessions: {sessionsError}</div>
+              <div className="text-center text-red-500">{t('client.dashboard.errorLoadingSessions', 'Error loading sessions')}: {sessionsError}</div>
             </CardContent>
           </Card>
         ) : upcomingSessions.length > 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Next Session</CardTitle>
+              <CardTitle className="text-lg">{t('client.dashboard.nextSession', 'Next Session')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-4">
@@ -382,7 +388,7 @@ export default function ClientDashboard() {
                     : handleViewSession(upcomingSessions[0])
                   }
                 >
-                  {upcomingSessions[0].meetingLink ? 'Join' : 'View'}
+                  {upcomingSessions[0].meetingLink ? t('client.dashboard.join', 'Join') : t('client.dashboard.view', 'View')}
                 </Button>
               </div>
             </CardContent>
@@ -391,7 +397,7 @@ export default function ClientDashboard() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center text-muted-foreground">
-                No upcoming sessions scheduled
+                {t('client.dashboard.noUpcomingSessions', 'No upcoming sessions scheduled')}
               </div>
             </CardContent>
           </Card>
@@ -416,10 +422,10 @@ export default function ClientDashboard() {
               ) : (
                 <UserIcon className="h-5 w-5" />
               )}
-              {selectedSession?.title || 'Session Details'}
+              {selectedSession?.title || t('client.dashboard.sessionDetails', 'Session Details')}
             </DialogTitle>
             <DialogDescription>
-              {selectedSession?.type} session with {selectedSession?.therapist}
+              {selectedSession?.type} {t('client.dashboard.sessionWith', 'session with')} {selectedSession?.therapist}
             </DialogDescription>
           </DialogHeader>
           
@@ -431,7 +437,7 @@ export default function ClientDashboard() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">{selectedSession.date}</p>
-                    <p className="text-xs text-muted-foreground">Session Date</p>
+                    <p className="text-xs text-muted-foreground">{t('client.dashboard.sessionDate', 'Session Date')}</p>
                   </div>
                 </div>
                 
@@ -440,7 +446,7 @@ export default function ClientDashboard() {
                   <div>
                     <p className="text-sm font-medium">{selectedSession.time}</p>
                     <p className="text-xs text-muted-foreground">
-                      Duration: {selectedSession.duration} minutes
+                      {t('client.dashboard.duration', 'Duration')}: {selectedSession.duration} {t('client.dashboard.minutes', 'minutes')}
                     </p>
                   </div>
                 </div>
@@ -450,7 +456,7 @@ export default function ClientDashboard() {
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">{selectedSession.location}</p>
-                      <p className="text-xs text-muted-foreground">Location</p>
+                      <p className="text-xs text-muted-foreground">{t('client.dashboard.location', 'Location')}</p>
                     </div>
                   </div>
                 )}
@@ -459,7 +465,7 @@ export default function ClientDashboard() {
               {/* Description */}
               {selectedSession.description && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Description</h4>
+                  <h4 className="text-sm font-medium mb-2">{t('client.dashboard.description', 'Description')}</h4>
                   <p className="text-sm text-muted-foreground">
                     {selectedSession.description}
                   </p>
@@ -473,7 +479,7 @@ export default function ClientDashboard() {
                     onClick={() => handleJoinSession(selectedSession)}
                     className="flex-1"
                   >
-                    Join Session
+                    {t('client.dashboard.joinSession', 'Join Session')}
                   </Button>
                 )}
                 <Button 
@@ -481,7 +487,7 @@ export default function ClientDashboard() {
                   onClick={() => setIsDialogOpen(false)}
                   className="flex-1"
                 >
-                  Close
+                  {t('common.buttons.close', 'Close')}
                 </Button>
               </div>
             </div>

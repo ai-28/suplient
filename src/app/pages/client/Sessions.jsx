@@ -14,10 +14,12 @@ import { useClientCoach } from "@/app/hooks/useClientCoach";
 import { useConversationId } from "@/app/hooks/useConversationId";
 import { useGroups } from "@/app/hooks/useGroups";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function ClientSessions() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTranslation();
   
   // Get client's coach and conversation ID
   const { coach, loading: coachLoading, error: coachError } = useClientCoach();
@@ -50,9 +52,9 @@ export default function ClientSessions() {
       return (
         <div className="flex items-center justify-center h-[calc(100vh-100px)] text-muted-foreground">
           <div className="text-center">
-            <p>No coach assigned</p>
+            <p>{t('sessions.noCoach', 'No coach assigned')}</p>
             {coachError && (
-              <p className="text-sm text-red-500 mt-2">Error: {coachError}</p>
+              <p className="text-sm text-red-500 mt-2">{t('common.messages.error', 'Error')}: {coachError}</p>
             )}
           </div>
         </div>
@@ -62,7 +64,7 @@ export default function ClientSessions() {
     if (!conversationId) {
       return (
         <div className="flex items-center justify-center h-[calc(100vh-100px)] text-muted-foreground">
-          Unable to load chat
+          {t('sessions.unableToLoadChat', 'Unable to load chat')}
         </div>
       );
     }
@@ -95,7 +97,7 @@ export default function ClientSessions() {
     if (groupsError) {
       return (
         <div className="flex items-center justify-center h-[calc(100vh-100px)] text-muted-foreground">
-          Error loading groups: {groupsError}
+          {t('sessions.errorLoadingGroups', 'Error loading groups')}: {groupsError}
         </div>
       );
     }
@@ -119,14 +121,14 @@ export default function ClientSessions() {
         {joinedGroups.length > 0 ? (
           <>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <h2 className="text-lg font-semibold">Your Groups</h2>
+              <h2 className="text-lg font-semibold">{t('groups.yourGroups', 'Your Groups')}</h2>
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => router.push('/client/groups')}
                 className="w-full sm:w-auto"
               >
-                Browse All Groups
+                {t('groups.browseAll', 'Browse All Groups')}
               </Button>
             </div>
             
@@ -168,7 +170,7 @@ export default function ClientSessions() {
                         size="sm"
                       >
                         <MessageCircle className="h-4 w-4 mr-2" />
-                        Open Chat
+                        {t('groups.openChat', 'Open Chat')}
                       </Button>
                     </div>
                   </CardContent>
@@ -179,12 +181,12 @@ export default function ClientSessions() {
         ) : (
           <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 text-center">
             <Users className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
-            <h2 className="text-lg sm:text-xl font-semibold mb-2">No Group Memberships</h2>
+            <h2 className="text-lg sm:text-xl font-semibold mb-2">{t('groups.noMemberships', 'No Group Memberships')}</h2>
             <p className="text-sm sm:text-base text-muted-foreground mb-6 max-w-md">
-              You are not a member of any group yet. Consult with your coach/therapist to learn more about group sessions.
+              {t('groups.noMembershipsDesc', "You are not a member of any group yet. Consult with your coach/therapist to learn more about group sessions.")}
             </p>
             <Button onClick={() => router.push('/client/groups')} className="w-full sm:w-auto">
-              Browse Available Groups
+              {t('groups.browseAvailable', 'Browse Available Groups')}
             </Button>
           </div>
         )}
@@ -202,7 +204,7 @@ export default function ClientSessions() {
               1-1
             </TabsTrigger>
             <TabsTrigger value="groups" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-              Groups
+              {t('navigation.groups')}
             </TabsTrigger>
           </TabsList>
         </div>

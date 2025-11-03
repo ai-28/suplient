@@ -39,11 +39,13 @@ import {
   DropdownMenuItem
 } from "@/app/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Real data will be fetched from API and stored in clients state
 
 export default function Clients() {
   const { data: session } = useSession();
+  const t = useTranslation();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("status.active");  
@@ -270,8 +272,8 @@ export default function Clients() {
       <div className="page-container">
         {/* Page Header */}
         <PageHeader 
-          title={"Clients"} 
-          subtitle={"All Clients"}
+          title={t('navigation.clients')} 
+          subtitle={t('clients.title')}
         >
           {/* View Toggle */}
           <div className="flex rounded-lg border border-border bg-background p-1">

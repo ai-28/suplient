@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -22,6 +23,7 @@ import { useRouter } from "next/navigation";
 
 export default function AdminChat() {
   const router = useRouter(); // Using Next.js router for navigation
+  const t = useTranslation();
   const [selectedContact, setSelectedContact] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedCoaches, setExpandedCoaches] = useState([]);
@@ -146,9 +148,9 @@ export default function AdminChat() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Communication Center</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('chat.title', 'Communication Center')}</h1>
         <p className="text-muted-foreground">
-          Chat with coaches and clients directly
+          {t('chat.communicationDesc', 'Chat with coaches and clients directly')}
         </p>
       </div>
 
@@ -156,11 +158,11 @@ export default function AdminChat() {
         {/* Sidebar */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Coaches & Clients</CardTitle>
+            <CardTitle className="text-lg">{t('chat.coachesAndClients', 'Coaches & Clients')}</CardTitle>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder={t('common.buttons.search')}
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -198,7 +200,7 @@ export default function AdminChat() {
                               <div className="flex items-center gap-2">
                                 <p className="font-medium truncate">{coach.name}</p>
                                 <Badge variant="outline" className="text-xs">
-                                  {coachClients.length} clients
+                                  {coachClients.length} {t('navigation.clients').toLowerCase()}
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground truncate">{coach.specialty}</p>
@@ -275,14 +277,14 @@ export default function AdminChat() {
               <div className="text-center space-y-4">
                 <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto" />
                 <div>
-                  <h3 className="text-xl font-medium mb-2">Select a contact</h3>
+                  <h3 className="text-xl font-medium mb-2">{t('chat.selectContact', 'Select a contact')}</h3>
                   <p className="text-muted-foreground max-w-md">
-                    Choose a coach or client to start a direct conversation
+                    {t('chat.selectContactDesc', 'Choose a coach or client to start a direct conversation')}
                   </p>
                 </div>
                 <Button className="w-full" variant="outline">
                   <Megaphone className="h-4 w-4 mr-2" />
-                  Send System Announcement
+                  {t('chat.sendAnnouncement', 'Send System Announcement')}
                 </Button>
               </div>
             </CardContent>

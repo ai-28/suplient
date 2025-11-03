@@ -21,30 +21,10 @@ import {
   Bell
 } from "lucide-react";
 
-// Simple translation function for demo purposes
-const t = (key) => {
-  const translations = {
-    'settings:general.title': 'General Settings',
-    'settings:general.description': 'Configure basic platform settings',
-    'settings:general.platformName': 'Platform Name',
-    'settings:general.supportEmail': 'Support Email',
-    'settings:general.maxClients': 'Maximum Clients per Coach',
-    'settings:general.sessionDuration': 'Session Duration (minutes)',
-    'settings:security.title': 'Security Settings',
-    'settings:security.description': 'Configure security and authentication settings',
-    'settings:security.twoFactorAuth': 'Two-Factor Authentication',
-    'settings:security.sessionTimeout': 'Session Timeout',
-    'settings:notifications.title': 'Notification Settings',
-    'settings:notifications.description': 'Configure notification preferences',
-    'settings:notifications.emailNotifications': 'Email Notifications',
-    'settings:notifications.weeklyReports': 'Weekly Reports',
-    'common:buttons.cancel': 'Cancel',
-    'common:buttons.save': 'Save'
-  };
-  return translations[key] || key;
-};
+import { useTranslation } from "@/app/context/LanguageContext";
 
 function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle }) {
+  const t = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
@@ -70,7 +50,7 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
       }
     } catch (error) {
       console.error('Error fetching platform settings:', error);
-      toast.error('Failed to load platform settings');
+        toast.error(t('common.messages.error'));
     } finally {
       setLoading(false);
     }
@@ -90,15 +70,15 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Platform settings saved successfully!');
+        toast.success(t('common.messages.saveSuccess'));
         // Reload page to update top bar
         window.location.reload();
       } else {
-        toast.error(data.error || 'Failed to save platform settings');
+        toast.error(data.error || t('settings.general.saveFailed', 'Failed to save platform settings'));
       }
     } catch (error) {
       console.error('Error saving platform settings:', error);
-      toast.error('Failed to save platform settings');
+      toast.error(t('settings.general.saveFailed', 'Failed to save platform settings'));
     } finally {
       setSaving(false);
     }
@@ -117,12 +97,12 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
       {/* General Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('settings:general.title')}</CardTitle>
-          <CardDescription>{t('settings:general.description')}</CardDescription>
+          <CardTitle>{t('settings.general.title')}</CardTitle>
+          <CardDescription>{t('settings.general.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="platform-name">{t('settings:general.platformName')}</Label>
+            <Label htmlFor="platform-name">{t('settings.general.platformName')}</Label>
             <Input 
               id="platform-name" 
               value={settings.platformName}
@@ -131,7 +111,7 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="support-email">{t('settings:general.supportEmail')}</Label>
+            <Label htmlFor="support-email">{t('settings.general.supportEmail')}</Label>
             <Input 
               id="support-email" 
               type="email" 
@@ -141,7 +121,7 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="max-clients">{t('settings:general.maxClients')}</Label>
+            <Label htmlFor="max-clients">{t('settings.general.maxClients')}</Label>
             <Input 
               id="max-clients" 
               type="number" 
@@ -162,15 +142,15 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
       {/* Security Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('settings:security.title')}</CardTitle>
-          <CardDescription>{t('settings:security.description')}</CardDescription>
+          <CardTitle>{t('settings.security.title')}</CardTitle>
+          <CardDescription>{t('settings.security.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>{t('settings:security.twoFactorAuth')}</Label>
+              <Label>{t('settings.security.twoFactorAuth')}</Label>
               <p className="text-sm text-muted-foreground">
-                Require 2FA for all admin accounts
+                {t('settings.security.require2FA', 'Require 2FA for all admin accounts')}
               </p>
             </div>
             <Switch 
@@ -187,16 +167,16 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
-            Notification Settings
+            {t('settings.notifications.title', 'Notification Settings')}
           </CardTitle>
-          <CardDescription>Choose what notifications you receive</CardDescription>
+          <CardDescription>{t('settings.notifications.description', 'Choose what notifications you receive')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Enable Notifications</Label>
+              <Label>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
               <p className="text-sm text-muted-foreground">
-                Receive notifications for messages, tasks, sessions, and updates
+                {t('settings.notifications.description', 'Receive notifications for messages, tasks, sessions, and updates')}
               </p>
             </div>
             <Switch 
@@ -210,16 +190,16 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
 
       <div className="flex justify-end space-x-4">
         <Button variant="outline" onClick={fetchPlatformSettings} disabled={saving}>
-          {t('common:buttons.cancel')}
+          {t('common.buttons.cancel')}
         </Button>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Saving...
+              {t('common.messages.loading')}
             </>
-          ) : (
-            t('common:buttons.save')
+            ) : (
+            t('common.buttons.save')
           )}
         </Button>
       </div>
@@ -229,6 +209,7 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
 
 export default function AdminSettings() {
   const { data: session } = useSession();
+  const t = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [adminData, setAdminData] = useState(null);
@@ -280,11 +261,11 @@ export default function AdminSettings() {
             }
           }
         } else {
-          toast.error('Failed to load admin data');
+          toast.error(t('common.messages.loadFailed', 'Failed to load admin data'));
         }
       } catch (error) {
         console.error('Error fetching admin data:', error);
-        toast.error('Failed to load admin data');
+        toast.error(t('common.messages.loadFailed', 'Failed to load admin data'));
       } finally {
         setLoading(false);
       }
@@ -308,13 +289,13 @@ export default function AdminSettings() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file');
+      toast.error(t('settings.profile.selectValidImage', 'Please select a valid image file'));
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+      toast.error(t('settings.profile.imageSizeTooLarge', 'Image size must be less than 5MB'));
       return;
     }
 
@@ -332,7 +313,7 @@ export default function AdminSettings() {
     const file = fileInput?.files?.[0];
     
     if (!file) {
-      toast.error('Please select an image file');
+      toast.error(t('settings.profile.selectImageFile', 'Please select an image file'));
       return;
     }
 
@@ -350,7 +331,7 @@ export default function AdminSettings() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Avatar uploaded successfully!');
+        toast.success(t('settings.profile.avatarUploaded', 'Avatar uploaded successfully!'));
         // Update admin data with new avatar
         setAdminData(prev => ({
           ...prev,
@@ -361,11 +342,11 @@ export default function AdminSettings() {
           window.location.reload();
         }
       } else {
-        toast.error(data.error || 'Failed to upload avatar');
+        toast.error(data.error || t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'));
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to upload avatar');
+      toast.error(t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -383,7 +364,7 @@ export default function AdminSettings() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Avatar removed successfully!');
+        toast.success(t('settings.profile.avatarRemoved', 'Avatar removed successfully!'));
         setAvatarPreview(null);
         // Update admin data
         setAdminData(prev => ({
@@ -395,11 +376,11 @@ export default function AdminSettings() {
           window.location.reload();
         }
       } else {
-        toast.error(data.error || 'Failed to remove avatar');
+        toast.error(data.error || t('settings.profile.avatarRemoveFailed', 'Failed to remove avatar'));
       }
     } catch (error) {
       console.error('Error removing avatar:', error);
-      toast.error('Failed to remove avatar');
+      toast.error(t('settings.profile.avatarRemoveFailed', 'Failed to remove avatar'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -431,19 +412,19 @@ export default function AdminSettings() {
         localStorage.setItem('notificationsEnabled', enabled.toString());
         
         toast.success(
-          enabled ? "Notifications enabled" : "Notifications disabled",
+          enabled ? t('settings.notifications.enabled', 'Notifications enabled') : t('settings.notifications.disabled', 'Notifications disabled'),
           {
             description: enabled 
-              ? "You'll receive notifications for messages, tasks, and updates"
-              : "You won't receive any notifications"
+              ? t('settings.notifications.enabledDescription', "You'll receive notifications for messages, tasks, and sessions")
+              : t('settings.notifications.disabledDescription', "You won't receive any notifications")
           }
         );
       } else {
-        throw new Error(data.error || 'Failed to save notification preference');
+        throw new Error(data.error || t('settings.notifications.saveFailed', 'Failed to save notification preference'));
       }
     } catch (error) {
       console.error('Error saving notification preference:', error);
-      toast.error("Failed to save notification preference");
+      toast.error(t('settings.notifications.saveFailed', 'Failed to save notification preference'));
       // Revert state on error
       setNotificationsEnabled(!enabled);
     }
@@ -452,7 +433,7 @@ export default function AdminSettings() {
   // Handle save changes
   const handleSaveChanges = async () => {
     if (!session?.user?.id) {
-      toast.error('You must be logged in to save changes');
+      toast.error(t('common.messages.mustBeLoggedIn', 'You must be logged in to save changes'));
       return;
     }
 
@@ -474,7 +455,7 @@ export default function AdminSettings() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Profile updated successfully!');
+        toast.success(t('settings.profile.profileUpdated', 'Profile updated successfully!'));
         // Update admin data with new values
         setAdminData(prev => ({
           ...prev,
@@ -483,11 +464,11 @@ export default function AdminSettings() {
           phone: formData.phone
         }));
       } else {
-        toast.error(data.error || 'Failed to update profile');
+        toast.error(data.error || t('settings.profile.profileUpdateFailed', 'Failed to update profile'));
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(t('settings.profile.profileUpdateFailed', 'Failed to update profile'));
     } finally {
       setSaving(false);
     }
@@ -496,19 +477,19 @@ export default function AdminSettings() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('navigation.settings')}</h1>
         <p className="text-muted-foreground">
-          Manage your profile and platform settings.
+          {t('settings.title')}
         </p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 bg-muted">
           <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Profile
+            {t('profile.title')}
           </TabsTrigger>
           <TabsTrigger value="platform" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Platform Settings
+            {t('settings.general.title')}
           </TabsTrigger>
         </TabsList>
 
@@ -519,7 +500,7 @@ export default function AdminSettings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5 text-primary" />
-                  Personal Info
+                  {t('profile.personalInfo')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -561,7 +542,7 @@ export default function AdminSettings() {
                         disabled={uploadingAvatar}
                       >
                         <Camera className="h-4 w-4 mr-2" />
-                        {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                        {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
                       </Button>
                       {avatarPreview && (
                         <>
@@ -573,10 +554,10 @@ export default function AdminSettings() {
                             {uploadingAvatar ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Uploading...
+                                {t('common.messages.loading')}
                               </>
                             ) : (
-                              'Save Photo'
+                              t('common.buttons.save')
                             )}
                           </Button>
                           <Button 
@@ -600,48 +581,48 @@ export default function AdminSettings() {
                           onClick={handleAvatarRemove}
                           disabled={uploadingAvatar}
                         >
-                          Remove
+                          {t('common.buttons.remove')}
                         </Button>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      JPG, PNG or WebP. Max 5MB.
+                      {t('settings.profile.avatarFormat', 'JPG, PNG or WebP. Max 5MB.')}
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName">{t('common.labels.name')}</Label>
                   <Input 
                     id="fullName" 
                     value={formData.fullName}
                     onChange={(e) => handleInputChange('fullName', e.target.value)}
                     disabled={loading}
-                    placeholder="Enter your full name"
+                    placeholder={t('common.labels.name')}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('common.labels.email')}</Label>
                   <Input 
                     id="email" 
                     type="email" 
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     disabled={loading}
-                    placeholder="Enter your email"
+                    placeholder={t('common.labels.email')}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('common.labels.phone')}</Label>
                   <Input 
                     id="phone" 
                     type="tel" 
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     disabled={loading}
-                    placeholder="Enter your phone number"
+                    placeholder={t('common.labels.phone')}
                   />
                 </div>
 
@@ -650,7 +631,7 @@ export default function AdminSettings() {
                   onClick={handleSaveChanges}
                   disabled={loading || saving}
                 >
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? t('common.messages.loading') : t('common.buttons.saveChanges')}
                 </Button>
               </CardContent>
             </Card>

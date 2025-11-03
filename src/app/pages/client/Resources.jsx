@@ -8,8 +8,9 @@ import { Search, BookOpen, Play, Download, Star, Filter, X, Eye, FileText } from
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
 
-const categories = ["Videos", "Images", "Articles", "Sounds"];
+// Categories will be translated inline
 
 // Real useResources hook with API calls
 const useResources = () => {
@@ -80,10 +81,10 @@ const useResources = () => {
       setPreviewUrl(data.resource.url);
       setPreviewType(previewType);
       
-      toast.success(`Opening ${resource.type.toLowerCase()} preview...`);
+      toast.success(t('resources.openingPreview', 'Opening {type} preview...', { type: resource.type.toLowerCase() }));
     } catch (error) {
       console.error('Error accessing resource:', error);
-      toast.error(error.message || 'Failed to access resource');
+      toast.error(error.message || t('resources.accessFailed', 'Failed to access resource'));
     }
   };
   
@@ -108,10 +109,10 @@ const useResources = () => {
       link.click();
       document.body.removeChild(link);
       
-      toast.success(`Downloading ${resource.title}...`);
+      toast.success(t('resources.downloading', 'Downloading {title}...', { title: resource.title }));
     } catch (error) {
       console.error('Error downloading resource:', error);
-      toast.error(error.message || 'Failed to download resource');
+      toast.error(error.message || t('resources.downloadFailed', 'Failed to download resource'));
     }
   };
   
@@ -131,6 +132,7 @@ const useResources = () => {
 
 export default function ClientResources() {
   const router = useRouter();
+  const t = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Videos");
   const [isMobile, setIsMobile] = useState(false);
@@ -197,7 +199,7 @@ export default function ClientResources() {
         <div className="container mx-auto px-4 py-6">
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading resources...</p>
+            <p className="text-muted-foreground">{t('resources.loading', 'Loading resources...')}</p>
           </div>
         </div>
       )}
@@ -209,10 +211,10 @@ export default function ClientResources() {
             <CardContent className="pt-6">
               <div className="text-center py-8">
                 <BookOpen className="h-12 w-12 text-destructive mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Error loading resources</h3>
+                <h3 className="text-lg font-medium mb-2">{t('resources.errorLoading', 'Error loading resources')}</h3>
                 <p className="text-muted-foreground mb-4">{error}</p>
                 <Button onClick={() => window.location.reload()} variant="outline">
-                  Try Again
+                  {t('common.buttons.tryAgain', 'Try Again')}
                 </Button>
               </div>
             </CardContent>
@@ -225,9 +227,9 @@ export default function ClientResources() {
         <>
           <div className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}>
         <div>
-          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>Resources</h1>
+          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>{t('resources.title', 'Resources')}</h1>
           <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
-            Access helpful articles, exercises, and tools for your mental health journey.
+            {t('resources.subtitle', 'Access helpful articles, exercises, and tools for your mental health journey.')}
           </p>
         </div>
 
@@ -236,7 +238,7 @@ export default function ClientResources() {
         <div className={`relative ${isMobile ? 'w-full' : 'max-w-md'}`}>
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search resources..."
+            placeholder={t('resources.searchPlaceholder', 'Search resources...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={`pl-10 ${isMobile ? 'h-12 text-base' : ''}`}
@@ -246,7 +248,7 @@ export default function ClientResources() {
         {isMobile ? (
           <ScrollArea className="w-full whitespace-nowrap">
             <div className="flex space-x-2 pb-2">
-              {categories.map((category) => (
+              {['Videos', 'Images', 'Articles', 'Sounds'].map((category) => (
                 <Button
                   key={category}
                   variant={selectedCategory === category ? "default" : "outline"}
@@ -254,21 +256,27 @@ export default function ClientResources() {
                   onClick={() => setSelectedCategory(category)}
                   className="shrink-0 h-9 px-4"
                 >
-                  {category}
+                  {category === 'Videos' ? t('resources.categories.videos', 'Videos') :
+                   category === 'Images' ? t('resources.categories.images', 'Images') :
+                   category === 'Articles' ? t('resources.categories.articles', 'Articles') :
+                   t('resources.categories.sounds', 'Sounds')}
                 </Button>
               ))}
             </div>
           </ScrollArea>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
+            {['Videos', 'Images', 'Articles', 'Sounds'].map((category) => (
               <Button
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
               >
-                {category}
+                {category === 'Videos' ? t('resources.categories.videos', 'Videos') :
+                 category === 'Images' ? t('resources.categories.images', 'Images') :
+                 category === 'Articles' ? t('resources.categories.articles', 'Articles') :
+                 t('resources.categories.sounds', 'Sounds')}
               </Button>
             ))}
           </div>
@@ -291,7 +299,7 @@ export default function ClientResources() {
                       {resource.type}
                     </Badge>
                     {resource.completed && (
-                      <Badge variant="secondary" className="text-xs">Completed</Badge>
+                      <Badge variant="secondary" className="text-xs">{t('resources.completed', 'Completed')}</Badge>
                     )}
                   </div>
                   <h3 className="font-semibold text-base mb-1 truncate">{resource.title}</h3>
@@ -311,7 +319,7 @@ export default function ClientResources() {
                       className="flex-1 h-9"
                       onClick={() => handleResourcePreview(resource)}
                     >
-                      {resource.type === 'Video' || resource.type === 'Audio' ? 'Play' : 'Read'}
+                      {resource.type === 'Video' || resource.type === 'Audio' ? t('resources.play', 'Play') : t('resources.read', 'Read')}
                     </Button>
                     <Button 
                       size="sm" 
@@ -336,7 +344,7 @@ export default function ClientResources() {
                           <span className="ml-1">{resource.type}</span>
                         </Badge>
                         {resource.completed && (
-                          <Badge variant="secondary">Completed</Badge>
+                          <Badge variant="secondary">{t('resources.completed', 'Completed')}</Badge>
                         )}
                       </div>
                       <CardTitle className="text-lg">{resource.title}</CardTitle>
@@ -359,7 +367,7 @@ export default function ClientResources() {
                       className="flex-1"
                       onClick={() => handleResourcePreview(resource)}
                     >
-                      {resource.type === 'Video' || resource.type === 'Audio' ? 'Play' : 'Read'}
+                      {resource.type === 'Video' || resource.type === 'Audio' ? t('resources.play', 'Play') : t('resources.read', 'Read')}
                     </Button>
                     <Button 
                       size="sm" 
@@ -382,9 +390,9 @@ export default function ClientResources() {
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No resources found</h3>
+              <h3 className="text-lg font-medium mb-2">{t('resources.noResources', 'No resources found')}</h3>
               <p className="text-muted-foreground">
-                Try adjusting your search or filter criteria.
+                {t('resources.adjustSearch', 'Try adjusting your search or filter criteria.')}
               </p>
             </div>
           </CardContent>
@@ -399,7 +407,7 @@ export default function ClientResources() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-background rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Preview</h3>
+              <h3 className="text-lg font-semibold">{t('resources.preview', 'Preview')}</h3>
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -429,7 +437,7 @@ export default function ClientResources() {
                           class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                           onclick="window.open('${previewUrl}', '_blank')"
                         >
-                          Open in New Tab
+                          {t('resources.openInNewTab', 'Open in New Tab')}
                         </button>
                       `;
                       e.target.parentNode.appendChild(fallback);
@@ -452,7 +460,7 @@ export default function ClientResources() {
                         class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                         onclick="window.open('${previewUrl}', '_blank')"
                       >
-                        Open in New Tab
+                        {t('resources.openInNewTab', 'Open in New Tab')}
                       </button>
                     `;
                     e.target.parentNode.appendChild(fallback);
@@ -474,7 +482,7 @@ export default function ClientResources() {
                         class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                         onclick="window.open('${previewUrl}', '_blank')"
                       >
-                        Open in New Tab
+                        {t('resources.openInNewTab', 'Open in New Tab')}
                       </button>
                     `;
                     e.target.parentNode.appendChild(fallback);
@@ -501,23 +509,22 @@ export default function ClientResources() {
                         window.open(previewUrl, '_blank');
                       }}
                     >
-                      Open in New Tab
+                      {t('resources.openInNewTab', 'Open in New Tab')}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div>
                   <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Document Preview</h4>
+                    <h4 className="text-sm font-medium mb-2">{t('resources.documentPreview', 'Document Preview')}</h4>
                     <div className="w-full h-[60vh] border rounded bg-gray-50 flex items-center justify-center">
                       <div className="text-center p-8">
                         <div className="mb-4">
                           <FileText className="h-12 w-12 text-gray-400 mx-auto" />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Document Preview</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('resources.documentPreview', 'Document Preview')}</h3>
                         <p className="text-sm text-gray-500 mb-6">
-                          This document type cannot be previewed directly in the browser. 
-                          Please download the file to view it in a compatible application.
+                          {t('resources.cannotPreview', 'This document type cannot be previewed directly in the browser. Please download the file to view it in a compatible application.')}
                         </p>
                         <div className="space-y-3">
                           <Button 
@@ -532,7 +539,7 @@ export default function ClientResources() {
                               document.body.removeChild(link);
                             }}
                           >
-                            Download Document
+                            {t('resources.downloadDocument', 'Download Document')}
                           </Button>
                           <Button 
                             variant="outline" 
@@ -541,7 +548,7 @@ export default function ClientResources() {
                               window.open(previewUrl, '_blank');
                             }}
                           >
-                            Open in New Tab
+                            {t('resources.openInNewTab', 'Open in New Tab')}
                           </Button>
                         </div>
                       </div>

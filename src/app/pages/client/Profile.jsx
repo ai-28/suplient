@@ -11,6 +11,7 @@ import { Switch } from "@/app/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { GroupOverviewModal } from "@/app/components/GroupOverviewModal";
 import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { 
   User, 
   Mail, 
@@ -467,16 +468,16 @@ export default function ClientProfile() {
 
       if (data.success) {
         // Also save to localStorage for backward compatibility
-        localStorage.setItem('notificationsEnabled', enabled.toString());
-        
-        toast.success(
-          enabled ? "Notifications enabled" : "Notifications disabled",
-          {
-            description: enabled 
-              ? "You'll receive notifications for messages, tasks, and sessions"
-              : "You won't receive any notifications"
-          }
-        );
+      localStorage.setItem('notificationsEnabled', enabled.toString());
+      
+      toast.success(
+        enabled ? "Notifications enabled" : "Notifications disabled",
+        {
+          description: enabled 
+            ? "You'll receive notifications for messages, tasks, and sessions"
+            : "You won't receive any notifications"
+        }
+      );
       } else {
         throw new Error(data.error || 'Failed to save notification preference');
       }
@@ -755,11 +756,16 @@ export default function ClientProfile() {
   return (
     <div className={`${isMobile ? 'px-4 pb-20' : 'pb-6'}`}>
       <div className={`space-y-6 ${isMobile ? 'space-y-4' : 'space-y-8'} max-w-6xl mx-auto`}>
-        <div className={`${isMobile ? 'text-center pt-4' : 'pt-6'}`}>
-          <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>My Profile</h1>
-          <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
-            Manage your personal information and preferences.
-          </p>
+        <div className={`${isMobile ? 'text-center pt-4' : 'pt-6'} flex items-start justify-between`}>
+          <div>
+            <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>My Profile</h1>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
+              Manage your personal information and preferences.
+            </p>
+          </div>
+          {!isMobile && (
+            <LanguageSelector variant="header" />
+          )}
         </div>
 
       <Tabs defaultValue="personal" className="space-y-4">

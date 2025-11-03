@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -33,6 +34,7 @@ import {
 
 export default function Sessions() {
   const router = useRouter();
+  const t = useTranslation();
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedSessionDetail, setSelectedSessionDetail] = useState(null);
   const [isSessionDetailOpen, setIsSessionDetailOpen] = useState(false);
@@ -517,7 +519,7 @@ export default function Sessions() {
     <div className="page-container">
       {/* Page Header */}
       <PageHeader 
-        title={"Sessions"} 
+        title={t('navigation.sessions')} 
         subtitle={"Manage your sessions"}
       >
         <Button 

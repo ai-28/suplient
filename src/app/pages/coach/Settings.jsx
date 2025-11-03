@@ -38,9 +38,11 @@ import {
   X
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function Settings() {
   const { data: session } = useSession();
+  const t = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [coachData, setCoachData] = useState(null);
@@ -101,7 +103,7 @@ export default function Settings() {
 
   const handleAddClientStage = async () => {
     if (!newStageName.trim()) {
-      toast.error('Please enter a stage name');
+      toast.error(t('settings.pipeline.enterStageName', 'Please enter a stage name'));
       return;
     }
 
@@ -129,7 +131,7 @@ export default function Settings() {
       const data = await response.json();
 
       if (!data.success) {
-        toast.error(data.error || 'Failed to add stage');
+        toast.error(data.error || t('settings.pipeline.addStageFailed', 'Failed to add stage'));
         // Revert local state on error
         setPipelineStages(pipelineStages);
         return;
@@ -138,10 +140,10 @@ export default function Settings() {
       setNewStageName('');
       setNewStageColor('bg-blue-500');
       setShowAddClientStageDialog(false);
-      toast.success('Stage added successfully');
+      toast.success(t('settings.pipeline.stageAdded', 'Stage added successfully'));
     } catch (error) {
       console.error('Error adding stage:', error);
-      toast.error('Failed to add stage');
+      toast.error(t('settings.pipeline.addStageFailed', 'Failed to add stage'));
       // Revert local state on error
       setPipelineStages(pipelineStages);
     }
@@ -149,7 +151,7 @@ export default function Settings() {
 
   const handleEditClientStage = async () => {
     if (!newStageName.trim()) {
-      toast.error('Please enter a stage name');
+      toast.error(t('settings.pipeline.enterStageName', 'Please enter a stage name'));
       return;
     }
 
@@ -175,7 +177,7 @@ export default function Settings() {
       const data = await response.json();
 
       if (!data.success) {
-        toast.error(data.error || 'Failed to update stage');
+        toast.error(data.error || t('settings.pipeline.updateStageFailed', 'Failed to update stage'));
         return;
       }
 
@@ -183,10 +185,10 @@ export default function Settings() {
       setNewStageName('');
       setNewStageColor('bg-blue-500');
       setShowEditClientStageDialog(false);
-      toast.success('Stage updated successfully');
+      toast.success(t('settings.pipeline.stageUpdated', 'Stage updated successfully'));
     } catch (error) {
       console.error('Error updating stage:', error);
-      toast.error('Failed to update stage');
+      toast.error(t('settings.pipeline.updateStageFailed', 'Failed to update stage'));
     }
   };
 
@@ -208,16 +210,16 @@ export default function Settings() {
       const data = await response.json();
 
       if (!data.success) {
-        toast.error(data.error || 'Failed to delete stage');
+        toast.error(data.error || t('settings.pipeline.deleteStageFailed', 'Failed to delete stage'));
         // Revert local state on error
         setPipelineStages(pipelineStages);
         return;
       }
 
-      toast.success('Stage deleted successfully');
+      toast.success(t('settings.pipeline.stageDeleted', 'Stage deleted successfully'));
     } catch (error) {
       console.error('Error deleting stage:', error);
-      toast.error('Failed to delete stage');
+      toast.error(t('settings.pipeline.deleteStageFailed', 'Failed to delete stage'));
       // Revert local state on error
       setPipelineStages(pipelineStages);
     }
@@ -225,7 +227,7 @@ export default function Settings() {
 
   const handleAddGroupStage = async () => {
     if (!newStageName.trim()) {
-      toast.error('Please enter a stage name');
+      toast.error(t('settings.pipeline.enterStageName', 'Please enter a stage name'));
       return;
     }
 
@@ -254,7 +256,7 @@ export default function Settings() {
       const data = await response.json();
 
       if (!data.success) {
-        toast.error(data.error || 'Failed to add stage');
+        toast.error(data.error || t('settings.pipeline.addStageFailed', 'Failed to add stage'));
         // Revert local state on error
         setGroupPipelineStages(groupPipelineStages);
         return;
@@ -264,10 +266,10 @@ export default function Settings() {
       setNewStageColor('bg-blue-500');
       setNewStageDescription('');
       setShowAddGroupStageDialog(false);
-      toast.success('Stage added successfully');
+      toast.success(t('settings.pipeline.stageAdded', 'Stage added successfully'));
     } catch (error) {
       console.error('Error adding stage:', error);
-      toast.error('Failed to add stage');
+      toast.error(t('settings.pipeline.addStageFailed', 'Failed to add stage'));
       // Revert local state on error
       setGroupPipelineStages(groupPipelineStages);
     }
@@ -275,7 +277,7 @@ export default function Settings() {
 
   const handleEditGroupStage = async () => {
     if (!newStageName.trim()) {
-      toast.error('Please enter a stage name');
+      toast.error(t('settings.pipeline.enterStageName', 'Please enter a stage name'));
       return;
     }
 
@@ -301,7 +303,7 @@ export default function Settings() {
       const data = await response.json();
 
       if (!data.success) {
-        toast.error(data.error || 'Failed to update stage');
+        toast.error(data.error || t('settings.pipeline.updateStageFailed', 'Failed to update stage'));
         return;
       }
 
@@ -310,10 +312,10 @@ export default function Settings() {
       setNewStageColor('bg-blue-500');
       setNewStageDescription('');
       setShowEditGroupStageDialog(false);
-      toast.success('Stage updated successfully');
+      toast.success(t('settings.pipeline.stageUpdated', 'Stage updated successfully'));
     } catch (error) {
       console.error('Error updating stage:', error);
-      toast.error('Failed to update stage');
+      toast.error(t('settings.pipeline.updateStageFailed', 'Failed to update stage'));
     }
   };
 
@@ -335,16 +337,16 @@ export default function Settings() {
       const data = await response.json();
 
       if (!data.success) {
-        toast.error(data.error || 'Failed to delete stage');
+        toast.error(data.error || t('settings.pipeline.deleteStageFailed', 'Failed to delete stage'));
         // Revert local state on error
         setGroupPipelineStages(groupPipelineStages);
         return;
       }
 
-      toast.success('Stage deleted successfully');
+      toast.success(t('settings.pipeline.stageDeleted', 'Stage deleted successfully'));
     } catch (error) {
       console.error('Error deleting stage:', error);
-      toast.error('Failed to delete stage');
+      toast.error(t('settings.pipeline.deleteStageFailed', 'Failed to delete stage'));
       // Revert local state on error
       setGroupPipelineStages(groupPipelineStages);
     }
@@ -378,11 +380,11 @@ export default function Settings() {
       if (data.success) {
         toast.success('Client pipeline saved successfully!');
       } else {
-        toast.error(data.error || 'Failed to save pipeline');
+        toast.error(data.error || t('settings.pipeline.savePipelineFailed', 'Failed to save pipeline'));
       }
     } catch (error) {
       console.error('Error saving pipeline:', error);
-      toast.error('Failed to save pipeline');
+      toast.error(t('settings.pipeline.savePipelineFailed', 'Failed to save pipeline'));
     } finally {
       setSavingClientPipeline(false);
     }
@@ -404,11 +406,11 @@ export default function Settings() {
       if (data.success) {
         toast.success('Group pipeline saved successfully!');
       } else {
-        toast.error(data.error || 'Failed to save pipeline');
+        toast.error(data.error || t('settings.pipeline.savePipelineFailed', 'Failed to save pipeline'));
       }
     } catch (error) {
       console.error('Error saving pipeline:', error);
-      toast.error('Failed to save pipeline');
+      toast.error(t('settings.pipeline.savePipelineFailed', 'Failed to save pipeline'));
     } finally {
       setSavingGroupPipeline(false);
     }
@@ -416,7 +418,7 @@ export default function Settings() {
 
   const handleDeleteAccount = async () => {
     if (!session?.user?.id) {
-      toast.error('You must be logged in to delete your account');
+      toast.error(t('common.messages.mustBeLoggedIn', 'You must be logged in to delete your account'));
       return;
     }
 
@@ -431,15 +433,15 @@ export default function Settings() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Account deleted successfully');
+        toast.success(t('settings.security.accountDeleted', 'Account deleted successfully'));
         // Redirect to login page or sign out
         window.location.href = '/auth/signin';
       } else {
-        toast.error(data.error || 'Failed to delete account');
+        toast.error(data.error || t('settings.security.deleteAccountFailed', 'Failed to delete account'));
       }
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
+      toast.error(t('settings.security.deleteAccountFailed', 'Failed to delete account'));
     }
   };
 
@@ -478,7 +480,7 @@ export default function Settings() {
             setNotificationsEnabled(data.user.notificationsEnabled !== false);
             // Also sync to localStorage for backward compatibility
             localStorage.setItem('notificationsEnabled', (data.user.notificationsEnabled !== false).toString());
-          } else {
+        } else {
             // Fallback to localStorage if database doesn't have it yet
             const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
             if (savedNotificationPreference !== null) {
@@ -486,7 +488,7 @@ export default function Settings() {
             }
           }
         } else {
-          toast.error('Failed to load coach data');
+          toast.error(t('common.messages.loadFailed', 'Failed to load coach data'));
         }
       } catch (error) {
         console.error('Error fetching coach data:', error);
@@ -562,11 +564,11 @@ export default function Settings() {
       localStorage.setItem('notificationsEnabled', enabled.toString());
       
       toast.success(
-        enabled ? "Notifications enabled" : "Notifications disabled",
+        enabled ? t('settings.notifications.enabled', 'Notifications enabled') : t('settings.notifications.disabled', 'Notifications disabled'),
         {
           description: enabled 
-            ? "You'll receive notifications for messages, tasks, and sessions"
-            : "You won't receive any notifications"
+            ? t('settings.notifications.enabledDescription', "You'll receive notifications for messages, tasks, and sessions")
+            : t('settings.notifications.disabledDescription', "You won't receive any notifications")
         }
       );
       } else {
@@ -574,7 +576,7 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('Error saving notification preference:', error);
-      toast.error("Failed to save notification preference");
+      toast.error(t('settings.notifications.saveFailed', 'Failed to save notification preference'));
       // Revert state on error
       setNotificationsEnabled(!enabled);
     }
@@ -591,23 +593,23 @@ export default function Settings() {
   // Handle password update
   const handlePasswordUpdate = async () => {
     if (!session?.user?.id) {
-      toast.error('You must be logged in to update password');
+      toast.error(t('common.messages.mustBeLoggedIn', 'You must be logged in to update password'));
       return;
     }
 
     // Validate passwords
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      toast.error('Please fill in all password fields');
+      toast.error(t('settings.profile.fillAllPasswordFields', 'Please fill in all password fields'));
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('New passwords do not match');
+      toast.error(t('settings.profile.passwordsDoNotMatch', 'New passwords do not match'));
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters long');
+      toast.error(t('settings.profile.passwordMinLength', 'New password must be at least 6 characters long'));
       return;
     }
 
@@ -637,7 +639,7 @@ export default function Settings() {
       console.log('Response data:', data);
 
       if (data.success) {
-        toast.success('Password updated successfully!');
+        toast.success(t('settings.profile.passwordUpdated', 'Password updated successfully!'));
         // Clear password fields
         setPasswordData({
           currentPassword: '',
@@ -645,11 +647,11 @@ export default function Settings() {
           confirmPassword: ''
         });
       } else {
-        toast.error(data.error || 'Failed to update password');
+        toast.error(data.error || t('settings.profile.passwordUpdateFailed', 'Failed to update password'));
       }
     } catch (error) {
       console.error('Error updating password:', error);
-      toast.error('Failed to update password');
+      toast.error(t('settings.profile.passwordUpdateFailed', 'Failed to update password'));
     } finally {
       setPasswordLoading(false);
     }
@@ -704,7 +706,7 @@ export default function Settings() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Avatar uploaded successfully!');
+        toast.success(t('settings.profile.avatarUploaded', 'Avatar uploaded successfully!'));
         // Update coach data with new avatar
         setCoachData(prev => ({
           ...prev,
@@ -715,11 +717,11 @@ export default function Settings() {
           window.location.reload();
         }
       } else {
-        toast.error(data.error || 'Failed to upload avatar');
+        toast.error(data.error || t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'));
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to upload avatar');
+      toast.error(t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -737,7 +739,7 @@ export default function Settings() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Avatar removed successfully!');
+        toast.success(t('settings.profile.avatarRemoved', 'Avatar removed successfully!'));
         setAvatarPreview(null);
         // Update coach data
         setCoachData(prev => ({
@@ -749,11 +751,11 @@ export default function Settings() {
           window.location.reload();
         }
       } else {
-        toast.error(data.error || 'Failed to remove avatar');
+        toast.error(data.error || t('settings.profile.avatarRemoveFailed', 'Failed to remove avatar'));
       }
     } catch (error) {
       console.error('Error removing avatar:', error);
-      toast.error('Failed to remove avatar');
+      toast.error(t('settings.profile.avatarRemoveFailed', 'Failed to remove avatar'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -785,7 +787,7 @@ export default function Settings() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Profile updated successfully!');
+        toast.success(t('settings.profile.profileUpdated', 'Profile updated successfully!'));
         // Update coach data with new values
         setCoachData(prev => ({
           ...prev,
@@ -795,11 +797,11 @@ export default function Settings() {
           license: formData.license
         }));
       } else {
-        toast.error(data.error || 'Failed to update profile');
+        toast.error(data.error || t('settings.profile.profileUpdateFailed', 'Failed to update profile'));
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(t('settings.profile.profileUpdateFailed', 'Failed to update profile'));
     } finally {
       setSaving(false);
     }
@@ -809,23 +811,23 @@ export default function Settings() {
     <div className="page-container">
       {/* Page Header */}
       <PageHeader 
-        title={"Settings"} 
-        subtitle={"Manage your settings"}
+        title={t('navigation.settings')} 
+        subtitle={t('settings.subtitle', 'Manage your settings')}
       />
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 bg-muted">
           <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Profile
+            {t('profile.title')}
           </TabsTrigger>
           <TabsTrigger value="notifications" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Notifications
+            {t('settings.notifications.title', 'Notifications')}
           </TabsTrigger>
           <TabsTrigger value="security" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Security
+            {t('settings.security.title', 'Security')}
           </TabsTrigger>
           <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Pipeline
+            {t('settings.pipeline.title', 'Pipeline')}
           </TabsTrigger>
         </TabsList>
 
@@ -836,7 +838,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5 text-primary" />
-                  Personal Info
+                  {t('profile.personalInfo')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -878,7 +880,7 @@ export default function Settings() {
                         disabled={uploadingAvatar}
                       >
                         <Camera className="h-4 w-4 mr-2" />
-                        {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                        {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
                       </Button>
                       {avatarPreview && (
                         <>
@@ -890,10 +892,10 @@ export default function Settings() {
                             {uploadingAvatar ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Uploading...
+                                {t('settings.profile.uploading', 'Uploading...')}
                               </>
                             ) : (
-                              'Save Photo'
+                              t('settings.profile.savePhoto', 'Save Photo')
                             )}
                           </Button>
                           <Button 
@@ -917,59 +919,59 @@ export default function Settings() {
                           onClick={handleAvatarRemove}
                           disabled={uploadingAvatar}
                         >
-                          Remove
+                          {t('settings.profile.remove', 'Remove')}
                         </Button>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      JPG, PNG or WebP. Max 5MB.
+                      {t('settings.profile.avatarFormat', 'JPG, PNG or WebP. Max 5MB.')}
                     </p>
                   </div>
                 </div>
 
                   <div>
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName">{t('common.labels.fullName', 'Full Name')}</Label>
                   <Input 
                     id="fullName" 
                     value={formData.fullName}
                     onChange={(e) => handleInputChange('fullName', e.target.value)}
                     disabled={loading}
-                    placeholder="Enter your full name"
+                    placeholder={t('settings.profile.enterFullName', 'Enter your full name')}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('common.labels.email')}</Label>
                   <Input 
                     id="email" 
                     type="email" 
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     disabled={loading}
-                    placeholder="Enter your email"
+                    placeholder={t('settings.profile.enterEmail', 'Enter your email')}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('common.labels.phone')}</Label>
                   <Input 
                     id="phone" 
                     type="tel" 
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     disabled={loading}
-                    placeholder="Enter your phone number"
+                    placeholder={t('settings.profile.enterPhone', 'Enter your phone number')}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="license">Professional License</Label>
+                  <Label htmlFor="license">{t('settings.profile.license', 'Professional License')}</Label>
                   <Input 
                     id="license" 
                     value={formData.license}
                     onChange={(e) => handleInputChange('license', e.target.value)}
                     disabled={loading}
-                    placeholder="Enter your professional license"
+                    placeholder={t('settings.profile.enterLicense', 'Enter your professional license')}
                   />
                 </div>
 
@@ -978,7 +980,7 @@ export default function Settings() {
                   onClick={handleSaveChanges}
                   disabled={loading || saving}
                 >
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? t('common.messages.loading') : t('common.buttons.saveChanges')}
                 </Button>
               </CardContent>
             </Card>
@@ -990,7 +992,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Globe className="h-5 w-5 text-primary" />
-                  Language Localization
+                  {t('settings.language.title', 'Language')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1006,16 +1008,16 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5 text-primary" />
-                Notifications
+                {t('settings.notifications.title', 'Notifications')}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">Choose what notifications you receive</p>
+              <p className="text-sm text-muted-foreground">{t('settings.notifications.description', 'Choose what notifications you receive')}</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Enable Notifications</Label>
+                  <Label>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Receive notifications for messages, tasks, sessions, and updates
+                    {t('settings.notifications.description', 'Receive notifications for messages, tasks, sessions, and updates')}
                   </p>
                 </div>
                 <Switch 
@@ -1034,43 +1036,43 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Key className="h-5 w-5 text-primary" />
-                  Password Authentication
+                  {t('settings.security.passwordAuth', 'Password Authentication')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Label htmlFor="currentPassword">{t('settings.profile.currentPassword', 'Current Password')}</Label>
                   <Input 
                     id="currentPassword" 
                     type="password" 
                     value={passwordData.currentPassword}
                     onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
                     disabled={passwordLoading}
-                    placeholder="Enter your current password"
+                    placeholder={t('settings.profile.enterCurrentPassword', 'Enter your current password')}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="newPassword">New Password</Label>
+                  <Label htmlFor="newPassword">{t('settings.profile.newPassword', 'New Password')}</Label>
                   <Input 
                     id="newPassword" 
                     type="password" 
                     value={passwordData.newPassword}
                     onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
                     disabled={passwordLoading}
-                    placeholder="Enter your new password"
+                    placeholder={t('settings.profile.enterNewPassword', 'Enter your new password (min. 8 characters)')}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">{t('settings.profile.confirmNewPassword', 'Confirm New Password')}</Label>
                   <Input 
                     id="confirmPassword" 
                     type="password" 
                     value={passwordData.confirmPassword}
                     onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
                     disabled={passwordLoading}
-                    placeholder="Confirm your new password"
+                    placeholder={t('settings.profile.confirmNewPassword', 'Confirm new password')}
                   />
                 </div>
 
@@ -1079,17 +1081,17 @@ export default function Settings() {
                   onClick={handlePasswordUpdate}
                   disabled={passwordLoading}
                 >
-                  {passwordLoading ? 'Updating...' : 'Update Password'}
+                  {passwordLoading ? t('settings.profile.updating', 'Updating...') : t('settings.profile.updatePassword', 'Update Password')}
                 </Button>
 
                 <Separator />
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Two-Factor Authentication</Label>
-                    <p className="text-sm text-muted-foreground">Enable or disable two-factor authentication</p>
+                    <Label>{t('settings.security.twoFactorAuth', 'Two-Factor Authentication')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('settings.security.twoFactorDesc', 'Enable or disable two-factor authentication')}</p>
                   </div>
-                  <Button variant="outline">Enable 2FA</Button>
+                  <Button variant="outline">{t('settings.security.enable2FA', 'Enable 2FA')}</Button>
                 </div>
               </CardContent>
             </Card>
@@ -1098,7 +1100,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
-                  Account Management
+                  {t('settings.security.accountManagement', 'Account Management')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1106,29 +1108,29 @@ export default function Settings() {
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" className="w-full">
-                        Delete Account
+                        {t('settings.security.deleteAccount', 'Delete Account')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                        <AlertDialogTitle>{t('settings.security.deleteAccount', 'Delete Account')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete your account? This action cannot be undone. All your data, including client information, sessions, and settings will be permanently deleted.
+                          {t('settings.security.deleteAccountConfirm', 'Are you sure you want to delete your account? This action cannot be undone. All your data, including client information, sessions, and settings will be permanently deleted.')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.buttons.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleDeleteAccount}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          Delete Account
+                          {t('settings.security.deleteAccount', 'Delete Account')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    This action cannot be undone. All your data will be permanently deleted.
+                    {t('settings.security.deleteAccountWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
                   </p>
                 </div>
               </CardContent>
@@ -1144,15 +1146,15 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users2 className="h-5 w-5 text-primary" />
-                  Client Pipeline Stages
+                  {t('settings.pipeline.clientStages', 'Client Pipeline Stages')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-base font-medium">Stages</Label>
-                      <p className="text-sm text-muted-foreground">Set the stages for your client pipeline</p>
+                      <Label className="text-base font-medium">{t('settings.pipeline.stages', 'Stages')}</Label>
+                      <p className="text-sm text-muted-foreground">{t('settings.pipeline.setClientStages', 'Set the stages for your client pipeline')}</p>
                     </div>
                     <Button 
                       size="sm" 
@@ -1160,7 +1162,7 @@ export default function Settings() {
                       onClick={() => setShowAddClientStageDialog(true)}
                     >
                       <Plus className="h-4 w-4" />
-                      Add Stage
+                      {t('settings.pipeline.addStage', 'Add Stage')}
                     </Button>
                   </div>
                   
@@ -1203,8 +1205,8 @@ export default function Settings() {
 
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-base font-medium">Default Column Visibility</Label>
-                    <p className="text-sm text-muted-foreground">Set which columns are visible by default</p>
+                    <Label className="text-base font-medium">{t('settings.pipeline.defaultVisibility', 'Default Column Visibility')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('settings.pipeline.setColumnVisibility', 'Set which columns are visible by default')}</p>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -1232,10 +1234,10 @@ export default function Settings() {
                     {savingClientPipeline ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
+                        {t('common.messages.loading')}
                       </>
                     ) : (
-                      'Save Client Pipeline'
+                      t('settings.pipeline.saveClientPipeline', 'Save Client Pipeline')
                     )}
                   </Button>
                 </div>
@@ -1247,15 +1249,15 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users2 className="h-5 w-5 text-primary" />
-                  Group Pipeline Stages
+                  {t('settings.pipeline.groupStages', 'Group Pipeline Stages')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-base font-medium">Stages</Label>
-                      <p className="text-sm text-muted-foreground">Set the stages for your group pipeline</p>
+                      <Label className="text-base font-medium">{t('settings.pipeline.stages', 'Stages')}</Label>
+                      <p className="text-sm text-muted-foreground">{t('settings.pipeline.setGroupStages', 'Set the stages for your group pipeline')}</p>
                     </div>
                     <Button 
                       size="sm" 
@@ -1263,7 +1265,7 @@ export default function Settings() {
                       onClick={() => setShowAddGroupStageDialog(true)}
                     >
                       <Plus className="h-4 w-4" />
-                      Add Stage
+                      {t('settings.pipeline.addStage', 'Add Stage')}
                     </Button>
                   </div>
                   
@@ -1310,8 +1312,8 @@ export default function Settings() {
 
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-base font-medium">Default Funnel Settings</Label>
-                    <p className="text-sm text-muted-foreground">Set the default funnel settings for your pipeline</p>
+                    <Label className="text-base font-medium">{t('settings.pipeline.defaultFunnel', 'Default Funnel Settings')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('settings.pipeline.setDefaultFunnel', 'Set the default funnel settings for your pipeline')}</p>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -1339,10 +1341,10 @@ export default function Settings() {
                     {savingGroupPipeline ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
+                        {t('common.messages.loading')}
                       </>
                     ) : (
-                      'Save Group Pipeline'
+                      t('settings.pipeline.saveGroupPipeline', 'Save Group Pipeline')
                     )}
                   </Button>
                 </div>
@@ -1356,21 +1358,21 @@ export default function Settings() {
       <Dialog open={showAddClientStageDialog} onOpenChange={setShowAddClientStageDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Client Stage</DialogTitle>
-            <DialogDescription>Create a new stage for your client pipeline</DialogDescription>
+            <DialogTitle>{t('settings.pipeline.addClientStage', 'Add Client Stage')}</DialogTitle>
+            <DialogDescription>{t('settings.pipeline.createClientStage', 'Create a new stage for your client pipeline')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="stageName">Stage Name</Label>
+              <Label htmlFor="stageName">{t('settings.pipeline.stageName', 'Stage Name')}</Label>
               <Input
                 id="stageName"
                 value={newStageName}
                 onChange={(e) => setNewStageName(e.target.value)}
-                placeholder="Enter stage name"
+                placeholder={t('settings.pipeline.enterStageNamePlaceholder', 'Enter stage name')}
               />
             </div>
             <div>
-              <Label htmlFor="stageColor">Color</Label>
+              <Label htmlFor="stageColor">{t('settings.pipeline.color', 'Color')}</Label>
               <Select value={newStageColor} onValueChange={setNewStageColor}>
                 <SelectTrigger>
                   <SelectValue />
@@ -1390,9 +1392,9 @@ export default function Settings() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddClientStageDialog(false)}>
-              Cancel
+              {t('common.buttons.cancel')}
             </Button>
-            <Button onClick={handleAddClientStage}>Add Stage</Button>
+            <Button onClick={handleAddClientStage}>{t('settings.pipeline.addStage', 'Add Stage')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1401,21 +1403,21 @@ export default function Settings() {
       <Dialog open={showEditClientStageDialog} onOpenChange={setShowEditClientStageDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Client Stage</DialogTitle>
-            <DialogDescription>Update the stage details</DialogDescription>
+            <DialogTitle>{t('settings.pipeline.editClientStage', 'Edit Client Stage')}</DialogTitle>
+            <DialogDescription>{t('settings.pipeline.updateStageDetails', 'Update the stage details')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="editStageName">Stage Name</Label>
+              <Label htmlFor="editStageName">{t('settings.pipeline.stageName', 'Stage Name')}</Label>
               <Input
                 id="editStageName"
                 value={newStageName}
                 onChange={(e) => setNewStageName(e.target.value)}
-                placeholder="Enter stage name"
+                placeholder={t('settings.pipeline.enterStageNamePlaceholder', 'Enter stage name')}
               />
             </div>
             <div>
-              <Label htmlFor="editStageColor">Color</Label>
+              <Label htmlFor="editStageColor">{t('settings.pipeline.color', 'Color')}</Label>
               <Select value={newStageColor} onValueChange={setNewStageColor}>
                 <SelectTrigger>
                   <SelectValue />
@@ -1435,9 +1437,9 @@ export default function Settings() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditClientStageDialog(false)}>
-              Cancel
+              {t('common.buttons.cancel')}
             </Button>
-            <Button onClick={handleEditClientStage}>Save Changes</Button>
+            <Button onClick={handleEditClientStage}>{t('common.buttons.saveChanges')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1446,30 +1448,30 @@ export default function Settings() {
       <Dialog open={showAddGroupStageDialog} onOpenChange={setShowAddGroupStageDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Group Stage</DialogTitle>
-            <DialogDescription>Create a new stage for your group pipeline</DialogDescription>
+            <DialogTitle>{t('settings.pipeline.addGroupStage', 'Add Group Stage')}</DialogTitle>
+            <DialogDescription>{t('settings.pipeline.createGroupStage', 'Create a new stage for your group pipeline')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="groupStageName">Stage Name</Label>
+              <Label htmlFor="groupStageName">{t('settings.pipeline.stageName', 'Stage Name')}</Label>
               <Input
                 id="groupStageName"
                 value={newStageName}
                 onChange={(e) => setNewStageName(e.target.value)}
-                placeholder="Enter stage name"
+                placeholder={t('settings.pipeline.enterStageNamePlaceholder', 'Enter stage name')}
               />
             </div>
             <div>
-              <Label htmlFor="groupStageDescription">Description</Label>
+              <Label htmlFor="groupStageDescription">{t('common.labels.description')}</Label>
               <Input
                 id="groupStageDescription"
                 value={newStageDescription}
                 onChange={(e) => setNewStageDescription(e.target.value)}
-                placeholder="Enter stage description"
+                placeholder={t('settings.pipeline.enterStageDescription', 'Enter stage description')}
               />
             </div>
             <div>
-              <Label htmlFor="groupStageColor">Color</Label>
+              <Label htmlFor="groupStageColor">{t('settings.pipeline.color', 'Color')}</Label>
               <Select value={newStageColor} onValueChange={setNewStageColor}>
                 <SelectTrigger>
                   <SelectValue />
@@ -1489,9 +1491,9 @@ export default function Settings() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddGroupStageDialog(false)}>
-              Cancel
+              {t('common.buttons.cancel')}
             </Button>
-            <Button onClick={handleAddGroupStage}>Add Stage</Button>
+            <Button onClick={handleAddGroupStage}>{t('settings.pipeline.addStage', 'Add Stage')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1500,30 +1502,30 @@ export default function Settings() {
       <Dialog open={showEditGroupStageDialog} onOpenChange={setShowEditGroupStageDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Group Stage</DialogTitle>
-            <DialogDescription>Update the stage details</DialogDescription>
+            <DialogTitle>{t('settings.pipeline.editGroupStage', 'Edit Group Stage')}</DialogTitle>
+            <DialogDescription>{t('settings.pipeline.updateStageDetails', 'Update the stage details')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="editGroupStageName">Stage Name</Label>
+              <Label htmlFor="editGroupStageName">{t('settings.pipeline.stageName', 'Stage Name')}</Label>
               <Input
                 id="editGroupStageName"
                 value={newStageName}
                 onChange={(e) => setNewStageName(e.target.value)}
-                placeholder="Enter stage name"
+                placeholder={t('settings.pipeline.enterStageNamePlaceholder', 'Enter stage name')}
               />
             </div>
             <div>
-              <Label htmlFor="editGroupStageDescription">Description</Label>
+              <Label htmlFor="editGroupStageDescription">{t('common.labels.description')}</Label>
               <Input
                 id="editGroupStageDescription"
                 value={newStageDescription}
                 onChange={(e) => setNewStageDescription(e.target.value)}
-                placeholder="Enter stage description"
+                placeholder={t('settings.pipeline.enterStageDescription', 'Enter stage description')}
               />
             </div>
             <div>
-              <Label htmlFor="editGroupStageColor">Color</Label>
+              <Label htmlFor="editGroupStageColor">{t('settings.pipeline.color', 'Color')}</Label>
               <Select value={newStageColor} onValueChange={setNewStageColor}>
                 <SelectTrigger>
                   <SelectValue />
@@ -1543,9 +1545,9 @@ export default function Settings() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditGroupStageDialog(false)}>
-              Cancel
+              {t('common.buttons.cancel')}
             </Button>
-            <Button onClick={handleEditGroupStage}>Save Changes</Button>
+            <Button onClick={handleEditGroupStage}>{t('common.buttons.saveChanges')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

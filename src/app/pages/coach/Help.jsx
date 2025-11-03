@@ -23,9 +23,11 @@ import {
   Lightbulb,
   ExternalLink
 } from "lucide-react";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function Help() {
   const [searchQuery, setSearchQuery] = useState("");
+  const t = useTranslation();
 
   const faqData = [
     {
@@ -93,13 +95,13 @@ export default function Help() {
         <div>
           <h2 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <HelpCircle className="h-8 w-8 text-primary" />
-            Help
+            {t('navigation.help')}
           </h2>
-          <p className="text-muted-foreground mt-1">Get help and support with the platform</p>
+          <p className="text-muted-foreground mt-1">{t('navigation.help')}</p>
         </div>
         <Button className="bg-gradient-primary text-white">
           <MessageCircle className="h-4 w-4 mr-2" />
-          Contact Support
+          {t('common.buttons.contact', 'Contact Support')}
         </Button>
       </div>
 
@@ -109,7 +111,7 @@ export default function Help() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search the help center"
+              placeholder={t('common.buttons.search')}
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -121,16 +123,16 @@ export default function Help() {
       <Tabs defaultValue="faq" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 bg-muted">
           <TabsTrigger value="faq" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              FAQ
+              {t('navigation.help', 'FAQ')}
           </TabsTrigger>
           <TabsTrigger value="tutorials" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Tutorials
+            {t('navigation.help', 'Tutorials')}
           </TabsTrigger>
           <TabsTrigger value="contact" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Contact
+            {t('common.buttons.contact', 'Contact')}
           </TabsTrigger>
           <TabsTrigger value="resources" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            Resources
+            {t('navigation.resources')}
           </TabsTrigger>
         </TabsList>
 

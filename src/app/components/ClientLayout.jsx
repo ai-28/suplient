@@ -11,10 +11,12 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import PWAInstallPrompt from "./PWAInstallPrompt";
 import { useServiceWorker } from "@/app/hooks/useServiceWorker";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function ClientLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslation();
   
   // Register service worker for PWA functionality
   useServiceWorker();
@@ -40,7 +42,7 @@ export default function ClientLayout({ children }) {
             onClick={() => router.push('/client')}
           >
             <Home className={`h-6 w-6 ${isActiveRoute('/client') ? 'text-primary' : ''}`} />
-            <span className={`text-xs ${isActiveRoute('/client') ? 'text-primary font-medium' : ''}`}>Today</span>
+            <span className={`text-xs ${isActiveRoute('/client') ? 'text-primary font-medium' : ''}`}>{t('client.navigation.today', 'Today')}</span>
           </Button>
           
           <Button 
@@ -49,7 +51,7 @@ export default function ClientLayout({ children }) {
             onClick={() => router.push('/client/sessions')}
           >
             <MessageCircle className={`h-6 w-6 ${isActiveRoute('/client/sessions') ? 'text-primary' : ''}`} />
-            <span className={`text-xs ${isActiveRoute('/client/sessions') ? 'text-primary font-medium' : ''}`}>Chat</span>
+            <span className={`text-xs ${isActiveRoute('/client/sessions') ? 'text-primary font-medium' : ''}`}>{t('client.navigation.chat', 'Chat')}</span>
           </Button>
           
           <Button 
@@ -65,7 +67,7 @@ export default function ClientLayout({ children }) {
             onClick={() => router.push('/client/tasks')}
           >
             <CheckCircle className={`h-6 w-6 ${isActiveRoute('/client/tasks') ? 'text-primary' : ''}`} />
-            <span className={`text-xs ${isActiveRoute('/client/tasks') ? 'text-primary font-medium' : ''}`}>Action</span>
+            <span className={`text-xs ${isActiveRoute('/client/tasks') ? 'text-primary font-medium' : ''}`}>{t('client.navigation.action', 'Action')}</span>
           </Button>
           
           <Button 
@@ -74,7 +76,7 @@ export default function ClientLayout({ children }) {
             onClick={() => router.push('/client/resources')}
           >
             <Play className={`h-6 w-6 ${isActiveRoute('/client/resources') ? 'text-primary' : ''}`} />
-            <span className={`text-xs ${isActiveRoute('/client/resources') ? 'text-primary font-medium' : ''}`}>Explore</span>
+            <span className={`text-xs ${isActiveRoute('/client/resources') ? 'text-primary font-medium' : ''}`}>{t('client.navigation.explore', 'Explore')}</span>
           </Button>
         </div>
       </div>

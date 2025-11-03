@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -62,6 +63,7 @@ export default function GroupDetail() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslation();
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -115,7 +117,7 @@ export default function GroupDetail() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading group data...</p>
+          <p className="text-muted-foreground">{t('groups.loadingGroupData', 'Loading group data...')}</p>
         </div>
       </div>
     );
@@ -126,8 +128,8 @@ export default function GroupDetail() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-destructive mb-4">Error: {error}</p>
-          <Button onClick={fetchGroupData}>Try Again</Button>
+          <p className="text-destructive mb-4">{t('common.messages.error')}: {error}</p>
+          <Button onClick={fetchGroupData}>{t('common.buttons.tryAgain', 'Try Again')}</Button>
         </div>
       </div>
     );
@@ -138,8 +140,8 @@ export default function GroupDetail() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">Group not found</p>
-          <Button onClick={() => router.push('/coach/groups')}>Back to Groups</Button>
+          <p className="text-muted-foreground mb-4">{t('groups.groupNotFound', 'Group not found')}</p>
+          <Button onClick={() => router.push('/coach/groups')}>{t('groups.backToGroups', 'Back to Groups')}</Button>
         </div>
       </div>
     );
@@ -274,7 +276,7 @@ console.log(groupProgressData)
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            {"Back to Groups"}
+            {t('groups.backToGroups', 'Back to Groups')}
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{group.name}</h1>
@@ -284,11 +286,11 @@ console.log(groupProgressData)
         <div className="flex items-center gap-2">
           <Button onClick={handleAddMember} size="sm">
             <UserPlus className="h-4 w-4 mr-2" />
-            {"Add Member"}
+            {t('groups.addMember', 'Add Member')}
           </Button>
           <Button onClick={handleGroupSettings} variant="outline" size="sm">
             <Settings className="h-4 w-4 mr-2" />
-            {"Group Settings"}
+            {t('groups.groupSettings', 'Group Settings')}
           </Button>
         </div>
       </div>
@@ -298,9 +300,9 @@ console.log(groupProgressData)
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
           <div className="px-6 pt-4">
             <TabsList className="w-full">
-              <TabsTrigger value="overview" className="flex-1">{"Overview"}</TabsTrigger>
-              <TabsTrigger value="members" className="flex-1">{"Members"}</TabsTrigger>
-              <TabsTrigger value="analytics" className="flex-1">{"Progress Activity"}</TabsTrigger>
+              <TabsTrigger value="overview" className="flex-1">{t('common.labels.overview', 'Overview')}</TabsTrigger>
+              <TabsTrigger value="members" className="flex-1">{t('groups.members', 'Members')}</TabsTrigger>
+              <TabsTrigger value="analytics" className="flex-1">{t('groups.progressActivity', 'Progress Activity')}</TabsTrigger>
             </TabsList>
           </div>
 
@@ -356,10 +358,10 @@ console.log(groupProgressData)
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="h-5 w-5" />
-                      {"Analytics"}
+                      {t('groups.analytics', 'Analytics')}
                     </CardTitle>
                     <CardDescription>
-                      {"Analytics"}
+                      {t('groups.analyticsDescription', 'View group progress and activity')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">

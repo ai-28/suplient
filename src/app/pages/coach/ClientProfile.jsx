@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslation } from '@/app/context/LanguageContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -73,10 +74,11 @@ export default function ClientProfile() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
+  const t = useTranslation();
   
   // Safety check to ensure searchParams is available
   if (!searchParams) {
-    return <div>Loading...</div>;
+    return <div>{t('common.messages.loading')}</div>;
   }
   
   // State for UI
@@ -431,7 +433,7 @@ export default function ClientProfile() {
         await fetchClientEnrolledPrograms();
         
         // Show success message
-        toast.success('Element marked as complete');
+        toast.success(t('programs.elementMarkedComplete', 'Element marked as complete'));
       } else {
         const error = await response.json();
         console.error('Failed to mark element complete:', error);
@@ -482,7 +484,7 @@ export default function ClientProfile() {
         if (updateResponse.ok) {
           // Refresh programs to show updated status
           await fetchClientEnrolledPrograms();
-          toast.success('🎉 Program completed! Congratulations!');
+          toast.success(t('programs.programCompleted', '🎉 Program completed! Congratulations!'));
         } else {
           console.error('Failed to mark program as completed');
         }
@@ -513,7 +515,7 @@ export default function ClientProfile() {
         await fetchClientEnrolledPrograms();
         
         // Show success message
-        toast.success(`${clientData.name} has been enrolled in the program successfully`);
+        toast.success(t('programs.clientEnrolled', '{name} has been enrolled in the program successfully', { name: clientData.name }));
         
         // Close the dialog
         setEnrollDialogOpen(false);
@@ -545,7 +547,7 @@ export default function ClientProfile() {
         await fetchClientEnrolledPrograms();
         
         // Show success message
-        toast.success('Program started successfully!');
+        toast.success(t('programs.programStarted', 'Program started successfully!'));
       } else {
         const error = await response.json();
         console.error('Failed to start program:', error);
@@ -572,7 +574,7 @@ export default function ClientProfile() {
 
       if (response.ok) {
         await fetchClientEnrolledPrograms();
-        toast.success('Program paused');
+        toast.success(t('programs.programPaused', 'Program paused'));
       } else {
         const error = await response.json();
         toast.error(error.error || 'Failed to pause program');
@@ -598,7 +600,7 @@ export default function ClientProfile() {
 
       if (response.ok) {
         await fetchClientEnrolledPrograms();
-        toast.success('Program resumed');
+        toast.success(t('programs.programResumed', 'Program resumed'));
       } else {
         const error = await response.json();
         toast.error(error.error || 'Failed to resume program');
@@ -620,7 +622,7 @@ export default function ClientProfile() {
 
       if (response.ok) {
         await fetchClientEnrolledPrograms();
-        toast.success('🎉 Program restarted successfully! Ready to begin again.');
+        toast.success(t('programs.programRestarted', '🎉 Program restarted successfully! Ready to begin again.'));
       } else {
         const error = await response.json();
         toast.error(error.error || 'Failed to restart program');
@@ -655,7 +657,7 @@ export default function ClientProfile() {
         <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading client data...</p>
+            <p className="text-gray-600">{t('clients.loadingClientData', 'Loading client data...')}</p>
           </div>
         </div>
       </div>
@@ -686,9 +688,9 @@ export default function ClientProfile() {
         <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
           <div className="text-center">
             <User className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Client not found</p>
+            <p className="text-gray-600">{t('clients.clientNotFound', 'Client not found')}</p>
             <Button onClick={() => router.push('/coach/clients')}>
-              Back to Clients
+              {t('clients.backToClients', 'Back to Clients')}
             </Button>
           </div>
         </div>
@@ -777,7 +779,7 @@ export default function ClientProfile() {
           await fetchClientResources(id);  // Use client ID from URL params
           
           // Show success message
-          toast.success('File removed from client successfully');
+          toast.success(t('clients.fileRemoved', 'File removed from client successfully'));
         } else {
           const error = await response.json();
           console.error('❌ Failed to remove client from resource:', error.error);
@@ -863,7 +865,7 @@ export default function ClientProfile() {
       );
 
       // Show success message
-      toast.success(`Task ${newStatus === 'completed' ? 'completed' : 'marked as pending'}`);
+      toast.success(t(newStatus === 'completed' ? 'tasks.taskCompleted' : 'tasks.taskMarkedPending', newStatus === 'completed' ? 'Task completed' : 'Task marked as pending'));
       
     } catch (error) {
       console.error('❌ Error updating task status:', error);
@@ -962,27 +964,27 @@ export default function ClientProfile() {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              {"Back to Clients"}
+              {t('clients.backToClients', 'Back to Clients')}
             </Button>
             <div>
               <h1 className="text-3xl font-bold">{clientName}</h1>
-              <p className="text-gray-600">Personal coaching client</p>
+              <p className="text-gray-600">{t('clients.personalCoachingClient', 'Personal coaching client')}</p>
             </div>
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={() => setIsScheduleDialogOpen(true)}>
               <Calendar className="h-4 w-4 mr-2" />
-              Schedule Session
+              {t('sessions.scheduleSession', 'Schedule Session')}
             </Button>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="w-full">
-            <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
-            <TabsTrigger value="programs" className="flex-1">Programs</TabsTrigger>
-            <TabsTrigger value="groups" className="flex-1">Groups</TabsTrigger>
-            <TabsTrigger value="progress" className="flex-1">Progress & Activity</TabsTrigger>
+            <TabsTrigger value="overview" className="flex-1">{t('common.labels.overview', 'Overview')}</TabsTrigger>
+            <TabsTrigger value="programs" className="flex-1">{t('navigation.programs')}</TabsTrigger>
+            <TabsTrigger value="groups" className="flex-1">{t('navigation.groups')}</TabsTrigger>
+            <TabsTrigger value="progress" className="flex-1">{t('clients.progressActivity', 'Progress & Activity')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 flex-1">
@@ -1051,7 +1053,7 @@ export default function ClientProfile() {
                 <div className="flex-1 flex flex-col">
                   <Card className="h-full flex flex-col">
                     <CardHeader className="flex flex-row items-center justify-between pb-3 flex-shrink-0">
-                      <CardTitle className="text-sm">Tasks</CardTitle>
+                      <CardTitle className="text-sm">{t('navigation.tasks')}</CardTitle>
                       <CreateTaskDialog 
                         clientId={clientData.id}
                         clientName={clientData.name}
@@ -1087,7 +1089,7 @@ export default function ClientProfile() {
                             ))
                           ) : (
                             <div className="text-center py-8 text-muted-foreground">
-                              <p>No tasks assigned yet</p>
+                              <p>{t('tasks.noTasksAssigned', 'No tasks assigned yet')}</p>
                             </div>
                           )}
                         </div>
@@ -1133,7 +1135,7 @@ export default function ClientProfile() {
                 {/* Recent Notes */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between pb-3">
-                    <CardTitle className="text-sm">Notes</CardTitle>
+                    <CardTitle className="text-sm">{t('navigation.notes')}</CardTitle>
                     <CreateNoteDialog 
                       clientId={id}
                       onNoteCreated={(newNote) => {
@@ -1186,7 +1188,7 @@ export default function ClientProfile() {
                           ))
                         ) : (
                           <div className="text-center py-8 text-muted-foreground">
-                            <p>No notes yet</p>
+                            <p>{t('notes.noNotes')}</p>
                           </div>
                         )}
                       </div>
@@ -1198,7 +1200,7 @@ export default function ClientProfile() {
                 <div className="flex-1 flex flex-col">
                   <Card className="h-full flex flex-col">
                     <CardHeader className="flex flex-row items-center justify-between pb-3 flex-shrink-0">
-                      <CardTitle className="text-sm">Shared Files</CardTitle>
+                      <CardTitle className="text-sm">{t('clients.sharedFiles', 'Shared Files')}</CardTitle>
                       <Button 
                         size="sm" 
                         variant="ghost" 
@@ -1261,10 +1263,10 @@ export default function ClientProfile() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Clock className="h-5 w-5" />
-                        Enrolled Programs ({getEnrolledPrograms().length})
+                        {t('programs.enrolledPrograms', 'Enrolled Programs')} ({getEnrolledPrograms().length})
                       </CardTitle>
                       <CardDescription>
-                        Programs enrolled but not yet started
+                        {t('programs.enrolledNotStarted', 'Programs enrolled but not yet started')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -1293,7 +1295,7 @@ export default function ClientProfile() {
                                       className="bg-green-600 hover:bg-green-700"
                                     >
                                       <Play className="h-4 w-4 mr-2" />
-                                      Start Program
+                                      {t('programs.startProgram', 'Start Program')}
                                     </Button>
                                   </div>
                                 </div>
@@ -1311,10 +1313,10 @@ export default function ClientProfile() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Target className="h-5 w-5" />
-                      Active Programs ({getActivePrograms().length})
+                      {t('programs.activePrograms', 'Active Programs')} ({getActivePrograms().length})
                     </CardTitle>
                     <CardDescription>
-                      Programs currently in progress for this client
+                      {t('programs.activeProgramsDesc', 'Programs currently in progress for this client')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -1341,14 +1343,14 @@ export default function ClientProfile() {
                       {getActivePrograms().length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
                           <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No active programs for this client.</p>
+                          <p>{t('programs.noActivePrograms', 'No active programs for this client.')}</p>
                           <Button 
                             variant="outline" 
                             className="mt-2"
                             onClick={() => setEnrollDialogOpen(true)}
                           >
                             <Plus className="h-4 w-4 mr-2" />
-                            Enroll in Program
+                            {t('programs.enrollInProgram', 'Enroll in Program')}
                           </Button>
                         </div>
                       )}
@@ -1362,10 +1364,10 @@ export default function ClientProfile() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <CheckCircle className="h-5 w-5 text-green-600" />
-                        Completed Programs ({getHistoryPrograms().filter(cp => cp.status === 'completed').length})
+                        {t('programs.completedPrograms', 'Completed Programs')} ({getHistoryPrograms().filter(cp => cp.status === 'completed').length})
                       </CardTitle>
                       <CardDescription>
-                        Programs successfully completed by this client
+                        {t('programs.completedDesc', 'Programs successfully completed by this client')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -1399,10 +1401,10 @@ export default function ClientProfile() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Pause className="h-5 w-5 text-yellow-600" />
-                        Paused Programs ({getHistoryPrograms().filter(cp => cp.status === 'paused').length})
+                        {t('programs.pausedPrograms', 'Paused Programs')} ({getHistoryPrograms().filter(cp => cp.status === 'paused').length})
                       </CardTitle>
                       <CardDescription>
-                        Programs that have been paused
+                        {t('programs.pausedDesc', 'Programs that have been paused')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -1430,7 +1432,7 @@ export default function ClientProfile() {
                                       className="flex items-center gap-1"
                                     >
                                       <Play className="h-4 w-4" />
-                                      Resume
+                                      {t('programs.resume', 'Resume')}
                                     </Button>
                                 </div>
                                 <div className="space-y-2">
@@ -1470,10 +1472,10 @@ export default function ClientProfile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Group Memberships ({clientGroups.length})
+                  {t('groups.memberships', 'Group Memberships')} ({clientGroups.length})
                 </CardTitle>
                 <CardDescription>
-                  Groups that {clientData.name} is currently participating in
+                  {t('groups.clientParticipating', 'Groups that {name} is currently participating in', { name: clientData.name })}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1542,7 +1544,7 @@ export default function ClientProfile() {
                               size="sm"
                               onClick={() => router.push(`/coach/group/${group.id}`)}
                             >
-                              View Group
+                              {t('groups.viewGroup', 'View Group')}
                             </Button>
                             <Button 
                               variant="outline" 
@@ -1550,7 +1552,7 @@ export default function ClientProfile() {
                               onClick={() => router.push(`/coach/group/${group.id}?tab=members`)}
                             >
                               <Users className="h-4 w-4 mr-1" />
-                              Members
+                              {t('groups.members', 'Members')}
                             </Button>
                           </div>
                         </div>
@@ -1561,7 +1563,7 @@ export default function ClientProfile() {
                   {clientGroups.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>This client is not currently a member of any groups.</p>
+                      <p>{t('groups.notMemberOfAny', 'This client is not currently a member of any groups.')}</p>
                     </div>
                   )}
                 </div>
@@ -1576,10 +1578,10 @@ export default function ClientProfile() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
-                    Individual Progress Tracking
+                    {t('clients.individualProgress', 'Individual Progress Tracking')}
                   </CardTitle>
                   <CardDescription>
-                    Performance and wellbeing progression over 8 weeks
+                    {t('clients.progressDescription', 'Performance and wellbeing progression over 8 weeks')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1587,7 +1589,7 @@ export default function ClientProfile() {
                     {progressLoading ? (
                       <div className="flex items-center justify-center h-full">
                         <Loader2 className="h-8 w-8 animate-spin" />
-                        <span className="ml-2">Loading progress data...</span>
+                        <span className="ml-2">{t('clients.loadingProgress', 'Loading progress data...')}</span>
                       </div>
                     ) : progressError ? (
                       <div className="flex items-center justify-center h-full text-red-500">
@@ -1719,20 +1721,20 @@ export default function ClientProfile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Activity className="h-5 w-5" />
-                  Recent Activity
+                  {t('clients.recentActivity', 'Recent Activity')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {activitiesLoading ? (
                   <div className="flex items-center justify-center p-8">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span className="text-sm text-muted-foreground">Loading activities...</span>
+                    <span className="text-sm text-muted-foreground">{t('clients.loadingActivities', 'Loading activities...')}</span>
                   </div>
                 ) : clientActivities.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No recent activities</p>
-                    <p className="text-sm">Activities will appear here as the client engages with the platform</p>
+                    <p>{t('clients.noRecentActivities', 'No recent activities')}</p>
+                    <p className="text-sm">{t('clients.activitiesWillAppear', 'Activities will appear here as the client engages with the platform')}</p>
                   </div>
                 ) : (
                   clientActivities.map((activity) => (
@@ -1783,18 +1785,18 @@ export default function ClientProfile() {
         <AlertDialog open={!!fileToRemove} onOpenChange={() => setFileToRemove(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Remove File</AlertDialogTitle>
+              <AlertDialogTitle>{t('clients.removeFile', 'Remove File')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to remove "{fileToRemove?.name}"? This action cannot be undone.
+                {t('clients.removeFileConfirm', 'Are you sure you want to remove "{name}"? This action cannot be undone.', { name: fileToRemove?.name })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.buttons.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleConfirmRemove}
                 className="bg-red-600 text-white hover:bg-red-700"
               >
-                Remove File
+                {t('clients.removeFile', 'Remove File')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

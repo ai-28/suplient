@@ -35,10 +35,12 @@ import { CreateCoachDialog } from "@/app/components/CreateCoachDialog";
 import { EditCoachDialog } from "@/app/components/EditCoachDialog";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function AdminCoaches() {
   const { data: session, update } = useSession();
   const router = useRouter();
+  const t = useTranslation();
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [impersonating, setImpersonating] = useState(false);
@@ -65,20 +67,20 @@ export default function AdminCoaches() {
       if (data.success) {
         setCoaches(data.coaches);
         if (data.coaches.length > 0) {
-          toast.success('Coaches loaded successfully!', {
+          toast.success(t('coaches.coachCreated'), {
             description: `Found ${data.coaches.length} coach${data.coaches.length === 1 ? '' : 'es'}.`
           });
         }
       } else {
         console.error('Failed to fetch coaches:', data.error);
-        toast.error('Failed to load coaches', {
+        toast.error(t('common.messages.error'), {
           description: data.error
         });
       }
     } catch (error) {
       console.error('Error fetching coaches:', error);
-      toast.error('Error loading coaches', {
-        description: 'Please refresh the page to try again.'
+      toast.error(t('common.messages.error'), {
+        description: t('common.messages.pleaseWait')
       });
     } finally {
       setLoading(false);
@@ -308,14 +310,14 @@ export default function AdminCoaches() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Coaches Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('coaches.title')}</h1>
           <p className="text-muted-foreground">
-            Manage and oversee all coaches on the platform.
+            {t('coaches.title')}
           </p>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Coach
+          {t('coaches.addCoach')}
         </Button>
       </div>
 
@@ -324,7 +326,7 @@ export default function AdminCoaches() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Search coaches..." 
+            placeholder={t('coaches.searchCoaches')} 
             className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

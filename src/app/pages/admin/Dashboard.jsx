@@ -4,20 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Users, Building2, TrendingUp, Shield } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/app/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-
-// Simple translation function
-const t = (key) => {
-  const translations = {
-    "dashboard.admin.title": "Admin Dashboard",
-    "dashboard.admin.subtitle": "Overview of your platform's performance and key metrics",
-    "dashboard.admin.fromLastMonth": "from last month",
-    "dashboard.admin.recentCoachRegistrations": "Recent Coach Registrations",
-    "dashboard.admin.latestCoachesJoined": "Latest coaches who joined the platform",
-    "dashboard.admin.joined": "joined",
-    "dashboard.admin.daysAgo": "days ago"
-  };
-  return translations[key] || key;
-};
+import { useTranslation } from "@/app/context/LanguageContext";
 
 const monthlyData = [
   { month: "Jan", coaches: 18, clients: 95 },
@@ -37,25 +24,27 @@ const incomeData = [
   { month: "Jun", income: 28400 },
 ];
 
-const chartConfig = {
+// These will be updated inside the component to use translations
+const getChartConfig = (t) => ({
   coaches: {
-    label: "Coaches",
+    label: t("dashboard.admin.coaches"),
     color: "hsl(var(--primary))",
   },
   clients: {
-    label: "Clients", 
+    label: t("dashboard.admin.clients"), 
     color: "hsl(var(--accent))",
   },
-};
+});
 
-const incomeChartConfig = {
+const getIncomeChartConfig = (t) => ({
   income: {
-    label: "Revenue",
+    label: t("dashboard.admin.revenue"),
     color: "hsl(var(--success))",
   },
-};
+});
 
 export default function AdminDashboard() {
+  const t = useTranslation();
   
   return (
     <div className="space-y-8">
@@ -70,25 +59,25 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Coaches</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("dashboard.admin.activeCoaches")}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">22/24</div>
             <p className="text-xs text-muted-foreground">+3 active {t("dashboard.admin.fromLastMonth")}</p>
-            <p className="text-xs text-success mt-1">91.7% activity rate</p>
+            <p className="text-xs text-success mt-1">91.7% {t("dashboard.admin.activityRate")}</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("dashboard.admin.activeClients")}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">142/156</div>
             <p className="text-xs text-muted-foreground">+18 active {t("dashboard.admin.fromLastMonth")}</p>
-            <p className="text-xs text-success mt-1">91.0% activity rate</p>
+            <p className="text-xs text-success mt-1">91.0% {t("dashboard.admin.activityRate")}</p>
           </CardContent>
         </Card>
       </div>
@@ -98,11 +87,11 @@ export default function AdminDashboard() {
         {/* Monthly Growth Chart */}
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>Monthly Growth</CardTitle>
-            <CardDescription>Coaches and clients growth over the last 6 months</CardDescription>
+            <CardTitle>{t("dashboard.admin.monthlyGrowth")}</CardTitle>
+            <CardDescription>{t("dashboard.admin.monthlyGrowthDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="p-4">
-            <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] w-full">
+            <ChartContainer config={getChartConfig(t)} className="h-[250px] sm:h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData} barCategoryGap="20%" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -122,13 +111,13 @@ export default function AdminDashboard() {
                     dataKey="coaches" 
                     fill="var(--color-coaches)"
                     radius={[2, 2, 0, 0]}
-                    name="Coaches"
+                    name={t("dashboard.admin.coaches")}
                   />
                   <Bar 
                     dataKey="clients" 
                     fill="var(--color-clients)"
                     radius={[2, 2, 0, 0]}
-                    name="Clients"
+                    name={t("dashboard.admin.clients")}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -139,11 +128,11 @@ export default function AdminDashboard() {
         {/* Monthly Income Chart */}
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>Monthly Revenue</CardTitle>
-            <CardDescription>Platform revenue growth over the last 6 months</CardDescription>
+            <CardTitle>{t("dashboard.admin.monthlyRevenue")}</CardTitle>
+            <CardDescription>{t("dashboard.admin.monthlyRevenueDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="p-4">
-            <ChartContainer config={incomeChartConfig} className="h-[250px] sm:h-[300px] w-full">
+            <ChartContainer config={getIncomeChartConfig(t)} className="h-[250px] sm:h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={incomeData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -161,14 +150,14 @@ export default function AdminDashboard() {
                   />
                   <ChartTooltip 
                     content={<ChartTooltipContent 
-                      formatter={(value) => [`$${value.toLocaleString()}`, "Revenue"]}
+                      formatter={(value) => [`$${value.toLocaleString()}`, t("dashboard.admin.revenue")]}
                     />} 
                   />
                   <Bar 
                     dataKey="income" 
                     fill="var(--color-income)"
                     radius={[4, 4, 0, 0]}
-                    name="Revenue"
+                    name={t("dashboard.admin.revenue")}
                   />
                 </BarChart>
               </ResponsiveContainer>
