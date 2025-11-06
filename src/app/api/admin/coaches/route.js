@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/app/lib/db/postgresql';
 import bcrypt from 'bcryptjs';
+const crypto = require('crypto');
+
+const HASH_ITERATIONS = 10000;
+const HASH_KEYLEN = 64;
+const HASH_DIGEST = 'sha512';
+
+function generateSalt() {
+    return crypto.randomBytes(16).toString('base64');
+}
+
+function hashPassword(password, salt) {
+    return crypto.pbkdf2Sync(password, salt, HASH_ITERATIONS, HASH_KEYLEN, HASH_DIGEST).toString('base64');
+}
 
 export async function POST(request) {
     try {
@@ -114,13 +127,17 @@ export async function GET(request) {
                     u.bio, 
                     u.role, 
                     u."isActive", 
+                    u."approvalStatus",
+                    u."expectedPlatformBestAt",
+                    u."currentClientsPerMonth",
+                    u."currentPlatform",
                     u."createdAt",
                     u."updatedAt",
                     COUNT(c.id) as client_count
                 FROM "User" u
                 LEFT JOIN "User" c ON c."coachId" = u.id AND c.role = 'client'
                 WHERE u.role = 'coach' AND u.id = ${coachId}
-                GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."createdAt", u."updatedAt"
+                GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."approvalStatus", u."expectedPlatformBestAt", u."currentClientsPerMonth", u."currentPlatform", u."createdAt", u."updatedAt"
             `;
 
             if (!coach) {
@@ -138,8 +155,12 @@ export async function GET(request) {
                 bio: coach.bio,
                 role: coach.role,
                 isActive: coach.isActive,
+                approvalStatus: coach.approvalStatus || 'approved',
+                expectedPlatformBestAt: coach.expectedPlatformBestAt,
+                currentClientsPerMonth: coach.currentClientsPerMonth,
+                currentPlatform: coach.currentPlatform,
                 joinDate: coach.createdAt,
-                status: coach.isActive ? 'Active' : 'Pending',
+                status: coach.approvalStatus === 'pending' ? 'Pending Approval' : (coach.approvalStatus === 'denied' ? 'Denied' : (coach.isActive ? 'Active' : 'Inactive')),
                 clients: parseInt(coach.client_count) || 0,
                 specialization: 'Not specified',
                 experience: '0',
@@ -162,14 +183,20 @@ export async function GET(request) {
                 u.bio, 
                 u.role, 
                 u."isActive", 
+                u."approvalStatus",
+                u."expectedPlatformBestAt",
+                u."currentClientsPerMonth",
+                u."currentPlatform",
                 u."createdAt",
                 u."updatedAt",
                 COUNT(c.id) as client_count
             FROM "User" u
             LEFT JOIN "User" c ON c."coachId" = u.id AND c.role = 'client'
             WHERE u.role = 'coach'
-            GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."createdAt", u."updatedAt"
-            ORDER BY u."createdAt" DESC
+            GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."approvalStatus", u."expectedPlatformBestAt", u."currentClientsPerMonth", u."currentPlatform", u."createdAt", u."updatedAt"
+            ORDER BY 
+                CASE WHEN u."approvalStatus" = 'pending' THEN 0 ELSE 1 END,
+                u."createdAt" DESC
         `;
 
         // Transform data for frontend
@@ -181,8 +208,12 @@ export async function GET(request) {
             bio: coach.bio,
             role: coach.role,
             isActive: coach.isActive,
+            approvalStatus: coach.approvalStatus || 'approved',
+            expectedPlatformBestAt: coach.expectedPlatformBestAt,
+            currentClientsPerMonth: coach.currentClientsPerMonth,
+            currentPlatform: coach.currentPlatform,
             joinDate: coach.createdAt,
-            status: coach.isActive ? 'Active' : 'Pending',
+            status: coach.approvalStatus === 'pending' ? 'Pending Approval' : (coach.approvalStatus === 'denied' ? 'Denied' : (coach.isActive ? 'Active' : 'Inactive')),
             clients: parseInt(coach.client_count) || 0, // Actual client count from database
             // Add default values for display
             specialization: 'Not specified',
@@ -207,7 +238,7 @@ export async function GET(request) {
 export async function PUT(request) {
     try {
         const body = await request.json();
-        const { id, name, email, phone, bio, status } = body;
+        const { id, name, email, phone, bio, status, password } = body;
 
         // Validate required fields
         if (!id || !name || !email) {
@@ -229,18 +260,51 @@ export async function PUT(request) {
             );
         }
 
-        // Update coach
-        const updatedCoach = await sql`
-            UPDATE "User" SET
-                name = ${name},
-                email = ${email},
-                phone = ${phone || null},
-                bio = ${bio || null},
-                "isActive" = ${status === 'Active'},
-                "updatedAt" = CURRENT_TIMESTAMP
-            WHERE id = ${id} AND role = 'coach'
-            RETURNING id, name, email, phone, bio, role, "isActive", "createdAt", "updatedAt"
-        `;
+        // Handle password update if provided
+        let newSalt = null;
+        let hashedPassword = null;
+        if (password && password.trim() !== '') {
+            // Validate password strength (minimum 8 characters)
+            if (password.length < 8) {
+                return NextResponse.json(
+                    { error: 'Password must be at least 8 characters long' },
+                    { status: 400 }
+                );
+            }
+            // Generate new salt and hash password
+            newSalt = generateSalt();
+            hashedPassword = hashPassword(password, newSalt);
+        }
+
+        // Update coach - conditionally include password fields
+        let updatedCoach;
+        if (hashedPassword && newSalt) {
+            updatedCoach = await sql`
+                UPDATE "User" SET
+                    name = ${name},
+                    email = ${email},
+                    phone = ${phone || null},
+                    bio = ${bio || null},
+                    password = ${hashedPassword},
+                    salt = ${newSalt},
+                    "isActive" = ${status === 'Active'},
+                    "updatedAt" = CURRENT_TIMESTAMP
+                WHERE id = ${id} AND role = 'coach'
+                RETURNING id, name, email, phone, bio, role, "isActive", "createdAt", "updatedAt"
+            `;
+        } else {
+            updatedCoach = await sql`
+                UPDATE "User" SET
+                    name = ${name},
+                    email = ${email},
+                    phone = ${phone || null},
+                    bio = ${bio || null},
+                    "isActive" = ${status === 'Active'},
+                    "updatedAt" = CURRENT_TIMESTAMP
+                WHERE id = ${id} AND role = 'coach'
+                RETURNING id, name, email, phone, bio, role, "isActive", "createdAt", "updatedAt"
+            `;
+        }
 
         if (updatedCoach.length === 0) {
             return NextResponse.json(

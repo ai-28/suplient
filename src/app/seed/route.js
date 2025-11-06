@@ -31,6 +31,10 @@ async function seedUser() {
         avatar TEXT,
         "coachId" UUID REFERENCES "User"("id"),
         "notificationsEnabled" BOOLEAN DEFAULT true,
+        "approvalStatus" VARCHAR(20) DEFAULT 'approved' CHECK ("approvalStatus" IN ('pending', 'approved', 'denied')),
+        "expectedPlatformBestAt" TEXT,
+        "currentClientsPerMonth" INTEGER,
+        "currentPlatform" VARCHAR(255),
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -41,6 +45,14 @@ async function seedUser() {
   await sql`CREATE INDEX IF NOT EXISTS idx_users_role ON "User"(role)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_users_isActive ON "User"("isActive")`;
   await sql`CREATE INDEX IF NOT EXISTS idx_users_isSuperAdmin ON "User"("isSuperAdmin")`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_users_approvalStatus ON "User"("approvalStatus")`;
+
+  // Set existing coaches to approved status if approvalStatus is null
+  await sql`
+    UPDATE "User" 
+    SET "approvalStatus" = 'approved' 
+    WHERE role = 'coach' AND "approvalStatus" IS NULL
+  `;
 
   // Insert a default super admin user if it doesn't exist
   const existingAdmin = await sql`SELECT id FROM "User" WHERE email = 'admin@mentalcoach.com'`;

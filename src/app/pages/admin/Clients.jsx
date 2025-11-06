@@ -74,6 +74,7 @@ export default function AdminClients() {
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [suspending, setSuspending] = useState(false);
   const [impersonating, setImpersonating] = useState(false);
   const [formData, setFormData] = useState({
@@ -82,7 +83,8 @@ export default function AdminClients() {
     phone: "",
     location: "",
     coachId: "",
-    notes: ""
+    notes: "",
+    password: ""
   });
 
   // Fetch clients and coaches from API
@@ -99,11 +101,6 @@ export default function AdminClients() {
       
       if (data.success) {
         setClients(data.clients);
-        if (data.clients.length > 0) {
-          toast.success(t('clients.loadingClients'), {
-            description: `Found ${data.clients.length} client${data.clients.length === 1 ? '' : 's'}.`
-          });
-        }
       } else {
         console.error('Failed to fetch clients:', data.error);
         toast.error(t('clients.errorLoadingClients'), {
@@ -157,9 +154,9 @@ export default function AdminClients() {
 
       if (data.success) {
         // Add the new client to the list
-        setClients([...clients, data.client]);
+          setClients([...clients, data.client]);
           setIsCreateOpen(false);
-          setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "" });
+          setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "", password: "" });
           toast.success(t('clients.clientCreated'), {
             description: `${data.client.name} has been added to the platform.`
           });
@@ -182,15 +179,21 @@ export default function AdminClients() {
   const handleEdit = async () => {
     if (selectedClient) {
       try {
+        setUpdating(true);
+        const updateData = {
+          id: selectedClient.id,
+          ...formData
+        };
+        // Only include password if it's provided (not empty)
+        if (!formData.password || formData.password.trim() === '') {
+          delete updateData.password;
+        }
         const response = await fetch('/api/admin/clients', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            id: selectedClient.id,
-            ...formData
-          }),
+          body: JSON.stringify(updateData),
         });
 
         const data = await response.json();
@@ -202,7 +205,7 @@ export default function AdminClients() {
           ));
           setIsEditOpen(false);
           setSelectedClient(null);
-          setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "" });
+          setFormData({ name: "", email: "", phone: "", location: "", coachId: "", notes: "", password: "" });
           toast.success(t('clients.clientUpdated'), {
             description: `${data.client.name}'s profile has been updated.`
           });
@@ -217,6 +220,8 @@ export default function AdminClients() {
         toast.error(t('common.messages.operationFailed'), {
           description: t('common.messages.pleaseWait')
         });
+      } finally {
+        setUpdating(false);
       }
     }
   };
@@ -300,7 +305,8 @@ export default function AdminClients() {
       phone: client.phone,
       location: client.location,
       coachId: client.coachId,
-      notes: client.notes
+      notes: client.notes,
+      password: "" // Always reset password field when dialog opens
     });
     setIsEditOpen(true);
   };
@@ -645,6 +651,16 @@ export default function AdminClients() {
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">New Password</Label>
+              <Input
+                id="edit-password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                placeholder="Leave empty to keep current password"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-coach">Assigned Coach</Label>
@@ -673,11 +689,18 @@ export default function AdminClients() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={!formData.name || !formData.email || !formData.coachId}>
-              Update Client
+            <Button onClick={handleEdit} disabled={!formData.name || !formData.email || !formData.coachId || updating}>
+              {updating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Client'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

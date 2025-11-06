@@ -51,6 +51,71 @@ export const sendCoachRegistrationEmail = async (newCoach) => {
     }
 }
 
+export const sendCoachPendingEmail = async (newCoach) => {
+    try {
+        const templateParams = {
+            name: newCoach.name,
+            support_email: 'amin@suplient.com',
+            website_url: 'https://app.suplient.com',
+            email: newCoach.email,
+        }
+
+        await emailjs.send(
+            process.env.EMAIL_SERVICE_ID,
+            process.env.EMAIL_COACH_PENDING_TEMPLATE_ID,
+            templateParams,
+            emailUserId
+        );
+    } catch (error) {
+        console.log('Error sending pending email:', error);
+    }
+}
+
+export const sendCoachApprovalEmail = async (coach) => {
+    try {
+        const templateParams = {
+            name: coach.name,
+            login_url: `${process.env.NEXTAUTH_URL}/login`,
+            user_email: coach.email,
+            user_pwd: coach.tempPassword || 'Please use the password you registered with, or use password reset if needed',
+            support_email: 'amin@suplient.com',
+            website_url: 'https://app.suplient.com',
+            email: coach.email,
+        }
+
+        await emailjs.send(
+            process.env.EMAIL_SERVICE_ID,
+            process.env.EMAIL_COACH_TEMPLATE_ID,
+            templateParams,
+            emailUserId
+        );
+    } catch (error) {
+        console.log('Error sending approval email:', error);
+    }
+}
+
+export const sendCoachDenialEmail = async (coach) => {
+    try {
+        const templateParams = {
+            name: coach.name,
+            support_email: 'amin@suplient.com',
+            website_url: 'https://app.suplient.com',
+            email: coach.email,
+        }
+
+        // Note: You may want to create a separate denial email template
+        // For now, using pending template as fallback
+        await emailjs.send(
+            process.env.EMAIL_SERVICE_ID,
+            process.env.EMAIL_COACH_DENIED_TEMPLATE_ID,
+            templateParams,
+            emailUserId
+        );
+    } catch (error) {
+        console.log('Error sending denial email:', error);
+    }
+}
+
 export const sendClientToCoachEmail = async (contactData) => {
     try {
         // Validate required data

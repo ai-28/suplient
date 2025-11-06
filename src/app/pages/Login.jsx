@@ -33,6 +33,12 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerStep, setRegisterStep] = useState(1); // 1 = basic info, 2 = questionnaire
+  
+  // Questionnaire state
+  const [expectedPlatformBestAt, setExpectedPlatformBestAt] = useState("");
+  const [currentClientsPerMonth, setCurrentClientsPerMonth] = useState("");
+  const [currentPlatform, setCurrentPlatform] = useState("");
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -115,20 +121,32 @@ export default function Login() {
     }
   };
 
-  const handleRegister = async (e) => {
+  const handleNextStep = (e) => {
     e.preventDefault();
-    setRegisterLoading(true);
     
     // Validate passwords match
     if (registerPassword !== confirmPassword) {
       toast.error("❌ Passwords do not match", { duration: 5000 });
-      setRegisterLoading(false);
       return;
     }
 
     // Validate password length
     if (registerPassword.length < 8) {
       toast.error("❌ Password must be at least 8 characters long", { duration: 5000 });
+      return;
+    }
+    
+    // Move to questionnaire step
+    setRegisterStep(2);
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setRegisterLoading(true);
+    
+    // Validate questionnaire fields
+    if (!expectedPlatformBestAt.trim()) {
+      toast.error("❌ Please answer all questions", { duration: 5000 });
       setRegisterLoading(false);
       return;
     }
@@ -145,6 +163,9 @@ export default function Login() {
           password: registerPassword,
           phone,
           role: "coach",
+          expectedPlatformBestAt,
+          currentClientsPerMonth: currentClientsPerMonth ? parseInt(currentClientsPerMonth) : null,
+          currentPlatform: currentPlatform || null,
         }),
       });
 
@@ -154,7 +175,7 @@ export default function Login() {
         throw new Error(data.error || "Registration failed");
       }
 
-      toast.success("✅ Registration successful! Please sign in.", { duration: 4000 });
+      toast.success("✅ Registration successful! We'll review your application and notify you via email.", { duration: 5000 });
       setActiveTab("login");
       
       // Clear form
@@ -163,6 +184,10 @@ export default function Login() {
       setRegisterPassword("");
       setConfirmPassword("");
       setPhone("");
+      setExpectedPlatformBestAt("");
+      setCurrentClientsPerMonth("");
+      setCurrentPlatform("");
+      setRegisterStep(1);
       
     } catch (error) {
       console.error("Registration error:", error);
@@ -320,112 +345,179 @@ export default function Login() {
                 </TabsContent>
                 
                 <TabsContent value="register" className="space-y-4">
-                  <form onSubmit={handleRegister} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input
-                        id="name"
-                        placeholder="John Doe"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                        className="h-11"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="registerEmail">Email</Label>
-                      <Input
-                        id="registerEmail"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={registerEmail}
-                        onChange={(e) => setRegisterEmail(e.target.value)}
-                        required
-                        className="h-11"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+1 (555) 123-4567"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        required
-                        className="h-11"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="registerPassword">Password</Label>
-                      <div className="relative">
+                  {registerStep === 1 ? (
+                    <form onSubmit={handleNextStep} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
                         <Input
-                          id="registerPassword"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Create a password (min. 8 characters)"
-                          value={registerPassword}
-                          onChange={(e) => setRegisterPassword(e.target.value)}
+                          id="name"
+                          placeholder="John Doe"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
                           required
-                          className="h-11 pr-10"
+                          className="h-11"
                         />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="registerEmail">Email</Label>
+                        <Input
+                          id="registerEmail"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={registerEmail}
+                          onChange={(e) => setRegisterEmail(e.target.value)}
+                          required
+                          className="h-11"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="+1 (555) 123-4567"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          required
+                          className="h-11"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="registerPassword">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="registerPassword"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Create a password (min. 8 characters)"
+                            value={registerPassword}
+                            onChange={(e) => setRegisterPassword(e.target.value)}
+                            required
+                            className="h-11 pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirm your password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                            className="h-11 pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <Button type="submit" className="w-full h-11">
+                        Next
+                      </Button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleRegister} className="space-y-4">
+                      <div className="mb-4">
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Step 2 of 2: Tell us about yourself
+                        </p>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={() => setRegisterStep(1)}
+                          className="p-0 h-auto text-xs"
                         >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
+                          ← Back
                         </Button>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="Confirm your password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="expectedPlatformBestAt">
+                          What do you expect this platform to be the best at? *
+                        </Label>
+                        <textarea
+                          id="expectedPlatformBestAt"
+                          placeholder="Tell us what you're looking for in a coaching platform..."
+                          value={expectedPlatformBestAt}
+                          onChange={(e) => setExpectedPlatformBestAt(e.target.value)}
                           required
-                          className="h-11 pr-10"
+                          rows={4}
+                          className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                         />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
                       </div>
-                    </div>
-                    
-                    <Button type="submit" className="w-full h-11" disabled={registerLoading}>
-                      {registerLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating account...
-                        </>
-                      ) : (
-                        "Create Coach Account"
-                      )}
-                    </Button>
-                  </form>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="currentClientsPerMonth">
+                          How many clients do you currently have per month?
+                        </Label>
+                        <Input
+                          id="currentClientsPerMonth"
+                          type="number"
+                          min="0"
+                          placeholder="e.g., 10"
+                          value={currentClientsPerMonth}
+                          onChange={(e) => setCurrentClientsPerMonth(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="currentPlatform">
+                          Which platform are you currently using if any?
+                        </Label>
+                        <Input
+                          id="currentPlatform"
+                          type="text"
+                          placeholder="e.g., Calendly, Zoom, Google Calendar, etc."
+                          value={currentPlatform}
+                          onChange={(e) => setCurrentPlatform(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                      
+                      <Button type="submit" className="w-full h-11" disabled={registerLoading}>
+                        {registerLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating account...
+                          </>
+                        ) : (
+                          "Create Coach Account"
+                        )}
+                      </Button>
+                    </form>
+                  )}
                 </TabsContent>
               </Tabs>
               

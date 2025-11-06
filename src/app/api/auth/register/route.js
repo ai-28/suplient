@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
 import { userRepo } from '@/app/lib/db/userRepo';
-import { sendCoachRegistrationEmail } from '@/app/lib/email';
+import { sendCoachPendingEmail } from '@/app/lib/email';
 import { sql } from '@/app/lib/db/postgresql';
+
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { name, email, password, phone, role = 'coach' } = body;
+        const {
+            name,
+            email,
+            password,
+            phone,
+            role = 'coach',
+            expectedPlatformBestAt,
+            currentClientsPerMonth,
+            currentPlatform
+        } = body;
 
         // Validate required fields
         if (!name || !email || !password || !phone) {
@@ -47,16 +57,18 @@ export async function POST(request) {
             email,
             password,
             phone,
-            role
+            role,
+            expectedPlatformBestAt,
+            currentClientsPerMonth,
+            currentPlatform
         });
 
-        // Send welcome email for coaches
+        // Send pending email for coaches (since they need approval)
         if (role === 'coach') {
-            console.log('Sending coach registration email');
-            await sendCoachRegistrationEmail({
+            console.log('Sending coach pending email');
+            await sendCoachPendingEmail({
                 name: newUser.name,
-                email: newUser.email,
-                tempPassword: password
+                email: newUser.email
             });
 
             // Notify all admins about new coach signup
@@ -76,7 +88,7 @@ export async function POST(request) {
                             ${admin.id},
                             'system',
                             'New Coach Signup',
-                            ${`${newUser.name} (${newUser.email}) has registered as a coach.`},
+                            ${`${newUser.name} (${newUser.email}) has registered as a coach and is pending approval.`},
                             false,
                             'normal',
                             ${JSON.stringify({ coachId: newUser.id, coachName: newUser.name, coachEmail: newUser.email })},
@@ -124,7 +136,7 @@ export async function POST(request) {
     } catch (error) {
         console.error('Registration error:', error);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: error.message || 'Internal server error' },
             { status: 500 }
         );
     }

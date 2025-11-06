@@ -37,6 +37,15 @@ async function authenticate(email, inputPassword) {
       throw new Error("Invalid password");
     }
 
+    // Check approval status for coaches
+    if (user.role === 'coach' && user.approvalStatus === 'pending') {
+      throw new Error("Your account is pending admin approval. Please wait for approval or contact support.");
+    }
+
+    if (user.role === 'coach' && user.approvalStatus === 'denied') {
+      throw new Error("Your account has been denied. Please contact support for assistance.");
+    }
+
     if (!user.isActive) {
       throw new Error("User is not active");
     }
@@ -52,7 +61,16 @@ async function authenticate(email, inputPassword) {
 
 async function register(userData) {
   try {
-    const { name, email, password, phone, role = 'coach' } = userData;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      role = 'coach',
+      expectedPlatformBestAt,
+      currentClientsPerMonth,
+      currentPlatform
+    } = userData;
 
     // Check if email already exists
     const existingUser = await sql`SELECT id FROM "User" WHERE email = ${email}`;
@@ -64,11 +82,25 @@ async function register(userData) {
     const salt = generateSalt();
     const hashedPassword = hashPassword(password, salt);
 
+    // For coaches, set approvalStatus to 'pending' and isActive to false
+    const isActive = role === 'coach' ? false : true;
+    const approvalStatus = role === 'coach' ? 'pending' : 'approved';
+
     // Insert new user
     const result = await sql`
-      INSERT INTO "User" (name, email, password, salt, phone, role, "isActive", "createdAt", "updatedAt")
-      VALUES (${name}, ${email}, ${hashedPassword}, ${salt}, ${phone}, ${role}, true, NOW(), NOW())
-      RETURNING id, name, email, phone, role, "isActive", "createdAt"
+      INSERT INTO "User" (
+        name, email, password, salt, phone, role, 
+        "isActive", "approvalStatus",
+        "expectedPlatformBestAt", "currentClientsPerMonth", "currentPlatform",
+        "createdAt", "updatedAt"
+      )
+      VALUES (
+        ${name}, ${email}, ${hashedPassword}, ${salt}, ${phone}, ${role}, 
+        ${isActive}, ${approvalStatus},
+        ${expectedPlatformBestAt || null}, ${currentClientsPerMonth || null}, ${currentPlatform || null},
+        NOW(), NOW()
+      )
+      RETURNING id, name, email, phone, role, "isActive", "approvalStatus", "createdAt"
     `;
 
     const newUser = result[0];

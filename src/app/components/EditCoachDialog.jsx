@@ -27,7 +27,8 @@ export function EditCoachDialog({ open, onOpenChange, onUpdateCoach, coach }) {
     email: "",
     phone: "",
     bio: "",
-    status: "Active"
+    status: "Active",
+    password: ""
   });
 
   useEffect(() => {
@@ -37,17 +38,23 @@ export function EditCoachDialog({ open, onOpenChange, onUpdateCoach, coach }) {
         email: coach.email || "",
         phone: coach.phone || "",
         bio: coach.bio || "",
-        status: coach.status || "Active"
+        status: coach.status || "Active",
+        password: "" // Always reset password field when dialog opens
       });
     }
   }, [coach]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onUpdateCoach({
+    const updateData = {
       ...coach,
       ...formData
-    });
+    };
+    // Only include password if it's provided (not empty)
+    if (!formData.password || formData.password.trim() === '') {
+      delete updateData.password;
+    }
+    onUpdateCoach(updateData);
     onOpenChange(false);
   };
 
@@ -89,6 +96,16 @@ export function EditCoachDialog({ open, onOpenChange, onUpdateCoach, coach }) {
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">New Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Leave empty to keep current password"
               />
             </div>
             <div className="space-y-2">

@@ -212,7 +212,7 @@ export default function ClientJournal() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center p-3 border-b border-border bg-card">
+      <div className="flex items-center p-3 border-b border-border bg-card fixed top-0 left-0 right-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -225,7 +225,7 @@ export default function ClientJournal() {
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 mt-16 mb-24">
         {/* Goals */}
         {(
           <div className="space-y-4">

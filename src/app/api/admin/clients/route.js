@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/app/lib/db/postgresql';
 import bcrypt from 'bcryptjs';
+const crypto = require('crypto');
+
+const HASH_ITERATIONS = 10000;
+const HASH_KEYLEN = 64;
+const HASH_DIGEST = 'sha512';
+
+function generateSalt() {
+  return crypto.randomBytes(16).toString('base64');
+}
+
+function hashPassword(password, salt) {
+  return crypto.pbkdf2Sync(password, salt, HASH_ITERATIONS, HASH_KEYLEN, HASH_DIGEST).toString('base64');
+}
 
 export async function POST(request) {
     try {
@@ -167,7 +180,7 @@ export async function GET(request) {
 export async function PUT(request) {
     try {
         const body = await request.json();
-        const { id, name, email, phone, location, coachId, notes, status } = body;
+        const { id, name, email, phone, location, coachId, notes, status, password } = body;
 
         // Validate required fields
         if (!id) {
@@ -261,20 +274,55 @@ export async function PUT(request) {
             coachName = coach[0].name;
         }
 
-        // Update client in User table
-        const updatedUser = await sql`
-            UPDATE "User" SET
-                name = ${name},
-                email = ${email},
-                phone = ${phone || null},
-                "address" = ${location || null},
-                "coachId" = ${coachId || null},
-                bio = ${notes || null},
-                "isActive" = ${status === 'active'},
-                "updatedAt" = CURRENT_TIMESTAMP
-            WHERE id = ${id} AND role = 'client'
-            RETURNING id, name, email, phone, "address", "coachId", bio, role, "isActive", "createdAt", "updatedAt"
-        `;
+        // Handle password update if provided
+        let newSalt = null;
+        let hashedPassword = null;
+        if (password && password.trim() !== '') {
+            // Validate password strength (minimum 8 characters)
+            if (password.length < 8) {
+                return NextResponse.json(
+                    { error: 'Password must be at least 8 characters long' },
+                    { status: 400 }
+                );
+            }
+            // Generate new salt and hash password
+            newSalt = generateSalt();
+            hashedPassword = hashPassword(password, newSalt);
+        }
+
+        // Update client in User table - conditionally include password fields
+        let updatedUser;
+        if (hashedPassword && newSalt) {
+            updatedUser = await sql`
+                UPDATE "User" SET
+                    name = ${name},
+                    email = ${email},
+                    phone = ${phone || null},
+                    "address" = ${location || null},
+                    "coachId" = ${coachId || null},
+                    bio = ${notes || null},
+                    password = ${hashedPassword},
+                    salt = ${newSalt},
+                    "isActive" = ${status === 'active'},
+                    "updatedAt" = CURRENT_TIMESTAMP
+                WHERE id = ${id} AND role = 'client'
+                RETURNING id, name, email, phone, "address", "coachId", bio, role, "isActive", "createdAt", "updatedAt"
+            `;
+        } else {
+            updatedUser = await sql`
+                UPDATE "User" SET
+                    name = ${name},
+                    email = ${email},
+                    phone = ${phone || null},
+                    "address" = ${location || null},
+                    "coachId" = ${coachId || null},
+                    bio = ${notes || null},
+                    "isActive" = ${status === 'active'},
+                    "updatedAt" = CURRENT_TIMESTAMP
+                WHERE id = ${id} AND role = 'client'
+                RETURNING id, name, email, phone, "address", "coachId", bio, role, "isActive", "createdAt", "updatedAt"
+            `;
+        }
 
         if (updatedUser.length === 0) {
             return NextResponse.json(

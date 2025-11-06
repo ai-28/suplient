@@ -304,8 +304,7 @@ export default function ClientDashboard() {
       </div>
 
       {/* Scrollable Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        
+      <div className="flex-1 overflow-y-auto p-4 space-y-6" style={{ paddingBottom: '110px' }}>
         {/* Analytics Chart */}
         {loading ? (
           <Card>
