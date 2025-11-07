@@ -37,6 +37,7 @@ import { EditTaskDialog } from "@/app/components/EditTaskDialog";
 import { Input } from "@/app/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { useTasks } from "@/app/hooks/useTasks";
+import {useTranslation} from "@/app/context/LanguageContext"
 
 // Helper function to format task due date
 const formatTaskDueDate = (dueDate) => {
