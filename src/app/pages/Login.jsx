@@ -205,7 +205,7 @@ export default function Login() {
         <div className="hidden lg:flex flex-col justify-center space-y-8 pl-8">
           <div className="space-y-6">
             
-            <div className="flex items-center gap-3">
+            <div className="items-start gap-3">
               <div className="w-24 rounded-xl flex items-center justify-center overflow-hidden">
                 <img 
                   src="/assets/logo.png" 
