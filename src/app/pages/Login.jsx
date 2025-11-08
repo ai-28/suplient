@@ -206,7 +206,7 @@ export default function Login() {
           <div className="space-y-6">
             
             <div className="items-start gap-3">
-              <div className="w-24 rounded-xl flex items-center justify-center overflow-hidden">
+              <div className="w-48 rounded-xl flex items-center justify-center overflow-hidden">
                 <img 
                   src="/assets/logo.png" 
                   alt="Suplient Logo" 
@@ -239,18 +239,18 @@ export default function Login() {
               </div>
               
               <div className="space-y-4 text-sm text-foreground/85 leading-relaxed">
-                <p className="text-foreground/80 indent-4">
-                  &nbsp;Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. 
+                <p className="text-foreground/80">
+                  Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. 
                   Unlike other platforms that focus on automation, we prioritize outcomes and the therapist-client relationship.
                 </p>
 
-                <p className="text-foreground/80 indent-4">
-                  &nbsp;We digitize proven therapeutic tools to reduce time per client while increasing care quality. 
+                <p className="text-foreground/80 ">
+                  We digitize proven therapeutic tools to reduce time per client while increasing care quality. 
                   Serve more clients consistently without burning out.
                 </p>
 
-                <p className="text-foreground/90 font-medium indent-4 pt-2">
-                  &nbsp;We're not replacing therapists with AI. We're giving you superpowers. Therapy is evolving,
+                <p className="text-foreground/90 font-medium pt-2">
+                  We're not replacing therapists with AI. We're giving you superpowers. Therapy is evolving,
                   make sure your practice evolves with it.
                 </p>
               </div>
