@@ -226,23 +226,25 @@ export default function Login() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl"></div>
             </div>
             
-            <div className="space-y-5">
-              <h3 className="text-lg font-medium text-foreground">
-                Scaling therapy without losing the human touch
-              </h3>
+            <div className="space-y-5 max-w-lg">
+              <div>
+                <h3 className="text-base font-medium text-foreground mb-3">
+                  Scaling therapy without losing the human touch
+                </h3>
+              </div>
               
-              <div className="space-y-3 text-muted-foreground leading-relaxed">
-                <p>
+              <div className="space-y-3 text-sm text-foreground/90 leading-relaxed">
+                <p className="text-foreground/80">
                   Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. 
                   Unlike other platforms that focus on automation, we prioritize outcomes and the therapist-client relationship.
                 </p>
 
-                <p>
+                <p className="text-foreground/80">
                   We digitize proven therapeutic tools to reduce time per client while increasing care quality. 
                   Serve more clients consistently without burning out.
                 </p>
 
-                <p>
+                <p className="text-foreground/90 font-medium">
                   We're not replacing therapists with AI. We're giving them superpowers. Therapy is evolving — 
                   make sure your practice evolves with it.
                 </p>
