@@ -216,36 +216,38 @@ export default function Login() {
             </div>
 
             {/* Login Image */}
-            <div className="relative w-full max-w-md mx-auto">
-              <img 
-                src={loginImage} 
-                alt="Mental Health Support" 
-                className="w-full h-auto rounded-2xl shadow-lg object-cover"
-                style={{ maxHeight: '400px' }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl"></div>
+            <div className="relative w-full max-w-md mx-auto mb-6">
+              <div className="relative rounded-2xl overflow-hidden shadow-xl border border-border/50">
+                <img 
+                  src={loginImage} 
+                  alt="Mental Health Support" 
+                  className="w-full h-auto object-cover"
+                  style={{ maxHeight: '400px' }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none"></div>
+              </div>
             </div>
             
             <div className="space-y-5 max-w-lg">
-              <div>
-                <h3 className="text-base font-medium text-foreground mb-3">
+              <div className="pb-2 border-b border-border/30">
+                <h3 className="text-base font-semibold text-foreground">
                   Scaling therapy without losing the human touch
                 </h3>
               </div>
               
-              <div className="space-y-3 text-sm text-foreground/90 leading-relaxed">
-                <p className="text-foreground/80">
-                  Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. 
+              <div className="space-y-4 text-sm text-foreground/85 leading-relaxed">
+                <p className="text-foreground/80 indent-4">
+                  &nbsp;Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. 
                   Unlike other platforms that focus on automation, we prioritize outcomes and the therapist-client relationship.
                 </p>
 
-                <p className="text-foreground/80">
-                  We digitize proven therapeutic tools to reduce time per client while increasing care quality. 
+                <p className="text-foreground/80 indent-4">
+                  &nbsp;We digitize proven therapeutic tools to reduce time per client while increasing care quality. 
                   Serve more clients consistently without burning out.
                 </p>
 
-                <p className="text-foreground/90 font-medium">
-                  We're not replacing therapists with AI. We're giving them superpowers. Therapy is evolving — 
+                <p className="text-foreground/90 font-medium indent-4 pt-2">
+                  &nbsp;We're not replacing therapists with AI. We're giving them superpowers. Therapy is evolving — 
                   make sure your practice evolves with it.
                 </p>
               </div>
