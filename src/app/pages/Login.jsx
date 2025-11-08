@@ -8,7 +8,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Eye, EyeOff, Brain, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -206,11 +206,14 @@ export default function Login() {
           <div className="space-y-6">
             
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center">
-                <Brain className="h-7 w-7" />
+              <div className="w-24 rounded-xl flex items-center justify-center overflow-hidden">
+                <img 
+                  src="/assets/logo.png" 
+                  alt="Suplient Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Suplient</h1>
                 <p className="text-muted-foreground">Scale your practice, amplify your impact</p>
               </div>
             </div>
@@ -247,7 +250,7 @@ export default function Login() {
                 </p>
 
                 <p className="text-foreground/90 font-medium indent-4 pt-2">
-                  &nbsp;We're not replacing therapists with AI. We're giving them superpowers. Therapy is evolving — 
+                  &nbsp;We're not replacing therapists with AI. We're giving you superpowers. Therapy is evolving,
                   make sure your practice evolves with it.
                 </p>
               </div>
@@ -260,8 +263,12 @@ export default function Login() {
           <Card className="w-full max-w-md shadow-2xl border-0">
             <CardHeader className="space-y-4 pb-6">
               <div className="lg:hidden flex items-center justify-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                  <Brain className="h-6 w-6 text-white" />
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                  <img 
+                    src="/assets/logo.png" 
+                    alt="Suplient Logo" 
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <h1 className="text-2xl font-bold">Suplient</h1>
               </div>
