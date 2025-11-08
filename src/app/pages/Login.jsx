@@ -8,7 +8,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Eye, EyeOff, Brain, Shield, Users, Heart, Loader2, Sparkles, Zap, TrendingUp, Rocket, Target, Clock } from "lucide-react";
+import { Eye, EyeOff, Brain, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -226,89 +226,25 @@ export default function Login() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl"></div>
             </div>
             
-            <div className="space-y-8">
-              {/* Main Headline */}
-              <div className="space-y-4">
-                <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
-                  Scaling therapy without losing the{" "}
-                  <span className="text-primary relative inline-block">
-                    human touch
-                    <Sparkles className="absolute -top-1 -right-5 h-4 w-4 md:h-5 md:w-5 text-primary/60 animate-pulse" />
-                  </span>
-                </h2>
-                <p className="text-lg text-muted-foreground leading-relaxed">
-                  Suplient is a digital platform that helps therapists and coaches scale their impact — 
-                  without sacrificing quality, connection, or control.
+            <div className="space-y-5">
+              <h3 className="text-lg font-medium text-foreground">
+                Scaling therapy without losing the human touch
+              </h3>
+              
+              <div className="space-y-3 text-muted-foreground leading-relaxed">
+                <p>
+                  Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. 
+                  Unlike other platforms that focus on automation, we prioritize outcomes and the therapist-client relationship.
                 </p>
-              </div>
 
-              {/* Problem Statement */}
-              <div className="p-5 bg-muted/50 rounded-xl border border-border/50">
-                <p className="text-muted-foreground leading-relaxed">
-                  Most mental health platforms focus on admin automation or flood clients with content. 
-                  They miss what matters most: <span className="font-semibold text-foreground">outcomes, engagement, 
-                  and the trusted therapist-client relationship</span>.
+                <p>
+                  We digitize proven therapeutic tools to reduce time per client while increasing care quality. 
+                  Serve more clients consistently without burning out.
                 </p>
-              </div>
 
-              {/* Solution */}
-              <div className="space-y-4">
-                <p className="text-foreground leading-relaxed">
-                  Suplient bridges that gap by digitizing proven therapeutic & coaching tools, reducing time 
-                  spent per client while <span className="font-semibold text-primary">increasing care quality</span>. 
-                  The result? You can serve more clients, more consistently — without burning out!
-                </p>
-                
-                <div className="grid grid-cols-1 gap-4 pt-2">
-                  <div className="flex items-start gap-3 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
-                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Target className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-foreground font-medium">Structured programs & smart progress tracking</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
-                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Zap className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-foreground font-medium">Guided communication that enhances connection</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
-                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-foreground font-medium">Deliver more value with less effort</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Key Message */}
-              <div className="p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-xl border-2 border-primary/30 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Rocket className="h-5 w-5 text-primary" />
-                  <p className="text-foreground font-semibold text-lg">
-                    We're not replacing therapists & coaches with AI.
-                  </p>
-                </div>
-                <p className="text-lg font-bold text-primary pl-7">
-                  We're giving them superpowers.
-                </p>
-              </div>
-
-              {/* Call to Action */}
-              <div className="pt-4 space-y-2">
-                <p className="text-muted-foreground text-sm italic">
-                  Therapy & coaching is evolving.
-                </p>
-                <p className="text-foreground font-semibold">
-                  Make sure your practice evolves with it.
+                <p>
+                  We're not replacing therapists with AI. We're giving them superpowers. Therapy is evolving — 
+                  make sure your practice evolves with it.
                 </p>
               </div>
             </div>
