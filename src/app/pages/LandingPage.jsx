@@ -42,7 +42,7 @@ const LandingPage = () => {
   const featureImages = {
     progress: '/assets/Progress.PNG',
     library: '/assets/resource.PNG',
-    tasks: '/assets/Task.png',
+    tasks: '/assets/Task.PNG',
     notes: '/assets/client.PNG',
     programs: '/assets/program.PNG',
     booking: '/assets/session.PNG',
