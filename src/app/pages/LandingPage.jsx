@@ -184,7 +184,7 @@ const LandingPage = () => {
               {t('hero.subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <DemoCTA onClick={() => setShowBookingForm(true)} />
+              <DemoCTA onClick={() => window.open('https://suplient.com/bookmoede', '_blank')} />
               <Button variant="outline" size="lg" onClick={() => {
               document.getElementById('how-it-works')?.scrollIntoView({
                 behavior: 'smooth'
@@ -568,7 +568,7 @@ const LandingPage = () => {
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             {t('cta.second.subtitle')}
           </p>
-          <DemoCTA onClick={() => setShowBookingForm(true)} />
+          <DemoCTA onClick={() => window.open('https://suplient.com/bookmoede', '_blank')} />
           <p className="text-sm text-muted-foreground mt-6">
             {t('cta.second.satisfaction')}
           </p>
