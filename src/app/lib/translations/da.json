@@ -809,6 +809,29 @@
             }
         }
     },
+    "security": {
+        "title": "HIPAA-Overensstemmende Sikkerhed Indbygget",
+        "subtitle": "Dine klienters data er beskyttet med virksomhedsklasse sikkerhed",
+        "description": "Vi forstår den kritiske betydning af at beskytte følsomme mentale sundhedsoplysninger. Vores platform er fuldt HIPAA-overensstemmende og bygget med sikkerhed som en kernefundament.",
+        "features": {
+            "encryption": {
+                "title": "End-to-End Kryptering",
+                "description": "Alle data er krypteret under overførsel og i hvile ved hjælp af branchestandardprotokoller"
+            },
+            "compliance": {
+                "title": "HIPAA Overensstemmende",
+                "description": "Fuldt overensstemmende med HIPAA-regler og regelmæssigt revideret for overholdelse"
+            },
+            "access": {
+                "title": "Adgangskontroller",
+                "description": "Granulære adgangskontroller sikrer, at kun autoriseret personale kan få adgang til klientdata"
+            },
+            "backup": {
+                "title": "Sikre Backups",
+                "description": "Regelmæssige automatiserede backups med sikker opbevaring og katastrofe-genopretningsprotokoller"
+            }
+        }
+    },
     "testimonials": {
         "title": "Betroet af Mentale Sundhedsprofessionelle",
         "subtitle": "Se hvad trænere siger om vores platform",

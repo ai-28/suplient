@@ -808,6 +808,29 @@
             }
         }
     },
+    "security": {
+        "title": "HIPAA-Compliant Security Built In",
+        "subtitle": "Your clients' data is protected with enterprise-grade security",
+        "description": "We understand the critical importance of protecting sensitive mental health information. Our platform is fully HIPAA compliant and built with security as a core foundation.",
+        "features": {
+            "encryption": {
+                "title": "End-to-End Encryption",
+                "description": "All data is encrypted in transit and at rest using industry-standard protocols"
+            },
+            "compliance": {
+                "title": "HIPAA Compliant",
+                "description": "Fully compliant with HIPAA regulations and regularly audited for compliance"
+            },
+            "access": {
+                "title": "Access Controls",
+                "description": "Granular access controls ensure only authorized personnel can access client data"
+            },
+            "backup": {
+                "title": "Secure Backups",
+                "description": "Regular automated backups with secure storage and disaster recovery protocols"
+            }
+        }
+    },
     "testimonials": {
         "title": "Trusted by Mental Health Professionals",
         "subtitle": "See what coaches are saying about our platform",

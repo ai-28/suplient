@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
@@ -11,13 +11,32 @@ import { DemoCTA } from "@/app/components/DemoCTA";
   // import { DemoBookingForm } from "@/app/components/demo/DemoBookingForm";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { FeatureItem } from "@/app/components/FeatureItem";
-import { Calendar, Target, Rocket, Users, Brain, TrendingUp, Clock, Zap, CheckCircle2, LogIn, ArrowRight, MessageSquare, BarChart3, UsersRound, CalendarCheck, FolderOpen, ListChecks, Shield, Palette } from "lucide-react";
+import { Calendar, Target, Rocket, Users, Brain, TrendingUp, Clock, Zap, CheckCircle2, LogIn, ArrowRight, MessageSquare, BarChart3, UsersRound, CalendarCheck, FolderOpen, ListChecks, Shield, Palette, Lock, FileCheck, Database } from "lucide-react";
 import { useRouter } from "next/navigation";
 const LandingPage = () => {
   const t = useTranslation();
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState('progress');
-  const router = useRouter();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const router = useRouter(); 
+  // Hero section images array
+  const heroImages = [
+    '/assets/a (1).jpg',
+    '/assets/a (2).jpg',
+    '/assets/a (3).jpg',
+    '/assets/a (4).jpg',
+    '/assets/a (5).jpg',
+    '/assets/dual-device-mockup.png'
+  ];
+
+  // Auto-rotate images every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [heroImages.length]);
 
   // Image mapping for each feature tab
   const featureImages = {
@@ -178,8 +197,18 @@ const LandingPage = () => {
               {t('hero.trustLine')}
             </p>
           </div>
-          <div className="relative hidden lg:block">
-            <img src="/lovable-uploads/dual-device-mockup.png" alt="CoachPlatform on laptop and mobile app" className="w-full h-auto" loading="eager" />
+          <div className="relative hidden lg:block w-full h-full min-h-[400px]">
+            {heroImages.map((image, index) => (
+              <img
+                key={index}
+                src={image}
+                alt={`CoachPlatform showcase ${index + 1}`}
+                className={`absolute inset-0 w-full h-auto object-contain transition-opacity duration-1000 ${
+                  index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                }`}
+                loading={index === 0 ? 'eager' : 'lazy'}
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -382,6 +411,76 @@ const LandingPage = () => {
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {detailedFeatures.map((feature, index) => <FeatureItem key={index} icon={feature.icon} title={feature.title} description={feature.description} />)}
+        </div>
+      </section>
+
+      {/* HIPAA Security Section */}
+      <section className="bg-muted/30 py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="flex justify-between gap-6 mb-6">
+              <div>
+              <img 
+                src="https://icon2.cleanpng.com/20180624/iss/kisspng-general-data-protection-regulation-european-union-stamp-icon-5b2f41ff48fc87.184443461529823743299.jpg" 
+                alt="HIPAA Compliance Badge" 
+                className="h-20 w-auto object-contain"
+              />
+              </div>
+
+            <div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('security.title')}
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-2">
+              {t('security.subtitle')}
+            </p>
+            <p className="text-base text-muted-foreground/80 max-w-2xl mx-auto">
+              {t('security.description')}
+            </p>
+            </div>
+            <div>
+              <img
+              src = "https://www.hipaajournal.com/wp-content/uploads/2024/10/Badge_HIPAA-Compliant-Logo.png"
+              alt="HIPAA Compliance Badge"
+              className="h-20 w-auto object-contain"
+              />
+            </div>
+</div>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            {[
+              {
+                icon: Lock,
+                title: t('security.features.encryption.title'),
+                description: t('security.features.encryption.description')
+              },
+              {
+                icon: FileCheck,
+                title: t('security.features.compliance.title'),
+                description: t('security.features.compliance.description')
+              },
+              {
+                icon: Shield,
+                title: t('security.features.access.title'),
+                description: t('security.features.access.description')
+              },
+              {
+                icon: Database,
+                title: t('security.features.backup.title'),
+                description: t('security.features.backup.description')
+              }
+            ].map((feature, index) => (
+              <Card key={index} className="border-border/50 hover:border-primary/50 transition-all duration-300">
+                <CardContent className="pt-6">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                    <feature.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 
