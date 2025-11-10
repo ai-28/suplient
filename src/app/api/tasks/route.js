@@ -254,19 +254,32 @@ export async function PUT(request) {
             try {
                 const { NotificationService } = require('@/app/lib/services/NotificationService');
 
+                // Get client name from session (already available)
+                const clientName = session.user.name || 'Client';
+
                 // Get task details and coach information
+                // Handle both individual tasks (clientId) and group tasks (groupId)
                 const taskDetailsResult = await sql`
-                    SELECT t.title, c."coachId", u.name as coachName, c2.name as clientName
+                    SELECT 
+                        t.title, 
+                        COALESCE(c."coachId", g."coachId") as "coachId"
                     FROM "Task" t
-                    JOIN "Client" c ON c.id = t."clientId"
-                    JOIN "User" u ON u.id = c."coachId"
-                    JOIN "Client" c2 ON c2.id = ${clientId}
+                    LEFT JOIN "Client" c ON c.id = t."clientId"
+                    LEFT JOIN "Group" g ON g.id = t."groupId"
                     WHERE t.id = ${taskId}
                 `;
 
                 if (taskDetailsResult.length > 0) {
-                    const { title: taskTitle, coachId, coachName, clientName } = taskDetailsResult[0];
-                    await NotificationService.notifyTaskCompletion(clientId, coachId, clientName, taskTitle);
+                    const { title: taskTitle, coachId } = taskDetailsResult[0];
+
+                    if (coachId) {
+                        await NotificationService.notifyTaskCompletion(clientId, coachId, clientName, taskTitle);
+                        console.log(`✅ Task completion notification sent: ${clientName} completed "${taskTitle}"`);
+                    } else {
+                        console.warn('⚠️ No coachId found for task, skipping notification');
+                    }
+                } else {
+                    console.warn('⚠️ Task not found for notification, skipping');
                 }
             } catch (notificationError) {
                 console.error('❌ Error creating task completion notification:', notificationError);

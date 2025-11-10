@@ -154,35 +154,8 @@ const useClientTasks = () => {
             console.error('❌ Error creating task completion activity:', activityError);
           }
 
-          // Create notification for coach
-          try {
-            const notificationResponse = await fetch('/api/notifications', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                userId: task.coachId, // Assuming task has coachId
-                type: 'task_completed',
-                title: 'Task Completed',
-                message: `${session?.user?.name || 'Client'} completed the task: "${task.title}"`,
-                data: {
-                  taskId: taskId,
-                  taskTitle: task.title,
-                  clientId: session?.user?.id
-                },
-                priority: 'normal'
-              }),
-            });
-            
-            if (notificationResponse.ok) {
-              console.log('✅ Task completion notification created');
-            } else {
-              console.error('❌ Failed to create task completion notification');
-            }
-          } catch (notificationError) {
-            console.error('❌ Error creating task completion notification:', notificationError);
-          }
+          // Notification is handled by the server-side PUT endpoint
+          // No need to create it here
         }
       
       // Call the completion callback if provided
