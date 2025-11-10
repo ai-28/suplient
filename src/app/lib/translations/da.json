@@ -698,5 +698,231 @@
             "joinSession": "Deltag i Session"
         },
         "offlineMessage": "Du er offline. Nogle funktioner kan være begrænsede."
+    },
+    "header": {
+        "login": "Log ind",
+        "home": "Hjem",
+        "features": "Funktioner",
+        "howItWorks": "Sådan Virker Det"
+    },
+    "hero": {
+        "title": "Transformer Din Mentale Sundhedspraksis",
+        "titleHighlight": "med AI-Drevet",
+        "titleEnd": "Coaching Platform",
+        "subtitle": "Strømlinjeform klientstyring, automatiser workflows og skalér din praksis med intelligente værktøjer designet til mentale sundhedsprofessionelle.",
+        "ctaPrimary": "Book en Demo",
+        "ctaSecondary": "Lær Mere",
+        "trustLine": "Betroet af 100+ mentale sundhedsprofessionelle"
+    },
+    "painPoints": {
+        "title": "De Udfordringer Du Står Overfor Hver Dag",
+        "subtitle": "At drive en mental sundhedspraksis burde ikke være så svært",
+        "point1Title": "Tidskrævende Administrative Opgaver",
+        "point1Description": "Timer brugt på planlægning, noter og papirarbejde i stedet for at hjælpe klienter",
+        "point2Title": "Manuel Klientopsporing",
+        "point2Description": "Jonglere med regneark og dokumenter for at spore klientfremgang og resultater",
+        "point3Title": "Begrænset Skalerbarhed",
+        "point3Description": "Kæmper med at vokse din praksis uden at ansætte mere administrativt personale",
+        "point4Title": "Inkonsistent Kommunikation",
+        "point4Description": "Klienter misser sessioner, glemmer opgaver og mister engagement mellem aftaler",
+        "point5Title": "Ingen Dataindsigter",
+        "point5Description": "Mangler værdifulde indsigter i klientfremgang og programeffektivitet",
+        "point6Title": "Fragmenterede Værktøjer",
+        "point6Description": "Skifter mellem flere platforme for planlægning, noter og klientstyring"
+    },
+    "solution": {
+        "title": "Din Alt-i-Én Løsning",
+        "subtitle": "Alt hvad du har brug for til at drive en succesfuld mental sundhedspraksis",
+        "description": "Bygget specifikt til mentale sundhedsprofessionelle, der ønsker at fokusere på det, der betyder mest: at hjælpe deres klienter.",
+        "features": {
+            "ai": {
+                "title": "AI-Drevne Indsigter",
+                "description": "Få intelligente anbefalinger og indsigter til at hjælpe dig med at træffe bedre beslutninger for dine klienter.",
+                "benefit": "Spar 5+ timer om ugen på analyse"
+            },
+            "builder": {
+                "title": "Programbygger",
+                "description": "Opret strukturerede programmer med automatiserede workflows, der guider klienter gennem deres rejse.",
+                "benefit": "Øg klientengagement med 40%"
+            },
+            "tracking": {
+                "title": "Fremgangssporing",
+                "description": "Overvåg klientfremgang i realtid med omfattende analyser og rapporteringsværktøjer.",
+                "benefit": "Forbedre resultater med 30%"
+            }
+        }
+    },
+    "platformFeatures": {
+        "title": "Alt Hvad Du Har Brug For i Én Platform",
+        "subtitle": "Ikke mere at jonglere med e-mail, regneark og dokumenter. Opret aktiviteter, spoor fremgang og kommuniker med klienter på én sikker platform.",
+        "tabs": {
+            "progress": "Fremgang",
+            "library": "Bibliotek",
+            "tasks": "Opgaver",
+            "notes": "Noter",
+            "programs": "Programmer",
+            "booking": "Booking",
+            "chat": "Chat i Realtid",
+            "groups": "Grupper",
+            "aiAssist": "AI Assistent"
+        }
+    },
+    "features": {
+        "title": "Omfattende Platformfunktioner",
+        "subtitle": "Alt hvad du har brug for i én integreret løsning",
+        "items": {
+            "ai": {
+                "title": "AI-Assistent",
+                "description": "Intelligente anbefalinger og indsigter drevet af avanceret AI-teknologi"
+            },
+            "programs": {
+                "title": "Programbygger",
+                "description": "Opret strukturerede, automatiserede programmer, der guider klienter gennem deres mentale sundhedsrejse"
+            },
+            "tracking": {
+                "title": "Fremgangsanalyser",
+                "description": "Realtidssporing og omfattende analyser til at overvåge klientresultater"
+            },
+            "groups": {
+                "title": "Gruppesessioner",
+                "description": "Administrer gruppeterapisessioner med integrerede planlægnings- og kommunikationsværktøjer"
+            },
+            "scheduling": {
+                "title": "Smart Planlægning",
+                "description": "Automatiseret planlægning med kalenderintegration og sessionpåmindelser"
+            },
+            "library": {
+                "title": "Ressourcebibliotek",
+                "description": "Del videoer, artikler, øvelser og ressourcer med klienter i ét organiseret bibliotek"
+            },
+            "tasks": {
+                "title": "Opgavestyring",
+                "description": "Tildel og spore opgaver, lektier og aktiviteter for klienter mellem sessioner"
+            },
+            "security": {
+                "title": "HIPAA Overensstemmende",
+                "description": "Virksomhedsklasse sikkerhed og overholdelse for at beskytte følsomme klientoplysninger"
+            },
+            "white_label": {
+                "title": "White Label",
+                "description": "Tilpas platformen med dit brand for en sømløs klientoplevelse"
+            }
+        }
+    },
+    "testimonials": {
+        "title": "Betroet af Mentale Sundhedsprofessionelle",
+        "subtitle": "Se hvad trænere siger om vores platform",
+        "martin": {
+            "quote": "Denne platform har transformeret, hvordan jeg administrerer min praksis. Jeg kan nu fokusere på det, jeg gør bedst - at hjælpe mine klienter.",
+            "name": "Martin Hansen",
+            "credentials": "Autoriseret Terapeut",
+            "result": "Sparer 8 timer om ugen"
+        },
+        "soren": {
+            "quote": "AI-indsigterne har været banebrydende. Jeg kan se mønstre, jeg aldrig bemærkede før, og yde bedre pleje.",
+            "name": "Søren Nielsen",
+            "credentials": "Mental Sundhedstræner",
+            "result": "40% stigning i klientengagement"
+        },
+        "janni": {
+            "quote": "Mine klienter elsker de strukturerede programmer. De er mere engagerede og ser bedre resultater end nogensinde.",
+            "name": "Janni Andersen",
+            "credentials": "Klinisk Psykolog",
+            "result": "30% forbedring i resultater"
+        }
+    },
+    "mission": {
+        "title": "Vores Mission",
+        "subtitle": "Gøre mental sundhedsstøtte tilgængelig og effektiv",
+        "description": "Vi tror på, at alle fortjener adgang til kvalitetsmental sundhedsstøtte. Vores platform styrker mentale sundhedsprofessionelle til at hjælpe flere mennesker, mere effektivt, samtidig med at vi reducerer administrativt pres og øger fokus på klientpleje."
+    },
+    "process": {
+        "title": "Sådan Fungerer Det",
+        "subtitle": "Kom i gang i tre simple trin",
+        "step1": {
+            "title": "Book en Demo",
+            "description": "Planlæg en personlig demo for at se, hvordan platformen kan transformere din praksis"
+        },
+        "step2": {
+            "title": "Bliv Sat Op",
+            "description": "Vores team hjælper dig med at tilpasse platformen og migrere dine eksisterende data"
+        },
+        "step3": {
+            "title": "Begynd at Vokse",
+            "description": "Begynd at bruge platformen og se din praksis skaleres, mens du fokuserer på klienter"
+        }
+    },
+    "cta": {
+        "second": {
+            "title": "Klar til at Transformere Din Praksis?",
+            "subtitle": "Bliv en del af hundredvis af mentale sundhedsprofessionelle, der allerede bruger vores platform",
+            "satisfaction": "30-dages pengene-tilbage-garanti. Ingen spørgsmål stillet."
+        },
+        "final": {
+            "title": "Start Din Gratis Demo I Dag",
+            "subtitle": "Se hvordan vores platform kan hjælpe dig med at skalere din praksis og forbedre klientresultater",
+            "disclaimer": "Ingen kreditkort påkrævet. Annuller når som helst.",
+            "button": "Book Din Demo"
+        }
+    },
+    "faq": {
+        "title": "Ofte Stillede Spørgsmål",
+        "subtitle": "Alt hvad du har brug for at vide om vores platform",
+        "q1": {
+            "question": "Er platformen HIPAA-overensstemmende?",
+            "answer": "Ja, vi er fuldt HIPAA-overensstemmende med virksomhedsklasse sikkerhedsforanstaltninger til at beskytte alle klientdata."
+        },
+        "q2": {
+            "question": "Hvor lang tid tager det at sætte op?",
+            "answer": "De fleste praksisser er oppe og kører inden for 24-48 timer. Vores team giver fuld onboarding-støtte."
+        },
+        "q3": {
+            "question": "Kan jeg tilpasse platformen?",
+            "answer": "Ja, platformen er fuldt white-label og kan tilpasses med dit brand og farver."
+        },
+        "q4": {
+            "question": "Hvilken slags support tilbyder I?",
+            "answer": "Vi tilbyder 24/7 support via e-mail og chat, plus dedikeret onboarding-assistance til nye kunder."
+        },
+        "q5": {
+            "question": "Kan jeg integrere med mine eksisterende værktøjer?",
+            "answer": "Ja, vi tilbyder integrationer med populære kalendersystemer, videokonferenceplatforme og mere."
+        }
+    },
+    "footer": {
+        "copyright": "© 2024 Suplient. Alle rettigheder forbeholdes."
+    },
+    "bookingForm": {
+        "title": "Book Din Demo",
+        "subtitle": "Planlæg en personlig demo for at se, hvordan vores platform kan transformere din praksis",
+        "name": "Navn",
+        "namePlaceholder": "Indtast dit fulde navn",
+        "email": "E-mail",
+        "emailPlaceholder": "Indtast din e-mailadresse",
+        "phone": "Telefon",
+        "phonePlaceholder": "Indtast dit telefonnummer (valgfrit)",
+        "practiceSize": "Praksisstørrelse",
+        "practiceSizePlaceholder": "Vælg din praksisstørrelse",
+        "practiceSizes": {
+            "solo": "Solo Praktiserende",
+            "small": "Lille Praksis (2-5 professionelle)",
+            "medium": "Medium Praksis (6-15 professionelle)",
+            "large": "Stor Praksis (16+ professionelle)"
+        },
+        "preferredTime": "Foretrukket Tid",
+        "preferredTimePlaceholder": "Vælg din foretrukne tid",
+        "times": {
+            "morning": "Morgen (9-12)",
+            "afternoon": "Eftermiddag (12-17)",
+            "evening": "Aften (17-20)"
+        },
+        "message": "Besked",
+        "messagePlaceholder": "Fortæl os om din praksis og hvad du gerne vil se (valgfrit)",
+        "cancel": "Annuller",
+        "submit": "Indsend",
+        "successTitle": "Demoanmodning Indsendt!",
+        "successMessage": "Tak for din interesse! Vi har modtaget din demoanmodning og kontakter dig på",
+        "successMessage2": "inden for 24 timer for at planlægge din personlige demo.",
+        "successClose": "Luk"
     }
 }

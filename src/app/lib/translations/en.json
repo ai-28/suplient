@@ -697,5 +697,231 @@
             "joinSession": "Join Session"
         },
         "offlineMessage": "You're offline. Some features may be limited."
+    },
+    "header": {
+        "login": "Login",
+        "home": "Home",
+        "features": "Features",
+        "howItWorks": "How It Works"
+    },
+    "hero": {
+        "title": "Transform Your Mental Health Practice",
+        "titleHighlight": "with AI-Powered",
+        "titleEnd": "Coaching Platform",
+        "subtitle": "Streamline client management, automate workflows, and scale your practice with intelligent tools designed for mental health professionals.",
+        "ctaPrimary": "Book a Demo",
+        "ctaSecondary": "Learn More",
+        "trustLine": "Trusted by 100+ mental health professionals"
+    },
+    "painPoints": {
+        "title": "The Challenges You Face Every Day",
+        "subtitle": "Running a mental health practice shouldn't be this hard",
+        "point1Title": "Time-Consuming Admin Tasks",
+        "point1Description": "Hours spent on scheduling, notes, and paperwork instead of helping clients",
+        "point2Title": "Manual Client Tracking",
+        "point2Description": "Juggling spreadsheets and documents to track client progress and outcomes",
+        "point3Title": "Limited Scalability",
+        "point3Description": "Struggling to grow your practice without hiring more administrative staff",
+        "point4Title": "Inconsistent Communication",
+        "point4Description": "Clients miss sessions, forget tasks, and lose engagement between appointments",
+        "point5Title": "No Data Insights",
+        "point5Description": "Missing valuable insights into client progress and program effectiveness",
+        "point6Title": "Fragmented Tools",
+        "point6Description": "Switching between multiple platforms for scheduling, notes, and client management"
+    },
+    "solution": {
+        "title": "Your All-in-One Solution",
+        "subtitle": "Everything you need to run a successful mental health practice",
+        "description": "Built specifically for mental health professionals who want to focus on what matters most: helping their clients.",
+        "features": {
+            "ai": {
+                "title": "AI-Powered Insights",
+                "description": "Get intelligent recommendations and insights to help you make better decisions for your clients.",
+                "benefit": "Save 5+ hours per week on analysis"
+            },
+            "builder": {
+                "title": "Program Builder",
+                "description": "Create structured programs with automated workflows that guide clients through their journey.",
+                "benefit": "Increase client engagement by 40%"
+            },
+            "tracking": {
+                "title": "Progress Tracking",
+                "description": "Monitor client progress in real-time with comprehensive analytics and reporting tools.",
+                "benefit": "Improve outcomes by 30%"
+            }
+        }
+    },
+    "platformFeatures": {
+        "title": "Everything You Need in One Platform",
+        "subtitle": "No more juggling email, spreadsheets, and documents. Create activities, track progress, and communicate with clients in one secure platform.",
+        "tabs": {
+            "progress": "Progress",
+            "library": "Library",
+            "tasks": "Tasks",
+            "notes": "Notes",
+            "programs": "Programs",
+            "booking": "Booking",
+            "chat": "Real-time Chat",
+            "groups": "Groups",
+            "aiAssist": "AI Assist"
+        }
+    },
+    "features": {
+        "title": "Comprehensive Platform Features",
+        "subtitle": "Everything you need in one integrated solution",
+        "items": {
+            "ai": {
+                "title": "AI Assistant",
+                "description": "Intelligent recommendations and insights powered by advanced AI technology"
+            },
+            "programs": {
+                "title": "Program Builder",
+                "description": "Create structured, automated programs that guide clients through their mental health journey"
+            },
+            "tracking": {
+                "title": "Progress Analytics",
+                "description": "Real-time tracking and comprehensive analytics to monitor client outcomes"
+            },
+            "groups": {
+                "title": "Group Sessions",
+                "description": "Manage group therapy sessions with integrated scheduling and communication tools"
+            },
+            "scheduling": {
+                "title": "Smart Scheduling",
+                "description": "Automated scheduling with calendar integration and session reminders"
+            },
+            "library": {
+                "title": "Resource Library",
+                "description": "Share videos, articles, exercises, and resources with clients in one organized library"
+            },
+            "tasks": {
+                "title": "Task Management",
+                "description": "Assign and track tasks, homework, and activities for clients between sessions"
+            },
+            "security": {
+                "title": "HIPAA Compliant",
+                "description": "Enterprise-grade security and compliance to protect sensitive client information"
+            },
+            "white_label": {
+                "title": "White Label",
+                "description": "Customize the platform with your branding for a seamless client experience"
+            }
+        }
+    },
+    "testimonials": {
+        "title": "Trusted by Mental Health Professionals",
+        "subtitle": "See what coaches are saying about our platform",
+        "martin": {
+            "quote": "This platform has transformed how I manage my practice. I can now focus on what I do best - helping my clients.",
+            "name": "Martin Hansen",
+            "credentials": "Licensed Therapist",
+            "result": "Saved 8 hours per week"
+        },
+        "soren": {
+            "quote": "The AI insights have been game-changing. I can see patterns I never noticed before and provide better care.",
+            "name": "Søren Nielsen",
+            "credentials": "Mental Health Coach",
+            "result": "40% increase in client engagement"
+        },
+        "janni": {
+            "quote": "My clients love the structured programs. They're more engaged and seeing better results than ever.",
+            "name": "Janni Andersen",
+            "credentials": "Clinical Psychologist",
+            "result": "30% improvement in outcomes"
+        }
+    },
+    "mission": {
+        "title": "Our Mission",
+        "subtitle": "Making mental health support accessible and effective",
+        "description": "We believe that everyone deserves access to quality mental health support. Our platform empowers mental health professionals to help more people, more effectively, while reducing administrative burden and increasing focus on client care."
+    },
+    "process": {
+        "title": "How It Works",
+        "subtitle": "Get started in three simple steps",
+        "step1": {
+            "title": "Book a Demo",
+            "description": "Schedule a personalized demo to see how the platform can transform your practice"
+        },
+        "step2": {
+            "title": "Get Set Up",
+            "description": "Our team will help you customize the platform and migrate your existing data"
+        },
+        "step3": {
+            "title": "Start Growing",
+            "description": "Begin using the platform and watch your practice scale while you focus on clients"
+        }
+    },
+    "cta": {
+        "second": {
+            "title": "Ready to Transform Your Practice?",
+            "subtitle": "Join hundreds of mental health professionals who are already using our platform",
+            "satisfaction": "30-day money-back guarantee. No questions asked."
+        },
+        "final": {
+            "title": "Start Your Free Demo Today",
+            "subtitle": "See how our platform can help you scale your practice and improve client outcomes",
+            "disclaimer": "No credit card required. Cancel anytime.",
+            "button": "Book Your Demo"
+        }
+    },
+    "faq": {
+        "title": "Frequently Asked Questions",
+        "subtitle": "Everything you need to know about our platform",
+        "q1": {
+            "question": "Is the platform HIPAA compliant?",
+            "answer": "Yes, we are fully HIPAA compliant with enterprise-grade security measures to protect all client data."
+        },
+        "q2": {
+            "question": "How long does it take to set up?",
+            "answer": "Most practices are up and running within 24-48 hours. Our team provides full onboarding support."
+        },
+        "q3": {
+            "question": "Can I customize the platform?",
+            "answer": "Yes, the platform is fully white-label and can be customized with your branding and colors."
+        },
+        "q4": {
+            "question": "What kind of support do you offer?",
+            "answer": "We offer 24/7 support via email and chat, plus dedicated onboarding assistance for new customers."
+        },
+        "q5": {
+            "question": "Can I integrate with my existing tools?",
+            "answer": "Yes, we offer integrations with popular calendar systems, video conferencing platforms, and more."
+        }
+    },
+    "footer": {
+        "copyright": "© 2024 Suplient. All rights reserved."
+    },
+    "bookingForm": {
+        "title": "Book Your Demo",
+        "subtitle": "Schedule a personalized demo to see how our platform can transform your practice",
+        "name": "Name",
+        "namePlaceholder": "Enter your full name",
+        "email": "Email",
+        "emailPlaceholder": "Enter your email address",
+        "phone": "Phone",
+        "phonePlaceholder": "Enter your phone number (optional)",
+        "practiceSize": "Practice Size",
+        "practiceSizePlaceholder": "Select your practice size",
+        "practiceSizes": {
+            "solo": "Solo Practitioner",
+            "small": "Small Practice (2-5 professionals)",
+            "medium": "Medium Practice (6-15 professionals)",
+            "large": "Large Practice (16+ professionals)"
+        },
+        "preferredTime": "Preferred Time",
+        "preferredTimePlaceholder": "Select your preferred time",
+        "times": {
+            "morning": "Morning (9 AM - 12 PM)",
+            "afternoon": "Afternoon (12 PM - 5 PM)",
+            "evening": "Evening (5 PM - 8 PM)"
+        },
+        "message": "Message",
+        "messagePlaceholder": "Tell us about your practice and what you'd like to see (optional)",
+        "cancel": "Cancel",
+        "submit": "Submit",
+        "successTitle": "Demo Request Submitted!",
+        "successMessage": "Thank you for your interest! We've received your demo request and will contact you at",
+        "successMessage2": "within 24 hours to schedule your personalized demo.",
+        "successClose": "Close"
     }
 }

@@ -1,567 +1,533 @@
-"use client"
-import { useState, useEffect } from 'react';
+"use client";
+import { useState } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
-import { Progress } from "@/app/components/ui/progress";
-import { ArrowRight, CheckCircle, Users, Shield, Clock, MessageSquare, Calendar, Heart, Star, Award } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-// Import images
-const headerImage = "/assets/header-image.webp";
-const ceoImage = "/assets/ceo-image.webp";
-const gridLeftImage = "/assets/grid-left.webp";
-const gridRight1Image = "/assets/grid-right-1.webp";
-const gridRight2Image = "/assets/grid-right-2.webp";
-
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/app/components/ui/accordion";
+import { TestimonialCard } from "@/app/components/TestimonialCard";
+import { ProcessStep } from "@/app/components/ProcessStep";
+import { TrustBadge } from "@/app/components/TrustBadge";
+import { DemoCTA } from "@/app/components/DemoCTA";
+  // import { DemoBookingForm } from "@/app/components/demo/DemoBookingForm";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { FeatureItem } from "@/app/components/FeatureItem";
+import { Calendar, Target, Rocket, Users, Brain, TrendingUp, Clock, Zap, CheckCircle2, LogIn, ArrowRight, MessageSquare, BarChart3, UsersRound, CalendarCheck, FolderOpen, ListChecks, Shield, Palette } from "lucide-react";
+import { useRouter } from "next/navigation";
 const LandingPage = () => {
-  const [isVisible, setIsVisible] = useState({
-    hero: false,
-    problem: false,
-    solution: false,
-    features: false,
-    cta: false
-  });
+  const t = useTranslation();
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [selectedFeature, setSelectedFeature] = useState('progress');
   const router = useRouter();
-  useEffect(() => {
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '50px'
-    };
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const sectionName = entry.target.getAttribute('data-section');
-          if (sectionName) {
-            setIsVisible(prev => ({ ...prev, [sectionName]: true }));
-          }
-        }
-      });
-    }, observerOptions);
+  // Image mapping for each feature tab
+  const featureImages = {
+    progress: '/assets/Progress.PNG',
+    library: '/assets/resource.PNG',
+    tasks: '/assets/Task.png',
+    notes: '/assets/client.PNG',
+    programs: '/assets/program.PNG',
+    booking: '/assets/session.PNG',
+    chat: '/assets/client.PNG',
+    groups: '/assets/groups.PNG',
+    aiAssist: '/assets/AI-Session.PNG'
+  };
+  const features = [{
+    icon: Brain,
+    title: t('solution.features.ai.title'),
+    description: t('solution.features.ai.description'),
+    benefit: t('solution.features.ai.benefit')
+  }, {
+    icon: Target,
+    title: t('solution.features.builder.title'),
+    description: t('solution.features.builder.description'),
+    benefit: t('solution.features.builder.benefit')
+  }, {
+    icon: TrendingUp,
+    title: t('solution.features.tracking.title'),
+    description: t('solution.features.tracking.description'),
+    benefit: t('solution.features.tracking.benefit')
+  }];
+  const painPoints = [{
+    icon: Clock,
+    title: t('painPoints.point1Title'),
+    description: t('painPoints.point1Description')
+  }, {
+    icon: Zap,
+    title: t('painPoints.point2Title'),
+    description: t('painPoints.point2Description')
+  }, {
+    icon: Users,
+    title: t('painPoints.point3Title'),
+    description: t('painPoints.point3Description')
+  }, {
+    icon: Target,
+    title: t('painPoints.point4Title'),
+    description: t('painPoints.point4Description')
+  }, {
+    icon: Brain,
+    title: t('painPoints.point5Title'),
+    description: t('painPoints.point5Description')
+  }, {
+    icon: TrendingUp,
+    title: t('painPoints.point6Title'),
+    description: t('painPoints.point6Description')
+  }];
+  const detailedFeatures = [{
+    icon: MessageSquare,
+    title: t('features.items.ai.title'),
+    description: t('features.items.ai.description')
+  }, {
+    icon: Target,
+    title: t('features.items.programs.title'),
+    description: t('features.items.programs.description')
+  }, {
+    icon: BarChart3,
+    title: t('features.items.tracking.title'),
+    description: t('features.items.tracking.description')
+  }, {
+    icon: UsersRound,
+    title: t('features.items.groups.title'),
+    description: t('features.items.groups.description')
+  }, {
+    icon: CalendarCheck,
+    title: t('features.items.scheduling.title'),
+    description: t('features.items.scheduling.description')
+  }, {
+    icon: FolderOpen,
+    title: t('features.items.library.title'),
+    description: t('features.items.library.description')
+  }, {
+    icon: ListChecks,
+    title: t('features.items.tasks.title'),
+    description: t('features.items.tasks.description')
+  }, {
+    icon: Shield,
+    title: t('features.items.security.title'),
+    description: t('features.items.security.description')
+  }, {
+    icon: Palette,
+    title: t('features.items.white_label.title'),
+    description: t('features.items.white_label.description')
+  }];
+  const faqs = [{
+    question: t('faq.q1.question'),
+    answer: t('faq.q1.answer')
+  }, {
+    question: t('faq.q2.question'),
+    answer: t('faq.q2.answer')
+  }, {
+    question: t('faq.q3.question'),
+    answer: t('faq.q3.answer')
+  }, {
+    question: t('faq.q4.question'),
+    answer: t('faq.q4.answer')
+  }, {
+    question: t('faq.q5.question'),
+    answer: t('faq.q5.answer')
+  }];
+  return <div className="min-h-screen bg-background">
+      {/* Minimal Header */}
+      <header className="border-b border-border/50 sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <img src="/assets/logo.png" alt="Suplient" className="h-40 md:h-20 " />
+          
+          <nav className="hidden md:flex items-center gap-8">
+            <a href="#" className="text-[20px] font-medium hover:text-primary transition-colors">
+              {t('header.home')}
+            </a>
+            <a href="#features" className="text-[20px] font-medium hover:text-primary transition-colors">
+              {t('header.features')}
+            </a>
+            <a href="#how-it-works" className="text-[20px] font-medium hover:text-primary transition-colors">
+              {t('header.howItWorks')}
+            </a>
+          </nav>
 
-    const sections = document.querySelectorAll('[data-section]');
-    sections.forEach(section => observer.observe(section));
-
-    return () => observer.disconnect();
-  }, []);
-
-  // Companies that trust us (better company data)
-  const trustedCompanies = [
-    { name: "Wellness Corp", logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'%3E%3Crect width='120' height='40' fill='%23E5E7EB'/%3E%3Ctext x='60' y='25' text-anchor='middle' fill='%236B7280' font-family='Arial,sans-serif' font-size='12' font-weight='600'%3EWellness Corp%3C/text%3E%3C/svg%3E" },
-    { name: "MindCare", logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'%3E%3Crect width='120' height='40' fill='%23E5E7EB'/%3E%3Ctext x='60' y='25' text-anchor='middle' fill='%236B7280' font-family='Arial,sans-serif' font-size='12' font-weight='600'%3EMindCare%3C/text%3E%3C/svg%3E" },
-    { name: "Health Solutions", logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'%3E%3Crect width='120' height='40' fill='%23E5E7EB'/%3E%3Ctext x='60' y='25' text-anchor='middle' fill='%236B7280' font-family='Arial,sans-serif' font-size='12' font-weight='600'%3EHealth Solutions%3C/text%3E%3C/svg%3E" },
-    { name: "TherapyPlus", logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'%3E%3Crect width='120' height='40' fill='%23E5E7EB'/%3E%3Ctext x='60' y='25' text-anchor='middle' fill='%236B7280' font-family='Arial,sans-serif' font-size='12' font-weight='600'%3ETherapyPlus%3C/text%3E%3C/svg%3E" },
-    { name: "MentalWell", logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'%3E%3Crect width='120' height='40' fill='%23E5E7EB'/%3E%3Ctext x='60' y='25' text-anchor='middle' fill='%236B7280' font-family='Arial,sans-serif' font-size='12' font-weight='600'%3EMentalWell%3C/text%3E%3C/svg%3E" },
-    { name: "LifeCare Pro", logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'%3E%3Crect width='120' height='40' fill='%23E5E7EB'/%3E%3Ctext x='60' y='25' text-anchor='middle' fill='%236B7280' font-family='Arial,sans-serif' font-size='12' font-weight='600'%3ELifeCare Pro%3C/text%3E%3C/svg%3E" }
-  ];
-
-  return (
-    <div className="min-h-screen">
-      {/* Clean Modern Header */}
-      <nav className="relative z-50 bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <img 
-                src="/assets/logo.png" 
-                alt="MindWell Logo" 
-                className="h-10 w-auto"
-              />
-              <div className="hidden md:flex items-center space-x-6 text-black">
-                <a href="#pricing" className="hover:text-black/80 transition-colors font-medium">Pricing</a>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button className="text-black hover:text-black/80 transition-colors font-medium" onClick={() => router.push('/login')}>Login</button>
-              <Button className="bg-primary hover:bg-primary/90 text-white font-medium">
-                Sign up
-              </Button>
-            </div>
+          <div className="flex items-center gap-4">
+            <LanguageSelector variant="header" />
+            <Button variant="ghost" size="sm" onClick={() => router.push("/login")}>
+              <LogIn className="mr-2 h-4 w-4" />
+              {t('header.login')}
+            </Button>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Clean Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-white z-20">
-        <div 
-          data-section="hero" 
-          className={`relative z-10 container mx-auto px-4 py-24 transition-all duration-1000 ${isVisible.hero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-        >
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              <h1 className="text-5xl lg:text-6xl font-bold leading-tight text-gray-900">
-                Transform 1000s of lives with{' '}
-                <span className="text-primary">personalized mental health coaching</span>{' '}
-                without burning out.
-              </h1>
-              <p className="text-xl text-gray-600 leading-relaxed">
-                AI-powered coaching platform that scales your impact while maintaining the personal touch your clients need.
+      {/* Hero Section */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
+              {t('hero.title')}{" "}
+              <span className="text-primary">{t('hero.titleHighlight')}</span> {t('hero.titleEnd')}
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              {t('hero.subtitle')}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <DemoCTA onClick={() => setShowBookingForm(true)} />
+              <Button variant="outline" size="lg" onClick={() => {
+              document.getElementById('how-it-works')?.scrollIntoView({
+                behavior: 'smooth'
+              });
+            }}>
+                {t('hero.ctaSecondary')}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('hero.trustLine')}
+            </p>
+          </div>
+          <div className="relative hidden lg:block">
+            <img src="/lovable-uploads/dual-device-mockup.png" alt="CoachPlatform on laptop and mobile app" className="w-full h-auto" loading="eager" />
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Badge */}
+      <section className="container mx-auto px-4">
+        <TrustBadge />
+      </section>
+
+      {/* Pain Points */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            {t('painPoints.title')}
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            {t('painPoints.subtitle')}
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {painPoints.map((point, index) => <Card key={index} className="border-border/50 bg-gradient-to-br from-pink-50/50 to-coral-50/50 dark:from-pink-950/20 dark:to-coral-950/20">
+              <CardContent className="pt-6">
+                <point.icon className="h-10 w-10 text-pink-500 dark:text-pink-400 mb-4" />
+                <h3 className="text-lg font-semibold mb-2">{point.title}</h3>
+                <p className="text-sm text-muted-foreground">{point.description}</p>
+              </CardContent>
+            </Card>)}
+        </div>
+      </section>
+
+      {/* Platform Features Tabs */}
+      <section id="features" className="py-20 md:py-32 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+              {t('platformFeatures.title')}
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {t('platformFeatures.subtitle')}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4 max-w-7xl mx-auto">
+            {[
+              { 
+                id: 'progress', 
+                label: t('platformFeatures.tabs.progress'), 
+                iconPaths: [
+                  <path key="1" d="M12 20h9"/>,
+                  <path key="2" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                ]
+              },
+              { 
+                id: 'library', 
+                label: t('platformFeatures.tabs.library'), 
+                iconPaths: [
+                  <path key="1" d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                ]
+              },
+              { 
+                id: 'tasks', 
+                label: t('platformFeatures.tabs.tasks'), 
+                iconPaths: [
+                  <rect key="1" width="18" height="18" x="3" y="3" rx="2"/>,
+                  <path key="2" d="m9 12 2 2 4-4"/>
+                ]
+              },
+              { 
+                id: 'notes', 
+                label: t('platformFeatures.tabs.notes'), 
+                iconPaths: [
+                  <path key="1" d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>,
+                  <polyline key="2" points="14 2 14 8 20 8"/>
+                ]
+              },
+              { 
+                id: 'programs', 
+                label: t('platformFeatures.tabs.programs'), 
+                iconPaths: [
+                  <path key="1" d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>,
+                  <circle key="2" cx="12" cy="12" r="3"/>
+                ]
+              },
+              { 
+                id: 'booking', 
+                label: t('platformFeatures.tabs.booking'), 
+                iconPaths: [
+                  <path key="1" d="M8 2v4"/>,
+                  <path key="2" d="M16 2v4"/>,
+                  <rect key="3" width="18" height="18" x="3" y="4" rx="2"/>,
+                  <path key="4" d="M3 10h18"/>
+                ]
+              },
+              { 
+                id: 'chat', 
+                label: t('platformFeatures.tabs.chat'), 
+                iconPaths: [
+                  <path key="1" d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+                ]
+              },
+              { 
+                id: 'groups', 
+                label: t('platformFeatures.tabs.groups'), 
+                iconPaths: [
+                  <path key="1" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>,
+                  <circle key="2" cx="9" cy="7" r="4"/>,
+                  <path key="3" d="M22 21v-2a4 4 0 0 0-3-3.87"/>,
+                  <path key="4" d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                ]
+              },
+              { 
+                id: 'aiAssist', 
+                label: t('platformFeatures.tabs.aiAssist'), 
+                iconPaths: [
+                  <path key="1" d="M12 2v2M6.938 4.927l-1.414 1.414M2 12h2M4.927 17.062l1.414 1.414M12 22v-2M17.062 19.073l1.414-1.414M22 12h-2M19.073 6.938l-1.414-1.414"/>,
+                  <circle key="2" cx="12" cy="12" r="3"/>
+                ]
+              }
+            ].map((feature) => {
+              const isSelected = selectedFeature === feature.id;
+              return (
+                <div
+                  key={feature.id}
+                  onClick={() => setSelectedFeature(feature.id)}
+                  className={`flex flex-col items-center gap-3 p-6 rounded-xl transition-all hover:scale-105 cursor-pointer ${
+                    isSelected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card border border-border/50 hover:border-primary/50'
+                  }`}
+                >
+                  <div className={`p-3 rounded-lg ${isSelected ? 'bg-primary-foreground/10' : 'bg-muted'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {feature.iconPaths}
+                    </svg>
+                  </div>
+                  <span className="text-sm font-medium text-center">{feature.label}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Feature Image Display */}
+          {featureImages[selectedFeature] && (
+            <div className="mt-12 max-w-6xl mx-auto">
+              <Card className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-lg">
+                <CardContent className="p-0">
+                  <img 
+                    src={featureImages[selectedFeature]} 
+                    alt={`${selectedFeature.charAt(0).toUpperCase() + selectedFeature.slice(1)} Dashboard`}
+                    className="w-full h-auto object-contain"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Solution Section */}
+      <section className="bg-background py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('solution.title')}
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-2">
+              {t('solution.subtitle')}
+            </p>
+            <p className="text-base text-muted-foreground/80 max-w-2xl mx-auto italic">
+              {t('solution.description')}
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {features.map((feature, index) => <Card key={index} className="border-primary/20 hover:border-primary/40 transition-all duration-300">
+                <CardContent className="pt-6">
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                    <feature.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-muted-foreground mb-4">{feature.description}</p>
+                  <div className="flex items-center gap-2 text-primary font-medium">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm">{feature.benefit}</span>
+                  </div>
+                </CardContent>
+              </Card>)}
+          </div>
+        </div>
+      </section>
+
+      {/* Detailed Features Section */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            {t('features.title')}
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            {t('features.subtitle')}
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {detailedFeatures.map((feature, index) => <FeatureItem key={index} icon={feature.icon} title={feature.title} description={feature.description} />)}
+        </div>
+      </section>
+
+      {/* Social Proof / Testimonials */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            {t('testimonials.title')}
+          </h2>
+          <p className="text-xl text-muted-foreground">
+            {t('testimonials.subtitle')}
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8">
+          <TestimonialCard quote={t('testimonials.martin.quote')} name={t('testimonials.martin.name')} credentials={t('testimonials.martin.credentials')} result={t('testimonials.martin.result')} />
+          <TestimonialCard quote={t('testimonials.soren.quote')} name={t('testimonials.soren.name')} credentials={t('testimonials.soren.credentials')} result={t('testimonials.soren.result')} />
+          <TestimonialCard quote={t('testimonials.janni.quote')} name={t('testimonials.janni.name')} credentials={t('testimonials.janni.credentials')} result={t('testimonials.janni.result')} />
+        </div>
+      </section>
+
+      {/* Video Break Section */}
+      <section className="relative w-full py-48 md:py-64 overflow-hidden">
+        <div className="absolute inset-0">
+          <video autoPlay muted loop playsInline className="w-full h-full object-cover">
+            <source src="/videos/amin-stage.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+        <div className="relative container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-5xl font-bold text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]" style={{
+          textShadow: '0 0 20px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.8)'
+        }}>
+            Mental sundhed er vores passion & hjertemission
+          </h2>
+        </div>
+      </section>
+
+      {/* Mission Section */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl p-8 md:p-12 border border-primary/20">
+          <div className="grid lg:grid-cols-2 gap-8 items-center max-w-6xl mx-auto">
+            <div className="order-2 lg:order-1">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                {t('mission.title')}
+              </h2>
+              <p className="text-xl text-primary/90 font-medium mb-6">
+                {t('mission.subtitle')}
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-4 text-lg font-medium">
-                  Sign up now
-                </Button>
-                <p className="text-gray-500 text-sm flex items-center">
-                  ✨ Free 14-day trial, no credit card required
-                </p>
-              </div>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                {t('mission.description')}
+              </p>
             </div>
-            
-            <div className="relative">
-              <div className="relative bg-white rounded-3xl p-8 border border-gray-200 shadow-xl">
-                <img 
-                  src={headerImage} 
-                  alt="Mental Health Platform Demo" 
-                  className="w-full h-auto rounded-2xl"
-                />
-                <div className="absolute -bottom-4 -right-4 bg-primary rounded-full p-3 shadow-lg">
-                  <div className="text-xs text-center text-white">
-                    <div className="text-sm font-bold">✨ We use MindWell</div>
-                    <div className="text-primary-foreground/90">to scale our practice!</div>
-                  </div>
-                </div>
-              </div>
+            <div className="order-1 lg:order-2 flex justify-center">
+              <img src="/assets/amin-founder.png" alt="Amin Durani - Stifter af Suplient" className="w-full max-w-sm rounded-2xl shadow-lg" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* The Problem */}
-      <section 
-        data-section="problem" 
-        className={`py-24 bg-gray-50 z-20 relative transition-all duration-1000 ${isVisible.problem ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-      >
+      {/* How It Works */}
+      <section id="how-it-works" className="bg-muted/30 py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-8">The Problem</h2>
-            <h3 className="text-2xl lg:text-3xl font-medium text-gray-600 mb-8 max-w-4xl mx-auto">
-              You're tired of the traditional therapy model limiting your impact.
-            </h3>
-          </div>
-          
-          <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <Card className="text-center p-8 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="space-y-6">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <Clock className="w-8 h-8 text-primary" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900">You can never scale enough</h4>
-                <p className="text-gray-600 leading-relaxed">
-                  1-on-1 sessions limit how many people you can help, creating a bottleneck in your practice.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center p-8 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="space-y-6">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <Users className="w-8 h-8 text-primary" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900">Something always goes wrong</h4>
-                <p className="text-gray-600 leading-relaxed">
-                  Client cancellations, no-shows, and scheduling conflicts disrupt your workflow and income.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center p-8 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="space-y-6">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <Heart className="w-8 h-8 text-primary" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900">You feel burnt out and wish you</h4>
-                <p className="text-gray-600 leading-relaxed">
-                  could be working on something more impactful and rewarding than repetitive sessions.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* The Solution */}
-      <section 
-        data-section="solution" 
-        className={`py-20 bg-white z-20 relative transition-all duration-1000 ${isVisible.solution ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-      >
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-2xl text-primary font-semibold mb-4">The Solution</h2>
-            <h3 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-8">
-              Turn your expertise into an AI-powered coaching platform that{' '}
-              <span className="text-primary underline decoration-primary/30">scales better</span>{' '}
-              than traditional therapy.
-            </h3>
-          </div>
-          
-          {/* Statistics */}
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-20">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-primary mb-2">5X</div>
-              <div className="text-lg text-gray-800 font-medium">client capacity</div>
-              <div className="text-gray-600">vs traditional 1-on-1 sessions</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-primary mb-2">90%</div>
-              <div className="text-lg text-gray-800 font-medium">satisfaction rates</div>
-              <div className="text-gray-600">from personalized AI coaching</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-primary mb-2">3X</div>
-              <div className="text-lg text-gray-800 font-medium">revenue growth</div>
-              <div className="text-gray-600">through scalable programs</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      {/* Fixed Background Container */}
-      <div 
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: `url(${gridRight2Image})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}
-      />
-      
-      <section 
-        data-section="features" 
-        className={`relative py-24 min-h-screen transition-all duration-1000 ${isVisible.features ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-      >
-        {/* Light Overlay */}
-        <div className="absolute inset-0 bg-black/10" />
-        
-        {/* Content Overlay */}
-        <div className="relative z-10 container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-8 drop-shadow-lg">
-              What makes MindWell so powerful
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('process.title')}
             </h2>
-          </div>
-
-          <div className="space-y-24">
-            {/* Feature 1 */}
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="relative">
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-xl">
-                  <img 
-                    src={gridLeftImage} 
-                    alt="AI-Powered Chat Interface" 
-                    className="w-full h-auto rounded-xl shadow-lg"
-                  />
-                </div>
-              </div>
-              <div className="space-y-6">
-                <h3 className="text-3xl font-bold text-white drop-shadow-lg">AI-Powered Personalized Chat</h3>
-                <p className="text-xl text-white/90 leading-relaxed drop-shadow">
-                  Create personalized coaching experiences with AI that learns from your methodology. 
-                  Each client gets tailored support based on their unique needs and progress.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">AI-Powered</Badge>
-                  <Badge variant="secondary">Personalized</Badge>
-                  <Badge variant="secondary">Tailored Support</Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="space-y-6 lg:order-1">
-                <h3 className="text-3xl font-bold text-white drop-shadow-lg">Smart Program Builder</h3>
-                <p className="text-xl text-white/90 leading-relaxed drop-shadow">
-                  Transform your coaching methods into scalable programs with interactive exercises, 
-                  progress tracking, and automated check-ins that maintain your personal touch.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">Scalable Programs</Badge>
-                  <Badge variant="secondary">Interactive Exercises</Badge>
-                  <Badge variant="secondary">Progress Tracking</Badge>
-                </div>
-              </div>
-              <div className="relative lg:order-2">
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-xl">
-                  <img 
-                    src={gridRight1Image} 
-                    alt="Program Builder Interface" 
-                    className="w-full h-auto rounded-xl shadow-lg"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="space-y-6">
-                <h3 className="text-3xl font-bold text-white drop-shadow-lg">Flexible Client Management</h3>
-                <p className="text-xl text-white/90 leading-relaxed drop-shadow">
-                  Manage hundreds of clients efficiently with automated progress tracking, 
-                  smart scheduling, and intervention alerts when clients need your direct attention.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">Automated Progress Tracking</Badge>
-                  <Badge variant="secondary">Smart Scheduling</Badge>
-                  <Badge variant="secondary">Intervention Alerts</Badge>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-white z-20 relative">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-8">Choose Your Plan</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Scale your mental health practice with our flexible partnership plans
+            <p className="text-xl text-muted-foreground">
+              {t('process.subtitle')}
             </p>
           </div>
-
-          <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Silver Partner */}
-            <Card className="relative p-8 bg-white border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow">
-              <CardContent className="space-y-6">
-                <div className="text-center">
-                  <div className="flex justify-center mb-3">
-                    <Badge variant="outline" className="text-gray-600">Basic Plan</Badge>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">SILVER PARTNER</h3>
-                  <p className="text-gray-600 mb-6">
-                    For coaches who want to try our platform with basic support
-                  </p>
-                  <div className="text-4xl font-bold text-gray-900 mb-2">$4,900</div>
-                  <div className="text-gray-600 mb-6">PER MONTH</div>
-                </div>
-                
-                <ul className="space-y-4">
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-                    Access to Supplier platform
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-                    Unlimited clients
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-                    Name, phone, email, notes
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-                    Web & Mobile app
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-                    Calendar - Set available times
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-                    Sales guide for therapists
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" />
-                    Email support
-                  </li>
-                </ul>
-
-                <Button className="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 text-lg font-medium mt-8">
-                  LEARN MORE
-                </Button>
-                
-                <div className="text-center text-sm text-gray-500 mt-4">
-                  3000,- setup fee<br/>
-                  3 month commitment
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Gold Partner - Recommended */}
-            <Card className="relative p-8 bg-white border-2 border-yellow-400 shadow-xl hover:shadow-2xl transition-shadow">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="bg-yellow-400 text-black px-6 py-2 rounded-full text-sm font-bold">
-                  RECOMMENDED
-                </div>
-              </div>
-              
-              <CardContent className="space-y-6">
-                <div className="text-center">
-                  <div className="flex justify-center mb-3">
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">Most Popular</Badge>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">GOLD PARTNER</h3>
-                  <p className="text-gray-600 mb-6">
-                    Our tailored coaching services are designed based on insights and experience from hundreds of therapists and coaches
-                  </p>
-                  <div className="text-4xl font-bold text-yellow-600 mb-2">$7,900</div>
-                  <div className="text-gray-600 mb-6">PER MONTH</div>
-                </div>
-                
-                <ul className="space-y-4">
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-                    Includes everything from Silver
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-                    Advertising strategy with you
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-                    We develop campaigns and ads
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-                    Monitoring & Optimization
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-                    Sales coaching 1:1
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-                    Dedicated phone number for SMS & calls
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-                    Communicate with clients via platform
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-yellow-500 mr-3 flex-shrink-0" />
-                    Phone support
-                  </li>
-                </ul>
-
-                <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black py-3 text-lg font-medium mt-8">
-                  LEARN MORE
-                </Button>
-                
-                <div className="text-center text-sm text-gray-500 mt-4">
-                  4000,- setup fee<br/>
-                  3 month commitment
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Diamond Partner */}
-            <Card className="relative p-8 bg-white border-2 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
-              <CardContent className="space-y-6">
-                <div className="text-center">
-                  <div className="flex justify-center mb-3">
-                    <Badge variant="outline" className="text-purple-600 border-purple-300">Premium Plan</Badge>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">DIAMOND PARTNER</h3>
-                  <p className="text-gray-600 mb-6">
-                    For coaches who want to be covered, so you can focus on your clients
-                  </p>
-                  <div className="text-4xl font-bold text-purple-600 mb-2">$14,900</div>
-                  <div className="text-gray-600 mb-6">PER MONTH</div>
-                </div>
-                
-                <ul className="space-y-4">
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-purple-500 mr-3 flex-shrink-0" />
-                    Includes everything from Silver & Gold
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-purple-500 mr-3 flex-shrink-0" />
-                    Booking of conversations with clients
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-purple-500 mr-3 flex-shrink-0" />
-                    Collect payments and send invoices
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-purple-500 mr-3 flex-shrink-0" />
-                    Setup of Landing page
-                  </li>
-                  <li className="flex items-center text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-purple-500 mr-3 flex-shrink-0" />
-                    Setup of Funnel
-                  </li>
-                </ul>
-
-                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-lg font-medium mt-8">
-                  LEARN MORE
-                </Button>
-                
-                <div className="text-center text-sm text-gray-500 mt-4">
-                  5000,- setup fee<br/>
-                  3 month commitment
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-3 gap-12 md:gap-8 max-w-5xl mx-auto">
+            <ProcessStep number={1} title={t('process.step1.title')} description={t('process.step1.description')} icon={Calendar} />
+            <ProcessStep number={2} title={t('process.step2.title')} description={t('process.step2.description')} icon={Target} />
+            <ProcessStep number={3} title={t('process.step3.title')} description={t('process.step3.description')} icon={Rocket} isLast />
           </div>
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section 
-        data-section="cta" 
-        className={`py-24 bg-gray-50 transition-all duration-1000 ${isVisible.cta ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-      >
+      {/* Second CTA Section */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl p-8 md:p-12 text-center border border-primary/20">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            {t('cta.second.title')}
+          </h2>
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            {t('cta.second.subtitle')}
+          </p>
+          <DemoCTA onClick={() => setShowBookingForm(true)} />
+          <p className="text-sm text-muted-foreground mt-6">
+            {t('cta.second.satisfaction')}
+          </p>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              {t('faq.title')}
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              {t('faq.subtitle')}
+            </p>
+          </div>
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, index) => <AccordionItem key={index} value={`item-${index}`}>
+                <AccordionTrigger className="text-left">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>)}
+          </Accordion>
+        </div>
+      </section>
+
+      {/* Final CTA Strip */}
+      <section className="bg-primary text-primary-foreground py-16">
         <div className="container mx-auto px-4 text-center">
-          <div className="max-w-4xl mx-auto space-y-8">
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">
-              Transform your practice.{' '}
-              <span className="text-primary">Scale your impact.</span>
-            </h2>
-            <p className="text-xl text-gray-600 leading-relaxed">
-              Join thousands of mental health professionals who have revolutionized their practice 
-              with AI-powered coaching that maintains the human connection.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-white px-8 py-4 text-lg font-medium">
-                Start your free trial
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-              <p className="text-gray-500">No credit card required • 14-day free trial</p>
-            </div>
-            
-            {/* Trial Progress Indicator */}
-            <div className="max-w-md mx-auto mt-6 p-4 bg-gray-50 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">Trial Progress</span>
-                <span className="text-sm text-gray-500">Day 1 of 14</span>
-              </div>
-              <Progress value={7} className="h-2" />
-              <p className="text-xs text-gray-500 mt-2 text-center">✨ Start your journey today!</p>
-            </div>
-
-            {/* Features List */}
-            <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto mt-16">
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-6 h-6 text-primary" />
-                </div>
-                <h4 className="font-semibold text-gray-900">Free 14-day trial</h4>
-                <p className="text-gray-600">Start transforming your practice today</p>
-              </div>
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <Shield className="w-6 h-6 text-primary" />
-                </div>
-                <h4 className="font-semibold text-gray-800">HIPAA Compliant</h4>
-                <p className="text-gray-600">Enterprise-grade security & privacy</p>
-              </div>
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                  <Award className="w-6 h-6 text-primary" />
-                </div>
-                <h4 className="font-semibold text-gray-800">Expert Support</h4>
-                <p className="text-gray-600">Dedicated onboarding & training</p>
-              </div>
-            </div>
-          </div>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            {t('cta.final.title')}
+          </h2>
+          <p className="text-xl mb-6 opacity-90">
+            {t('cta.final.subtitle')}
+          </p>
+          <p className="text-sm mb-8 opacity-80 max-w-2xl mx-auto">
+            {t('cta.final.disclaimer')}
+          </p>
+          <Button onClick={() => setShowBookingForm(true)} variant="secondary" size="lg" className="group">
+            {t('cta.final.button')}
+            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          </Button>
         </div>
       </section>
-    </div>
-  );
-};
 
+      {/* Minimal Footer */}
+      <footer className="border-t border-border/50 py-8">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>{t('footer.copyright')}</p>
+        </div>
+      </footer>
+
+      {/* Booking Form Modal */}
+      {/* <DemoBookingForm open={showBookingForm} onOpenChange={setShowBookingForm} /> */}
+    </div>;
+};
 export default LandingPage;
