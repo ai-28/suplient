@@ -14,7 +14,10 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { name, email, password, phone, isSuperAdmin } = await request.json();
+        let { name, email, password, phone, isSuperAdmin } = await request.json();
+
+        // Normalize email to lowercase
+        email = email.toLowerCase().trim();
 
         console.log('Creating admin with data:', { name, email, phone, isSuperAdmin: !!isSuperAdmin });
 
@@ -44,9 +47,9 @@ export async function POST(request) {
             );
         }
 
-        // Check if email already exists
+        // Check if email already exists (case-insensitive)
         const existingUser = await sql`
-      SELECT id FROM "User" WHERE email = ${email}
+      SELECT id FROM "User" WHERE LOWER(email) = LOWER(${email})
     `;
 
         if (existingUser.length > 0) {
@@ -64,7 +67,7 @@ export async function POST(request) {
         const salt = generateSalt();
         const hashedPassword = hashPassword(password, salt);
 
-        // Create admin user
+        // Create admin user (store email in lowercase)
         console.log('Attempting to insert admin into database...');
         const newAdmin = await sql`
       INSERT INTO "User" 

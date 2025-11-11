@@ -22,8 +22,11 @@ export const userRepo = {
 
 async function authenticate(email, inputPassword) {
   try {
-    // Fetch user by email
-    const result = await sql`SELECT * FROM "User" WHERE email = ${email}`;
+    // Normalize email to lowercase for case-insensitive comparison
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Fetch user by email (case-insensitive)
+    const result = await sql`SELECT * FROM "User" WHERE LOWER(email) = LOWER(${normalizedEmail})`;
     const user = result[0];
 
     if (!user) {
@@ -72,8 +75,11 @@ async function register(userData) {
       currentPlatform
     } = userData;
 
-    // Check if email already exists
-    const existingUser = await sql`SELECT id FROM "User" WHERE email = ${email}`;
+    // Normalize email to lowercase for storage and comparison
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if email already exists (case-insensitive)
+    const existingUser = await sql`SELECT id FROM "User" WHERE LOWER(email) = LOWER(${normalizedEmail})`;
     if (existingUser.length > 0) {
       throw new Error("Email already exists");
     }
@@ -86,7 +92,7 @@ async function register(userData) {
     const isActive = role === 'coach' ? false : true;
     const approvalStatus = role === 'coach' ? 'pending' : 'approved';
 
-    // Insert new user
+    // Insert new user (store email in lowercase)
     const result = await sql`
       INSERT INTO "User" (
         name, email, password, salt, phone, role, 
@@ -95,7 +101,7 @@ async function register(userData) {
         "createdAt", "updatedAt"
       )
       VALUES (
-        ${name}, ${email}, ${hashedPassword}, ${salt}, ${phone}, ${role}, 
+        ${name}, ${normalizedEmail}, ${hashedPassword}, ${salt}, ${phone}, ${role}, 
         ${isActive}, ${approvalStatus},
         ${expectedPlatformBestAt || null}, ${currentClientsPerMonth || null}, ${currentPlatform || null},
         NOW(), NOW()
@@ -113,7 +119,9 @@ async function register(userData) {
 
 async function checkEmailExists(email) {
   try {
-    const result = await sql`SELECT id FROM "User" WHERE email = ${email}`;
+    // Normalize email to lowercase for case-insensitive comparison
+    const normalizedEmail = email.toLowerCase().trim();
+    const result = await sql`SELECT id FROM "User" WHERE LOWER(email) = LOWER(${normalizedEmail})`;
     return result.length > 0;
   } catch (error) {
     console.error("Email check error:", error);
@@ -123,7 +131,9 @@ async function checkEmailExists(email) {
 
 async function getUserByEmail(email) {
   try {
-    const result = await sql`SELECT * FROM "User" WHERE email = ${email}`;
+    // Normalize email to lowercase for case-insensitive comparison
+    const normalizedEmail = email.toLowerCase().trim();
+    const result = await sql`SELECT * FROM "User" WHERE LOWER(email) = LOWER(${normalizedEmail})`;
     return result[0];
   } catch (error) {
     console.error("User fetch error:", error);

@@ -6,7 +6,7 @@ import { sql } from '@/app/lib/db/postgresql';
 export async function POST(request) {
     try {
         const body = await request.json();
-        const {
+        let {
             name,
             email,
             password,
@@ -16,6 +16,9 @@ export async function POST(request) {
             currentClientsPerMonth,
             currentPlatform
         } = body;
+
+        // Normalize email to lowercase
+        email = email.toLowerCase().trim();
 
         // Validate required fields
         if (!name || !email || !password || !phone) {
@@ -42,7 +45,7 @@ export async function POST(request) {
             );
         }
 
-        // Check if email already exists
+        // Check if email already exists (email is already normalized)
         const emailExists = await userRepo.checkEmailExists(email);
         if (emailExists) {
             return NextResponse.json(

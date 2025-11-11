@@ -17,7 +17,7 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const {
+        let {
             name,
             email,
             phone,
@@ -25,6 +25,9 @@ export async function POST(request) {
             address,
             concerns
         } = body;
+
+        // Normalize email to lowercase
+        email = email.toLowerCase().trim();
 
         // Validate required fields
         if (!name || !email || !phone) {
@@ -34,8 +37,8 @@ export async function POST(request) {
             }, { status: 400 });
         }
 
-        // Check if email already exists
-        const existingUser = await sql`SELECT id FROM "User" WHERE email = ${email}`;
+        // Check if email already exists (case-insensitive)
+        const existingUser = await sql`SELECT id FROM "User" WHERE LOWER(email) = LOWER(${email})`;
         if (existingUser.length > 0) {
             return Response.json({
                 success: false,

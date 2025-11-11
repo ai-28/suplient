@@ -18,7 +18,9 @@ const authOptions = {
                 const { email, password } = credentials;
 
                 try {
-                    const user = await userRepo.authenticate(email, password);
+                    // Normalize email to lowercase before authentication
+                    const normalizedEmail = email.toLowerCase().trim();
+                    const user = await userRepo.authenticate(normalizedEmail, password);
                     if (user) {
                         return {
                             id: user.id,

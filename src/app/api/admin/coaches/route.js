@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/app/lib/db/postgresql';
-import bcrypt from 'bcryptjs';
+import { sendCoachRegistrationEmail } from '@/app/lib/email';
+import { hashPasswordAsync } from '@/app/lib/auth/passwordUtils';
 const crypto = require('crypto');
 
 const HASH_ITERATIONS = 10000;
@@ -18,7 +19,10 @@ function hashPassword(password, salt) {
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { name, email, phone, bio } = body;
+        let { name, email, phone, bio } = body;
+
+        // Normalize email to lowercase
+        email = email.toLowerCase().trim();
 
         // Validate required fields
         if (!name || !email) {
@@ -28,9 +32,9 @@ export async function POST(request) {
             );
         }
 
-        // Check if email already exists
+        // Check if email already exists (case-insensitive)
         const existingUser = await sql`
-      SELECT id FROM "User" WHERE email = ${email}
+      SELECT id FROM "User" WHERE LOWER(email) = LOWER(${email})
     `;
 
         if (existingUser.length > 0) {
@@ -42,8 +46,7 @@ export async function POST(request) {
 
         // Generate a temporary password (coaches will need to reset it)
         const tempPassword = Math.random().toString(36).slice(-8);
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(tempPassword, salt);
+        const { hashedPassword, salt } = await hashPasswordAsync(tempPassword);
 
         // Create new coach
         const newCoach = await sql`
@@ -80,6 +83,19 @@ export async function POST(request) {
         }
 
         const coach = newCoach[0];
+
+        // Send registration email to coach with temporary password
+        try {
+            await sendCoachRegistrationEmail({
+                name: coach.name,
+                email: coach.email,
+                tempPassword: tempPassword
+            });
+            console.log('✅ Registration email sent to coach:', coach.email);
+        } catch (emailError) {
+            console.error('❌ Error sending registration email to coach:', emailError);
+            // Don't fail the creation if email fails
+        }
 
         // Return coach data (without password)
         return NextResponse.json({
@@ -238,7 +254,12 @@ export async function GET(request) {
 export async function PUT(request) {
     try {
         const body = await request.json();
-        const { id, name, email, phone, bio, status, password } = body;
+        let { id, name, email, phone, bio, status, password } = body;
+
+        // Normalize email to lowercase if provided
+        if (email) {
+            email = email.toLowerCase().trim();
+        }
 
         // Validate required fields
         if (!id || !name || !email) {
@@ -248,9 +269,9 @@ export async function PUT(request) {
             );
         }
 
-        // Check if email already exists for another coach
+        // Check if email already exists for another coach (case-insensitive)
         const existingUser = await sql`
-            SELECT id FROM "User" WHERE email = ${email} AND id != ${id}
+            SELECT id FROM "User" WHERE LOWER(email) = LOWER(${email}) AND id != ${id}
         `;
 
         if (existingUser.length > 0) {

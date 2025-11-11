@@ -92,8 +92,11 @@ export default function Login() {
     setLoginLoading(true);
     
     try {
+      // Normalize email to lowercase before sending
+      const normalizedEmail = loginEmail.toLowerCase().trim();
+      
       const result = await signIn("credentials", {
-        email: loginEmail,
+        email: normalizedEmail,
         password: loginPassword,
         redirect: false,
       });

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/app/lib/db/postgresql';
-import bcrypt from 'bcryptjs';
+import { sendClientRegistrationEmail } from '@/app/lib/email';
+import { hashPasswordAsync } from '@/app/lib/auth/passwordUtils';
 const crypto = require('crypto');
 
 const HASH_ITERATIONS = 10000;
@@ -8,17 +9,20 @@ const HASH_KEYLEN = 64;
 const HASH_DIGEST = 'sha512';
 
 function generateSalt() {
-  return crypto.randomBytes(16).toString('base64');
+    return crypto.randomBytes(16).toString('base64');
 }
 
 function hashPassword(password, salt) {
-  return crypto.pbkdf2Sync(password, salt, HASH_ITERATIONS, HASH_KEYLEN, HASH_DIGEST).toString('base64');
+    return crypto.pbkdf2Sync(password, salt, HASH_ITERATIONS, HASH_KEYLEN, HASH_DIGEST).toString('base64');
 }
 
 export async function POST(request) {
     try {
         const body = await request.json();
-        const { name, email, phone, location, coachId, notes } = body;
+        let { name, email, phone, location, coachId, notes } = body;
+
+        // Normalize email to lowercase
+        email = email.toLowerCase().trim();
 
         // Validate required fields
         if (!name || !email || !coachId) {
@@ -28,9 +32,9 @@ export async function POST(request) {
             );
         }
 
-        // Check if email already exists
+        // Check if email already exists (case-insensitive)
         const existingUser = await sql`
-            SELECT id FROM "User" WHERE email = ${email}
+            SELECT id FROM "User" WHERE LOWER(email) = LOWER(${email})
         `;
 
         if (existingUser.length > 0) {
@@ -54,8 +58,7 @@ export async function POST(request) {
 
         // Generate a temporary password and hash it
         const tempPassword = Math.random().toString(36).slice(-8);
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(tempPassword, salt);
+        const { hashedPassword, salt } = await hashPasswordAsync(tempPassword);
 
         // Insert new client into the User table
         const newUser = await sql`
@@ -94,6 +97,19 @@ export async function POST(request) {
         }
 
         const client = newClient[0];
+
+        // Send registration email to client with temporary password
+        try {
+            await sendClientRegistrationEmail({
+                name: user.name,
+                email: user.email,
+                tempPassword: tempPassword
+            });
+            console.log('✅ Registration email sent to client:', user.email);
+        } catch (emailError) {
+            console.error('❌ Error sending registration email to client:', emailError);
+            // Don't fail the creation if email fails
+        }
 
         // Return client data (without password)
         return NextResponse.json({
@@ -180,7 +196,12 @@ export async function GET(request) {
 export async function PUT(request) {
     try {
         const body = await request.json();
-        const { id, name, email, phone, location, coachId, notes, status, password } = body;
+        let { id, name, email, phone, location, coachId, notes, status, password } = body;
+
+        // Normalize email to lowercase if provided
+        if (email) {
+            email = email.toLowerCase().trim();
+        }
 
         // Validate required fields
         if (!id) {
@@ -246,9 +267,9 @@ export async function PUT(request) {
             );
         }
 
-        // Check if email already exists for another client
+        // Check if email already exists for another client (case-insensitive)
         const existingUser = await sql`
-            SELECT id FROM "User" WHERE email = ${email} AND id != ${id}
+            SELECT id FROM "User" WHERE LOWER(email) = LOWER(${email}) AND id != ${id}
         `;
 
         if (existingUser.length > 0) {
