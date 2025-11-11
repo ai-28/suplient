@@ -79,10 +79,12 @@ export default function ProgramEditor() {
       // Transform elements to ProgramFlowChart expected format
       const transformedElements = (data.program.elements || []).map(element => ({
         ...element,
-        scheduledDay: element.day || 1,
+        // Calculate absolute day from week and day-of-week (day is 1-7, week is 1+)
+        scheduledDay: element.week && element.day ? (element.week - 1) * 7 + element.day : (element.scheduledDay || 1),
         scheduledTime: element.scheduledTime || '09:00',
         type: element.type || 'content'
       }));
+      console.log("transformedElements", transformedElements);
       
       setElements(transformedElements);
     } catch (err) {
@@ -92,7 +94,6 @@ export default function ProgramEditor() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     if (id) {
       fetchProgram();
@@ -185,6 +186,22 @@ export default function ProgramEditor() {
       // Use the correct API endpoint based on whether it's a program or template
       const apiEndpoint = isProgram ? `/api/programs/${id}` : `/api/temp_programs/${id}`;
       
+      // Convert scheduledDay back to week and day for database storage
+      const elementsForSave = elements.map(element => {
+        // If element already has week and day, use them; otherwise calculate from scheduledDay
+        const week = element.week || Math.ceil(element.scheduledDay / 7);
+        const day = element.day || ((element.scheduledDay - 1) % 7) + 1;
+        
+        return {
+          type: element.type,
+          title: element.title,
+          week: week,
+          day: day,
+          scheduledTime: element.scheduledTime || '09:00:00',
+          data: element.data || {}
+        };
+      });
+
       const response = await fetch(apiEndpoint, {
         method: 'PUT',
         headers: {
@@ -194,7 +211,7 @@ export default function ProgramEditor() {
           name: formData.name,
           description: formData.description,
           duration: formData.duration,
-          elements: elements
+          elements: elementsForSave
         })
       });
 
