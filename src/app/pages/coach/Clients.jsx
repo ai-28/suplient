@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { PageHeader } from "@/app/components/PageHeader";
 import { CreateClientDialog } from "@/app/components/CreateClientDialog";
+import { ImportClientsDialog } from "@/app/components/ImportClientsDialog";
 import { 
   Users, 
   MessageCircle,
@@ -296,7 +297,10 @@ export default function Clients() {
               {"Cards"}
             </Button>
           </div>
-          <CreateClientDialog onClientCreated={handleClientCreated} />
+          <div className="flex items-center gap-2">
+            <ImportClientsDialog onClientsImported={handleClientCreated} />
+            <CreateClientDialog onClientCreated={handleClientCreated} />
+          </div>
         </PageHeader>
 
       {/* Controls */}
