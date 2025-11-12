@@ -109,16 +109,17 @@ export async function POST(request) {
     try {
         const session = await getServerSession(authOptions);
 
-        if (!session || session.user.role !== 'coach') {
+        if (!session || (session.user.role !== 'coach' && session.user.role !== 'admin')) {
             return NextResponse.json({
                 success: false,
-                error: 'Unauthorized. Only coaches can import clients.'
+                error: 'Unauthorized. Only coaches and admins can import clients.'
             }, { status: 401 });
         }
 
         const formData = await request.formData();
         const csvFile = formData.get('csv');
         const mappingJson = formData.get('mapping');
+        const targetCoachId = formData.get('targetCoachId'); // For admin importing clients for a specific coach
 
         if (!csvFile) {
             return NextResponse.json({
@@ -178,10 +179,29 @@ export async function POST(request) {
     `;
         const maxClients = platformSettings?.maxClientsPerCoach || 20;
 
+        // Determine which coach to assign clients to
+        // If admin is importing, use targetCoachId; otherwise use session user id
+        const coachIdForImport = (session.user.role === 'admin' && targetCoachId)
+            ? targetCoachId
+            : session.user.id;
+
+        // Verify the target coach exists (for admin imports)
+        if (session.user.role === 'admin' && targetCoachId) {
+            const targetCoach = await sql`
+                SELECT id, role FROM "User" WHERE id = ${targetCoachId} AND role = 'coach'
+            `;
+            if (targetCoach.length === 0) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'Target coach not found'
+                }, { status: 404 });
+            }
+        }
+
         const currentClientCount = await sql`
       SELECT COUNT(*) as count 
       FROM "User" 
-      WHERE "coachId" = ${session.user.id} AND role = 'client' AND "isActive" = true
+      WHERE "coachId" = ${coachIdForImport} AND role = 'client' AND "isActive" = true
     `;
         const currentCount = parseInt(currentClientCount[0]?.count || 0);
 
@@ -299,14 +319,14 @@ export async function POST(request) {
                 // Create client user
                 const [newUser] = await sql`
           INSERT INTO "User" (name, email, password, salt, phone, role, "createdAt", "isActive", "dateofBirth", address, "coachId")
-          VALUES (${name}, ${email}, ${hashedPassword}, ${salt}, ${phone}, 'client', NOW(), true, ${dateOfBirth}, ${address}, ${session.user.id})
+          VALUES (${name}, ${email}, ${hashedPassword}, ${salt}, ${phone}, 'client', NOW(), true, ${dateOfBirth}, ${address}, ${coachIdForImport})
           RETURNING id, name, email, phone, role
         `;
 
                 // Create client record
                 const [newClient] = await sql`
           INSERT INTO "Client" ("userId", "coachId", "name", "email", "type", "status", "primaryConcerns", "createdAt", "updatedAt")
-          VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, 'personal', 'active', ${concerns}, NOW(), NOW())
+          VALUES (${newUser.id}, ${coachIdForImport}, ${name}, ${email}, 'personal', 'active', ${concerns}, NOW(), NOW())
           RETURNING id, name, email
         `;
 

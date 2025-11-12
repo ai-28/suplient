@@ -197,7 +197,7 @@ function detectColumnMapping(csvHeaders) {
   return mapping;
 }
 
-export function ImportClientsDialog({ onClientsImported }) {
+export function ImportClientsDialog({ onClientsImported, targetCoachId = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [csvData, setCsvData] = useState(null);
@@ -295,6 +295,9 @@ export function ImportClientsDialog({ onClientsImported }) {
       const formData = new FormData();
       formData.append('csv', selectedFile);
       formData.append('mapping', JSON.stringify(columnMapping));
+      if (targetCoachId) {
+        formData.append('targetCoachId', targetCoachId);
+      }
 
       const response = await fetch('/api/clients/import', {
         method: 'POST',

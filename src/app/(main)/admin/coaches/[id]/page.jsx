@@ -5,12 +5,13 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { ArrowLeft, MessageSquare, FileText, ClipboardList, User, Mail, Phone, Calendar, Users } from "lucide-react";
+import { ArrowLeft, MessageSquare, FileText, ClipboardList, User, Mail, Phone, Calendar, Users, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/app/components/PageHeader";
 import { CoachChatTab } from "@/app/components/admin/CoachChatTab";
 import { CoachNotesTab } from "@/app/components/admin/CoachNotesTab";
 import { CoachTasksTab } from "@/app/components/admin/CoachTasksTab";
+import { ImportClientsDialog } from "@/app/components/ImportClientsDialog";
 
 export default function CoachDetailPage() {
   const params = useParams();
@@ -21,6 +22,7 @@ export default function CoachDetailPage() {
   const [activeTab, setActiveTab] = useState(tabFromQuery || "overview");
   const [coach, setCoach] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchCoachDetails();
@@ -51,6 +53,57 @@ export default function CoachDetailPage() {
       router.push('/admin/coaches');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportClients = async () => {
+    try {
+      setExporting(true);
+      const response = await fetch(`/api/admin/clients/export?coachId=${coachId}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to export clients');
+      }
+
+      // Get the CSV content
+      const csvContent = await response.text();
+      
+      // Create a blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `clients_${coach?.name?.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '') || 'coach'}_${new Date().toISOString().split('T')[0]}.csv`;
+      
+      if (contentDisposition) {
+        // Extract filename from Content-Disposition header, handling quoted and unquoted values
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+        if (filenameMatch) {
+          let extractedFilename = filenameMatch[1];
+          // Remove quotes if present
+          extractedFilename = extractedFilename.replace(/^["']|["']$/g, '');
+          if (extractedFilename && extractedFilename.endsWith('.csv')) {
+            filename = extractedFilename;
+          }
+        }
+      }
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Clients exported successfully');
+    } catch (error) {
+      console.error('Error exporting clients:', error);
+      toast.error(error.message || 'Failed to export clients');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -150,7 +203,37 @@ export default function CoachDetailPage() {
         <TabsContent value="overview" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Coach Overview</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Coach Overview</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportClients}
+                    disabled={exporting}
+                    className="gap-2"
+                  >
+                    {exporting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Export CSV
+                      </>
+                    )}
+                  </Button>
+                  <ImportClientsDialog 
+                    targetCoachId={coachId}
+                    onClientsImported={() => {
+                      toast.success('Clients imported successfully');
+                      fetchCoachDetails(); // Refresh coach data
+                    }}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
