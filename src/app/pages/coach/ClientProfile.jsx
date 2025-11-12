@@ -1787,7 +1787,7 @@ export default function ClientProfile() {
             <AlertDialogHeader>
               <AlertDialogTitle>{t('clients.removeFile', 'Remove File')}</AlertDialogTitle>
               <AlertDialogDescription>
-                {t('clients.removeFileConfirm', 'Are you sure you want to remove "{name}"? This action cannot be undone.', { name: fileToRemove?.name })}
+                {t('clients.removeFileConfirm', 'Are you sure you want to remove "{name}"? This action cannot be undone.').replace('{name}', fileToRemove?.name || 'this file')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

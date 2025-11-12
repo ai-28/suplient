@@ -30,10 +30,10 @@ export async function POST(request) {
         email = email.toLowerCase().trim();
 
         // Validate required fields
-        if (!name || !email || !phone) {
+        if (!name || !email) {
             return Response.json({
                 success: false,
-                error: 'Name, email, and phone are required'
+                error: 'Name and email are required'
             }, { status: 400 });
         }
 

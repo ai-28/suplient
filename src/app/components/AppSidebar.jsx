@@ -364,7 +364,7 @@ export function AppSidebar() {
                     <div className="p-6 text-center text-white">
                       <Search className="h-8 w-8 text-sidebar-foreground/40 mx-auto mb-2" />
                       <div className="text-sm text-sidebar-foreground/60">
-                        {t('sidebar.noResultsFound', 'No results found for "{query}"', { query: searchResults?.query || searchQuery })}
+                        {t('sidebar.noResultsFound', 'No results found for "{query}"').replace('{query}', searchResults?.query || searchQuery)}
                       </div>
                       <div className="text-xs text-sidebar-foreground/40 mt-1">
                         {t('sidebar.trySearching', 'Try searching for clients, groups, tasks, sessions, notes, or library content')}

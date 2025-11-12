@@ -32,11 +32,31 @@ import { useTranslation } from "@/app/context/LanguageContext";
 const getFormSchema = () => z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
-  dateOfBirth: z.date({
-    required_error: "Date of birth is required",
-  }),
-  address: z.string().min(5, "Address must be at least 5 characters"),
+  phone: z.string().optional().refine((val) => {
+    if (!val || val.trim() === '') return true; // Optional
+    const trimmed = val.trim();
+    
+    // Remove formatting characters (spaces, parentheses, hyphens, dots) but keep + and digits
+    const cleaned = trimmed.replace(/[\s().-]/g, '');
+    
+    // If starts with +, validate E.164 format
+    if (cleaned.startsWith('+')) {
+      // E.164: +[country code 1-3 digits][number 7-10 digits] = 8-13 digits after +
+      const digitsAfterPlus = cleaned.slice(1);
+      if (digitsAfterPlus.length < 8 || digitsAfterPlus.length > 13) return false;
+      // Must start with 1-9 (valid country code digit)
+      return /^\+[1-9]\d{7,12}$/.test(cleaned);
+    }
+    
+    // If no +, must have country code
+    // Minimum 8 digits (country code 1-3 + phone 7-10)
+    // Maximum 15 digits
+    if (cleaned.length < 8 || cleaned.length > 15) return false;
+    // Must start with 1-9 (valid country code digit)
+    return /^[1-9]\d{7,14}$/.test(cleaned);
+  }, { message: "Add country code ex. +45 or 45" }),
+  dateOfBirth: z.date().optional().nullable(),
+  address: z.string().optional(),
   concerns: z.string().optional(),
 });
 
@@ -52,6 +72,7 @@ export function CreateClientDialog({ onClientCreated }) {
       name: "",
       email: "",
       phone: "",
+      dateOfBirth: null,
       address: "",
       concerns: "",
     },
@@ -182,10 +203,11 @@ export function CreateClientDialog({ onClientCreated }) {
                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                          <Phone className="h-4 w-4" />
                          {t('common.labels.phone')}
+                         <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
                        </FormLabel>
                        <FormControl>
                          <Input 
-                           placeholder={t('common.labels.phone')} 
+                           placeholder="Add country code ex. +45 or 45" 
                            className="bg-background border-border focus:border-primary" 
                            {...field} 
                          />
@@ -203,7 +225,7 @@ export function CreateClientDialog({ onClientCreated }) {
                        <FormLabel className="text-foreground font-medium flex items-center gap-2">
                          <CalendarIcon2 className="h-4 w-4" />
                          {t('settings.profile.birthdate')}
-                         <span className="text-xs text-muted-foreground font-normal">({t('common.labels.select')})</span>
+                         <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
                        </FormLabel>
                           <FormControl>
                         <Input
@@ -211,7 +233,7 @@ export function CreateClientDialog({ onClientCreated }) {
                           value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
                           onChange={(e) => {
                             const date = e.target.value ? new Date(e.target.value) : null;
-                            field.onChange(date);
+                            field.onChange(date || null);
                           }}
                             className="bg-background border-border pl-4 pr-4 py-2 h-10 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-primary/50 cursor-pointer"
                           max={format(new Date(), "yyyy-MM-dd")}
@@ -243,6 +265,7 @@ export function CreateClientDialog({ onClientCreated }) {
                      <FormLabel className="text-foreground font-medium flex items-center gap-2">
                        <MapPin className="h-4 w-4" />
                        {t('clients.location')}
+                       <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
                      </FormLabel>
                      <FormControl>
                        <Input 
@@ -257,11 +280,11 @@ export function CreateClientDialog({ onClientCreated }) {
               />
             </div>
 
-            {/* Session Information Section */}
+            {/* Client Information Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-muted">
                 <Briefcase className="h-5 w-5 text-accent" />
-                <h3 className="text-lg font-semibold text-foreground">{t('sessions.title')}</h3>
+                <h3 className="text-lg font-semibold text-foreground">Info about the client (not shared with client)</h3>
               </div>
 
               <FormField
@@ -269,7 +292,7 @@ export function CreateClientDialog({ onClientCreated }) {
                 name="concerns"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-foreground font-medium">{t('common.labels.description')}</FormLabel>
+                   
                     <FormControl>
                       <Textarea 
                         placeholder={t('common.labels.description')}
