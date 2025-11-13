@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Upload, X, File, Image, Video, Music, FileText, FileImage, BookOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Progress } from "@/app/components/ui/progress";
 
 const categoryIcons = {
   videos: Video,
@@ -46,6 +47,10 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
   const [description, setDescription] = useState("");
   const [author, setAuthor] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [uploadAbortController, setUploadAbortController] = useState(null);
 
   const IconComponent = categoryIcons[category] || File;
 
@@ -84,8 +89,240 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
     }
   };
 
-  const handleUpload = async () => {
+  // Upload using presigned URL with progress tracking and retry logic
+  const uploadWithPresignedUrl = async (presignedUrl, file, onProgress, abortSignal) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // Handle abort
+      if (abortSignal) {
+        abortSignal.addEventListener('abort', () => {
+          xhr.abort();
+          reject(new Error('Upload cancelled'));
+        });
+      }
+
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = (e.loaded / e.total) * 100;
+          onProgress(percentComplete);
+        }
+      });
+
+      // Handle completion
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
+        }
+      });
+
+      // Handle errors
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error during upload'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload cancelled'));
+      });
+
+      // Handle timeout
+      xhr.addEventListener('timeout', () => {
+        reject(new Error('Upload timeout'));
+      });
+
+      // Set timeout (30 minutes for large files)
+      xhr.timeout = 30 * 60 * 1000;
+
+      // Start upload
+      xhr.open('PUT', presignedUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.send(file);
+    });
+  };
+
+  // Upload a single chunk with progress tracking
+  const uploadChunk = async (presignedUrl, chunk, partNumber, onChunkProgress, abortSignal) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // Handle abort
+      if (abortSignal) {
+        abortSignal.addEventListener('abort', () => {
+          xhr.abort();
+          reject(new Error('Upload cancelled'));
+        });
+      }
+
+      // Track chunk upload progress
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onChunkProgress) {
+          const chunkProgress = (e.loaded / e.total) * 100;
+          onChunkProgress(partNumber, chunkProgress);
+        }
+      });
+
+      // Handle completion
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // Extract ETag from response headers (required for multipart completion)
+          const etag = xhr.getResponseHeader('ETag') || xhr.getResponseHeader('etag');
+          if (!etag) {
+            reject(new Error(`Missing ETag in response for part ${partNumber}`));
+            return;
+          }
+          resolve({ partNumber, etag: etag.replace(/"/g, '') }); // Remove quotes from ETag
+        } else {
+          reject(new Error(`Chunk ${partNumber} upload failed with status ${xhr.status}: ${xhr.statusText}`));
+        }
+      });
+
+      // Handle errors
+      xhr.addEventListener('error', () => {
+        reject(new Error(`Network error during chunk ${partNumber} upload`));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload cancelled'));
+      });
+
+      // Handle timeout
+      xhr.addEventListener('timeout', () => {
+        reject(new Error(`Chunk ${partNumber} upload timeout`));
+      });
+
+      // Set timeout (10 minutes per chunk)
+      xhr.timeout = 10 * 60 * 1000;
+
+      // Start upload
+      xhr.open('PUT', presignedUrl);
+      xhr.send(chunk);
+    });
+  };
+
+  // Upload chunks in parallel with progress tracking
+  const uploadChunksInParallel = async (
+    file,
+    filePath,
+    uploadId,
+    chunkSize,
+    totalChunks,
+    onProgress,
+    abortSignal,
+    maxParallel = 3
+  ) => {
+    const uploadedParts = [];
+    const chunkProgress = new Map(); // Track progress of each chunk
+
+    // Function to update overall progress
+    const updateOverallProgress = () => {
+      let totalProgress = 0;
+      chunkProgress.forEach((progress) => {
+        totalProgress += progress;
+      });
+      const overallProgress = (totalProgress / totalChunks);
+      onProgress(overallProgress);
+    };
+
+    // Function to upload a single chunk with retry
+    const uploadChunkWithRetry = async (chunkIndex) => {
+      const start = chunkIndex * chunkSize;
+      const end = Math.min(start + chunkSize, file.size);
+      const chunk = file.slice(start, end);
+      const partNumber = chunkIndex + 1;
+
+      // Get presigned URL for this chunk
+      const partUrlResponse = await fetch('/api/library/upload/part-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filePath,
+          uploadId,
+          partNumber,
+        }),
+        signal: abortSignal,
+      });
+
+      if (!partUrlResponse.ok) {
+        throw new Error(`Failed to get presigned URL for part ${partNumber}`);
+      }
+
+      const partUrlResult = await partUrlResponse.json();
+      if (!partUrlResult.success) {
+        throw new Error(partUrlResult.error || `Failed to get presigned URL for part ${partNumber}`);
+      }
+
+      // Upload chunk with retry
+      return await retryWithBackoff(async () => {
+        return await uploadChunk(
+          partUrlResult.presignedUrl,
+          chunk,
+          partNumber,
+          (partNum, progress) => {
+            chunkProgress.set(partNum, progress);
+            updateOverallProgress();
+          },
+          abortSignal
+        );
+      });
+    };
+
+    // Upload chunks in batches (maxParallel at a time)
+    const chunks = Array.from({ length: totalChunks }, (_, i) => i);
     
+    for (let i = 0; i < chunks.length; i += maxParallel) {
+      const batch = chunks.slice(i, i + maxParallel);
+      const batchPromises = batch.map(chunkIndex => uploadChunkWithRetry(chunkIndex));
+      
+      const batchResults = await Promise.all(batchPromises);
+      uploadedParts.push(...batchResults);
+    }
+
+    // Sort by part number
+    uploadedParts.sort((a, b) => a.partNumber - b.partNumber);
+    
+    return uploadedParts;
+  };
+
+  // Retry logic with exponential backoff
+  const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
+    let lastError;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        
+        // Don't retry on abort or cancellation
+        if (error.message.includes('cancelled') || error.message.includes('abort')) {
+          throw error;
+        }
+        
+        // If this was the last attempt, throw the error
+        if (attempt === maxRetries) {
+          break;
+        }
+        
+        // Calculate delay with exponential backoff (1s, 2s, 4s)
+        const delay = baseDelay * Math.pow(2, attempt);
+        setRetryCount(attempt + 1);
+        setIsRetrying(true);
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    setIsRetrying(false);
+    throw lastError;
+  };
+
+  const handleUpload = async () => {
     // Check for missing fields and show comprehensive error message
     const missingFields = [];
     
@@ -113,55 +350,190 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
     }
 
     setUploading(true);
+    setUploadProgress(0);
+    setRetryCount(0);
+    setIsRetrying(false);
+    
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
+    setUploadAbortController(abortController);
     
     try {
-      const formData = new FormData();
-      formData.append(fileFieldNames[category], selectedFile);
-      formData.append('title', title.trim());
-      formData.append('description', description.trim());
-      formData.append('role', 'coach');
-      
-      if (category === 'articles' && author.trim()) {
-        formData.append('author', author.trim());
-      }
+      const fileSize = selectedFile.size;
 
-      const response = await fetch(`/api/library/${category}`, {
-        method: 'POST',
-        body: formData,
+      // Step 1: Get presigned URL (with retry)
+      let initiateResult;
+      await retryWithBackoff(async () => {
+        const initiateResponse = await fetch('/api/library/upload/initiate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName: selectedFile.name,
+            fileSize: fileSize,
+            fileType: selectedFile.type,
+            category: category,
+          }),
+          signal: abortController.signal,
+        });
+
+        if (!initiateResponse.ok) {
+          throw new Error(`Failed to initiate upload: ${initiateResponse.statusText}`);
+        }
+
+        initiateResult = await initiateResponse.json();
+
+        if (!initiateResult.success) {
+          throw new Error(initiateResult.error || 'Failed to initiate upload');
+        }
       });
 
-      const result = await response.json();
-
-      if (result.status) {
-        toast.success("Upload Successful", {
-          description: `${title} has been uploaded to ${category}.`
-        });
-        
-        onUploadComplete?.(result.data);
-        
-        // Reset form
-        setSelectedFile(null);
-        setTitle("");
-        setDescription("");
-        setAuthor("");
-        setOpen(false);
+      // Step 2: Upload file (single or multipart)
+      let uploadedParts = [];
+      
+      if (initiateResult.uploadType === 'multipart') {
+        // Multipart upload for large files
+        uploadedParts = await uploadChunksInParallel(
+          selectedFile,
+          initiateResult.filePath,
+          initiateResult.uploadId,
+          initiateResult.chunkSize,
+          initiateResult.totalChunks,
+          (progress) => setUploadProgress(progress * 100),
+          abortController.signal,
+          3 // Max 3 parallel uploads
+        );
       } else {
-        toast.error("Upload Failed", {
-          description: result.message || "Failed to upload file"
+        // Single PUT upload for smaller files
+        await retryWithBackoff(async () => {
+          await uploadWithPresignedUrl(
+            initiateResult.presignedUrl,
+            selectedFile,
+            (progress) => setUploadProgress(progress),
+            abortController.signal
+          );
         });
       }
+
+      // Step 3: Complete upload (save metadata to database) (with retry)
+      let completeResult;
+      await retryWithBackoff(async () => {
+        if (initiateResult.uploadType === 'multipart') {
+          // Complete multipart upload
+          const completeResponse = await fetch('/api/library/upload/complete-multipart', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filePath: initiateResult.filePath,
+              fileName: initiateResult.fileName,
+              uploadId: initiateResult.uploadId,
+              parts: uploadedParts,
+              title: title.trim(),
+              description: description.trim(),
+              author: category === 'articles' ? author.trim() : '',
+              category: category,
+              fileSize: fileSize,
+              fileType: selectedFile.type,
+            }),
+            signal: abortController.signal,
+          });
+
+          if (!completeResponse.ok) {
+            throw new Error(`Failed to complete multipart upload: ${completeResponse.statusText}`);
+          }
+
+          completeResult = await completeResponse.json();
+
+          if (!completeResult.success) {
+            throw new Error(completeResult.error || 'Failed to complete multipart upload');
+          }
+        } else {
+          // Complete single upload
+          const completeResponse = await fetch('/api/library/upload/complete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filePath: initiateResult.filePath,
+              fileName: initiateResult.fileName,
+              title: title.trim(),
+              description: description.trim(),
+              author: category === 'articles' ? author.trim() : '',
+              category: category,
+              fileSize: fileSize,
+              fileType: selectedFile.type,
+            }),
+            signal: abortController.signal,
+          });
+
+          if (!completeResponse.ok) {
+            throw new Error(`Failed to complete upload: ${completeResponse.statusText}`);
+          }
+
+          completeResult = await completeResponse.json();
+
+          if (!completeResult.success) {
+            throw new Error(completeResult.error || 'Failed to complete upload');
+          }
+        }
+      });
+
+      // Success!
+      toast.success("Upload Successful", {
+        description: `${title} has been uploaded to ${category}.`
+      });
+      
+      onUploadComplete?.(completeResult.data);
+      
+      // Reset form
+      setSelectedFile(null);
+      setTitle("");
+      setDescription("");
+      setAuthor("");
+      setUploadProgress(0);
+      setRetryCount(0);
+      setIsRetrying(false);
+      setOpen(false);
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error("Upload Failed", {
-        description: "An error occurred while uploading the file"
-      });
+      
+      // Don't show error toast if upload was cancelled
+      if (error.message.includes('cancelled') || error.message.includes('abort')) {
+        toast.info("Upload Cancelled", {
+          description: "The upload was cancelled."
+        });
+      } else {
+        const errorMessage = retryCount > 0
+          ? `${error.message} (Retried ${retryCount} time${retryCount > 1 ? 's' : ''})`
+          : error.message || "An error occurred while uploading the file";
+        
+        toast.error("Upload Failed", {
+          description: errorMessage
+        });
+      }
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+      setRetryCount(0);
+      setIsRetrying(false);
+      setUploadAbortController(null);
     }
   };
 
+  const handleDialogClose = (newOpen) => {
+    if (!newOpen && uploading && uploadAbortController) {
+      // If closing during upload, cancel the upload
+      uploadAbortController.abort();
+    }
+    setOpen(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
@@ -201,9 +573,34 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                  {uploading && (
+                    <div className="space-y-1">
+                      <Progress value={uploadProgress} className="w-full" />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {uploadProgress.toFixed(0)}% uploaded
+                          {isRetrying && (
+                            <span className="ml-2 text-amber-600">
+                              (Retrying... {retryCount}/{3})
+                            </span>
+                          )}
+                        </span>
+                        {uploadProgress > 0 && uploadProgress < 100 && (
+                          <span className="text-muted-foreground/60">
+                            {selectedFile.size > 0 
+                              ? `${((selectedFile.size * uploadProgress) / 100 / 1024 / 1024).toFixed(2)} MB / ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`
+                              : 'Uploading...'
+                            }
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -280,14 +677,23 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
 
           {/* Upload Button */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                if (uploading && uploadAbortController) {
+                  uploadAbortController.abort();
+                }
+                setOpen(false);
+              }}
+              disabled={uploading && !uploadAbortController}
+            >
+              {uploading ? 'Cancel' : 'Close'}
             </Button>
             <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
               {uploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
+                  {isRetrying ? `Retrying... (${retryCount}/3)` : 'Uploading...'}
                 </>
               ) : (
                 <>
