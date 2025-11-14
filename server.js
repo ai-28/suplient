@@ -1,7 +1,6 @@
 const http = require('node:http');
 const next = require('next');
 const { Server } = require('socket.io');
-const emailjs = require('@emailjs/nodejs');
 require('dotenv').config();
 
 // Import database connection
@@ -27,10 +26,8 @@ const dev = process.env.NODE_ENV !== "production";
 const hostname = dev ? "localhost" : (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : "localhost");
 const port = process.env.PORT || 3000;
 
-const emailUserId = {
-  publicKey: process.env.EMAIL_PUBLIC_KEY,
-  privateKey: process.env.EMAIL_PRIVATE_KEY,
-};
+// EmailJS REST API URL
+const EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
 // when using middleware `hostname` and `port` must be provided below
 const app = next({ dev, hostname, port });
@@ -312,20 +309,42 @@ app.prepare().then(() => {
 
 async function sendEmailNotification(message) {
   try {
+    if (!process.env.EMAIL_SERVICE_ID || !process.env.EMAIL_PUBLIC_KEY || !process.env.EMAIL_PRIVATE_KEY) {
+      throw new Error('EmailJS configuration is missing. Check your environment variables.');
+    }
+
+    if (!process.env.EMAIL_NEW_MESSAGE_TEMPLATE_ID) {
+      throw new Error('EMAIL_NEW_MESSAGE_TEMPLATE_ID is not configured');
+    }
+
     const templateParams = {
       name: message.from,
       time: formatDate(new Date()),
       email: message.to,
     };
 
-    await emailjs.send(
-      process.env.EMAIL_SERVICE_ID,
-      process.env.EMAIL_NEW_MESSAGE_TEMPLATE_ID,
-      templateParams,
-      emailUserId
-    );
+    const response = await fetch(EMAILJS_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        service_id: process.env.EMAIL_SERVICE_ID,
+        template_id: process.env.EMAIL_NEW_MESSAGE_TEMPLATE_ID,
+        user_id: process.env.EMAIL_PUBLIC_KEY,
+        template_params: templateParams,
+        accessToken: process.env.EMAIL_PRIVATE_KEY,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ text: 'Unknown error' }));
+      throw new Error(errorData.text || `EmailJS API error: ${response.status}`);
+    }
+
+    console.log('✅ Email notification sent successfully to:', message.to);
   } catch (error) {
-    console.error('Error sending notification:', error);
+    console.error('❌ Error sending notification:', error);
   }
 }
 

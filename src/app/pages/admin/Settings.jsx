@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { useTranslation } from "@/app/context/LanguageContext";
+import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 
 function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle }) {
   const t = useTranslation();
@@ -31,8 +32,7 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
     platformName: 'Mental Coach Platform',
     supportEmail: 'support@mentalcoach.com',
     maxClientsPerCoach: 20,
-    language: 'en',
-    twoFactorAuthEnabled: false
+    language: 'en'
   });
 
   useEffect(() => {
@@ -137,30 +137,6 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
       {/* Language Settings */}
 
           <LanguageSelector />
-
-
-      {/* Security Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('settings.security.title')}</CardTitle>
-          <CardDescription>{t('settings.security.description')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>{t('settings.security.twoFactorAuth')}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t('settings.security.require2FA', 'Require 2FA for all admin accounts')}
-              </p>
-            </div>
-            <Switch 
-              checked={settings.twoFactorAuthEnabled}
-              onCheckedChange={(checked) => setSettings({...settings, twoFactorAuthEnabled: checked})}
-              disabled={saving}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Notification Settings */}
       <Card>
@@ -635,6 +611,9 @@ export default function AdminSettings() {
                 </Button>
               </CardContent>
             </Card>
+            
+            {/* Two-Factor Authentication Settings */}
+            <TwoFactorSettings />
           </div>
           
         </TabsContent>

@@ -35,6 +35,12 @@ async function seedUser() {
         "expectedPlatformBestAt" TEXT,
         "currentClientsPerMonth" INTEGER,
         "currentPlatform" VARCHAR(255),
+        "twoFactorSecret" TEXT,
+        "twoFactorEnabled" BOOLEAN DEFAULT false,
+        "twoFactorBackupCodes" TEXT[],
+        "twoFactorSetupDate" TIMESTAMP,
+        "passwordResetToken" TEXT,
+        "passwordResetExpires" TIMESTAMP,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -53,6 +59,19 @@ async function seedUser() {
     SET "approvalStatus" = 'approved' 
     WHERE role = 'coach' AND "approvalStatus" IS NULL
   `;
+
+  // Add 2FA columns if they don't exist (for existing databases)
+  try {
+    await sql`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "twoFactorSecret" TEXT`;
+    await sql`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "twoFactorEnabled" BOOLEAN DEFAULT false`;
+    await sql`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "twoFactorBackupCodes" TEXT[]`;
+    await sql`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "twoFactorSetupDate" TIMESTAMP`;
+    await sql`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "passwordResetToken" TEXT`;
+    await sql`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "passwordResetExpires" TIMESTAMP`;
+  } catch (error) {
+    // Columns might already exist, that's okay
+    console.log('Additional columns may already exist:', error.message);
+  }
 
   // Insert a default super admin user if it doesn't exist
   const existingAdmin = await sql`SELECT id FROM "User" WHERE email = 'admin@mentalcoach.com'`;

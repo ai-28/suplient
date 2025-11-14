@@ -12,6 +12,9 @@ export default withAuth(
                 // Allow access to login page and other public routes
                 if (req.nextUrl.pathname.startsWith("/login") ||
                     req.nextUrl.pathname.startsWith("/register") ||
+                    req.nextUrl.pathname.startsWith("/forgot-password") ||
+                    req.nextUrl.pathname.startsWith("/reset-password") ||
+                    req.nextUrl.pathname.startsWith("/setup-2fa") ||
                     req.nextUrl.pathname === "/") {
                     return true;
                 }

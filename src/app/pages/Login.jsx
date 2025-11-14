@@ -11,11 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
 
 const loginImage = "/assets/login.webp";
 export default function Login() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useTranslation();
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -26,6 +29,11 @@ export default function Login() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  
+  // 2FA state
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState("");
+  const [twoFAUserId, setTwoFAUserId] = useState(null);
   
   // Registration form state
   const [name, setName] = useState("");
@@ -69,7 +77,7 @@ export default function Login() {
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-lg">Loading...</p>
+          <p className="text-muted-foreground text-lg">{t('login.loading', 'Loading...')}</p>
         </div>
       </div>
     );
@@ -81,7 +89,7 @@ export default function Login() {
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-lg">Redirecting to dashboard...</p>
+          <p className="text-muted-foreground text-lg">{t('login.redirecting', 'Redirecting to dashboard...')}</p>
         </div>
       </div>
     );
@@ -98,28 +106,100 @@ export default function Login() {
       const result = await signIn("credentials", {
         email: normalizedEmail,
         password: loginPassword,
+        twoFactorToken: (requires2FA && twoFactorToken && twoFactorToken.trim()) ? twoFactorToken.trim() : undefined,
         redirect: false,
       });
 
       if (result?.error) {
-        // Handle specific error messages
-        console.log('Login error:', result.error);
+        // Handle 2FA-specific errors - check for exact match or includes
+        const errorMsg = String(result.error || '');
+        console.log('Login error received:', errorMsg, 'Full result:', result);
+        
+        // Check for 2FA verification required FIRST, before other checks
+        if (errorMsg.includes("2FA_VERIFICATION_REQUIRED") || errorMsg.includes("VERIFICATION_REQUIRED")) {
+          console.log('Detected 2FA_VERIFICATION_REQUIRED - showing 2FA input');
+          setRequires2FA(true);
+          toast.info(`🔒 ${t('login.success.enter2FACode', 'Please enter your 2FA code')}`, { duration: 5000 });
+          return;
+        }
+        
+        // Handle other error messages
+        console.log('Login error (not 2FA related):', result.error);
         if (result.error === "Invalid email" || result.error.includes("Invalid email")) {
-          toast.error("❌ Email not found. Please check your email address.", { duration: 5000 });
+          toast.error(`❌ ${t('login.errors.emailNotFound', 'Email not found. Please check your email address.')}`, { duration: 5000 });
         } else if (result.error === "Invalid password" || result.error.includes("Invalid password")) {
-          toast.error("❌ Incorrect password. Please try again.", { duration: 5000 });
+          toast.error(`❌ ${t('login.errors.incorrectPassword', 'Incorrect password. Please try again.')}`, { duration: 5000 });
         } else if (result.error === "User is not active" || result.error.includes("not active")) {
-          toast.error("❌ Account is deactivated. Please contact support.", { duration: 5000 });
+          toast.error(`❌ ${t('login.errors.accountDeactivated', 'Account is deactivated. Please contact support.')}`, { duration: 5000 });
+        } else if (result.error.includes("Invalid 2FA code")) {
+          // If we get "Invalid 2FA code" but user has 2FA enabled, they might need to enter code
+          // Check if this is the first attempt (no 2FA field shown yet)
+          if (!requires2FA) {
+            console.log('Got Invalid 2FA code but 2FA field not shown - showing it now');
+            setRequires2FA(true);
+            toast.info(`🔒 ${t('login.success.enter2FACode', 'Please enter your 2FA code')}`, { duration: 5000 });
+            return;
+          } else {
+            toast.error(`❌ ${t('login.errors.invalid2FA', 'Invalid 2FA code. Please try again.')}`, { duration: 5000 });
+          }
         } else {
-          toast.error("❌ Invalid email or password. Please try again.", { duration: 5000 });
+          toast.error(`❌ ${t('login.errors.invalidCredentials', 'Invalid email or password. Please try again.')}`, { duration: 5000 });
         }
       } else if (result?.ok) {
-        toast.success("✅ Login successful! Redirecting...", { duration: 3000 });
+        toast.success(`✅ ${t('login.success.loginSuccessful', 'Login successful! Redirecting...')}`, { duration: 3000 });
+        // Reset 2FA state
+        setRequires2FA(false);
+        setTwoFactorToken("");
+        setTwoFAUserId(null);
         // The redirect will be handled by the useEffect above
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("❌ An error occurred during login. Please try again.", { duration: 5000 });
+      toast.error(`❌ ${t('login.errors.errorOccurred', 'An error occurred during login. Please try again.')}`, { duration: 5000 });
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    // Accept either 6-digit TOTP code OR 8-character backup code
+    const isValidCode = (twoFactorToken && 
+      (twoFactorToken.length === 6 || twoFactorToken.length === 8));
+    
+    if (!isValidCode) {
+      toast.error(`❌ ${t('login.twoFactorHelp', 'Please enter a 6-digit code from your app or an 8-character backup code')}`, { duration: 5000 });
+      return;
+    }
+
+    setLoginLoading(true);
+    
+    try {
+      const normalizedEmail = loginEmail.toLowerCase().trim();
+      
+      const result = await signIn("credentials", {
+        email: normalizedEmail,
+        password: loginPassword,
+        twoFactorToken: twoFactorToken.toUpperCase().trim(), // Uppercase for backup codes
+        redirect: false,
+      });
+
+      if (result?.error) {
+        if (result.error.includes("2FA") || result.error.includes("Invalid")) {
+          toast.error(`❌ ${t('login.errors.invalid2FA', 'Invalid 2FA code. Please try again.')}`, { duration: 5000 });
+          setTwoFactorToken(""); // Clear invalid code
+        } else {
+          toast.error(`❌ ${t('login.errors.invalidCredentials', 'Authentication failed. Please try again.')}`, { duration: 5000 });
+        }
+      } else if (result?.ok) {
+        toast.success(`✅ ${t('login.success.loginSuccessful', 'Login successful! Redirecting...')}`, { duration: 3000 });
+        setRequires2FA(false);
+        setTwoFactorToken("");
+        setTwoFAUserId(null);
+      }
+    } catch (error) {
+      console.error("2FA verification error:", error);
+      toast.error(`❌ ${t('login.errors.errorOccurred', 'An error occurred. Please try again.')}`, { duration: 5000 });
     } finally {
       setLoginLoading(false);
     }
@@ -130,13 +210,13 @@ export default function Login() {
     
     // Validate passwords match
     if (registerPassword !== confirmPassword) {
-      toast.error("❌ Passwords do not match", { duration: 5000 });
+      toast.error(`❌ ${t('login.errors.passwordsNotMatch', 'Passwords do not match')}`, { duration: 5000 });
       return;
     }
 
     // Validate password length
     if (registerPassword.length < 8) {
-      toast.error("❌ Password must be at least 8 characters long", { duration: 5000 });
+      toast.error(`❌ ${t('login.errors.passwordTooShort', 'Password must be at least 8 characters long')}`, { duration: 5000 });
       return;
     }
     
@@ -150,7 +230,7 @@ export default function Login() {
     
     // Validate questionnaire fields
     if (!expectedPlatformBestAt.trim()) {
-      toast.error("❌ Please answer all questions", { duration: 5000 });
+      toast.error(`❌ ${t('login.errors.answerAllQuestions', 'Please answer all questions')}`, { duration: 5000 });
       setRegisterLoading(false);
       return;
     }
@@ -179,7 +259,7 @@ export default function Login() {
         throw new Error(data.error || "Registration failed");
       }
 
-      toast.success("✅ Registration successful! We'll review your application and notify you via email.", { duration: 5000 });
+      toast.success(`✅ ${t('login.success.registrationSuccessful', "Registration successful! We'll review your application and notify you via email.")}`, { duration: 5000 });
       setActiveTab("login");
       
       // Clear form
@@ -195,7 +275,7 @@ export default function Login() {
       
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error(`❌ ${error.message || "Registration failed"}`, { duration: 5000 });
+      toast.error(`❌ ${error.message || t('login.errors.registrationFailed', 'Registration failed')}`, { duration: 5000 });
     } finally {
       setRegisterLoading(false);
     }
@@ -217,7 +297,7 @@ export default function Login() {
                 />
               </div>
               <div>
-                <p className="text-muted-foreground">Scale your practice, amplify your impact</p>
+                <p className="text-muted-foreground">{t('login.tagline', 'Scale your practice, amplify your impact')}</p>
               </div>
             </div>
 
@@ -237,24 +317,21 @@ export default function Login() {
             <div className="space-y-5 max-w-lg">
               <div className="pb-2 border-b border-border/30">
                 <h3 className="text-base font-semibold text-foreground">
-                  Scaling therapy without losing the human touch
+                  {t('login.heading', 'Scaling therapy without losing the human touch')}
                 </h3>
               </div>
               
               <div className="space-y-4 text-sm text-foreground/85 leading-relaxed">
                 <p className="text-foreground/80">
-                  Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. 
-                  Unlike other platforms that focus on automation, we prioritize outcomes and the therapist-client relationship.
+                  {t('login.description1', 'Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. Unlike other platforms that focus on automation, we prioritize outcomes and the therapist-client relationship.')}
                 </p>
 
                 <p className="text-foreground/80 ">
-                  We digitize proven therapeutic tools to reduce time per client while increasing care quality. 
-                  Serve more clients consistently without burning out.
+                  {t('login.description2', 'We digitize proven therapeutic tools to reduce time per client while increasing care quality. Serve more clients consistently without burning out.')}
                 </p>
 
                 <p className="text-foreground/90 font-medium pt-2">
-                  We're not replacing therapists with AI. We're giving you superpowers. Therapy is evolving,
-                  make sure your practice evolves with it.
+                  {t('login.description3', "We're not replacing therapists with AI. We're giving you superpowers. Therapy is evolving, make sure your practice evolves with it.")}
                 </p>
               </div>
             </div>
@@ -275,89 +352,165 @@ export default function Login() {
                 </div>
                 <h1 className="text-2xl font-bold">Suplient</h1>
               </div>
-              <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-center flex-1">
+                  <Link 
+                    href="https://suplient.com/" 
+                    className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                  >
+                    {t('login.goToHomepage', 'Go to homepage')} →
+                  </Link>
+                </div>
+                <div className="flex-1 flex justify-end">
+                  <LanguageSelector variant="header" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl text-center">{t('login.welcomeBack', 'Welcome Back')}</CardTitle>
               <CardDescription className="text-center">
-                Sign in to your account to continue your mental health journey
+                {t('login.signInDescription', 'Sign in to your account to continue your mental health journey')}
               </CardDescription>
             </CardHeader>
             
             <CardContent>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Sign In</TabsTrigger>
-                  <TabsTrigger value="register">Coach Sign Up</TabsTrigger>
+                  <TabsTrigger value="login">{t('login.signIn', 'Sign In')}</TabsTrigger>
+                  <TabsTrigger value="register">{t('login.coachSignUp', 'Coach Sign Up')}</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="login" className="space-y-4">
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="loginEmail">Email</Label>
-                      <Input
-                        id="loginEmail"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        required
-                        className="h-11"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="loginPassword">Password</Label>
-                      <div className="relative">
+                  {!requires2FA ? (
+                    <form onSubmit={handleLogin} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="loginEmail">{t('login.email', 'Email')}</Label>
                         <Input
-                          id="loginPassword"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
+                          id="loginEmail"
+                          type="email"
+                          placeholder={t('login.emailPlaceholder', 'Enter your email')}
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
                           required
-                          className="h-11 pr-10"
+                          className="h-11"
+                          disabled={loginLoading}
                         />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="loginPassword">{t('login.password', 'Password')}</Label>
+                        <div className="relative">
+                          <Input
+                            id="loginPassword"
+                            type={showPassword ? "text" : "password"}
+                            placeholder={t('login.passwordPlaceholder', 'Enter your password')}
+                            value={loginPassword}
+                            onChange={(e) => setLoginPassword(e.target.value)}
+                            required
+                            className="h-11 pr-10"
+                            disabled={loginLoading}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            disabled={loginLoading}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                          {t('login.forgotPassword', 'Forgot password?')}
+                        </Link>
+                      </div>
+                      
+                      <Button type="submit" className="w-full h-11" disabled={loginLoading}>
+                        {loginLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {t('login.signingIn', 'Signing in...')}
+                          </>
+                        ) : (
+                          t('login.signIn', 'Sign In')
+                        )}
+                      </Button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handle2FASubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="twoFactorToken">{t('login.twoFactorAuth', 'Two-Factor Authentication Code')}</Label>
+                        <Input
+                          id="twoFactorToken"
+                          type="text"
+                          placeholder={t('login.twoFactorPlaceholder', 'Enter 6-digit code or 8-character backup code')}
+                          value={twoFactorToken}
+                          onChange={(e) => {
+                            // Allow alphanumeric, uppercase, max 8 characters
+                            const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+                            setTwoFactorToken(value);
+                          }}
+                          required
+                          className="h-11 text-center text-2xl tracking-widest font-mono"
+                          maxLength={8}
+                          autoFocus
+                        />
+                        <p className="text-xs text-muted-foreground text-center">
+                          {t('login.twoFactorHelp', 'Enter the 6-digit code from your authenticator app, or an 8-character backup code')}
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={() => {
+                            setRequires2FA(false);
+                            setTwoFactorToken("");
+                            setTwoFAUserId(null);
+                          }}
+                          disabled={loginLoading}
                         >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
+                          {t('login.back', '← Back')}
                         </Button>
+                        <Link href="/setup-2fa" className="text-sm text-primary hover:underline">
+                          {t('login.needToSetup2FA', 'Need to set up 2FA?')}
+                        </Link>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                        Forgot password?
-                      </Link>
-                    </div>
-                    
-                    <Button type="submit" className="w-full h-11" disabled={loginLoading}>
-                      {loginLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Signing in...
-                        </>
-                      ) : (
-                        "Sign In"
-                      )}
-                    </Button>
-                  </form>
+                      
+                      <Button 
+                        type="submit" 
+                        className="w-full h-11" 
+                        disabled={loginLoading || !twoFactorToken || (twoFactorToken.length !== 6 && twoFactorToken.length !== 8)}
+                      >
+                        {loginLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {t('login.verifying', 'Verifying...')}
+                          </>
+                        ) : (
+                          t('login.verifyAndSignIn', 'Verify & Sign In')
+                        )}
+                      </Button>
+                    </form>
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="register" className="space-y-4">
                   {registerStep === 1 ? (
                     <form onSubmit={handleNextStep} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
+                        <Label htmlFor="name">{t('login.fullName', 'Full Name')}</Label>
                         <Input
                           id="name"
-                          placeholder="John Doe"
+                          placeholder={t('login.fullNamePlaceholder', 'John Doe')}
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           required
@@ -366,11 +519,11 @@ export default function Login() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="registerEmail">Email</Label>
+                        <Label htmlFor="registerEmail">{t('login.email', 'Email')}</Label>
                         <Input
                           id="registerEmail"
                           type="email"
-                          placeholder="Enter your email"
+                          placeholder={t('login.emailPlaceholder', 'Enter your email')}
                           value={registerEmail}
                           onChange={(e) => setRegisterEmail(e.target.value)}
                           required
@@ -379,11 +532,11 @@ export default function Login() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
+                        <Label htmlFor="phone">{t('login.phoneNumber', 'Phone Number')}</Label>
                         <Input
                           id="phone"
                           type="tel"
-                          placeholder="+1 (555) 123-4567"
+                          placeholder={t('login.phonePlaceholder', '+1 (555) 123-4567')}
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           required
@@ -392,12 +545,12 @@ export default function Login() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="registerPassword">Password</Label>
+                        <Label htmlFor="registerPassword">{t('login.password', 'Password')}</Label>
                         <div className="relative">
                           <Input
                             id="registerPassword"
                             type={showPassword ? "text" : "password"}
-                            placeholder="Create a password (min. 8 characters)"
+                            placeholder={t('login.createPassword', 'Create a password (min. 8 characters)')}
                             value={registerPassword}
                             onChange={(e) => setRegisterPassword(e.target.value)}
                             required
@@ -420,12 +573,12 @@ export default function Login() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                        <Label htmlFor="confirmPassword">{t('login.confirmPassword', 'Confirm Password')}</Label>
                         <div className="relative">
                           <Input
                             id="confirmPassword"
                             type={showConfirmPassword ? "text" : "password"}
-                            placeholder="Confirm your password"
+                            placeholder={t('login.confirmPasswordPlaceholder', 'Confirm your password')}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
@@ -448,14 +601,14 @@ export default function Login() {
                       </div>
                       
                       <Button type="submit" className="w-full h-11">
-                        Next
+                        {t('login.next', 'Next')}
                       </Button>
                     </form>
                   ) : (
                     <form onSubmit={handleRegister} className="space-y-4">
                       <div className="mb-4">
                         <p className="text-sm text-muted-foreground mb-2">
-                          Step 2 of 2: Tell us about yourself
+                          {t('login.step2Of2', 'Step 2 of 2: Tell us about yourself')}
                         </p>
                         <Button
                           type="button"
@@ -464,17 +617,17 @@ export default function Login() {
                           onClick={() => setRegisterStep(1)}
                           className="p-0 h-auto text-xs"
                         >
-                          ← Back
+                          {t('login.back', '← Back')}
                         </Button>
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor="expectedPlatformBestAt">
-                          What do you expect this platform to be the best at? *
+                          {t('login.expectedPlatformBestAt', 'What do you expect this platform to be the best at? *')}
                         </Label>
                         <textarea
                           id="expectedPlatformBestAt"
-                          placeholder="Tell us what you're looking for in a coaching platform..."
+                          placeholder={t('login.expectedPlatformPlaceholder', "Tell us what you're looking for in a coaching platform...")}
                           value={expectedPlatformBestAt}
                           onChange={(e) => setExpectedPlatformBestAt(e.target.value)}
                           required
@@ -485,13 +638,13 @@ export default function Login() {
                       
                       <div className="space-y-2">
                         <Label htmlFor="currentClientsPerMonth">
-                          How many clients do you currently have per month?
+                          {t('login.currentClientsPerMonth', 'How many clients do you currently have per month?')}
                         </Label>
                         <Input
                           id="currentClientsPerMonth"
                           type="number"
                           min="0"
-                          placeholder="e.g., 10"
+                          placeholder={t('login.currentClientsPlaceholder', 'e.g., 10')}
                           value={currentClientsPerMonth}
                           onChange={(e) => setCurrentClientsPerMonth(e.target.value)}
                           className="h-11"
@@ -500,12 +653,12 @@ export default function Login() {
                       
                       <div className="space-y-2">
                         <Label htmlFor="currentPlatform">
-                          Which platform are you currently using if any?
+                          {t('login.currentPlatform', 'Which platform are you currently using if any?')}
                         </Label>
                         <Input
                           id="currentPlatform"
                           type="text"
-                          placeholder="e.g., Calendly, Zoom, Google Calendar, etc."
+                          placeholder={t('login.currentPlatformPlaceholder', 'e.g., Calendly, Zoom, Google Calendar, etc.')}
                           value={currentPlatform}
                           onChange={(e) => setCurrentPlatform(e.target.value)}
                           className="h-11"
@@ -516,10 +669,10 @@ export default function Login() {
                         {registerLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating account...
+                            {t('login.creatingAccount', 'Creating account...')}
                           </>
                         ) : (
-                          "Create Coach Account"
+                          t('login.createCoachAccount', 'Create Coach Account')
                         )}
                       </Button>
                     </form>
@@ -528,13 +681,13 @@ export default function Login() {
               </Tabs>
               
               <div className="mt-6 text-center text-sm text-muted-foreground">
-                By continuing, you agree to our{" "}
-                <Link href="/terms" className="text-primary hover:underline">
-                  Terms of Service
+                {t('login.termsAndPrivacy', 'By continuing, you agree to our')}{" "}
+                <Link href="https://suplient.com/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                  {t('login.termsOfService', 'Terms of Service')}
                 </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="text-primary hover:underline">
-                  Privacy Policy
+                {t('login.and', 'and')}{" "}
+                <Link href="https://suplient.com/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                  {t('login.privacyPolicy', 'Privacy Policy')}
                 </Link>
               </div>
             </CardContent>

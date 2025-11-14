@@ -1,9 +1,36 @@
-import emailjs from '@emailjs/nodejs';
+// Use EmailJS REST API directly instead of SDK to avoid connection issues
+const EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
-const emailUserId = {
-    publicKey: process.env.EMAIL_PUBLIC_KEY,
-    privateKey: process.env.EMAIL_PRIVATE_KEY,
-};
+async function sendEmailViaAPI(templateId, templateParams) {
+    if (!process.env.EMAIL_SERVICE_ID || !process.env.EMAIL_PUBLIC_KEY || !process.env.EMAIL_PRIVATE_KEY) {
+        throw new Error('EmailJS configuration is missing. Check your environment variables.');
+    }
+
+    if (!templateId) {
+        throw new Error('Template ID is required');
+    }
+
+    const response = await fetch(EMAILJS_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            service_id: process.env.EMAIL_SERVICE_ID,
+            template_id: templateId,
+            user_id: process.env.EMAIL_PUBLIC_KEY,
+            template_params: templateParams,
+            accessToken: process.env.EMAIL_PRIVATE_KEY,
+        }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ text: 'Unknown error' }));
+        throw new Error(errorData.text || `EmailJS API error: ${response.status}`);
+    }
+
+    return response.json();
+}
 
 export const sendClientRegistrationEmail = async (newClient) => {
     try {
@@ -17,14 +44,11 @@ export const sendClientRegistrationEmail = async (newClient) => {
             email: newClient.email,
         };
 
-        await emailjs.send(
-            process.env.EMAIL_SERVICE_ID,
-            process.env.EMAIL_CLIENT_TEMPLATE_ID,
-            templateParams,
-            emailUserId
-        );
+        await sendEmailViaAPI(process.env.EMAIL_CLIENT_TEMPLATE_ID, templateParams);
+        console.log('✅ Client registration email sent to:', newClient.email);
     } catch (error) {
-        console.log(error);
+        console.error('❌ Error sending client registration email:', error);
+        throw error;
     }
 }
 
@@ -40,14 +64,11 @@ export const sendCoachRegistrationEmail = async (newCoach) => {
             email: newCoach.email,
         }
 
-        await emailjs.send(
-            process.env.EMAIL_SERVICE_ID,
-            process.env.EMAIL_COACH_TEMPLATE_ID,
-            templateParams,
-            emailUserId
-        );
+        await sendEmailViaAPI(process.env.EMAIL_COACH_TEMPLATE_ID, templateParams);
+        console.log('✅ Coach registration email sent to:', newCoach.email);
     } catch (error) {
-        console.log(error);
+        console.error('❌ Error sending coach registration email:', error);
+        throw error;
     }
 }
 
@@ -60,14 +81,11 @@ export const sendCoachPendingEmail = async (newCoach) => {
             email: newCoach.email,
         }
 
-        await emailjs.send(
-            process.env.EMAIL_SERVICE_ID,
-            process.env.EMAIL_COACH_PENDING_TEMPLATE_ID,
-            templateParams,
-            emailUserId
-        );
+        await sendEmailViaAPI(process.env.EMAIL_COACH_PENDING_TEMPLATE_ID, templateParams);
+        console.log('✅ Coach pending email sent to:', newCoach.email);
     } catch (error) {
-        console.log('Error sending pending email:', error);
+        console.error('❌ Error sending pending email:', error);
+        throw error;
     }
 }
 
@@ -83,14 +101,11 @@ export const sendCoachApprovalEmail = async (coach) => {
             email: coach.email,
         }
 
-        await emailjs.send(
-            process.env.EMAIL_SERVICE_ID,
-            process.env.EMAIL_COACH_TEMPLATE_ID,
-            templateParams,
-            emailUserId
-        );
+        await sendEmailViaAPI(process.env.EMAIL_COACH_TEMPLATE_ID, templateParams);
+        console.log('✅ Coach approval email sent to:', coach.email);
     } catch (error) {
-        console.log('Error sending approval email:', error);
+        console.error('❌ Error sending approval email:', error);
+        throw error;
     }
 }
 
@@ -103,22 +118,16 @@ export const sendCoachDenialEmail = async (coach) => {
             email: coach.email,
         }
 
-        // Note: You may want to create a separate denial email template
-        // For now, using pending template as fallback
-        await emailjs.send(
-            process.env.EMAIL_SERVICE_ID,
-            process.env.EMAIL_COACH_DENIED_TEMPLATE_ID,
-            templateParams,
-            emailUserId
-        );
+        await sendEmailViaAPI(process.env.EMAIL_COACH_DENIED_TEMPLATE_ID, templateParams);
+        console.log('✅ Coach denial email sent to:', coach.email);
     } catch (error) {
-        console.log('Error sending denial email:', error);
+        console.error('❌ Error sending denial email:', error);
+        throw error;
     }
 }
 
 export const sendClientToCoachEmail = async (contactData) => {
     try {
-        // Validate required data
         if (!contactData.coachEmail) {
             throw new Error('Coach email address is required');
         }
@@ -126,15 +135,9 @@ export const sendClientToCoachEmail = async (contactData) => {
             throw new Error('Message content is required');
         }
 
-        console.log('Sending email to coach:', {
-            coachEmail: contactData.coachEmail,
-            coachName: contactData.coachName,
-            clientName: contactData.clientName
-        });
-
         const templateParams = {
-            email: contactData.coachEmail, // This matches your template's "To Email" field
-            name: contactData.clientName, // This matches your template's "From Name" field
+            email: contactData.coachEmail,
+            name: contactData.clientName,
             coach_name: contactData.coachName,
             client_name: contactData.clientName,
             client_email: contactData.clientEmail,
@@ -144,18 +147,37 @@ export const sendClientToCoachEmail = async (contactData) => {
             website_url: 'https://app.suplient.com',
         };
 
-        console.log('EmailJS template parameters:', templateParams);
-
-        await emailjs.send(
-            process.env.EMAIL_SERVICE_ID,
+        await sendEmailViaAPI(
             process.env.EMAIL_CLIENT_TO_COACH_TEMPLATE_ID || 'template_client_to_coach',
-            templateParams,
-            emailUserId
+            templateParams
         );
-
-        console.log('Email sent successfully to coach:', contactData.coachEmail);
+        console.log('✅ Email sent successfully to coach:', contactData.coachEmail);
     } catch (error) {
-        console.log('Error sending client to coach email:', error);
+        console.error('❌ Error sending client to coach email:', error);
+        throw error;
+    }
+}
+
+export const sendPasswordResetEmail = async (userData) => {
+    try {
+        const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${userData.resetToken}`;
+
+        const templateParams = {
+            name: userData.name,
+            reset_url: resetUrl,
+            user_email: userData.email,
+            support_email: 'amin@suplient.com',
+            website_url: 'https://app.suplient.com',
+            email: userData.email,
+        };
+
+        await sendEmailViaAPI(
+            process.env.EMAIL_PASSWORD_RESET_TEMPLATE_ID || 'template_password_reset',
+            templateParams
+        );
+        console.log('✅ Password reset email sent successfully to:', userData.email);
+    } catch (error) {
+        console.error('❌ Error sending password reset email:', error);
         throw error;
     }
 }

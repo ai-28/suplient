@@ -1,6 +1,8 @@
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { userRepo } from "@/app/lib/db/userRepo";
+import { checkUser2FAStatus, verifyToken, verifyBackupCode, removeUsedBackupCode } from "@/app/lib/auth/twoFactor";
+import { sql } from "@/app/lib/db/postgresql";
 
 const authOptions = {
     providers: [
@@ -10,27 +12,94 @@ const authOptions = {
             credentials: {
                 email: { label: "Email", type: "email" },
                 password: { label: "Password", type: "password" },
+                twoFactorToken: { label: "2FA Token", type: "text", optional: true },
+                skip2FA: { label: "Skip 2FA", type: "text", optional: true }, // Internal flag for 2FA-verified logins
             },
             async authorize(credentials) {
                 if (!credentials) {
                     return null;
                 }
-                const { email, password } = credentials;
+                const { email, password, twoFactorToken, skip2FA } = credentials;
 
                 try {
                     // Normalize email to lowercase before authentication
                     const normalizedEmail = email.toLowerCase().trim();
                     const user = await userRepo.authenticate(normalizedEmail, password);
-                    if (user) {
-                        return {
-                            id: user.id,
-                            email: user.email,
-                            name: user.name,
-                            role: user.role,
-                            phone: user.phone,
-                        };
+
+                    if (!user) {
+                        return null;
                     }
-                    return null;
+
+                    // Check 2FA status
+                    const twoFAStatus = await checkUser2FAStatus(user.id);
+
+                    // If user has 2FA enabled, require verification (unless already verified)
+                    if (twoFAStatus.has2FA && !skip2FA) {
+                        // Trim and uppercase token to handle whitespace and case
+                        const trimmedToken = typeof twoFactorToken === 'string' ? twoFactorToken.trim().toUpperCase() : '';
+
+                        // More explicit check for missing/empty token
+                        // Accept 6-digit TOTP codes or 8-character backup codes
+                        const hasValidToken = trimmedToken &&
+                            (trimmedToken.length === 6 || trimmedToken.length === 8);
+
+                        console.log('2FA Check - has2FA:', twoFAStatus.has2FA, 'twoFactorToken type:', typeof twoFactorToken, 'twoFactorToken value:', JSON.stringify(twoFactorToken), 'trimmedToken:', trimmedToken, 'hasValidToken:', hasValidToken);
+
+                        if (!hasValidToken) {
+                            console.log('Throwing 2FA_VERIFICATION_REQUIRED - token is missing or invalid');
+                            throw new Error("2FA_VERIFICATION_REQUIRED");
+                        }
+
+                        // Get user's 2FA secret and backup codes
+                        const [userData] = await sql`
+                            SELECT "twoFactorSecret", "twoFactorBackupCodes"
+                            FROM "User"
+                            WHERE id = ${user.id}
+                        `;
+
+                        if (!userData || !userData.twoFactorSecret) {
+                            throw new Error("2FA not configured");
+                        }
+
+                        // Try TOTP verification first (only for 6-digit codes)
+                        let totpValid = false;
+                        if (trimmedToken.length === 6) {
+                            totpValid = verifyToken(userData.twoFactorSecret, trimmedToken);
+                        }
+
+                        if (totpValid) {
+                            // TOTP verified - proceed with login
+                        } else if (userData.twoFactorBackupCodes && userData.twoFactorBackupCodes.length > 0) {
+                            // Try backup code
+                            const backupValid = verifyBackupCode(userData.twoFactorBackupCodes, trimmedToken);
+
+                            if (backupValid) {
+                                // Remove used backup code
+                                const updatedBackupCodes = removeUsedBackupCode(userData.twoFactorBackupCodes, trimmedToken);
+
+                                await sql`
+                                    UPDATE "User"
+                                    SET "twoFactorBackupCodes" = ${updatedBackupCodes}
+                                    WHERE id = ${user.id}
+                                `;
+                            } else {
+                                console.log('Backup code verification failed');
+                                throw new Error("Invalid 2FA code");
+                            }
+                        } else {
+                            console.log('TOTP verification failed, no backup codes available');
+                            throw new Error("Invalid 2FA code");
+                        }
+                    }
+
+                    // All checks passed
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        role: user.role,
+                        phone: user.phone,
+                    };
                 } catch (error) {
                     console.log("Authentication error:", error);
                     // Throw the specific error message to be handled by NextAuth

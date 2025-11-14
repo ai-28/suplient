@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 
 export default function Settings() {
   const { data: session } = useSession();
@@ -1084,17 +1085,10 @@ export default function Settings() {
                   {passwordLoading ? t('settings.profile.updating', 'Updating...') : t('settings.profile.updatePassword', 'Update Password')}
                 </Button>
 
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>{t('settings.security.twoFactorAuth', 'Two-Factor Authentication')}</Label>
-                    <p className="text-sm text-muted-foreground">{t('settings.security.twoFactorDesc', 'Enable or disable two-factor authentication')}</p>
-                  </div>
-                  <Button variant="outline">{t('settings.security.enable2FA', 'Enable 2FA')}</Button>
-                </div>
               </CardContent>
             </Card>
+
+            <TwoFactorSettings />
 
             <Card className="card-standard">
               <CardHeader>

@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { Separator } from "@/app/components/ui/separator";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { useTimeFormat } from "@/app/contexts/TimeFormatContext";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
@@ -233,18 +234,10 @@ export default function ClientSettings() {
               </div>
 
               <Button className="w-full">{t('settings:security.changePassword')}</Button>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>{t('settings:security.twoFactorAuth')}</Label>
-                  <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-                </div>
-                <Button variant="outline">Enable 2FA</Button>
-              </div>
             </CardContent>
           </Card>
+
+          <TwoFactorSettings />
         </TabsContent>
       </Tabs>
     </div>
