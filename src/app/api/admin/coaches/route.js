@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from '@/app/lib/db/postgresql';
 import { sendCoachRegistrationEmail } from '@/app/lib/email';
 import { hashPasswordAsync } from '@/app/lib/auth/passwordUtils';
+import { initializeDefaultPipelines } from '@/app/lib/db/pipelineRepo';
 const crypto = require('crypto');
 
 const HASH_ITERATIONS = 10000;
@@ -83,6 +84,14 @@ export async function POST(request) {
         }
 
         const coach = newCoach[0];
+
+        // Initialize default pipeline stages for the new coach
+        try {
+            await initializeDefaultPipelines(coach.id);
+        } catch (pipelineError) {
+            console.error('❌ Error initializing default pipelines:', pipelineError);
+            // Don't fail coach creation if pipeline init fails
+        }
 
         // Send registration email to coach with temporary password
         try {

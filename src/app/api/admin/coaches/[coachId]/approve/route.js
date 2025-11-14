@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
 import { sql } from '@/app/lib/db/postgresql';
 import { sendCoachApprovalEmail } from '@/app/lib/email';
+import { initializeDefaultPipelines } from '@/app/lib/db/pipelineRepo';
 
 export async function POST(request, { params }) {
     try {
@@ -48,6 +49,14 @@ export async function POST(request, { params }) {
                 "updatedAt" = CURRENT_TIMESTAMP
             WHERE id = ${coachId}
         `;
+
+        // Initialize default pipeline stages for the approved coach
+        try {
+            await initializeDefaultPipelines(coachId);
+        } catch (pipelineError) {
+            console.error('❌ Error initializing default pipelines:', pipelineError);
+            // Don't fail approval if pipeline init fails
+        }
 
         // Send approval email
         try {
