@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 
 export function useTasks() {
@@ -7,7 +7,7 @@ export function useTasks() {
     const [error, setError] = useState(null);
     const { data: session } = useSession();
 
-    const fetchTasks = async () => {
+    const fetchTasks = useCallback(async () => {
         if (!session?.user?.id) return;
 
         try {
@@ -36,11 +36,11 @@ export function useTasks() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [session?.user?.id]);
 
     useEffect(() => {
         fetchTasks();
-    }, [session?.user?.id]);
+    }, [fetchTasks]);
 
     const refetchTasks = () => {
         fetchTasks();
