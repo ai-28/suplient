@@ -66,9 +66,22 @@ export default function Setup2FA() {
       return;
     }
 
+    if (!secret) {
+      toast.error("Setup error: Secret not found. Please refresh the page and try again.");
+      console.error("2FA verify: Secret is missing");
+      return;
+    }
+
     setVerifying(true);
 
     try {
+      console.log("2FA verify: Sending request", {
+        hasSecret: !!secret,
+        secretLength: secret?.length,
+        token: verificationCode,
+        tokenLength: verificationCode.length
+      });
+
       const response = await fetch("/api/auth/2fa/verify-setup", {
         method: "POST",
         headers: {
@@ -81,6 +94,13 @@ export default function Setup2FA() {
       });
 
       const data = await response.json();
+
+      if (!response.ok) {
+        console.error("2FA verify: API error", { status: response.status, data });
+        toast.error(data.error || "Invalid code. Please try again.");
+        setVerificationCode("");
+        return;
+      }
 
       if (data.success) {
         setBackupCodes(data.backupCodes);

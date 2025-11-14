@@ -9,21 +9,76 @@ export async function POST(request) {
         const session = await getServerSession(authOptions);
 
         if (!session?.user?.id) {
+            console.error('2FA verify-setup: No session or user ID');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await request.json();
+        let body;
+        try {
+            body = await request.json();
+        } catch (error) {
+            console.error('2FA verify-setup: JSON parse error', error);
+            return NextResponse.json(
+                { error: 'Invalid request body' },
+                { status: 400 }
+            );
+        }
+
         const { secret, token } = body;
 
+        console.log('2FA verify-setup request:', {
+            userId: session.user.id,
+            hasSecret: !!secret,
+            hasToken: !!token,
+            tokenLength: token?.length
+        });
+
         if (!secret || !token) {
+            console.error('2FA verify-setup: Missing secret or token', { 
+                secret: !!secret, 
+                token: !!token,
+                secretValue: secret,
+                tokenValue: token
+            });
             return NextResponse.json(
                 { error: 'Secret and token are required' },
                 { status: 400 }
             );
         }
 
+        if (typeof secret !== 'string' || typeof token !== 'string') {
+            console.error('2FA verify-setup: Invalid types', { 
+                secretType: typeof secret, 
+                tokenType: typeof token,
+                secretValue: secret,
+                tokenValue: token
+            });
+            return NextResponse.json(
+                { error: 'Secret and token must be strings' },
+                { status: 400 }
+            );
+        }
+
+        if (secret.trim().length === 0 || token.trim().length === 0) {
+            console.error('2FA verify-setup: Empty secret or token');
+            return NextResponse.json(
+                { error: 'Secret and token cannot be empty' },
+                { status: 400 }
+            );
+        }
+
+        if (token.length !== 6) {
+            console.error('2FA verify-setup: Invalid token length', { tokenLength: token.length });
+            return NextResponse.json(
+                { error: 'Token must be exactly 6 digits' },
+                { status: 400 }
+            );
+        }
+
         // Verify the token
         const isValid = verifyToken(secret, token);
+
+        console.log('2FA verify-setup: Token verification result', { isValid });
 
         if (!isValid) {
             return NextResponse.json(
