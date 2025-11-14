@@ -48,7 +48,7 @@ export function verifyToken(secret, token) {
     secret: secret,
     encoding: 'base32',
     token: token,
-    window: 2 // Allow 2 time steps (60 seconds) of clock skew
+    window: 3 // Allow 2 time steps (60 seconds) of clock skew
   });
 
   return verified;
