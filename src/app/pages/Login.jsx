@@ -466,7 +466,7 @@ export default function Login() {
                         </p>
                       </div>
                       
-                      <div className="flex items-center justify-between">
+                      <div className="flex justify-end">
                         <Button
                           type="button"
                           variant="ghost"
@@ -480,9 +480,6 @@ export default function Login() {
                         >
                           {t('login.back', '← Back')}
                         </Button>
-                        <Link href="/setup-2fa" className="text-sm text-primary hover:underline">
-                          {t('login.needToSetup2FA', 'Need to set up 2FA?')}
-                        </Link>
                       </div>
                       
                       <Button 
