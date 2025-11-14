@@ -18,8 +18,8 @@ export const metadata = {
     title: "Suplient",
   },
   icons: {
-    icon: "/assets/icons/icon-192x192.svg",
-    apple: "/assets/icons/icon-192x192.svg",
+    icon: "/assets/Suplient-logo.png",
+    apple: "/assets/Suplient-logo.png",
   },
 };
 
@@ -47,12 +47,12 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#3b82f6" />
 
         {/* iOS PWA Support */}
-        <link rel="apple-touch-icon" href="/assets/icons/icon-192x192.svg" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/assets/icons/icon-152x152.svg" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/icon-192x192.svg" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/assets/icons/icon-192x192.svg" />
-        <link rel="apple-touch-icon" sizes="120x120" href="/assets/icons/icon-128x128.svg" />
-        <link rel="apple-touch-icon" sizes="76x76" href="/assets/icons/icon-96x96.svg" />
+        <link rel="apple-touch-icon" href="/assets/Suplient-logo.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/assets/Suplient-logo.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/Suplient-logo.png" />
+        <link rel="apple-touch-icon" sizes="167x167" href="/assets/Suplient-logo.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/assets/Suplient-logo.png" />
+        <link rel="apple-touch-icon" sizes="76x76" href="/assets/Suplient-logo.png" />
 
         {/* Android PWA Support */}
         <meta name="mobile-web-app-capable" content="yes" />
@@ -60,23 +60,24 @@ export default function RootLayout({ children }) {
 
         {/* Windows PWA Support */}
         <meta name="msapplication-TileColor" content="#3b82f6" />
-        <meta name="msapplication-TileImage" content="/assets/icons/icon-144x144.svg" />
+        <meta name="msapplication-TileImage" content="/assets/Suplient-logo.png" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
 
         {/* Standard Icons */}
-        <link rel="icon" type="image/svg+xml" sizes="32x32" href="/assets/icons/icon-32x32.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="16x16" href="/assets/icons/icon-16x16.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="48x48" href="/assets/icons/icon-72x72.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="96x96" href="/assets/icons/icon-96x96.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="128x128" href="/assets/icons/icon-128x128.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="144x144" href="/assets/icons/icon-144x144.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="192x192" href="/assets/icons/icon-192x192.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="384x384" href="/assets/icons/icon-384x384.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="512x512" href="/assets/icons/icon-512x512.svg" />
+        <link rel="icon" type="image/png" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="128x128" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="144x144" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="384x384" href="/assets/Suplient-logo.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/assets/Suplient-logo.png" />
 
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
-        <link rel="shortcut icon" href="/assets/icons/icon-192x192.svg" />
+        <link rel="shortcut icon" href="/assets/Suplient-logo.png" />
 
         {/* Additional PWA Meta Tags */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -102,8 +103,8 @@ export default function RootLayout({ children }) {
         <AuthSessionProvider>
           <AuthProvider>
             <LanguageProvider>
-            <SocketProvider>
-              {children}
+              <SocketProvider>
+                {children}
                 <Toaster
                   position="top-right"
                   richColors
@@ -112,7 +113,7 @@ export default function RootLayout({ children }) {
                     closeButton: 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20'
                   }}
                 />
-            </SocketProvider>
+              </SocketProvider>
             </LanguageProvider>
           </AuthProvider>
         </AuthSessionProvider>
