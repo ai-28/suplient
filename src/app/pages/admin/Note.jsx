@@ -11,7 +11,7 @@ import { Label } from "@/app/components/ui/label";
 import { PageHeader } from "@/app/components/PageHeader";
 import { Bell, Send, Users, User, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
-import { useTranslation } from "@/app/hooks/useTranslation";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function AdminNote() {
   const { data: session } = useSession();
