@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 
-const loginImage = "/assets/login.webp";
+const loginImage = "/assets/mobile-web-dashboard.png";
 export default function Login() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -296,13 +296,10 @@ export default function Login() {
                   className="w-full h-full object-contain"
                 />
               </div>
-              <div>
-                <p className="text-muted-foreground">{t('login.tagline', 'Scale your practice, amplify your impact')}</p>
-              </div>
             </div>
 
             {/* Login Image */}
-            <div className="relative w-full max-w-md mx-auto mb-6">
+            <div className="relative w-full max-w-md mb-6">
               <div className="relative rounded-2xl overflow-hidden shadow-xl border border-border/50">
                 <img 
                   src={loginImage} 
@@ -310,29 +307,26 @@ export default function Login() {
                   className="w-full h-auto object-cover"
                   style={{ maxHeight: '400px' }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none"></div>
               </div>
-            </div>
             
             <div className="space-y-5 max-w-lg">
-              <div className="pb-2 border-b border-border/30">
-                <h3 className="text-base font-semibold text-foreground">
-                  {t('login.heading', 'Scaling therapy without losing the human touch')}
-                </h3>
-              </div>
-              
-              <div className="space-y-4 text-sm text-foreground/85 leading-relaxed">
-                <p className="text-foreground/80">
-                  {t('login.description1', 'Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. Unlike other platforms that focus on automation, we prioritize outcomes and the therapist-client relationship.')}
-                </p>
-
-                <p className="text-foreground/80 ">
-                  {t('login.description2', 'We digitize proven therapeutic tools to reduce time per client while increasing care quality. Serve more clients consistently without burning out.')}
-                </p>
-
-                <p className="text-foreground/90 font-medium pt-2">
-                  {t('login.description3', "We're not replacing therapists with AI. We're giving you superpowers. Therapy is evolving, make sure your practice evolves with it.")}
-                </p>
+            <h1 className="text-3xl mt-6 md:text-3xl lg:text-3xl font-bold tracking-tight">
+              {(() => {
+                const title = t('login.heroTitle', 'Scale your impact keep the human touch');
+                const words = title.split(' ');
+                // For English (6 words): highlight last 3 words "keep the human touch" (index 3, 4, 5)
+                // For Danish (7 words): highlight last 4 words "uden at miste nærværet" (index 3, 4, 5, 6)
+                // Highlight from index 3 onwards for both languages
+                const highlightStart = 3;
+                return words.map((word, index) => {
+                  if (index >= highlightStart) {
+                    return <span key={index} className="text-primary"> {word}</span>;
+                  }
+                  return <span key={index}> {word}</span>;
+                });
+              })()}
+            </h1>
+            <p className="text-xl text-muted-foreground">{t('login.heroDescription', 'Deliver personal 1:1 and group programs, support hundreds of clients in parallel and track real progress -without stress, burnout or extra hours.')}</p>
               </div>
             </div>
           </div>

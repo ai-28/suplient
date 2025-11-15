@@ -21,10 +21,12 @@ import { BookMarked, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { ImpersonationBanner } from "@/app/components/ImpersonationBanner";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 const Layout = ({ children }) => {
     const pathname = usePathname();
     const { user } = useAuth();
+    const t = useTranslation();
     
     const [mounted, setMounted] = useState(false);
     const [platformName, setPlatformName] = useState('Mental Coach Platform');
@@ -87,7 +89,10 @@ const Layout = ({ children }) => {
               <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 shadow-soft">
                 <div className="flex items-center">
                   <div className="ml-4">
-                    <h1 className="text-xl font-semibold text-foreground">{platformName}</h1>
+                    <h1 className="text-xl font-semibold text-foreground">
+                      {user?.name ? `${t('common.greeting', 'Hi')} ${user.name}` : platformName}
+                      💐
+                    </h1>
                   </div>
                 </div>
                 

@@ -47,6 +47,7 @@
             "hide": "Skjul",
             "selectAll": "Vælg Alle"
         },
+        "greeting": "Hej",
         "messages": {
             "loading": "Indlæser...",
             "error": "Der opstod en fejl",
@@ -87,19 +88,19 @@
     "navigation": {
         "dashboard": "Oversigt",
         "adminNavigation": "Admin Navigation",
-        "coachNavigation": "Træner Navigation",
+        "coachNavigation": "Menu",
         "clients": "Klienter",
         "tasks": "Opgaver",
         "sessions": "Sessioner",
         "groups": "Grupper",
-        "resources": "Ressourcer",
+        "resources": "Bibliotek",
         "settings": "Indstillinger",
         "notes": "Noter",
         "library": "Bibliotek",
-        "programs": "Programmer",
+        "programs": "Forløb",
         "coaches": "Trænere",
         "adminUsers": "Admin Brugere",
-        "admin": "Administration",
+        "admin": "Support",
         "chat": "Beskeder",
         "journal": "Dagbog",
         "profile": "Profil",
@@ -953,7 +954,7 @@
         "welcomeBack": "Velkommen tilbage",
         "signInDescription": "Log ind på din konto for at fortsætte din mentale sundhedsrejse",
         "signIn": "Log ind",
-        "coachSignUp": "Træner Tilmeld",
+        "coachSignUp": "Opret konto",
         "email": "E-mail",
         "emailPlaceholder": "Indtast din e-mail",
         "password": "Adgangskode",
@@ -989,10 +990,8 @@
         "and": "og",
         "privacyPolicy": "Fortrolighedspolitik",
         "tagline": "Skaler din praksis, forstærk din indvirkning",
-        "heading": "Skalering af terapi uden at miste den menneskelige berøring",
-        "description1": "Suplient hjælper terapeuter og trænere med at skalere deres indvirkning uden at ofre kvalitet eller forbindelse. I modsætning til andre platforme, der fokuserer på automatisering, prioriterer vi resultater og terapeut-klient-forholdet.",
-        "description2": "Vi digitaliserer beviste terapeutiske værktøjer for at reducere tid per klient, mens vi øger plejekvaliteten. Betjen flere klienter konsekvent uden at brænde ud.",
-        "description3": "Vi erstatter ikke terapeuter med AI. Vi giver dig superkræfter. Terapi udvikler sig, sørg for at din praksis udvikler sig med det.",
+        "heroTitle": "Hjælp flere klienter uden at miste nærværet",
+        "heroDescription": "Tilbyd personlige 1:1 og gruppeforløb, hjælp hundredvis af klienter parallelt og følg deres udvikling -uden stress, udbrændthed eller ekstra arbejdstimer.",
         "errors": {
             "emailNotFound": "E-mail ikke fundet. Tjek venligst din e-mailadresse.",
             "incorrectPassword": "Forkert adgangskode. Prøv venligst igen.",
@@ -1012,5 +1011,50 @@
         },
         "loading": "Indlæser...",
         "redirecting": "Omdirigerer til dashboard..."
+    },
+    "adminCommunication": {
+        "title": "Admin Kommunikation",
+        "subtitle": "Beskeder, opgaver og noter fra administratorer",
+        "noData": "Ingen admin kommunikationsdata tilgængelig",
+        "yesterday": "I går",
+        "today": "I dag",
+        "daysAgo": "{days} dage siden",
+        "noDueDate": "Ingen forfaldsdato",
+        "createdBy": "Oprettet af {name}",
+        "assignedBy": "Tildelt af {name}",
+        "created": "Oprettet {time}",
+        "new": "{count} nye",
+        "stats": {
+            "unreadMessages": "Ulæste beskeder",
+            "pendingTasks": "Afventende opgaver",
+            "overdueTasks": "Forfaldne opgaver",
+            "totalTasks": "Samlede opgaver"
+        },
+        "tabs": {
+            "overview": "Oversigt",
+            "messages": "Beskeder",
+            "notes": "Noter",
+            "tasks": "Opgaver"
+        },
+        "recentMessages": "Seneste beskeder",
+        "recentNotes": "Seneste noter",
+        "recentTasks": "Seneste opgaver",
+        "noMessages": "Ingen beskeder fra admin endnu",
+        "noNotes": "Ingen noter fra admin endnu",
+        "noTasks": "Ingen opgaver tildelt af admin endnu",
+        "adminMessages": "Admin beskeder",
+        "adminNotes": "Admin noter",
+        "adminAssignedTasks": "Admin-tildelte opgaver",
+        "taskStatus": {
+            "completed": "Færdig",
+            "noDueDate": "Ingen forfaldsdato",
+            "overdue": "Forfalden",
+            "dueToday": "Forfalder i dag",
+            "upcoming": "Kommende"
+        },
+        "errors": {
+            "loadFailed": "Kunne ikke indlæse admin kommunikation",
+            "loadError": "Fejl ved indlæsning af admin kommunikation"
+        }
     }
 }

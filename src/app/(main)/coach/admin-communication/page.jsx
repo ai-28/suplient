@@ -10,9 +10,11 @@ import { toast } from "sonner";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export default function AdminCommunicationPage() {
   const router = useRouter();
+  const t = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,11 +32,11 @@ export default function AdminCommunicationPage() {
       if (result.success) {
         setData(result);
       } else {
-        toast.error('Failed to load admin communication');
+        toast.error(t('adminCommunication.errors.loadFailed', 'Failed to load admin communication'));
       }
     } catch (error) {
       console.error('Error fetching admin communication:', error);
-      toast.error('Error loading admin communication');
+      toast.error(t('adminCommunication.errors.loadError', 'Error loading admin communication'));
     } finally {
       setLoading(false);
     }
@@ -49,31 +51,35 @@ export default function AdminCommunicationPage() {
     if (diffInHours < 24) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInHours < 48) {
-      return 'Yesterday';
+      return t('adminCommunication.yesterday', 'Yesterday');
     } else {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'No due date';
+    if (!dateStr) return t('adminCommunication.noDueDate', 'No due date');
     const date = new Date(dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    if (date.toDateString() === today.toDateString()) return 'Today';
-    if (date < today) return `${Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))} days ago`;
+    if (date.toDateString() === today.toDateString()) return t('adminCommunication.today', 'Today');
+    if (date < today) {
+      const daysAgo = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      const daysAgoText = t('adminCommunication.daysAgo', '{days} days ago');
+      return daysAgoText.replace('{days}', daysAgo.toString());
+    }
     
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getTaskStatus = (task) => {
     if (task.status === 'completed') {
-      return { label: 'Completed', variant: 'default', icon: CheckCircle };
+      return { label: t('adminCommunication.taskStatus.completed', 'Completed'), variant: 'default', icon: CheckCircle };
     }
     
     if (!task.dueDate) {
-      return { label: 'No due date', variant: 'secondary', icon: Clock };
+      return { label: t('adminCommunication.taskStatus.noDueDate', 'No due date'), variant: 'secondary', icon: Clock };
     }
     
     const today = new Date();
@@ -82,12 +88,12 @@ export default function AdminCommunicationPage() {
     dueDate.setHours(0, 0, 0, 0);
     
     if (dueDate < today) {
-      return { label: 'Overdue', variant: 'destructive', icon: AlertCircle };
+      return { label: t('adminCommunication.taskStatus.overdue', 'Overdue'), variant: 'destructive', icon: AlertCircle };
     }
     if (dueDate.toDateString() === today.toDateString()) {
-      return { label: 'Due Today', variant: 'default', icon: Calendar };
+      return { label: t('adminCommunication.taskStatus.dueToday', 'Due Today'), variant: 'default', icon: Calendar };
     }
-    return { label: 'Upcoming', variant: 'secondary', icon: Clock };
+    return { label: t('adminCommunication.taskStatus.upcoming', 'Upcoming'), variant: 'secondary', icon: Clock };
   };
 
   if (loading) {
@@ -104,7 +110,7 @@ export default function AdminCommunicationPage() {
     return (
       <div className="page-container">
         <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">No admin communication data available</p>
+          <p className="text-muted-foreground">{t('adminCommunication.noData', 'No admin communication data available')}</p>
         </div>
       </div>
     );
@@ -113,8 +119,8 @@ export default function AdminCommunicationPage() {
   return (
     <div className="page-container">
       <PageHeader 
-        title="Admin Communication" 
-        subtitle="Messages, tasks, and notes from administrators"
+        title={t('adminCommunication.title', 'Admin Communication')} 
+        subtitle={t('adminCommunication.subtitle', 'Messages, tasks, and notes from administrators')}
       />
 
       {/* Stats Cards */}
@@ -123,7 +129,7 @@ export default function AdminCommunicationPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Unread Messages</p>
+                <p className="text-sm text-muted-foreground">{t('adminCommunication.stats.unreadMessages', 'Unread Messages')}</p>
                 <p className="text-2xl font-bold">{data.stats.unreadMessages || 0}</p>
               </div>
               <MessageSquare className="h-8 w-8 text-primary" />
@@ -134,7 +140,7 @@ export default function AdminCommunicationPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pending Tasks</p>
+                <p className="text-sm text-muted-foreground">{t('adminCommunication.stats.pendingTasks', 'Pending Tasks')}</p>
                 <p className="text-2xl font-bold">{data.stats.pendingTasks || 0}</p>
               </div>
               <ClipboardList className="h-8 w-8 text-yellow-600" />
@@ -145,7 +151,7 @@ export default function AdminCommunicationPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Overdue Tasks</p>
+                <p className="text-sm text-muted-foreground">{t('adminCommunication.stats.overdueTasks', 'Overdue Tasks')}</p>
                 <p className="text-2xl font-bold text-red-600">{data.stats.overdueTasks || 0}</p>
               </div>
               <AlertCircle className="h-8 w-8 text-red-600" />
@@ -156,7 +162,7 @@ export default function AdminCommunicationPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Tasks</p>
+                <p className="text-sm text-muted-foreground">{t('adminCommunication.stats.totalTasks', 'Total Tasks')}</p>
                 <p className="text-2xl font-bold">{data.stats.totalTasks || 0}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -168,22 +174,22 @@ export default function AdminCommunicationPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="overview">{t('adminCommunication.tabs.overview', 'Overview')}</TabsTrigger>
           <TabsTrigger value="messages">
             <MessageSquare className="h-4 w-4 mr-2" />
-            Messages {data.stats.unreadMessages > 0 && (
+            {t('adminCommunication.tabs.messages', 'Messages')} {data.stats.unreadMessages > 0 && (
               <Badge variant="destructive" className="ml-2">{data.stats.unreadMessages}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="notes">
             <FileText className="h-4 w-4 mr-2" />
-            Notes {data.stats.totalNotes > 0 && (
+            {t('adminCommunication.tabs.notes', 'Notes')} {data.stats.totalNotes > 0 && (
               <Badge variant="default" className="ml-2">{data.stats.totalNotes}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="tasks">
             <ClipboardList className="h-4 w-4 mr-2" />
-            Tasks {data.stats.pendingTasks > 0 && (
+            {t('adminCommunication.tabs.tasks', 'Tasks')} {data.stats.pendingTasks > 0 && (
               <Badge variant="default" className="ml-2">{data.stats.pendingTasks}</Badge>
             )}
           </TabsTrigger>
@@ -195,12 +201,12 @@ export default function AdminCommunicationPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
-                Recent Messages
+                {t('adminCommunication.recentMessages', 'Recent Messages')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {data.conversations.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No messages from admin yet</p>
+                <p className="text-muted-foreground text-center py-4">{t('adminCommunication.noMessages', 'No messages from admin yet')}</p>
               ) : (
                 <div className="space-y-3">
                   {data.conversations.slice(0, 5).map((conv) => (
@@ -246,12 +252,12 @@ export default function AdminCommunicationPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Recent Notes
+                {t('adminCommunication.recentNotes', 'Recent Notes')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {data.notes.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No notes from admin yet</p>
+                <p className="text-muted-foreground text-center py-4">{t('adminCommunication.noNotes', 'No notes from admin yet')}</p>
               ) : (
                 <div className="space-y-3">
                   {data.notes.slice(0, 5).map((note) => (
@@ -267,7 +273,7 @@ export default function AdminCommunicationPage() {
                         <p className="text-sm text-muted-foreground truncate mb-1">{note.description}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {note.createdByName && `Created by ${note.createdByName}`} • {formatTimestamp(note.createdAt)}
+                        {note.createdByName && t('adminCommunication.createdBy', 'Created by {name}').replace('{name}', note.createdByName)} • {formatTimestamp(note.createdAt)}
                       </p>
                     </div>
                   ))}
@@ -281,12 +287,12 @@ export default function AdminCommunicationPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5" />
-                Recent Tasks
+                {t('adminCommunication.recentTasks', 'Recent Tasks')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {data.tasks.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No tasks assigned by admin yet</p>
+                <p className="text-muted-foreground text-center py-4">{t('adminCommunication.noTasks', 'No tasks assigned by admin yet')}</p>
               ) : (
                 <div className="space-y-3">
                   {data.tasks.slice(0, 5).map((task) => {
@@ -315,7 +321,7 @@ export default function AdminCommunicationPage() {
                             <p className="text-sm text-muted-foreground truncate">{task.description}</p>
                           )}
                           <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                            <span>Assigned by {task.assignedByName}</span>
+                            <span>{t('adminCommunication.assignedBy', 'Assigned by {name}').replace('{name}', task.assignedByName)}</span>
                             <span>{formatDate(task.dueDate)}</span>
                           </div>
                         </div>
@@ -331,13 +337,13 @@ export default function AdminCommunicationPage() {
         <TabsContent value="messages" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Admin Messages</CardTitle>
+              <CardTitle>{t('adminCommunication.adminMessages', 'Admin Messages')}</CardTitle>
             </CardHeader>
             <CardContent>
               {data.conversations.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No messages from admin yet</p>
+                  <p className="text-muted-foreground">{t('adminCommunication.noMessages', 'No messages from admin yet')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -360,7 +366,7 @@ export default function AdminCommunicationPage() {
                             <p className="font-medium">{conv.adminName || 'Admin'}</p>
                             {conv.unreadCount > 0 && (
                               <Badge variant="destructive" className="text-xs">
-                                {conv.unreadCount} new
+                                {t('adminCommunication.new', '{count} new').replace('{count}', conv.unreadCount.toString())}
                               </Badge>
                             )}
                           </div>
@@ -385,13 +391,13 @@ export default function AdminCommunicationPage() {
         <TabsContent value="notes" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Admin Notes</CardTitle>
+              <CardTitle>{t('adminCommunication.adminNotes', 'Admin Notes')}</CardTitle>
             </CardHeader>
             <CardContent>
               {data.notes.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No notes from admin yet</p>
+                  <p className="text-muted-foreground">{t('adminCommunication.noNotes', 'No notes from admin yet')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -402,7 +408,7 @@ export default function AdminCommunicationPage() {
                           <div className="flex-1">
                             <CardTitle className="text-base mb-1">{note.title}</CardTitle>
                             <p className="text-xs text-muted-foreground">
-                              {note.createdByName && `Created by ${note.createdByName}`} • {formatTimestamp(note.createdAt)}
+                              {note.createdByName && t('adminCommunication.createdBy', 'Created by {name}').replace('{name}', note.createdByName)} • {formatTimestamp(note.createdAt)}
                             </p>
                           </div>
                         </div>
@@ -425,13 +431,13 @@ export default function AdminCommunicationPage() {
         <TabsContent value="tasks" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>Admin-Assigned Tasks</CardTitle>
+              <CardTitle>{t('adminCommunication.adminAssignedTasks', 'Admin-Assigned Tasks')}</CardTitle>
             </CardHeader>
             <CardContent>
               {data.tasks.length === 0 ? (
                 <div className="text-center py-12">
                   <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No tasks assigned by admin yet</p>
+                  <p className="text-muted-foreground">{t('adminCommunication.noTasks', 'No tasks assigned by admin yet')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -465,8 +471,8 @@ export default function AdminCommunicationPage() {
                               <Calendar className="h-3 w-3" />
                               {formatDate(task.dueDate)}
                             </span>
-                            <span>Assigned by {task.assignedByName}</span>
-                            <span>Created {formatTimestamp(task.createdAt)}</span>
+                            <span>{t('adminCommunication.assignedBy', 'Assigned by {name}').replace('{name}', task.assignedByName)}</span>
+                            <span>{t('adminCommunication.created', 'Created {time}').replace('{time}', formatTimestamp(task.createdAt))}</span>
                           </div>
                         </div>
                       </div>

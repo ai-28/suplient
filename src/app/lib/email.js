@@ -25,11 +25,24 @@ async function sendEmailViaAPI(templateId, templateParams) {
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ text: 'Unknown error' }));
+        const errorText = await response.text().catch(() => 'Unknown error');
+        let errorData;
+        try {
+            errorData = JSON.parse(errorText);
+        } catch {
+            errorData = { text: errorText };
+        }
         throw new Error(errorData.text || `EmailJS API error: ${response.status}`);
     }
 
-    return response.json();
+    // EmailJS may return "OK" as plain text or JSON
+    const responseText = await response.text();
+    try {
+        return JSON.parse(responseText);
+    } catch {
+        // If response is plain text (like "OK"), return success object
+        return { status: 200, text: responseText };
+    }
 }
 
 export const sendClientRegistrationEmail = async (newClient) => {

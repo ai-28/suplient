@@ -46,6 +46,7 @@
             "hide": "Hide",
             "selectAll": "Select All"
         },
+        "greeting": "Hi",
         "messages": {
             "loading": "Loading...",
             "error": "An error occurred",
@@ -85,7 +86,7 @@
     "navigation": {
         "dashboard": "Dashboard",
         "adminNavigation": "Admin Navigation",
-        "coachNavigation": "Coach Navigation",
+        "coachNavigation": "Menu",
         "clients": "Clients",
         "tasks": "Tasks",
         "sessions": "Sessions",
@@ -97,7 +98,7 @@
         "programs": "Programs",
         "coaches": "Coaches",
         "adminUsers": "Admin Users",
-        "admin": "Admin",
+        "admin": "Support",
         "chat": "Chat",
         "journal": "Journal",
         "profile": "Profile",
@@ -988,10 +989,8 @@
         "and": "and",
         "privacyPolicy": "Privacy Policy",
         "tagline": "Scale your practice, amplify your impact",
-        "heading": "Scaling therapy without losing the human touch",
-        "description1": "Suplient helps therapists and coaches scale their impact without sacrificing quality or connection. Unlike other platforms that focus on automation, we prioritize outcomes and the therapist-client relationship.",
-        "description2": "We digitize proven therapeutic tools to reduce time per client while increasing care quality. Serve more clients consistently without burning out.",
-        "description3": "We're not replacing therapists with AI. We're giving you superpowers. Therapy is evolving, make sure your practice evolves with it.",
+        "heroTitle": "Scale your impact keep the human touch",
+        "heroDescription": "Deliver personal 1:1 and group programs, support hundreds of clients in parallel and track real progress -without stress, burnout or extra hours.",
         "errors": {
             "emailNotFound": "Email not found. Please check your email address.",
             "incorrectPassword": "Incorrect password. Please try again.",
@@ -1011,5 +1010,50 @@
         },
         "loading": "Loading...",
         "redirecting": "Redirecting to dashboard..."
+    },
+    "adminCommunication": {
+        "title": "Admin Communication",
+        "subtitle": "Messages, tasks, and notes from administrators",
+        "noData": "No admin communication data available",
+        "yesterday": "Yesterday",
+        "today": "Today",
+        "daysAgo": "{days} days ago",
+        "noDueDate": "No due date",
+        "createdBy": "Created by {name}",
+        "assignedBy": "Assigned by {name}",
+        "created": "Created {time}",
+        "new": "{count} new",
+        "stats": {
+            "unreadMessages": "Unread Messages",
+            "pendingTasks": "Pending Tasks",
+            "overdueTasks": "Overdue Tasks",
+            "totalTasks": "Total Tasks"
+        },
+        "tabs": {
+            "overview": "Overview",
+            "messages": "Messages",
+            "notes": "Notes",
+            "tasks": "Tasks"
+        },
+        "recentMessages": "Recent Messages",
+        "recentNotes": "Recent Notes",
+        "recentTasks": "Recent Tasks",
+        "noMessages": "No messages from admin yet",
+        "noNotes": "No notes from admin yet",
+        "noTasks": "No tasks assigned by admin yet",
+        "adminMessages": "Admin Messages",
+        "adminNotes": "Admin Notes",
+        "adminAssignedTasks": "Admin-Assigned Tasks",
+        "taskStatus": {
+            "completed": "Completed",
+            "noDueDate": "No due date",
+            "overdue": "Overdue",
+            "dueToday": "Due Today",
+            "upcoming": "Upcoming"
+        },
+        "errors": {
+            "loadFailed": "Failed to load admin communication",
+            "loadError": "Error loading admin communication"
+        }
     }
 }

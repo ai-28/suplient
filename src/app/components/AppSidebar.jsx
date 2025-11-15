@@ -223,7 +223,6 @@ export function AppSidebar() {
         { title: t('navigation.programs', 'Programs'), url: "/coach/programs", icon: Target },
         { title: t('navigation.tasks', 'Tasks'), url: "/coach/tasks", icon: ClipboardList },
         { title: t('navigation.sessions', 'Sessions'), url: "/coach/sessions", icon: Calendar },
-        { title: t('navigation.admin', 'Admin'), url: "/coach/admin-communication", icon: MessageCircle },
       ];
     }
     return [];
@@ -238,7 +237,7 @@ export function AppSidebar() {
     } else if (isCoach) {
       return [
         { title: t('navigation.settings', 'Settings'), url: "/coach/settings", icon: Settings },
-        { title: t('navigation.help', 'Help'), url: "/coach/help", icon: HelpCircle },
+        { title: t('navigation.admin', 'Admin'), url: "/coach/admin-communication", icon: MessageCircle },
       ];
     }
     return [];
@@ -381,7 +380,7 @@ export function AppSidebar() {
         <SidebarGroup className={!open ? "mt-12" : ""}>
           {open && (
             <SidebarGroupLabel className="text-sidebar-foreground text-xs uppercase tracking-wider px-6 mb-4">
-              {isAdmin ? t('navigation.adminNavigation', 'Admin Navigation') : t('navigation.coachNavigation', 'Coach Navigation')}
+              {isAdmin ? t('navigation.adminNavigation', 'Admin Navigation') : t('navigation.coachNavigation', 'Menu')}
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
