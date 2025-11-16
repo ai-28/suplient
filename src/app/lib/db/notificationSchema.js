@@ -204,19 +204,18 @@ export const notificationSchema = {
         }
     },
 
-    // Mark all notifications as read for a user
+    // Delete all notifications for a user
     async markAllAsRead(userId) {
         try {
             const result = await sql`
-                UPDATE "Notification"
-                SET "isRead" = true, "readAt" = CURRENT_TIMESTAMP
-                WHERE "userId" = ${userId} AND "isRead" = false
+                DELETE FROM "Notification"
+                WHERE "userId" = ${userId}
                 RETURNING *
             `;
 
             return { success: true, data: result };
         } catch (error) {
-            console.error('Error marking all notifications as read:', error);
+            console.error('Error deleting all notifications:', error);
             return { success: false, error: error.message };
         }
     },

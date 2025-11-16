@@ -10,6 +10,7 @@ import { ScrollArea } from '@/app/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { useNotifications } from '@/app/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 const notificationIcons = {
   client_signup: '👤',
@@ -42,7 +43,7 @@ export function NotificationBell({ userRole = 'client' }) {
     markAsRead, 
     markAllAsRead, 
     deleteNotification 
-  } = useNotifications({ limit: 20, isRead: false });
+  } = useNotifications({ limit: 50 }); // Fetch all notifications (read and unread)
 
   // Check notification preference on mount
   useEffect(() => {
@@ -75,15 +76,11 @@ export function NotificationBell({ userRole = 'client' }) {
     );
   }
 
-  // Filter notifications based on user role, relationships, and read status
+  // Filter notifications based on user role (show both read and unread)
   const filteredNotifications = notifications.filter(notification => {
-    // Only show unread notifications
-    if (notification.isRead) return false;
-    
     if (userRole === 'admin') {
-      // Admins see: system notifications and all admin-related notifications
-      // Admins can receive notifications from the "Note" feature and other admin-specific events
-      return true; // Admins see all their unread notifications
+      // Admins see all their notifications
+      return true;
     } else if (userRole === 'coach') {
       // Coaches see: client signup, task completion, daily checkin, new messages from THEIR OWN CLIENTS, system notifications, and group join requests
       const allowedTypes = ['client_signup', 'task_completed', 'daily_checkin', 'new_message', 'system', 'group_join_request'];
@@ -121,32 +118,48 @@ export function NotificationBell({ userRole = 'client' }) {
       
       return true;
     }
-    return true; // Default: show all unread notifications
+    return true; // Default: show all notifications
   });
 
-  // Calculate filtered unread count (filteredNotifications already contains only unread notifications)
-  const filteredUnreadCount = filteredNotifications.length;
+  // Calculate unread count from filtered notifications
+  const filteredUnreadCount = filteredNotifications.filter(n => !n.isRead).length;
 
   const handleNotificationClick = async (notification) => {
+    // Only mark as read if it's unread
+    if (!notification.isRead) {
     await markAsRead(notification.id);
+    }
     setIsOpen(false);
     
-    // Navigate based on notification type
-    if (notification.type === 'resource_shared') {
-      router.push('/client/resources');
-    } else if (notification.type === 'new_message') {
-      // Navigate to chat - you might want to add conversation ID to the data
-      router.push('/client/chat');
-    } else if (notification.type === 'task_completed') {
-      router.push('/client/tasks');
-    } else if (notification.type === 'daily_checkin') {
-      router.push('/client/journal');
-    }
+    // // Navigate based on notification type
+    // if (notification.type === 'resource_shared') {
+    //   router.push('/client/resources');
+    // } else if (notification.type === 'new_message') {
+    //   // Navigate to chat - you might want to add conversation ID to the data
+    //   router.push('/client/chat');
+    // } else if (notification.type === 'task_completed') {
+    //   router.push('/client/tasks');
+    // } else if (notification.type === 'daily_checkin') {
+    //   router.push('/client/journal');
+    // }
     // Add more navigation cases as needed
   };
 
-  const handleMarkAllRead = async () => {
+  const handleClearAll = async () => {
+    toast('Are you sure you want to clear all notifications?', {
+      description: 'This action cannot be undone.',
+      action: {
+        label: 'Clear',
+        onClick: async () => {
     await markAllAsRead();
+        },
+      },
+      cancel: {
+        label: 'Cancel',
+        onClick: () => {},
+      },
+      duration: 5000,
+    });
   };
 
   const handleDeleteNotification = async (e, notificationId) => {
@@ -174,16 +187,16 @@ export function NotificationBell({ userRole = 'client' }) {
           <CardHeader className="pb-3 border-b border-border dark:border-border">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-foreground dark:text-foreground">
-                Notifications ({filteredUnreadCount})
+                Notifications {filteredUnreadCount > 0 && `(${filteredUnreadCount} unread)`}
               </CardTitle>
-              {filteredUnreadCount > 0 && (
+              {filteredNotifications.length > 0 && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={handleMarkAllRead}
-                  className="text-xs text-foreground dark:text-foreground hover:bg-muted dark:hover:bg-muted"
+                  onClick={handleClearAll}
+                  className="text-xs text-foreground dark:text-foreground hover:bg-destructive/10 dark:hover:bg-destructive/20 hover:text-destructive"
                 >
-                  Mark all read
+                  Clear all
                 </Button>
               )}
             </div>
@@ -197,17 +210,17 @@ export function NotificationBell({ userRole = 'client' }) {
               ) : filteredNotifications.length === 0 ? (
                 <div className="p-4 text-center text-sm text-muted-foreground dark:text-muted-foreground">
                   <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  No unread notifications
+                  No notifications
                 </div>
               ) : (
                 <div className="space-y-1">
                   {filteredNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-3 border-b border-border dark:border-border cursor-pointer transition-colors ${
+                      className={`group p-3 border-b border-border dark:border-border cursor-pointer transition-colors ${
                         !notification.isRead 
-                          ? 'bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/50 dark:hover:bg-blue-950/40' 
-                          : 'bg-background dark:bg-background hover:bg-muted/50 dark:hover:bg-muted/50'
+                          ? 'bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/50 dark:hover:bg-blue-950/40 border-l-4 border-l-blue-500' 
+                          : 'bg-background dark:bg-background hover:bg-muted/50 dark:hover:bg-muted/50 opacity-70'
                       }`}
                       onClick={() => handleNotificationClick(notification)}
                     >
@@ -218,7 +231,7 @@ export function NotificationBell({ userRole = 'client' }) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <h4 className={`text-sm truncate text-foreground dark:text-foreground ${
-                              !notification.isRead ? 'font-semibold' : 'font-medium'
+                              !notification.isRead ? 'font-semibold' : 'font-normal'
                             }`}>
                               {notification.title}
                             </h4>
@@ -230,13 +243,17 @@ export function NotificationBell({ userRole = 'client' }) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => handleDeleteNotification(e, notification.id)}
-                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 dark:hover:bg-destructive/20"
+                                className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity hover:bg-destructive/10 dark:hover:bg-destructive/20"
                               >
                                 <X className="h-3 w-3 text-foreground dark:text-foreground" />
                               </Button>
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1 line-clamp-2">
+                          <p className={`text-xs mt-1 line-clamp-2 ${
+                            !notification.isRead 
+                              ? 'text-foreground dark:text-foreground' 
+                              : 'text-muted-foreground dark:text-muted-foreground'
+                          }`}>
                             {notification.message}
                           </p>
                           <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">

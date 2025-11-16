@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption.js';
 import { notificationSchema } from '@/app/lib/db/notificationSchema';
 
-// PUT /api/notifications/mark-all-read - Mark all notifications as read
+// PUT /api/notifications/mark-all-read - Delete all notifications for the user
 export async function PUT(request) {
     try {
         const session = await getServerSession(authOptions);
@@ -20,10 +20,10 @@ export async function PUT(request) {
         return NextResponse.json({
             success: true,
             count: result.data.length,
-            message: `Marked ${result.data.length} notifications as read`
+            message: `Deleted ${result.data.length} notifications`
         });
     } catch (error) {
-        console.error('Error marking all notifications as read:', error);
+        console.error('Error deleting all notifications:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

@@ -124,25 +124,19 @@ export function useNotifications(options = {}) {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to mark all notifications as read');
+                throw new Error('Failed to clear all notifications');
             }
 
             const data = await response.json();
 
-            // Update local state
-            setNotifications(prev =>
-                prev.map(notification => ({
-                    ...notification,
-                    isRead: true,
-                    readAt: new Date().toISOString()
-                }))
-            );
+            // Clear all notifications from local state since they're deleted
+            setNotifications([]);
             setUnreadCount(0);
 
-            toast.success(data.message || 'All notifications marked as read');
+            toast.success(data.message || 'All notifications cleared');
         } catch (err) {
-            console.error('Error marking all notifications as read:', err);
-            toast.error('Failed to mark all notifications as read');
+            console.error('Error clearing all notifications:', err);
+            toast.error('Failed to clear all notifications');
         }
     }, []);
 
