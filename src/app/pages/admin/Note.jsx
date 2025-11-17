@@ -9,9 +9,12 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Label } from "@/app/components/ui/label";
 import { PageHeader } from "@/app/components/PageHeader";
-import { Bell, Send, Users, User, Loader2 } from "lucide-react";
+import { Bell, Send, Users, User, Loader2, Archive, Eye, EyeOff, Clock } from "lucide-react";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { formatDistanceToNow } from "date-fns";
+import { Badge } from "@/app/components/ui/badge";
 
 export default function AdminNote() {
   const { data: session } = useSession();
@@ -25,6 +28,11 @@ export default function AdminNote() {
   const [fetchingData, setFetchingData] = useState(true);
   const [showClients, setShowClients] = useState(true);
   const [showCoaches, setShowCoaches] = useState(true);
+  
+  // Archive state
+  const [sentNotes, setSentNotes] = useState([]);
+  const [loadingArchive, setLoadingArchive] = useState(false);
+  const [activeTab, setActiveTab] = useState("send");
 
   // Fetch clients and coaches
   useEffect(() => {
@@ -58,6 +66,33 @@ export default function AdminNote() {
       fetchData();
     }
   }, [session]);
+
+  // Fetch sent notes archive
+  const fetchSentNotes = async () => {
+    setLoadingArchive(true);
+    try {
+      const response = await fetch('/api/admin/sent-notes');
+      const data = await response.json();
+      if (data.success) {
+        setSentNotes(data.notes || []);
+      } else {
+        throw new Error(data.error || 'Failed to fetch sent notes');
+      }
+    } catch (error) {
+      console.error('Error fetching sent notes:', error);
+      toast.error('Failed to load sent notes');
+    } finally {
+      setLoadingArchive(false);
+    }
+  };
+
+  // Fetch archive when switching to archive tab
+  useEffect(() => {
+    if (activeTab === 'archive' && sentNotes.length === 0) {
+      fetchSentNotes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // Handle select/deselect all clients
   const handleSelectAllClients = (checked) => {
@@ -130,6 +165,10 @@ export default function AdminNote() {
         setMessage('');
         setSelectedClients([]);
         setSelectedCoaches([]);
+        // Refresh archive if on archive tab
+        if (activeTab === 'archive') {
+          fetchSentNotes();
+        }
       } else {
         throw new Error(data.error || 'Failed to send notification');
       }
@@ -161,7 +200,20 @@ export default function AdminNote() {
         subtitle={t('notes.sendNotificationDesc', 'Send real-time notifications to clients and coaches')}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="send">
+            <Send className="h-4 w-4 mr-2" />
+            {t('notes.send', 'Send')}
+          </TabsTrigger>
+          <TabsTrigger value="archive">
+            <Archive className="h-4 w-4 mr-2" />
+            {t('notes.archive', 'Archive')}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="send" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recipients Selection */}
         <div className="lg:col-span-2 space-y-6">
           {/* Clients Section */}
@@ -352,6 +404,105 @@ export default function AdminNote() {
           </Card>
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="archive" className="mt-6">
+          <Card className="card-standard">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Archive className="h-5 w-5 text-primary" />
+                  {t('notes.sentNotes', 'Sent Notes')}
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchSentNotes}
+                  disabled={loadingArchive}
+                >
+                  <Loader2 className={`h-4 w-4 mr-2 ${loadingArchive ? 'animate-spin' : ''}`} />
+                  {t('common.buttons.refresh', 'Refresh')}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingArchive ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                    <p className="text-muted-foreground">{t('common.messages.loading')}</p>
+                  </div>
+                </div>
+              ) : sentNotes.length === 0 ? (
+                <div className="text-center py-12">
+                  <Archive className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <p className="text-muted-foreground">{t('notes.noSentNotes', 'No sent notes yet')}</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[600px]">
+                  <div className="space-y-4">
+                    {sentNotes.map((note) => (
+                      <Card key={note.groupKey} className="border-l-4 border-l-primary">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium mb-2 whitespace-pre-wrap">{note.message}</p>
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {formatDistanceToNow(new Date(note.sentAt), { addSuffix: true })}
+                                </span>
+                                <Badge variant="outline">
+                                  {note.totalRecipients} {t('notes.recipients', 'recipients')}
+                                </Badge>
+                                <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                  <Eye className="h-3 w-3" />
+                                  {note.readCount} {t('notes.read', 'read')}
+                                </span>
+                                <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                                  <EyeOff className="h-3 w-3" />
+                                  {note.unreadCount} {t('notes.unread', 'unread')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <details className="group">
+                            <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground mb-2">
+                              {t('notes.viewRecipients', 'View recipients')} ({note.recipients.length})
+                            </summary>
+                            <div className="mt-3 space-y-2">
+                              {note.recipients.map((recipient) => (
+                                <div
+                                  key={recipient.id}
+                                  className={`flex items-center justify-between p-2 rounded border ${
+                                    recipient.isRead 
+                                      ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' 
+                                      : 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800'
+                                  }`}
+                                >
+                                  <div>
+                                    <p className="text-sm font-medium">{recipient.name}</p>
+                                    <p className="text-xs text-muted-foreground">{recipient.email} • {recipient.role}</p>
+                                  </div>
+                                  <Badge variant={recipient.isRead ? "default" : "secondary"}>
+                                    {recipient.isRead ? t('notes.read', 'Read') : t('notes.unread', 'Unread')}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

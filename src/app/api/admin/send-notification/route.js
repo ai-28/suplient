@@ -32,6 +32,10 @@ export async function POST(request) {
         let successCount = 0;
         let failCount = 0;
 
+        // Generate a batch ID to group all notifications sent together
+        const batchId = crypto.randomUUID();
+        const sentAt = new Date().toISOString();
+
         // Create notifications for all recipients
         for (const userId of recipientIds) {
             try {
@@ -57,10 +61,18 @@ export async function POST(request) {
                     continue;
                 }
 
+                // Store batch info in data field
+                const notificationData = {
+                    batchId,
+                    sentBy: session.user.id,
+                    sentAt,
+                    recipientType: clientIds.includes(userId) ? 'client' : 'coach'
+                };
+
                 // Insert notification into database and get the actual ID
                 const insertedNotification = await sql`
           INSERT INTO "Notification" 
-          ("userId", type, title, message, "isRead", priority, "createdAt")
+          ("userId", type, title, message, "isRead", priority, data, "createdAt")
           VALUES (
             ${userId},
             'system',
@@ -68,6 +80,7 @@ export async function POST(request) {
             ${message.trim()},
             false,
             'high',
+            ${JSON.stringify(notificationData)},
             CURRENT_TIMESTAMP
           )
           RETURNING *
@@ -88,7 +101,7 @@ export async function POST(request) {
                                 isRead: notification.isRead,
                                 priority: notification.priority,
                                 createdAt: notification.createdAt ? new Date(notification.createdAt).toISOString() : new Date().toISOString(),
-                                data: notification.data ? (typeof notification.data === 'string' ? JSON.parse(notification.data) : notification.data) : null
+                                data: notificationData
                             };
 
                             // Emit to user's notification room
