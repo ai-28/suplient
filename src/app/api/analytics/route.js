@@ -18,6 +18,7 @@ export async function GET(request) {
 
         const { searchParams } = new URL(request.url);
         const period = searchParams.get('period') || 'today';
+        const dateParam = searchParams.get('date'); // Optional date parameter for specific date
 
         // Get the client ID
         const clientResult = await sql`
@@ -36,18 +37,20 @@ export async function GET(request) {
         const clientId = clientResult[0].id;
 
         // Calculate date range based on period
-        const now = new Date();
-        const endDate = new Date(now);
-        const startDate = new Date(now);
-
+        let targetDate = dateParam ? new Date(dateParam) : new Date();
+        const endDate = new Date(targetDate);
+        const startDate = new Date(targetDate);
         switch (period) {
             case 'today':
+                // Use the specific date if provided, otherwise use today
                 startDate.setDate(endDate.getDate());
                 break;
             case 'week':
+                // For week, calculate 7 days ending on targetDate
                 startDate.setDate(endDate.getDate() - 6);
                 break;
             case 'month':
+                // For month, calculate 30 days ending on targetDate
                 startDate.setDate(endDate.getDate() - 29);
                 break;
         }
@@ -55,6 +58,7 @@ export async function GET(request) {
         // PostgreSQL stores dates in UTC, so use UTC consistently
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
+        const targetDateStr = targetDate.toISOString().split('T')[0];
 
         // Get check-ins for the specified period
         const checkInsResult = await sql`
@@ -63,14 +67,6 @@ export async function GET(request) {
             AND date >= ${startDateStr} 
             AND date <= ${endDateStr}
             ORDER BY date DESC
-        `;
-
-        // Get the most recent check-in for current goal scores
-        const latestCheckInResult = await sql`
-            SELECT * FROM "CheckIn" 
-            WHERE "clientId" = ${clientId} 
-            ORDER BY date DESC
-            LIMIT 1
         `;
 
         // Map database fields to goal analytics format
@@ -82,36 +78,80 @@ export async function GET(request) {
             maintainingRelationships: { name: "Relationships", color: "#06b6d4", icon: "👥" }
         };
 
-        // Get current goal distribution from latest check-in
+        // Calculate goal distribution based on period
         let goalDistribution = [];
-        if (latestCheckInResult.length > 0) {
-            const latestCheckIn = latestCheckInResult[0];
-            goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
-                id: field,
-                name: config.name,
-                value: latestCheckIn[field] || 0,
-                color: config.color,
-                icon: config.icon
-            }));
+
+        if (period === 'today') {
+            // For today, get the specific date's check-in
+            // Compare dates at date level only (ignore time)
+            const todayCheckIn = checkInsResult.find(ci => {
+                // Convert database date to date string for comparison
+                const checkInDate = ci.date instanceof Date
+                    ? ci.date.toISOString().split('T')[0]
+                    : new Date(ci.date).toISOString().split('T')[0];
+                return checkInDate === targetDateStr;
+            });
+            if (todayCheckIn) {
+                goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
+                    id: field,
+                    name: config.name,
+                    value: todayCheckIn[field] || 0,
+                    color: config.color,
+                    icon: config.icon
+                }));
+            } else {
+                // No check-in for this date, return zeros
+                goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
+                    id: field,
+                    name: config.name,
+                    value: 0,
+                    color: config.color,
+                    icon: config.icon
+                }));
+            }
+        } else if (period === 'week' || period === 'month') {
+            // For week/month, calculate averages
+            if (checkInsResult.length > 0) {
+                const goalFields = Object.keys(goalMapping);
+                goalDistribution = Object.entries(goalMapping).map(([field, config]) => {
+                    const sum = checkInsResult.reduce((acc, checkIn) => acc + (checkIn[field] || 0), 0);
+                    const average = Math.round((sum / checkInsResult.length) * 10) / 10; // Round to 1 decimal
+                    return {
+                        id: field,
+                        name: config.name,
+                        value: average,
+                        color: config.color,
+                        icon: config.icon
+                    };
+                });
+            } else {
+                // No check-ins in period, return zeros
+                goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
+                    id: field,
+                    name: config.name,
+                    value: 0,
+                    color: config.color,
+                    icon: config.icon
+                }));
+            }
         }
 
         // Transform historical data for line chart
-        const historicalData = checkInsResult.map(entry => ({
-            date: entry.date,
-            goalScores: {
-                sleepQuality: entry.sleepQuality,
-                nutrition: entry.nutrition,
-                physicalActivity: entry.physicalActivity,
-                learning: entry.learning,
-                maintainingRelationships: entry.maintainingRelationships
-            }
-        }));
+        // const historicalData = checkInsResult.map(entry => ({
+        //     date: entry.date,
+        //     goalScores: {
+        //         sleepQuality: entry.sleepQuality,
+        //         nutrition: entry.nutrition,
+        //         physicalActivity: entry.physicalActivity,
+        //         learning: entry.learning,
+        //         maintainingRelationships: entry.maintainingRelationships
+        //     }
+        // }));
 
         // Get user stats (pre-computed values)
         const userStats = await userStatsRepo.getUserStats(session.user.id);
         return NextResponse.json({
             goalDistribution,
-            historicalData,
             dailyStreak: userStats.daily_streak,
             totalEngagementPoints: userStats.total_points
         });

@@ -39,7 +39,7 @@ import { useTranslation } from "@/app/context/LanguageContext";
 
 
 // Custom hooks with real data
-const useGoalTracking = (period) => {
+const useGoalTracking = (period, date) => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,10 +47,16 @@ const useGoalTracking = (period) => {
   const hasFetchedRef = useRef({});
   const lastVisibilityFetchAtRef = useRef(0);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (targetDate) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/analytics?period=${period}`);
+      let url = `/api/analytics?period=${period}`;
+      // Add date parameter for all periods to base calculations on selected date
+      if (targetDate) {
+        const dateStr = targetDate.toISOString().split('T')[0];
+        url += `&date=${dateStr}`;
+      }
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data');
       }
@@ -65,11 +71,10 @@ const useGoalTracking = (period) => {
   };
 
   useEffect(() => {
-    // Only fetch once per period value per mount
-    if (hasFetchedRef.current[period]) return;
-    hasFetchedRef.current[period] = true;
-    fetchAnalytics();
-  }, [period]);
+    // Always fetch fresh data when period or date changes
+    fetchAnalytics(date);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period, date]);
 
   // Refresh when component becomes visible (after navigation)
   useEffect(() => {
@@ -168,7 +173,7 @@ export default function ClientDashboard() {
     };
   }, []);
   
-  const { analyticsData, loading, error, refetch } = useGoalTracking(activeTab);
+  const { analyticsData, loading, error, refetch } = useGoalTracking(activeTab, currentDate);
   const { sessions: upcomingSessions, sessionsLoading, sessionsError } = useUpcomingSessions();
   
   // Memoize gamification calculations
@@ -223,10 +228,21 @@ export default function ClientDashboard() {
     });
   };
 
+  const isToday = (date) => {
+    const today = new Date();
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    );
+  };
+
   const navigateDate = (direction) => {
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
     setCurrentDate(newDate);
+    // If activeTab is "today", the data will automatically update via the useEffect in useGoalTracking
+    // For week/month, we keep showing the averages for those periods
   };
 
   return (
@@ -282,7 +298,7 @@ export default function ClientDashboard() {
         </div>
 
         {/* Date navigator */}
-        <div className="flex items-center justify-center p-4 bg-card border-t border-border">
+        <div className="flex items-center justify-center p-4 bg-card border-t border-border gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -290,15 +306,27 @@ export default function ClientDashboard() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="mx-8 text-center">
+          <div className="mx-4 text-center flex-1">
             <h2 className="text-lg font-semibold">{formatDate(currentDate)}</h2>
           </div>
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => navigateDate('next')}
+            disabled={isToday(currentDate)}
           >
             <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setCurrentDate(new Date());
+              setActiveTab('today');
+            }}
+            className="ml-2"
+          >
+            {t('common.time.today', 'Today')}
           </Button>
         </div>
       </div>
@@ -321,7 +349,7 @@ export default function ClientDashboard() {
         ) : (
           <GoalAnalyticsChart 
             data={analyticsData?.goalDistribution || []}
-            historicalData={analyticsData?.historicalData || []}
+            // historicalData={analyticsData?.historicalData || []}
             onTimePeriodChange={handleTimePeriodChange}
             selectedPeriod={activeTab}
           />

@@ -3,11 +3,15 @@
 import { Button } from "@/app/components/ui/button";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Slider } from "@/app/components/ui/slider";
-import { ArrowLeft, Save, Target, TrendingDown } from "lucide-react";
+import { ArrowLeft, Save, Target, TrendingDown, Calendar as CalendarIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { Calendar } from "@/app/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/app/lib/utils";
 
 // Fixed goal fields from the image
 const goalFields = [
@@ -125,6 +129,10 @@ export default function ClientJournal() {
   const activeBadHabits = getActiveBadHabits();
   const { saveDailyEntry, getTodayEntry, isLoading } = useDailyTracking(activeGoals, activeBadHabits);
   
+  // Selected date for check-in (defaults to today)
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isLoadingEntry, setIsLoadingEntry] = useState(false);
+  
   // Single form data object with all fields
   const [formData, setFormData] = useState({
     // Goal scores (default to 3 as shown in image)
@@ -145,6 +153,64 @@ export default function ClientJournal() {
     // Metadata
     date: new Date().toISOString().split('T')[0],
   });
+
+  // Load existing check-in data when date changes
+  useEffect(() => {
+    const loadEntryForDate = async () => {
+      if (!selectedDate) return;
+      
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setIsLoadingEntry(true);
+      
+      try {
+        const existingEntry = await getTodayEntry(dateString);
+        
+        if (existingEntry) {
+          // Load existing data - API returns fields directly, not nested in responses
+          setFormData(prev => ({
+            ...prev,
+            date: dateString,
+            sleepQuality: existingEntry.sleepQuality ?? 3,
+            nutrition: existingEntry.nutrition ?? 3,
+            physicalActivity: existingEntry.physicalActivity ?? 3,
+            learning: existingEntry.learning ?? 3,
+            maintainingRelationships: existingEntry.maintainingRelationships ?? 3,
+            excessiveSocialMedia: existingEntry.excessiveSocialMedia ?? 2,
+            procrastination: existingEntry.procrastination ?? 2,
+            negativeThinking: existingEntry.negativeThinking ?? 2,
+            notes: existingEntry.notes ?? "",
+          }));
+        } else {
+          // Reset to defaults for new date
+          setFormData(prev => ({
+            ...prev,
+            date: dateString,
+            sleepQuality: 3,
+            nutrition: 3,
+            physicalActivity: 3,
+            learning: 3,
+            maintainingRelationships: 3,
+            excessiveSocialMedia: 2,
+            procrastination: 2,
+            negativeThinking: 2,
+            notes: "",
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading entry:', error);
+        // Reset to defaults on error
+        setFormData(prev => ({
+          ...prev,
+          date: dateString,
+        }));
+      } finally {
+        setIsLoadingEntry(false);
+      }
+    };
+
+    loadEntryForDate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
 
   const handleSave = async () => {
     if (isLoading) return; // Prevent multiple clicks
@@ -217,8 +283,48 @@ export default function ClientJournal() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="ml-3 text-lg font-semibold">{t('journal.quickCheckIn', 'Quick Daily Check-in')}</h1>
-        <div className="ml-auto">
-          <Button onClick={handleSave} disabled={isLoading} size="sm">
+        <div className="ml-auto flex flex-col items-end gap-2">
+          {/* Date Picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "justify-start text-left font-normal",
+                  "min-w-[140px]"
+                )}
+                disabled={isLoadingEntry}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? (
+                  format(selectedDate, "MMM d, yyyy")
+                ) : (
+                  <span>{t('journal.selectDate', 'Select date')}</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                  }
+                }}
+                initialFocus
+                disabled={(date) => {
+                  // Allow past dates, but disable future dates
+                  const today = new Date();
+                  today.setHours(23, 59, 59, 999);
+                  return date > today;
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          
+          <Button onClick={handleSave} disabled={isLoading || isLoadingEntry} size="sm" className="w-full min-w-[140px]">
             <Save className="h-4 w-4 mr-1" />
             {isLoading ? t('common.messages.saving', 'Saving...') : t('common.buttons.save', 'Save')}
           </Button>
@@ -226,8 +332,18 @@ export default function ClientJournal() {
       </div>
 
       <div className="p-4 space-y-6 mt-16 mb-24">
+        {/* Loading indicator when loading entry */}
+        {/* {isLoadingEntry && (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p className="text-sm text-muted-foreground">{t('journal.loadingEntry', 'Loading check-in data...')}</p>
+            </div>
+          </div>
+        )} */}
+        
         {/* Goals */}
-        {(
+        {!isLoadingEntry && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
@@ -379,7 +495,7 @@ export default function ClientJournal() {
         )}
 
         {/* Bad Habits */}
-        {(
+        {!isLoadingEntry && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-destructive" />
@@ -475,7 +591,7 @@ export default function ClientJournal() {
         )}
 
         {/* Quick Notes */}
-        {(
+        {!isLoadingEntry && (
           <div className="space-y-3">
             <h2 className="font-semibold">{t('journal.howWasToday', 'How was today?')}</h2>
             <Textarea
