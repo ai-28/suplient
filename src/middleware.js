@@ -19,13 +19,35 @@ export default withAuth(
                     return true;
                 }
 
-                // Protect all authenticated routes
-                if (req.nextUrl.pathname.startsWith("/coach") ||
-                    req.nextUrl.pathname.startsWith("/admin") ||
-                    req.nextUrl.pathname.startsWith("/client") ||
-                    req.nextUrl.pathname.startsWith("/dashboard")) {
-                    return !!token;
+                // Check if user is authenticated
+                if (!token) {
+                    return false;
                 }
+
+                const userRole = token.role;
+                const isAdminImpersonating = !!token.originalAdminId;
+
+                // Role-based route protection with impersonation support
+                if (req.nextUrl.pathname.startsWith("/admin")) {
+                    // Admin routes: accessible by admins or admins impersonating others
+                    return userRole === 'admin' || isAdminImpersonating;
+                }
+
+                if (req.nextUrl.pathname.startsWith("/coach")) {
+                    // Coach routes: accessible by coaches or admins impersonating coaches
+                    return userRole === 'coach' || isAdminImpersonating;
+                }
+
+                if (req.nextUrl.pathname.startsWith("/client")) {
+                    // Client routes: accessible by clients or admins impersonating clients
+                    return userRole === 'client' || isAdminImpersonating;
+                }
+
+                if (req.nextUrl.pathname.startsWith("/dashboard")) {
+                    // Dashboard can be accessed by any authenticated user
+                    return true;
+                }
+
                 return true;
             },
         },
