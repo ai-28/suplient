@@ -151,6 +151,7 @@ const authOptions = {
                     token.originalAdminId = token.originalAdminId || token.sub;
                     token.originalAdminRole = token.originalAdminRole || token.role;
                     token.originalAdminName = token.originalAdminName || token.name;
+                    token.originalAdminEmail = token.originalAdminEmail || token.email; // Store original admin email
                     // Set active user (impersonated)
                     token.sub = targetUserId;
                     token.role = targetUserRole;
@@ -162,9 +163,11 @@ const authOptions = {
                         token.sub = token.originalAdminId;
                         token.role = token.originalAdminRole;
                         token.name = token.originalAdminName;
+                        token.email = token.originalAdminEmail; // Restore original admin email
                         delete token.originalAdminId;
                         delete token.originalAdminRole;
                         delete token.originalAdminName;
+                        delete token.originalAdminEmail; // Clean up stored email
                     }
                 }
             }

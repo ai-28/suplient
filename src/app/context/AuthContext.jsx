@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { signOut, useSession } from "next-auth/react";
 
 const AuthContext = createContext(undefined);
@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const { data: session } = useSession();
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       const res = await fetch(`/api/user/profile`);
       const data = await res.json();
@@ -21,13 +21,15 @@ export const AuthProvider = ({ children }) => {
       console.error("Error fetching user data:", err);
       signOut();
     }
-  }
+  }, []);
 
   useEffect(() => {
-    if (session?.user && !user) {
+    if (session?.user) {
+      // Refetch user data when session changes, especially after impersonation stops
+      // Watch for changes in user ID, email, or impersonation status
       fetchUserData();
     }
-  }, [session]);
+  }, [session?.user?.id, session?.user?.email, session?.user?.isImpersonating, fetchUserData]);
 
   return (
     <AuthContext.Provider

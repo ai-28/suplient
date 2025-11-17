@@ -32,12 +32,17 @@ export function ImpersonationBanner() {
                     impersonate: {} // Clear impersonation
                 });
 
+                // Force a session refresh to ensure all components get updated session
+                await update(); // This triggers a session refresh
+
                 toast.success('Stopped impersonation', {
                     description: 'You are now back to your admin account'
                 });
 
-                // Redirect to admin dashboard
-                router.push('/admin/dashboard');
+                // Small delay to ensure session is updated before redirect
+                setTimeout(() => {
+                    router.push('/admin/dashboard');
+                }, 100);
             } else {
                 throw new Error(data.error || 'Failed to stop impersonation');
             }
