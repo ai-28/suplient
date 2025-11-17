@@ -286,12 +286,12 @@ export function GoalAnalyticsChart({
               <CarouselItem key="polar-area-view">
                 <PolarAreaView />
               </CarouselItem>
-              <CarouselItem key="line-graph-view">
+              {/* <CarouselItem key="line-graph-view">
                 <LineGraphView />
-              </CarouselItem>
+              </CarouselItem> */}
             </CarouselContent>
-            <CarouselPrevious className="absolute top-8 left-4 z-10" />
-            <CarouselNext className="absolute top-8 right-4 z-10" />
+            {/* <CarouselPrevious className="absolute top-8 left-4 z-10" />
+            <CarouselNext className="absolute top-8 right-4 z-10" /> */}
           </Carousel>
         </div>
       </CardContent>
