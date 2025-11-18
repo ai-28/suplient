@@ -307,25 +307,48 @@ export async function GET(request, { params }) {
                 `;
 
                 // Performance calculation using completion rates (0-10 scale)
-                // If no data available, set to 0 instead of default values
-                const attendanceRate = weekSessions.length > 0 ?
-                    (weekSessions.filter(s => s.status === 'completed').length / weekSessions.length) * 10 : 0;
+                // Only include components that have available items (non-zero totals)
+                // Dynamically adjust weights based on available components
+                
+                const hasSessions = weekSessions.length > 0;
+                const hasTasks = weekAvailableTasks[0]?.total > 0;
+                const hasResources = totalAvailableResources[0]?.total > 0;
+                
+                // Calculate rates only for available components
+                const attendanceRate = hasSessions ?
+                    (weekSessions.filter(s => s.status === 'completed').length / weekSessions.length) * 10 : null;
 
-                const taskCompletionRate = weekAvailableTasks[0]?.total > 0 ?
-                    (weekTasks.length / weekAvailableTasks[0].total) * 10 : 0;
+                const taskCompletionRate = hasTasks ?
+                    (weekTasks.length / weekAvailableTasks[0].total) * 10 : null;
 
-                const resourceCompletionRate = totalAvailableResources[0]?.total > 0 ?
-                    (weekResources.length / totalAvailableResources[0].total) * 10 : 0;
+                const resourceCompletionRate = hasResources ?
+                    (weekResources.length / totalAvailableResources[0].total) * 10 : null;
 
-                // Check-in consistency: assume 7 days per week is ideal
+                // Check-in consistency: assume 7 days per week is ideal (always available)
                 const checkInConsistency = Math.min((weekCheckIns.length / 7) * 10, 10);
-
-                const performanceScore = (
-                    attendanceRate * 0.3 +           // Session attendance (30%)
-                    taskCompletionRate * 0.25 +       // Task completion (25%)
-                    resourceCompletionRate * 0.25 +  // Resource engagement (25%)
-                    checkInConsistency * 0.2         // Daily check-in consistency (20%)
-                );
+                
+                // Build weighted components array with their original weights
+                const components = [];
+                if (attendanceRate !== null) components.push({ value: attendanceRate, weight: 0.3 });
+                if (taskCompletionRate !== null) components.push({ value: taskCompletionRate, weight: 0.25 });
+                if (resourceCompletionRate !== null) components.push({ value: resourceCompletionRate, weight: 0.25 });
+                components.push({ value: checkInConsistency, weight: 0.2 }); // Always include check-ins
+                
+                // Calculate total weight of available components
+                const totalWeight = components.reduce((sum, comp) => sum + comp.weight, 0);
+                
+                // Calculate weighted average, normalizing weights if some components are missing
+                let performanceScore = 0;
+                if (totalWeight > 0) {
+                    performanceScore = components.reduce((sum, comp) => {
+                        // Normalize weight proportionally
+                        const normalizedWeight = comp.weight / totalWeight;
+                        return sum + (comp.value * normalizedWeight);
+                    }, 0);
+                } else {
+                    // Fallback: if no components available at all, return 0
+                    performanceScore = 0;
+                }
 
                 memberWeeklyData.push({
                     week: weeks[i],
