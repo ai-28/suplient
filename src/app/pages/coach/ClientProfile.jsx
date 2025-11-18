@@ -66,6 +66,7 @@ import { LibraryPickerModal } from "@/app/components/LibraryPickerModal";
 import { EnrollClientDialog } from "@/app/components/EnrollClientDialog";
 import { CreateNoteDialog } from "@/app/components/CreateNoteDialog";
 import { EditNoteDialog } from "@/app/components/EditNoteDialog";
+import { CoachClientCheckInView } from "@/app/components/CoachClientCheckInView";
 
 // Demo data for files (these will be replaced with real data later)
 
@@ -1715,6 +1716,9 @@ export default function ClientProfile() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Daily Check-in View */}
+            <CoachClientCheckInView clientId={id} />
 
             {/* Recent Activity Timeline */}
             <Card>
