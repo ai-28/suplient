@@ -25,12 +25,12 @@ const notificationIcons = {
   other: '🔔'
 };
 
-const notificationColors = {
-  low: 'text-gray-600 dark:text-gray-400',
-  normal: 'text-blue-600 dark:text-blue-400',
-  high: 'text-orange-600 dark:text-orange-400',
-  urgent: 'text-red-600 dark:text-red-400'
-};
+// const notificationColors = {
+//   low: 'text-gray-600 dark:text-gray-400',
+//   normal: 'text-blue-600 dark:text-blue-400',
+//   high: 'text-orange-600 dark:text-orange-400',
+//   urgent: 'text-red-600 dark:text-red-400'
+// };
 
 export function NotificationBell({ userRole = 'client' }) {
   const router = useRouter();
@@ -222,7 +222,7 @@ export function NotificationBell({ userRole = 'client' }) {
                           ? 'bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/50 dark:hover:bg-blue-950/40 border-l-4 border-l-blue-500' 
                           : 'bg-background dark:bg-background hover:bg-muted/50 dark:hover:bg-muted/50 opacity-70'
                       }`}
-                      onClick={() => handleNotificationClick(notification)}
+
                     >
                       <div className="flex items-start space-x-3">
                         <div className="text-lg">
@@ -236,17 +236,26 @@ export function NotificationBell({ userRole = 'client' }) {
                               {notification.title}
                             </h4>
                             <div className="flex items-center space-x-1">
-                              <span className={`text-xs ${notificationColors[notification.priority]}`}>
-                                {notification.priority}
-                              </span>
-                              <Button
+
+                              {!notification.isRead && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleNotificationClick(notification)}
+                                  className="h-6 px-2 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 border-primary/20 hover:border-primary/40"
+                                >
+                                  <Check className="h-3 w-3 mr-1" />
+                                  read
+                                </Button>
+                              )}
+                              {/* <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => handleDeleteNotification(e, notification.id)}
                                 className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity hover:bg-destructive/10 dark:hover:bg-destructive/20"
                               >
                                 <X className="h-3 w-3 text-foreground dark:text-foreground" />
-                              </Button>
+                              </Button> */}
                             </div>
                           </div>
                           <p className={`text-xs mt-1 line-clamp-2 ${

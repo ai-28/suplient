@@ -73,6 +73,15 @@ const badHabitFields = [
 const getActiveGoals = () => goalFields;
 const getActiveBadHabits = () => badHabitFields;
 
+// Helper function to format date in local timezone (YYYY-MM-DD)
+// This ensures the date matches what the user selected, regardless of timezone
+const formatDateLocal = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Real useDailyTracking hook with API calls
 const useDailyTracking = (goals, habits) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -150,8 +159,8 @@ export default function ClientJournal() {
     // Notes
     notes: "",
     
-    // Metadata
-    date: new Date().toISOString().split('T')[0],
+    // Metadata - use local timezone date
+    date: formatDateLocal(new Date()),
   });
 
   // Load existing check-in data when date changes
@@ -159,7 +168,8 @@ export default function ClientJournal() {
     const loadEntryForDate = async () => {
       if (!selectedDate) return;
       
-      const dateString = selectedDate.toISOString().split('T')[0];
+      // Format date in local timezone to match what user selected
+      const dateString = formatDateLocal(selectedDate);
       setIsLoadingEntry(true);
       
       try {

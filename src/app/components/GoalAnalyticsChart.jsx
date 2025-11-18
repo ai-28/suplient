@@ -107,8 +107,7 @@ export function GoalAnalyticsChart({
     return (
       <div className="space-y-4">
         <div className="text-center">
-          <h3 className="text-lg font-semibold">{t('analytics.polarAreaChart', 'Polar Area Chart')}</h3>
-          <p className="text-sm text-muted-foreground">{t('analytics.todaysGoalPerformance', "Today's goal performance")}</p>
+          <h3 className="text-lg font-semibold">{t('analytics.polarAreaChart', 'Wheel of life')}</h3>
         </div>
         
         {/* Polar Area Chart */}

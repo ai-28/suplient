@@ -36,10 +36,33 @@ export async function GET(request) {
 
         const clientId = clientResult[0].id;
 
+        // Helper function to format date in local timezone (YYYY-MM-DD)
+        // PostgreSQL DATE type stores just the date part, no timezone conversion needed
+        const formatDateLocal = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         // Calculate date range based on period
-        let targetDate = dateParam ? new Date(dateParam) : new Date();
+        // If dateParam is provided, use it directly (it's already in YYYY-MM-DD format from client)
+        // Otherwise, use today's date in server's local timezone
+        let targetDateStr;
+        if (dateParam) {
+            // Use the date string directly - it's already in local timezone format from client
+            targetDateStr = dateParam;
+        } else {
+            // Get today's date in server's local timezone
+            const today = new Date();
+            targetDateStr = formatDateLocal(today);
+        }
+
+        // Parse the target date to calculate ranges
+        const targetDate = new Date(targetDateStr + 'T12:00:00'); // Use noon to avoid timezone issues
         const endDate = new Date(targetDate);
         const startDate = new Date(targetDate);
+
         switch (period) {
             case 'today':
                 // Use the specific date if provided, otherwise use today
@@ -55,19 +78,9 @@ export async function GET(request) {
                 break;
         }
 
-        // PostgreSQL stores dates in UTC, so use UTC consistently
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = endDate.toISOString().split('T')[0];
-        const targetDateStr = targetDate.toISOString().split('T')[0];
-
-        // Get check-ins for the specified period
-        const checkInsResult = await sql`
-            SELECT * FROM "CheckIn" 
-            WHERE "clientId" = ${clientId} 
-            AND date >= ${startDateStr} 
-            AND date <= ${endDateStr}
-            ORDER BY date DESC
-        `;
+        // Format dates in local timezone (no UTC conversion)
+        const startDateStr = formatDateLocal(startDate);
+        const endDateStr = formatDateLocal(endDate);
 
         // Map database fields to goal analytics format
         const goalMapping = {
@@ -82,16 +95,16 @@ export async function GET(request) {
         let goalDistribution = [];
 
         if (period === 'today') {
-            // For today, get the specific date's check-in
-            // Compare dates at date level only (ignore time)
-            const todayCheckIn = checkInsResult.find(ci => {
-                // Convert database date to date string for comparison
-                const checkInDate = ci.date instanceof Date
-                    ? ci.date.toISOString().split('T')[0]
-                    : new Date(ci.date).toISOString().split('T')[0];
-                return checkInDate === targetDateStr;
-            });
-            if (todayCheckIn) {
+            // For today, query the specific date directly
+            const todayCheckInResult = await sql`
+                SELECT * FROM "CheckIn" 
+                WHERE "clientId" = ${clientId} 
+                AND date = ${targetDateStr}
+                LIMIT 1
+            `;
+
+            if (todayCheckInResult.length > 0) {
+                const todayCheckIn = todayCheckInResult[0];
                 goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
                     id: field,
                     name: config.name,
@@ -110,6 +123,14 @@ export async function GET(request) {
                 }));
             }
         } else if (period === 'week' || period === 'month') {
+            // Get check-ins for the specified period
+            const checkInsResult = await sql`
+                SELECT * FROM "CheckIn" 
+                WHERE "clientId" = ${clientId} 
+                AND date >= ${startDateStr} 
+                AND date <= ${endDateStr}
+                ORDER BY date DESC
+            `;
             // For week/month, calculate averages
             if (checkInsResult.length > 0) {
                 const goalFields = Object.keys(goalMapping);
@@ -148,12 +169,22 @@ export async function GET(request) {
         //     }
         // }));
 
+        // Get check-in notes for the current date (regardless of period)
+        const currentDateCheckIn = await sql`
+            SELECT notes FROM "CheckIn" 
+            WHERE "clientId" = ${clientId} 
+            AND date = ${targetDateStr}
+            LIMIT 1
+        `;
+
+        const currentDateNotes = currentDateCheckIn.length > 0 ? currentDateCheckIn[0].notes : null;
         // Get user stats (pre-computed values)
         const userStats = await userStatsRepo.getUserStats(session.user.id);
         return NextResponse.json({
             goalDistribution,
             dailyStreak: userStats.daily_streak,
-            totalEngagementPoints: userStats.total_points
+            totalEngagementPoints: userStats.total_points,
+            currentDateNotes: currentDateNotes
         });
 
     } catch (error) {

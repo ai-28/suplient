@@ -1724,7 +1724,7 @@ export default function ClientProfile() {
                   {t('clients.recentActivity', 'Recent Activity')}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 {activitiesLoading ? (
                   <div className="flex items-center justify-center p-8">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -1737,39 +1737,41 @@ export default function ClientProfile() {
                     <p className="text-sm">{t('clients.activitiesWillAppear', 'Activities will appear here as the client engages with the platform')}</p>
                   </div>
                 ) : (
-                  clientActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                      <div className="p-2 rounded-full bg-primary/10 text-primary">
-                        {activity.type === 'signup' && <UserPlus className="h-4 w-4" />}
-                        {activity.type === 'task_completed' && <CheckCircle className="h-4 w-4" />}
-                        {activity.type === 'daily_checkin' && <Heart className="h-4 w-4" />}
-                        {activity.type === 'session_attended' && <Calendar className="h-4 w-4" />}
-                        {activity.type === 'goal_achieved' && <Trophy className="h-4 w-4" />}
-                        {activity.type === 'milestone_reached' && <Target className="h-4 w-4" />}
-                        {!['signup', 'task_completed', 'daily_checkin', 'session_attended', 'goal_achieved', 'milestone_reached'].includes(activity.type) && <Activity className="h-4 w-4" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-medium text-foreground truncate">
-                            {activity.title}
-                          </h4>
-                          {activity.pointsEarned > 0 && (
-                            <Badge variant="secondary" className="ml-2">
-                              +{activity.pointsEarned} pts
-                            </Badge>
-                          )}
+                  <div className="max-h-[200px] overflow-y-auto space-y-4 pr-2">
+                    {clientActivities.map((activity) => (
+                      <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div className="p-2 rounded-full bg-primary/10 text-primary">
+                          {activity.type === 'signup' && <UserPlus className="h-4 w-4" />}
+                          {activity.type === 'task_completed' && <CheckCircle className="h-4 w-4" />}
+                          {activity.type === 'daily_checkin' && <Heart className="h-4 w-4" />}
+                          {activity.type === 'session_attended' && <Calendar className="h-4 w-4" />}
+                          {activity.type === 'goal_achieved' && <Trophy className="h-4 w-4" />}
+                          {activity.type === 'milestone_reached' && <Target className="h-4 w-4" />}
+                          {!['signup', 'task_completed', 'daily_checkin', 'session_attended', 'goal_achieved', 'milestone_reached'].includes(activity.type) && <Activity className="h-4 w-4" />}
                         </div>
-                        {activity.description && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {activity.description}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-foreground truncate">
+                              {activity.title}
+                            </h4>
+                            {activity.pointsEarned > 0 && (
+                              <Badge variant="secondary" className="ml-2">
+                                +{activity.pointsEarned} pts
+                              </Badge>
+                            )}
+                          </div>
+                          {activity.description && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                              {activity.description}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
                           </p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
-                        </p>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -32,11 +32,20 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { GoalAnalyticsChart } from "@/app/components/GoalAnalyticsChart";
 import { StreakCounter } from "@/app/components/StreakCounter";
+import { DailyNotes } from "@/app/components/DailyNotes";
 import { useAuth } from "../../context/AuthContext";
 import { signOut } from "next-auth/react";
 import { useSocket } from "@/app/hooks/useSocket";
 import { useTranslation } from "@/app/context/LanguageContext";
 
+// Helper function to format date in local timezone (YYYY-MM-DD)
+// This ensures the date matches what the user selected, regardless of timezone
+const formatDateLocal = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 // Custom hooks with real data
 const useGoalTracking = (period, date) => {
@@ -53,7 +62,8 @@ const useGoalTracking = (period, date) => {
       let url = `/api/analytics?period=${period}`;
       // Add date parameter for all periods to base calculations on selected date
       if (targetDate) {
-        const dateStr = targetDate.toISOString().split('T')[0];
+        // Format date in local timezone to avoid UTC conversion issues
+        const dateStr = formatDateLocal(targetDate);
         url += `&date=${dateStr}`;
       }
       const response = await fetch(url);
@@ -354,6 +364,13 @@ export default function ClientDashboard() {
             selectedPeriod={activeTab}
           />
         )}  
+        {/* Daily Notes */}
+        <DailyNotes 
+          currentDate={currentDate} 
+          analyticsData={analyticsData}
+          loading={loading}
+          error={error}
+        />
 
         {/* Next Session */}
         {sessionsLoading ? (
