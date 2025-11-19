@@ -30,12 +30,12 @@ export async function checkCoachSubscriptionStatus(userId) {
       LIMIT 1
     `;
 
-        // No subscription record
+        // No subscription record - allow access for first-time coaches who haven't connected Stripe yet
         if (account.length === 0 || !account[0].stripeSubscriptionId) {
             return {
-                hasActiveSubscription: false,
-                reason: 'no_subscription',
-                message: 'No active subscription found. Please subscribe to continue using the platform.',
+                hasActiveSubscription: true,
+                reason: 'no_stripe_connection',
+                message: 'You can use the platform until you connect your Stripe payment. Please connect Stripe to continue after your first connection.',
                 endDate: null
             };
         }
