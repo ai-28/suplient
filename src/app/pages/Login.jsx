@@ -115,6 +115,21 @@ export default function Login() {
         const errorMsg = String(result.error || '');
         console.log('Login error received:', errorMsg, 'Full result:', result);
         
+        // Check for subscription required errors
+        if (errorMsg.includes("SUBSCRIPTION_REQUIRED:")) {
+          const subscriptionMessage = errorMsg.replace("SUBSCRIPTION_REQUIRED:", "").trim();
+          toast.error(`💳 ${subscriptionMessage}`, { duration: 8000 });
+          // Optionally redirect to subscription page or show link
+          return;
+        }
+
+        // Check for access denied (client's coach subscription inactive)
+        if (errorMsg.includes("ACCESS_DENIED:")) {
+          const accessMessage = errorMsg.replace("ACCESS_DENIED:", "").trim();
+          toast.error(`🚫 ${accessMessage}`, { duration: 8000 });
+          return;
+        }
+
         // Check for 2FA verification required FIRST, before other checks
         if (errorMsg.includes("2FA_VERIFICATION_REQUIRED") || errorMsg.includes("VERIFICATION_REQUIRED")) {
           console.log('Detected 2FA_VERIFICATION_REQUIRED - showing 2FA input');

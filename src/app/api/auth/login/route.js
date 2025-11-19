@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { userRepo } from '@/app/lib/db/userRepo';
 import { checkUser2FAStatus } from '@/app/lib/auth/twoFactor';
 import { sql } from '@/app/lib/db/postgresql';
+import { checkCoachSubscriptionStatus } from '@/app/lib/subscription/checkSubscription';
+import { checkClientAccess } from '@/app/lib/subscription/checkClientAccess';
 
 export async function POST(request) {
   try {
@@ -19,6 +21,7 @@ export async function POST(request) {
     const normalizedEmail = email.toLowerCase().trim();
 
     // Authenticate user (verify password)
+    // This already checks isActive (admin control)
     const user = await userRepo.authenticate(normalizedEmail, password);
 
     if (!user) {
@@ -26,6 +29,35 @@ export async function POST(request) {
         { error: 'Invalid email or password' },
         { status: 401 }
       );
+    }
+
+    // Check subscription status for coaches (payment control)
+    if (user.role === 'coach') {
+      const subscriptionStatus = await checkCoachSubscriptionStatus(user.id);
+      
+      if (!subscriptionStatus.hasActiveSubscription) {
+        return NextResponse.json({
+          success: false,
+          subscriptionRequired: true,
+          reason: subscriptionStatus.reason,
+          message: subscriptionStatus.message,
+          subscriptionEndDate: subscriptionStatus.endDate
+        }, { status: 403 });
+      }
+    }
+
+    // Check client access (if their coach's subscription is inactive)
+    if (user.role === 'client') {
+      const clientAccess = await checkClientAccess(user.id);
+      
+      if (!clientAccess.hasAccess) {
+        return NextResponse.json({
+          success: false,
+          accessDenied: true,
+          reason: clientAccess.reason,
+          message: clientAccess.message
+        }, { status: 403 });
+      }
     }
 
     // Check 2FA status

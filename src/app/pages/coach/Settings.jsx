@@ -35,7 +35,10 @@ import {
   Minus,
   Loader2,
   Camera,
-  X
+  X,
+  CreditCard,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
@@ -89,6 +92,11 @@ export default function Settings() {
   const [newStageDescription, setNewStageDescription] = useState('');
   const [savingClientPipeline, setSavingClientPipeline] = useState(false);
   const [savingGroupPipeline, setSavingGroupPipeline] = useState(false);
+
+  // Billing/Stripe state
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [connectingStripe, setConnectingStripe] = useState(false);
 
   // Pipeline stage handlers
   const colorOptions = [
@@ -502,6 +510,87 @@ export default function Settings() {
     fetchCoachData();
   }, [session?.user?.id]);
 
+  // Fetch subscription status
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      if (!session?.user?.id || session.user.role !== 'coach') return;
+
+      try {
+        setBillingLoading(true);
+        const response = await fetch('/api/stripe/subscription/status');
+        if (response.ok) {
+          const data = await response.json();
+          setSubscriptionStatus(data);
+        }
+      } catch (error) {
+        console.error('Error fetching subscription status:', error);
+      } finally {
+        setBillingLoading(false);
+      }
+    };
+
+    fetchSubscriptionStatus();
+  }, [session?.user?.id]);
+
+  // Handle URL params for billing tab (success/error messages)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
+    const warning = urlParams.get('warning');
+
+    if (tab === 'billing') {
+      // You can set active tab here if needed
+      if (success) {
+        if (success === 'subscription_created') {
+          toast.success(t('settings.billing.subscriptionCreated', 'Subscription created successfully!'));
+        } else if (success === 'already_subscribed') {
+          toast.info(t('settings.billing.alreadySubscribed', 'You already have an active subscription.'));
+        }
+        // Refresh subscription status
+        setTimeout(() => {
+          window.location.href = '/coach/settings?tab=billing';
+        }, 2000);
+      }
+      if (error) {
+        toast.error(t('settings.billing.error', 'An error occurred') + ': ' + error);
+      }
+      if (warning) {
+        toast.warning(t('settings.billing.warning', 'Warning') + ': ' + warning);
+      }
+    }
+  }, []);
+
+  // Handle Stripe Subscription Checkout (coach pays admin)
+  const handleConnectStripe = async () => {
+    try {
+      setConnectingStripe(true);
+      const response = await fetch('/api/stripe/subscription/create-checkout', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create checkout session');
+      }
+
+      const data = await response.json();
+      
+      if (data.checkoutUrl) {
+        // Redirect to Stripe Checkout (coach enters payment method)
+        window.location.href = data.checkoutUrl;
+      } else {
+        toast.error(t('settings.billing.noCheckoutUrl', 'Failed to get checkout URL'));
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast.error(error.message || t('settings.billing.connectFailed', 'Failed to start checkout'));
+    } finally {
+      setConnectingStripe(false);
+    }
+  };
+
   // Fetch pipeline stages from database
   useEffect(() => {
     const fetchPipelineStages = async () => {
@@ -817,7 +906,7 @@ export default function Settings() {
       />
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-muted">
+        <TabsList className="grid w-full grid-cols-5 bg-muted">
           <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             {t('profile.title')}
           </TabsTrigger>
@@ -829,6 +918,9 @@ export default function Settings() {
           </TabsTrigger>
           <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             {t('settings.pipeline.title', 'Pipeline')}
+          </TabsTrigger>
+          <TabsTrigger value="billing" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            {t('settings.billing.title', 'Billing')}
           </TabsTrigger>
         </TabsList>
 
@@ -1342,6 +1434,165 @@ export default function Settings() {
                     )}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Billing Settings */}
+        <TabsContent value="billing">
+          <div className="space-y-6">
+            <Card className="card-standard">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  {t('settings.billing.title', 'Billing & Subscription')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {billingLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span className="text-sm text-muted-foreground">
+                      {t('settings.billing.loading', 'Loading subscription status...')}
+                    </span>
+                  </div>
+                ) : !subscriptionStatus?.connected ? (
+                  // Not connected to Stripe
+                  <div className="space-y-4">
+                    <div className="text-center py-8">
+                      <CreditCard className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <h3 className="text-lg font-semibold mb-2">
+                        {t('settings.billing.connectStripe', 'Connect Your Stripe Account')}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+                        {t('settings.billing.connectDescription', 'Subscribe to access all platform features. You will be redirected to enter your payment information. Your subscription will be automatically created after payment.')}
+                      </p>
+                      <Button
+                        onClick={handleConnectStripe}
+                        disabled={connectingStripe}
+                        size="lg"
+                        className="gap-2"
+                      >
+                        {connectingStripe ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {t('settings.billing.connecting', 'Connecting...')}
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="h-4 w-4" />
+                            {t('settings.billing.connectButton', 'Connect to Stripe')}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : subscriptionStatus?.subscription ? (
+                  // Has subscription
+                  <div className="space-y-6">
+                    {/* Subscription Status */}
+                    <div className="p-6 rounded-lg border bg-muted/30">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          {subscriptionStatus.subscription.status === 'active' ? (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          ) : subscriptionStatus.subscription.status === 'past_due' ? (
+                            <AlertCircle className="h-5 w-5 text-orange-500" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-red-500" />
+                          )}
+                          <h3 className="text-lg font-semibold">
+                            {t('settings.billing.subscriptionStatus', 'Subscription Status')}
+                          </h3>
+                        </div>
+                        <Badge
+                          variant={
+                            subscriptionStatus.subscription.status === 'active'
+                              ? 'default'
+                              : subscriptionStatus.subscription.status === 'past_due'
+                              ? 'secondary'
+                              : 'destructive'
+                          }
+                        >
+                          {subscriptionStatus.subscription.status === 'active'
+                            ? t('settings.billing.active', 'Active')
+                            : subscriptionStatus.subscription.status === 'past_due'
+                            ? t('settings.billing.pastDue', 'Past Due')
+                            : subscriptionStatus.subscription.status}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {t('settings.billing.amount', 'Amount')}
+                          </p>
+                          <p className="text-lg font-semibold">
+                            ${subscriptionStatus.subscription.amount?.toFixed(2) || '0.00'} / {subscriptionStatus.subscription.interval || 'month'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {t('settings.billing.nextBilling', 'Next Billing Date')}
+                          </p>
+                          <p className="text-lg font-semibold">
+                            {subscriptionStatus.subscription.currentPeriodEnd
+                              ? new Date(subscriptionStatus.subscription.currentPeriodEnd).toLocaleDateString()
+                              : t('settings.billing.notAvailable', 'N/A')}
+                          </p>
+                        </div>
+                      </div>
+
+                      {subscriptionStatus.subscription.cancelAtPeriodEnd && (
+                        <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                          <p className="text-sm text-orange-800 dark:text-orange-200">
+                            {t('settings.billing.cancelingAtPeriodEnd', 'Your subscription will be canceled at the end of the current billing period.')}
+                          </p>
+                        </div>
+                      )}
+
+                      {subscriptionStatus.subscription.status === 'past_due' && (
+                        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                          <p className="text-sm text-red-800 dark:text-red-200">
+                            {t('settings.billing.paymentFailed', 'Your last payment failed. Please update your payment method.')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Account Info */}
+                    <div className="p-4 rounded-lg border bg-muted/30">
+                      <h4 className="font-semibold mb-2">
+                        {t('settings.billing.accountInfo', 'Account Information')}
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>
+                            {t('settings.billing.connected', 'Subscription Active')}
+                          </span>
+                        </div>
+                        {subscriptionStatus.account?.customerId && (
+                          <div className="text-xs text-muted-foreground">
+                            {t('settings.billing.customerId', 'Customer ID')}: {subscriptionStatus.account.customerId.substring(0, 20)}...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // Connected but no subscription (shouldn't happen with automatic creation)
+                  <div className="text-center py-8">
+                    <AlertCircle className="h-12 w-12 mx-auto mb-4 text-orange-500" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      {t('settings.billing.noSubscription', 'No Active Subscription')}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {t('settings.billing.noSubscriptionDescription', 'Your Stripe account is connected, but no subscription was found. Please contact support.')}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

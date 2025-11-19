@@ -687,12 +687,13 @@ export async function GET() {
     await createUserStatsTable(); // Create user stats table
     await createResourceCompletionTable(); // Create resource completion table
     await createIntegrationTables(); // Create integration tables
+    await createStripeAccountTable(); // Create StripeAccount table
     await createPlatformSettingsTable(); // Create platform settings table
     console.log('Database seeded successfully');
 
     return new Response(JSON.stringify({
       message: 'Database seeded successfully',
-      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, CheckIn, Integration, and PlatformSettings tables created with sample data'
+      details: 'User, ProgramTemplate, Group, Task, Client, Resource, Note, CheckIn, Integration, StripeAccount, and PlatformSettings tables created with sample data'
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -706,6 +707,46 @@ export async function GET() {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+}
+
+async function createStripeAccountTable() {
+  try {
+    // Create StripeAccount table for Stripe Connect and subscription management
+    await sql`
+      CREATE TABLE IF NOT EXISTS "StripeAccount" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId" UUID NOT NULL UNIQUE REFERENCES "User"(id) ON DELETE CASCADE,
+        "stripeAccountId" VARCHAR(255) UNIQUE,
+        "stripeCustomerId" VARCHAR(255),
+        "stripeSubscriptionId" VARCHAR(255),
+        "stripeSubscriptionStatus" VARCHAR(50),
+        "stripeSubscriptionCurrentPeriodStart" TIMESTAMP,
+        "stripeSubscriptionCurrentPeriodEnd" TIMESTAMP,
+        "stripeSubscriptionCancelAtPeriodEnd" BOOLEAN DEFAULT false,
+        "onboardingComplete" BOOLEAN DEFAULT false,
+        "onboardingUrl" TEXT,
+        "chargesEnabled" BOOLEAN DEFAULT false,
+        "payoutsEnabled" BOOLEAN DEFAULT false,
+        "detailsSubmitted" BOOLEAN DEFAULT false,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        
+        CONSTRAINT uk_stripe_account_user UNIQUE("userId"),
+        CONSTRAINT uk_stripe_account_id UNIQUE("stripeAccountId")
+      );
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_stripe_account_user ON "StripeAccount"("userId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_stripe_account_status ON "StripeAccount"("stripeSubscriptionStatus")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_stripe_account_customer ON "StripeAccount"("stripeCustomerId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_stripe_account_onboarding ON "StripeAccount"("onboardingComplete")`;
+
+    console.log('✅ StripeAccount table created successfully');
+  } catch (error) {
+    console.error('Error creating StripeAccount table:', error);
+    throw error;
   }
 }
 

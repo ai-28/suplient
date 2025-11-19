@@ -3,6 +3,8 @@ import GoogleProvider from "next-auth/providers/google";
 import { userRepo } from "@/app/lib/db/userRepo";
 import { checkUser2FAStatus, verifyToken, verifyBackupCode, removeUsedBackupCode } from "@/app/lib/auth/twoFactor";
 import { sql } from "@/app/lib/db/postgresql";
+import { checkCoachSubscriptionStatus } from "@/app/lib/subscription/checkSubscription";
+import { checkClientAccess } from "@/app/lib/subscription/checkClientAccess";
 
 const authOptions = {
     providers: [
@@ -28,6 +30,26 @@ const authOptions = {
 
                     if (!user) {
                         return null;
+                    }
+
+                    // Check subscription status for coaches (payment control)
+                    // Note: isActive (admin control) is already checked in userRepo.authenticate
+                    if (user.role === 'coach') {
+                        const subscriptionStatus = await checkCoachSubscriptionStatus(user.id);
+                        
+                        if (!subscriptionStatus.hasActiveSubscription) {
+                            // Throw error with specific message for subscription issues
+                            throw new Error(`SUBSCRIPTION_REQUIRED: ${subscriptionStatus.message}`);
+                        }
+                    }
+
+                    // Check client access (if their coach's subscription is inactive)
+                    if (user.role === 'client') {
+                        const clientAccess = await checkClientAccess(user.id);
+                        
+                        if (!clientAccess.hasAccess) {
+                            throw new Error(`ACCESS_DENIED: ${clientAccess.message}`);
+                        }
                     }
 
                     // Check 2FA status
