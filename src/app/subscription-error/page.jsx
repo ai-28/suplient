@@ -1,12 +1,12 @@
 "use client"
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { AlertCircle, CreditCard, ArrowLeft } from 'lucide-react';
 
-export default function SubscriptionErrorPage() {
+function SubscriptionErrorContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [reason, setReason] = useState('');
@@ -111,6 +111,25 @@ export default function SubscriptionErrorPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export default function SubscriptionErrorPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+                <Card className="max-w-md w-full">
+                    <CardHeader className="text-center">
+                        <div className="flex justify-center mb-4">
+                            <AlertCircle className="h-12 w-12 text-orange-500 animate-pulse" />
+                        </div>
+                        <CardTitle className="text-2xl">Loading...</CardTitle>
+                    </CardHeader>
+                </Card>
+            </div>
+        }>
+            <SubscriptionErrorContent />
+        </Suspense>
     );
 }
 
