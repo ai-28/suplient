@@ -22,6 +22,7 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { ImpersonationBanner } from "@/app/components/ImpersonationBanner";
 import { useTranslation } from "@/app/context/LanguageContext";
+import SubscriptionGuard from "@/app/components/SubscriptionGuard";
 
 const Layout = ({ children }) => {
     const pathname = usePathname();
@@ -75,6 +76,7 @@ const Layout = ({ children }) => {
     }
 
     return (
+        <SubscriptionGuard>
         <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           {/* Conditionally render sidebar only for coach/admin routes */}
@@ -178,6 +180,7 @@ const Layout = ({ children }) => {
           </div>
         </div>
       </SidebarProvider>
+      </SubscriptionGuard>
     )
 }
 

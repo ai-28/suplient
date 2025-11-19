@@ -12,6 +12,7 @@ import { useRouter, usePathname } from "next/navigation";
 import PWAInstallPrompt from "./PWAInstallPrompt";
 import { useServiceWorker } from "@/app/hooks/useServiceWorker";
 import { useTranslation } from "@/app/context/LanguageContext";
+import SubscriptionGuard from "./SubscriptionGuard";
 
 export default function ClientLayout({ children }) {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function ClientLayout({ children }) {
   const isActiveRoute = (path) => pathname === path;
 
   return (
+    <SubscriptionGuard>
     <div className="h-screen max-h-screen bg-background flex flex-col">
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
@@ -81,5 +83,6 @@ export default function ClientLayout({ children }) {
         </div>
       </div>
     </div>
+    </SubscriptionGuard>
   );
 }

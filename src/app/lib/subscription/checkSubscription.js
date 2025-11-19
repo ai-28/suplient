@@ -8,12 +8,23 @@ import { stripe } from '@/app/lib/stripe';
  */
 export async function checkCoachSubscriptionStatus(userId) {
     try {
+        // Validate input
+        if (!userId) {
+            return {
+                hasActiveSubscription: false,
+                reason: 'invalid_user_id',
+                message: 'Invalid user ID provided.',
+                endDate: null
+            };
+        }
+
         // Get subscription from database
         const account = await sql`
       SELECT 
         "stripeSubscriptionId",
         "stripeSubscriptionStatus",
-        "stripeSubscriptionCurrentPeriodEnd"
+        "stripeSubscriptionCurrentPeriodEnd",
+        "stripeSubscriptionCancelAtPeriodEnd"
       FROM "StripeAccount"
       WHERE "userId" = ${userId}
       LIMIT 1
@@ -31,17 +42,28 @@ export async function checkCoachSubscriptionStatus(userId) {
 
         const subscriptionStatus = account[0].stripeSubscriptionStatus;
         const periodEnd = account[0].stripeSubscriptionCurrentPeriodEnd;
+        const cancelAtPeriodEnd = account[0].stripeSubscriptionCancelAtPeriodEnd || false;
         const now = new Date();
+
+        // Handle null/undefined subscription status
+        if (!subscriptionStatus) {
+            return {
+                hasActiveSubscription: false,
+                reason: 'invalid_status',
+                message: 'Subscription status is invalid. Please contact support for assistance.',
+                endDate: periodEnd || null
+            };
+        }
 
         // Check if subscription is active
         if (subscriptionStatus === 'active') {
-            // If periodEnd is null, allow access (shouldn't happen, but fail open)
+            // If periodEnd is null, deny access (fail closed for security)
             if (!periodEnd) {
                 console.warn('Active subscription with null periodEnd for user:', userId);
                 return {
-                    hasActiveSubscription: true,
-                    reason: null,
-                    message: null,
+                    hasActiveSubscription: false,
+                    reason: 'invalid_period',
+                    message: 'Subscription period information is missing. Please contact support.',
                     endDate: null
                 };
             }
@@ -58,10 +80,14 @@ export async function checkCoachSubscriptionStatus(userId) {
                 };
             }
 
+            // Even if cancel_at_period_end is true, allow access until periodEnd
+            // (they paid for this period)
             return {
                 hasActiveSubscription: true,
-                reason: null,
-                message: null,
+                reason: cancelAtPeriodEnd ? 'scheduled_cancellation' : null,
+                message: cancelAtPeriodEnd
+                    ? `Your subscription will be canceled at the end of the current billing period (${endDate.toLocaleDateString()}).`
+                    : null,
                 endDate: periodEnd
             };
         }
@@ -141,11 +167,12 @@ export async function checkCoachSubscriptionStatus(userId) {
 
     } catch (error) {
         console.error('Error checking subscription status:', error);
-        // On error, allow access (fail open) - you might want to fail closed in production
+        // Fail closed for security - deny access on error
+        // You might want to add alerting/monitoring here
         return {
-            hasActiveSubscription: true, // Fail open for now
-            reason: null,
-            message: null,
+            hasActiveSubscription: false,
+            reason: 'error',
+            message: 'Unable to verify subscription status. Please contact support for assistance.',
             endDate: null
         };
     }

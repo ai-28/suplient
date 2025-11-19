@@ -8,6 +8,15 @@ import { checkCoachSubscriptionStatus } from './checkSubscription';
  */
 export async function checkClientAccess(userId) {
   try {
+    // Validate input
+    if (!userId) {
+      return {
+        hasAccess: false,
+        reason: 'invalid_user_id',
+        message: 'Invalid user ID provided.'
+      };
+    }
+
     // Get client's coach
     const client = await sql`
       SELECT "coachId" FROM "User"
@@ -15,9 +24,22 @@ export async function checkClientAccess(userId) {
       LIMIT 1
     `;
 
-    if (client.length === 0 || !client[0].coachId) {
-      // Client has no coach - allow access (or handle as needed)
-      return { hasAccess: true, reason: null, message: null };
+    if (client.length === 0) {
+      // Client not found or not a client role
+      return {
+        hasAccess: false,
+        reason: 'client_not_found',
+        message: 'Client record not found. Please contact support for assistance.'
+      };
+    }
+
+    if (!client[0].coachId) {
+      // Client has no coach - deny access (or adjust based on your business logic)
+      return {
+        hasAccess: false,
+        reason: 'no_coach_assigned',
+        message: 'No coach assigned. Please contact support for assistance.'
+      };
     }
 
     // Check coach's subscription
@@ -36,8 +58,12 @@ export async function checkClientAccess(userId) {
 
   } catch (error) {
     console.error('Error checking client access:', error);
-    // On error, allow access (fail open)
-    return { hasAccess: true, reason: null, message: null };
+    // Fail closed for security - deny access on error
+    return {
+      hasAccess: false,
+      reason: 'error',
+      message: 'Unable to verify access. Please contact support for assistance.'
+    };
   }
 }
 
