@@ -9,7 +9,7 @@ export async function POST(request) {
         const body = await request.text();
         const headersList = await headers();
         const signature = headersList.get('stripe-signature');
-
+        console.log("request", request);
         if (!signature) {
             return NextResponse.json(
                 { error: 'No signature provided' },
@@ -80,7 +80,7 @@ async function handleCheckoutCompleted(session) {
     try {
         const userId = session.metadata?.userId;
         if (!userId) return;
-
+        console.log("session", session);
         // Get the subscription from the checkout session
         const subscriptionId = session.subscription;
         if (!subscriptionId) return;
@@ -132,7 +132,7 @@ async function handleSubscriptionCreated(subscription) {
         const customer = await stripe.customers.retrieve(subscription.customer);
         const userId = customer.metadata?.userId;
         if (!userId) return;
-
+        console.log("subscription", subscription);
         await sql`
             UPDATE "StripeAccount"
             SET 
@@ -152,6 +152,7 @@ async function handleSubscriptionCreated(subscription) {
 // Handle customer.subscription.updated event
 async function handleSubscriptionUpdated(subscription) {
     try {
+        console.log("subscription", subscription);
         await sql`
             UPDATE "StripeAccount"
             SET 
@@ -170,6 +171,7 @@ async function handleSubscriptionUpdated(subscription) {
 // Handle customer.subscription.deleted event
 async function handleSubscriptionDeleted(subscription) {
     try {
+        console.log("subscription", subscription);
         await sql`
             UPDATE "StripeAccount"
             SET 
@@ -192,6 +194,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
         // Get subscription to update status
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
+        console.log("invoice", invoice);
         await sql`
             UPDATE "StripeAccount"
             SET 
@@ -210,6 +213,7 @@ async function handleInvoicePaymentFailed(invoice) {
         const subscriptionId = invoice.subscription;
         if (!subscriptionId) return;
 
+        console.log("invoice", invoice);
         await sql`
             UPDATE "StripeAccount"
             SET 

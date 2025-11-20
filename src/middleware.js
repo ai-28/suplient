@@ -48,6 +48,14 @@ export default withAuth(
     {
         callbacks: {
             authorized: ({ token, req }) => {
+                // Allow access to public API routes (no auth required)
+                if (req.nextUrl.pathname.startsWith('/api/stripe/webhook') ||
+                    req.nextUrl.pathname.startsWith('/api/auth/') ||
+                    req.nextUrl.pathname.startsWith('/api/platform/settings/public') ||
+                    req.nextUrl.pathname.startsWith('/api/subscription/check')) {
+                    return true;
+                }
+
                 // Allow access to login page and other public routes
                 if (req.nextUrl.pathname.startsWith("/login") ||
                     req.nextUrl.pathname.startsWith("/register") ||
