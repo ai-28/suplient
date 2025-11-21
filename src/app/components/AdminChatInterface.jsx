@@ -17,6 +17,7 @@ import { VoiceMessage } from "./VoiceMessage";
 import { FileAttachmentPreview } from "./FileAttachmentPreview";
 import { ReplyPreview } from "./ReplyPreview";
 import { RepliedMessage } from "./RepliedMessage";
+import { useSession } from "next-auth/react";
 
 export function AdminChatInterface({ 
   participantName, 
@@ -26,11 +27,44 @@ export function AdminChatInterface({
   title,
   className = ""
 }) {
+  const { data: session } = useSession();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [replyingTo, setReplyingTo] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef(null);
+
+  const handleEditMessage = async (messageId, newContent) => {
+    try {
+      const response = await fetch(`/api/chat/messages/${messageId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: newContent }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to edit message');
+      }
+    } catch (error) {
+      console.error('Error editing message:', error);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const response = await fetch(`/api/chat/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete message');
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -107,14 +141,32 @@ export function AdminChatInterface({
   };
 
 
+  // Helper: Parse UTC timestamp correctly
+  const parseAsUTC = (input) => {
+    if (!input) return new Date();
+    if (input instanceof Date) return input;
+    if (typeof input === 'string') {
+      const trimmed = input.trim();
+      if (trimmed.endsWith('Z') || trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+        return new Date(trimmed);
+      }
+      const normalized = trimmed.replace(/\s+/, 'T');
+      return new Date(normalized + 'Z');
+    }
+    return new Date(input);
+  };
+
   const formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
+    // Parse as UTC first (server sends UTC timestamps)
+    const date = parseAsUTC(timestamp);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
     if (diffInHours < 24) {
+      // toLocaleTimeString automatically converts UTC to local timezone
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else {
+      // toLocaleDateString automatically converts UTC to local timezone
       return date.toLocaleDateString();
     }
   };
@@ -190,8 +242,17 @@ export function AdminChatInterface({
                         />
                       ) : (
                         <p className="text-sm whitespace-pre-wrap break-words">
-                          {message.content}
+                          {message.isDeleted ? (
+                            <span className="italic opacity-70">This message was deleted</span>
+                          ) : (
+                            message.content
+                          )}
                         </p>
+                      )}
+                      {message.isEdited && !message.isDeleted && (
+                        <span className="text-xs opacity-70 italic mt-1 block">
+                          (edited)
+                        </span>
                       )}
                     </Card>
 
@@ -199,6 +260,9 @@ export function AdminChatInterface({
                     <MessageActions
                       message={message}
                       onReply={() => setReplyingTo(message)}
+                      onEdit={handleEditMessage}
+                      onDelete={handleDeleteMessage}
+                      currentUserId={session?.user?.id}
                     />
                   </div>
 

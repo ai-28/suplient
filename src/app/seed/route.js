@@ -558,8 +558,8 @@ async function createChatTables() {
         "createdBy" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
         "groupId" UUID REFERENCES "Group"(id) ON DELETE CASCADE,
         "isActive" BOOLEAN DEFAULT true,
-        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
 
@@ -570,8 +570,8 @@ async function createChatTables() {
         "conversationId" UUID NOT NULL REFERENCES "Conversation"(id) ON DELETE CASCADE,
         "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
         role VARCHAR(20) DEFAULT 'member' CHECK (role IN ('admin', 'moderator', 'member')),
-        "joinedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "lastReadAt" TIMESTAMP,
+        "joinedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "lastReadAt" TIMESTAMP WITH TIME ZONE,
         "isActive" BOOLEAN DEFAULT true,
         UNIQUE("conversationId", "userId")
       );
@@ -589,8 +589,24 @@ async function createChatTables() {
         "audioUrl" VARCHAR(500),
         "audioDuration" INTEGER,
         "waveformData" JSONB,
-        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        "isEdited" BOOLEAN DEFAULT false,
+        "editedAt" TIMESTAMP WITH TIME ZONE,
+        "isDeleted" BOOLEAN DEFAULT false,
+        "deletedAt" TIMESTAMP WITH TIME ZONE,
+        metadata JSONB DEFAULT '{}' CHECK (jsonb_typeof(metadata) = 'object'),
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        
+        -- Add constraint for edit tracking
+        CONSTRAINT chk_edit_tracking CHECK (
+          ("isEdited" = false AND "editedAt" IS NULL) OR 
+          ("isEdited" = true AND "editedAt" IS NOT NULL)
+        ),
+        -- Add constraint for delete tracking
+        CONSTRAINT chk_delete_tracking CHECK (
+          ("isDeleted" = false AND "deletedAt" IS NULL) OR 
+          ("isDeleted" = true AND "deletedAt" IS NOT NULL)
+        )
       );
     `;
 

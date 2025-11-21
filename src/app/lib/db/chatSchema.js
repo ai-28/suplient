@@ -339,25 +339,35 @@ export const chatRepo = {
       const messages = await sql`
         SELECT 
           m.id,
-          m.content,
+          -- Show deleted placeholder if message is deleted
+          CASE 
+            WHEN m."isDeleted" = true THEN '[This message was deleted]'
+            ELSE m.content
+          END as content,
           m.type,
           m."replyToId",
           m."audioUrl",
           m."audioDuration",
           m."waveformData",
+          m."isEdited",
+          m."editedAt",
+          m."isDeleted",
+          m."deletedAt",
+          m.metadata,
           m."createdAt",
           m."updatedAt",
           u.id as "senderId",
           u.name as "senderName",
           u.avatar as "senderAvatar",
           u.role as "senderRole",
-          -- Get reply message if exists
+          -- Get reply message if exists (only if not deleted)
           (
             SELECT json_build_object(
               'id', rm.id,
-              'content', rm.content,
+              'content', CASE WHEN rm."isDeleted" = true THEN '[This message was deleted]' ELSE rm.content END,
               'senderName', ru.name,
-              'type', rm.type
+              'type', rm.type,
+              'isDeleted', rm."isDeleted"
             )
             FROM "Message" rm
             JOIN "User" ru ON rm."senderId" = ru.id
@@ -381,6 +391,18 @@ export const chatRepo = {
   // Send a message
   async sendMessage(conversationId, senderId, content, type = 'text', options = {}) {
     try {
+      // Validate replyToId is a valid UUID format
+      // Reject temp IDs like "temp-xxx" or "socket-xxx"
+      let validReplyToId = null;
+      if (options.replyToId) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(options.replyToId)) {
+          validReplyToId = options.replyToId;
+        } else {
+          console.warn('Invalid replyToId format, ignoring:', options.replyToId);
+        }
+      }
+
       const [message] = await sql`
         INSERT INTO "Message" (
           "conversationId", 
@@ -397,7 +419,7 @@ export const chatRepo = {
           ${senderId},
           ${content},
           ${type},
-          ${options.replyToId || null},
+          ${validReplyToId},
           ${options.audioUrl || null},
           ${options.audioDuration || null},
           ${options.waveformData ? JSON.stringify(options.waveformData) : null}
@@ -423,6 +445,57 @@ export const chatRepo = {
       return message;
     } catch (error) {
       console.error('Error sending message:', error);
+      throw error;
+    }
+  },
+
+  // Get a single message with replyTo data
+  async getMessageById(messageId) {
+    try {
+      const [message] = await sql`
+        SELECT 
+          m.id,
+          CASE 
+            WHEN m."isDeleted" = true THEN '[This message was deleted]'
+            ELSE m.content
+          END as content,
+          m.type,
+          m."replyToId",
+          m."audioUrl",
+          m."audioDuration",
+          m."waveformData",
+          m."isEdited",
+          m."editedAt",
+          m."isDeleted",
+          m."deletedAt",
+          m.metadata,
+          m."createdAt",
+          m."updatedAt",
+          u.id as "senderId",
+          u.name as "senderName",
+          u.avatar as "senderAvatar",
+          u.role as "senderRole",
+          -- Get reply message if exists
+          (
+            SELECT json_build_object(
+              'id', rm.id,
+              'content', CASE WHEN rm."isDeleted" = true THEN '[This message was deleted]' ELSE rm.content END,
+              'senderName', ru.name,
+              'type', rm.type,
+              'isDeleted', rm."isDeleted"
+            )
+            FROM "Message" rm
+            JOIN "User" ru ON rm."senderId" = ru.id
+            WHERE rm.id = m."replyToId"
+          ) as "replyTo"
+        FROM "Message" m
+        JOIN "User" u ON m."senderId" = u.id
+        WHERE m.id = ${messageId}
+      `;
+
+      return message;
+    } catch (error) {
+      console.error('Error getting message by ID:', error);
       throw error;
     }
   },
@@ -513,6 +586,117 @@ export const chatRepo = {
       return !!access;
     } catch (error) {
       console.error('Error verifying message access:', error);
+      throw error;
+    }
+  },
+
+  // Edit a message
+  async editMessage(messageId, userId, newContent) {
+    try {
+      // Verify user is the sender
+      const [message] = await sql`
+        SELECT "senderId", "conversationId" 
+        FROM "Message" 
+        WHERE id = ${messageId}
+      `;
+
+      if (!message) {
+        throw new Error('Message not found');
+      }
+
+      if (message.senderId !== userId) {
+        throw new Error('Not authorized to edit this message');
+      }
+
+      // Update message
+      const [updated] = await sql`
+        UPDATE "Message"
+        SET 
+          content = ${newContent},
+          "isEdited" = true,
+          "editedAt" = CURRENT_TIMESTAMP,
+          "updatedAt" = CURRENT_TIMESTAMP
+        WHERE id = ${messageId}
+        RETURNING 
+          id,
+          content,
+          "isEdited",
+          "editedAt",
+          "updatedAt",
+          "conversationId",
+          "senderId"
+      `;
+
+      // Update conversation's updatedAt
+      await sql`
+        UPDATE "Conversation" 
+        SET "updatedAt" = CURRENT_TIMESTAMP 
+        WHERE id = ${updated.conversationId}
+      `;
+
+      return updated;
+    } catch (error) {
+      console.error('Error editing message:', error);
+      throw error;
+    }
+  },
+
+  // Delete a message (SOFT DELETE - masks content but keeps record)
+  async deleteMessage(messageId, userId) {
+    try {
+      // Verify user is the sender
+      const [message] = await sql`
+        SELECT "senderId", "conversationId", content
+        FROM "Message" 
+        WHERE id = ${messageId}
+      `;
+
+      if (!message) {
+        throw new Error('Message not found');
+      }
+
+      if (message.senderId !== userId) {
+        throw new Error('Not authorized to delete this message');
+      }
+
+      // Soft delete - mask content but keep the record
+      // Store original content in metadata for admin recovery (optional)
+      const originalContent = message.content || '';
+      
+      const [deleted] = await sql`
+        UPDATE "Message"
+        SET 
+          content = '[This message was deleted]',
+          "isDeleted" = true,
+          "deletedAt" = CURRENT_TIMESTAMP,
+          "updatedAt" = CURRENT_TIMESTAMP,
+          -- Store original content in metadata for admin recovery (optional)
+          metadata = jsonb_set(
+            COALESCE(metadata, '{}'::jsonb),
+            '{originalContent}',
+            to_jsonb(${originalContent}::text)
+          )
+        WHERE id = ${messageId}
+        RETURNING 
+          id,
+          content,
+          "isDeleted",
+          "deletedAt",
+          "conversationId",
+          "senderId",
+          "createdAt"
+      `;
+
+      // Update conversation's updatedAt
+      await sql`
+        UPDATE "Conversation" 
+        SET "updatedAt" = CURRENT_TIMESTAMP 
+        WHERE id = ${deleted.conversationId}
+      `;
+
+      return deleted;
+    } catch (error) {
+      console.error('Error deleting message:', error);
       throw error;
     }
   }

@@ -39,10 +39,25 @@ import { GroupFilesPanel } from "@/app/components/GroupFilesPanel";
 import { AddMemberToGroupDialog } from "@/app/components/AddMemberToGroupDialog";
 import { useGroupProgress } from '@/app/hooks/useGroupProgress';
 
+// Helper: Parse UTC timestamp correctly (server sends UTC timestamps without timezone)
+const parseAsUTC = (input) => {
+  if (!input) return new Date();
+  if (input instanceof Date) return input;
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (trimmed.endsWith('Z') || trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+      return new Date(trimmed);
+    }
+    const normalized = trimmed.replace(/\s+/, 'T');
+    return new Date(normalized + 'Z');
+  }
+  return new Date(input);
+};
+
 // Helper function to format date for display
 const formatDate = (dateString) => {
   if (!dateString) return 'No date';
-  const date = new Date(dateString);
+  const date = parseAsUTC(dateString);
   return date.toLocaleDateString('en-US', { 
     month: 'long', 
     day: 'numeric' 

@@ -157,40 +157,18 @@ app.prepare().then(() => {
     socket.on('send_message', async (data) => {
       const { conversationId, ...messageData } = data;
 
-      // Generate a unique ID for the socket message
-      const socketMessageId = `socket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      const socketMessage = {
-        ...messageData,
-        id: socketMessageId,
-        senderId: socket.userId,
-        senderName: socket.userName,
-        senderEmail: socket.userEmail,
-        timestamp: new Date(),
-        createdAt: new Date()
-      };
-
-      // Broadcast to all users in the conversation (including sender for confirmation)
-      io.to(`conversation_${conversationId}`).emit('new_message', socketMessage);
-
-      // Also emit unread count update to all participants via their notification rooms
-      console.log('📨 Emitting unread count update for conversation:', conversationId);
-
-      try {
-        // Get all participants and emit to their individual notification rooms
-        const participants = await getConversationParticipants(conversationId);
-        for (const participant of participants) {
-          io.to(`notifications_${participant.id}`).emit('update_unread_count', {
-            conversationId,
-            participantId: participant.id,
-            messageId: socketMessage.id
-          });
-        }
-      } catch (error) {
-        console.error('Error emitting unread count updates:', error);
-      }
-
-      console.log(`📨 Message sent in conversation ${conversationId} by ${socket.userName}`);
+      // NOTE: Modern chat system uses API route which emits its own socket event with full message data
+      // We skip emitting the message here to avoid duplicates - the API route will handle it
+      // This prevents duplicate messages (one from socket, one from API) with different timestamps
+      
+      // The API route will handle:
+      // 1. Saving message to database
+      // 2. Emitting socket event with full message data (including replyTo)
+      // 3. Creating notifications
+      // 4. Emitting unread count updates
+      
+      // This socket handler is kept for backward compatibility but doesn't emit messages
+      // to prevent duplicates in the modern chat system
     });
 
     socket.on('typing_start', (data) => {

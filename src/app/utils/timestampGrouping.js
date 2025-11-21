@@ -14,9 +14,9 @@ export function groupMessagesByTime(messages) {
     const prevMsg = messages[i - 1];
     const nextMsg = messages[i + 1];
 
-    const currentTime = new Date(currentMsg.timestamp);
-    const prevTime = prevMsg ? new Date(prevMsg.timestamp) : null;
-    const nextTime = nextMsg ? new Date(nextMsg.timestamp) : null;
+    const currentTime = parseAsUTC(currentMsg.timestamp);
+    const prevTime = prevMsg ? parseAsUTC(prevMsg.timestamp) : null;
+    const nextTime = nextMsg ? parseAsUTC(nextMsg.timestamp) : null;
 
     // Check if this is the start of a new group
     const isNewGroup = !prevMsg ||
@@ -68,10 +68,35 @@ function isSameDay(date1, date2) {
 }
 
 /**
+ * Helper: Parse timestamp string as UTC (server sends UTC timestamps without timezone)
+ * If string doesn't have timezone, append 'Z' to force UTC interpretation
+ */
+function parseAsUTC(input) {
+  if (!input) return new Date();
+
+  if (input instanceof Date) {
+    return input; // Already a Date object
+  }
+
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    // If already has timezone (Z or offset), parse directly
+    if (trimmed.endsWith('Z') || trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+      return new Date(trimmed);
+    }
+    // No timezone - server sends UTC, so append 'Z' to force UTC interpretation
+    const normalized = trimmed.replace(/\s+/, 'T');
+    return new Date(normalized + 'Z');
+  }
+
+  return new Date(input);
+}
+
+/**
  * Formats progressive timestamp based on message age
  */
 export function formatProgressiveTimestamp(timestamp) {
-  const date = new Date(timestamp);
+  const date = parseAsUTC(timestamp);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -81,8 +106,7 @@ export function formatProgressiveTimestamp(timestamp) {
     return date.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false,
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      hour12: false
     });
   } else if (diffDays === 1) {
     // Yesterday
@@ -90,15 +114,13 @@ export function formatProgressiveTimestamp(timestamp) {
   } else if (diffDays < 7) {
     // This week - show day name
     return date.toLocaleDateString([], {
-      weekday: 'short',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      weekday: 'short'
     });
   } else {
     // Older - show date
     return date.toLocaleDateString([], {
       month: 'short',
-      day: 'numeric',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      day: 'numeric'
     });
   }
 }
@@ -108,7 +130,8 @@ export function formatProgressiveTimestamp(timestamp) {
  */
 function formatTimeSeparator(timestamp, is24Hour = true) {
   // Show time-of-day only to avoid repeating date labels like 'Yesterday'
-  return timestamp.toLocaleTimeString([], {
+  const date = parseAsUTC(timestamp);
+  return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
     hour12: !is24Hour
@@ -117,27 +140,22 @@ function formatTimeSeparator(timestamp, is24Hour = true) {
 
 /**
  * Formats a compact time-of-day for inline message timestamps (HH:mm)
+ * Server timestamps are UTC, converts to browser's local timezone
  */
 export function formatTimeOfDay(input, is24Hour = true) {
-  const date = typeof input === 'string' ? new Date(input) : input;
+  // Parse as UTC first (server sends UTC timestamps)
+  const date = parseAsUTC(input);
 
   // Check if date is valid
   if (!date || isNaN(date.getTime())) {
     return '--:--';
   }
 
-  // The database stores timestamps as TIMESTAMP (without timezone info)
-  // These are stored in the server's local time, but we need to display them in the user's local time
-  // Since the server and client might be in different timezones, we need to handle this properly
-
-  // For now, we'll treat the timestamp as-is and let the browser handle the timezone conversion
-  // This assumes the server is storing timestamps in a consistent timezone (preferably UTC)
-
+  // toLocaleTimeString automatically converts UTC Date to local timezone
   return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: !is24Hour,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    hour12: !is24Hour
   });
 }
 
@@ -145,15 +163,13 @@ export function formatTimeOfDay(input, is24Hour = true) {
  * Formats date separator for different dates
  */
 export function formatDateSeparator(timestamp) {
-  const date = new Date(timestamp);
+  const date = parseAsUTC(timestamp);
 
   // Check if date is valid
   if (!date || isNaN(date.getTime())) {
     return 'Invalid Date';
   }
 
-  // The database stores timestamps as TIMESTAMP (without timezone info)
-  // Display in the user's local timezone for better UX
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -164,15 +180,13 @@ export function formatDateSeparator(timestamp) {
     return 'Yesterday';
   } else if (diffDays < 7) {
     return date.toLocaleDateString([], {
-      weekday: 'long',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      weekday: 'long'
     });
   } else {
     return date.toLocaleDateString([], {
       month: 'long',
       day: 'numeric',
-      ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' }),
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' })
     });
   }
 }
@@ -181,16 +195,14 @@ export function formatDateSeparator(timestamp) {
  * Gets precise timestamp for hover display
  */
 export function getPreciseTimestamp(timestamp, is24Hour = true) {
-  const date = new Date(timestamp);
+  const date = parseAsUTC(timestamp);
 
   // Check if date is valid
   if (!date || isNaN(date.getTime())) {
     return 'Invalid Date';
   }
 
-  // The database stores timestamps as TIMESTAMP (without timezone info)
-  // Display in the user's local timezone for better UX
-
+  // toLocaleString automatically converts UTC to local timezone
   return date.toLocaleString([], {
     weekday: 'short',
     month: 'short',
@@ -198,7 +210,6 @@ export function getPreciseTimestamp(timestamp, is24Hour = true) {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: !is24Hour,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    hour12: !is24Hour
   });
 }

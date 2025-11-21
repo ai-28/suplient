@@ -100,6 +100,31 @@ export async function POST(request, { params }) {
       waveformData
     });
 
+    // Fetch the full message with replyTo data
+    const fullMessage = await chatRepo.getMessageById(message.id);
+
+    // Emit socket event with full message data including replyTo
+    try {
+      const { globalSocketIO } = global;
+      if (globalSocketIO) {
+        const room = `conversation_${conversationId}`;
+        const socketMessage = {
+          ...fullMessage,
+          senderId: senderId,
+          senderName: session.user.isImpersonating && session.user.originalAdminName
+            ? session.user.originalAdminName
+            : session.user.name,
+          senderRole: session.user.isImpersonating && session.user.originalAdminRole
+            ? session.user.originalAdminRole
+            : session.user.role,
+          timestamp: fullMessage.createdAt,
+          createdAt: fullMessage.createdAt
+        };
+        globalSocketIO.to(room).emit('new_message', socketMessage);
+      }
+    } catch (socketError) {
+      console.error('Error emitting new_message socket event:', socketError);
+    }
 
     // Create persistent notifications and emit real-time updates
     try {
@@ -186,11 +211,11 @@ export async function POST(request, { params }) {
     return NextResponse.json({
       success: true,
       message: {
-        ...message,
+        ...fullMessage,
         senderId: senderId,
         senderName: senderName,
         senderRole: senderRole,
-        timestamp: message.createdAt
+        timestamp: fullMessage.createdAt
       }
     });
   } catch (error) {

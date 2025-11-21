@@ -36,12 +36,29 @@ export function useChat(conversationId) {
       const data = await response.json();
 
       if (data.success) {
-        const newMessages = (data.messages || []).map(msg => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp || msg.createdAt),
-          // Keep readBy data from database for persistence
-          readBy: msg.readBy || []
-        }));
+        const newMessages = (data.messages || []).map(msg => {
+          // Parse timestamp - server sends UTC timestamps without timezone
+          let timestamp = msg.timestamp || msg.createdAt;
+          if (typeof timestamp === 'string') {
+            const trimmed = timestamp.trim();
+            // If no timezone info, append 'Z' to force UTC interpretation
+            if (!trimmed.endsWith('Z') && !trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+              const normalized = trimmed.replace(/\s+/, 'T');
+              timestamp = new Date(normalized + 'Z');
+            } else {
+              timestamp = new Date(trimmed);
+            }
+          } else {
+            timestamp = new Date(timestamp);
+          }
+
+          return {
+            ...msg,
+            timestamp,
+            // Keep readBy data from database for persistence
+            readBy: msg.readBy || []
+          };
+        });
 
         if (append) {
           setMessages(prev => [...newMessages, ...prev]);
@@ -93,14 +110,9 @@ export function useChat(conversationId) {
       setMessages(prev => [...prev, tempMessage]);
       setPendingMessages(prev => new Set([...prev, messageKey]));
 
-      // Send via socket for real-time delivery
-      sendMessage(conversationId, {
-        content,
-        type,
-        ...options
-      });
-
-      // Also send via API for persistence
+      // Send via API - it will handle persistence and socket emission
+      // Removed socket.emit('send_message') to prevent duplicates
+      // The API route emits the socket event with full message data
       const response = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: {
@@ -130,6 +142,8 @@ export function useChat(conversationId) {
                 status: 'sent',
                 timestamp: msg.timestamp, // Keep the original local timestamp
                 content: data.message.content || msg.content,
+                replyToId: data.message.replyToId || msg.replyToId,
+                replyTo: data.message.replyTo || msg.replyTo, // Preserve replyTo data
                 readBy: data.message.readBy || msg.readBy || []
               };
             }
@@ -198,10 +212,29 @@ export function useChat(conversationId) {
       setMessages(prev => {
         // For messages sent by current user, check if we have a temp message with same content
         if (message.senderId === session?.user?.id) {
+          // First try to match by ID (if API response already updated temp message with real ID)
+          const idMatchIndex = prev.findIndex(msg =>
+            msg.id && message.id && String(msg.id) === String(message.id)
+          );
+
+          if (idMatchIndex !== -1) {
+            // Message already exists with this ID, just update it
+            const newMessages = [...prev];
+            newMessages[idMatchIndex] = {
+              ...newMessages[idMatchIndex],
+              ...message,
+              messageKey: newMessages[idMatchIndex].messageKey, // Preserve the message key
+              status: 'delivered',
+              timestamp: newMessages[idMatchIndex].timestamp, // Keep the original local timestamp
+            };
+            return newMessages;
+          }
+
+          // Then try to match by temp message key/content
           const tempMessageIndex = prev.findIndex(msg =>
             msg.messageKey &&
-            msg.content === message.content &&
-            msg.senderId === message.senderId &&
+            (msg.content === message.content || msg.content === (message.content || message.text)) &&
+            String(msg.senderId) === String(message.senderId) &&
             pendingMessages.has(msg.messageKey)
           );
 
@@ -212,7 +245,9 @@ export function useChat(conversationId) {
               messageKey: prev[tempMessageIndex].messageKey, // Preserve the message key
               status: 'delivered', // Socket confirmation means delivered
               timestamp: prev[tempMessageIndex].timestamp, // Keep the original local timestamp
-              content: message.content || message.text || '[Message received]'
+              content: message.content || message.text || '[Message received]',
+              replyToId: message.replyToId || prev[tempMessageIndex].replyToId,
+              replyTo: message.replyTo || prev[tempMessageIndex].replyTo // Preserve replyTo data
             };
             return newMessages;
           }
@@ -224,26 +259,68 @@ export function useChat(conversationId) {
 
         // For messages from other users, check if message already exists
         const exists = prev.some(msg => {
-          // If both have IDs, compare by ID
+          // If both have IDs, compare by ID (handle both UUID and string formats)
           if (msg.id && message.id) {
-            return msg.id === message.id;
+            const msgIdStr = String(msg.id);
+            const messageIdStr = String(message.id);
+            // Exact ID match
+            if (msgIdStr === messageIdStr) {
+              return true;
+            }
+            // Handle temp IDs that might match
+            if (msgIdStr.startsWith('temp-') && messageIdStr.startsWith('temp-')) {
+              // Compare the key part after 'temp-'
+              const msgKey = msgIdStr.replace('temp-', '');
+              const messageKey = messageIdStr.replace('temp-', '');
+              if (msgKey === messageKey) {
+                return true;
+              }
+            }
           }
+
           // If no IDs or different ID formats, compare by content, sender, and timestamp
-          const timeDiff = Math.abs(new Date(msg.timestamp) - new Date(message.timestamp));
-          return msg.content === message.content &&
-            msg.senderId === message.senderId &&
-            timeDiff < 5000; // Within 5 seconds
+          // Also check replyToId to distinguish replies
+          const msgTime = msg.timestamp || msg.createdAt;
+          const messageTime = message.timestamp || message.createdAt;
+          const timeDiff = Math.abs(new Date(msgTime) - new Date(messageTime));
+
+          const msgContent = msg.content || msg.text || '';
+          const messageContent = message.content || message.text || '';
+          const sameContent = msgContent === messageContent && msgContent.trim() !== '';
+          const sameSender = String(msg.senderId) === String(message.senderId);
+          const sameReplyTo = String(msg.replyToId || '') === String(message.replyToId || '');
+
+          // Consider it a duplicate if content, sender, and replyTo match within 5 seconds
+          // Reduced from 10 seconds to be more strict
+          return sameContent && sameSender && sameReplyTo && timeDiff < 5000;
         });
 
         if (exists) {
           return prev;
         }
 
+        // Parse timestamp - server sends UTC timestamps without timezone
+        let timestamp = message.timestamp || message.createdAt;
+        if (typeof timestamp === 'string') {
+          const trimmed = timestamp.trim();
+          // If no timezone info, append 'Z' to force UTC interpretation
+          if (!trimmed.endsWith('Z') && !trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+            const normalized = trimmed.replace(/\s+/, 'T');
+            timestamp = new Date(normalized + 'Z');
+          } else {
+            timestamp = new Date(trimmed);
+          }
+        } else {
+          timestamp = new Date(timestamp);
+        }
+
         const newMessage = {
           ...message,
           status: 'received',
-          timestamp: new Date(message.timestamp || message.createdAt),
-          content: message.content || message.text || '[Message received]'
+          timestamp,
+          content: message.content || message.text || '[Message received]',
+          replyToId: message.replyToId,
+          replyTo: message.replyTo // Preserve replyTo data from socket/API
         };
         return [...prev, newMessage];
       });
@@ -265,6 +342,68 @@ export function useChat(conversationId) {
       }
     };
 
+    // Handle message edited event
+    const handleMessageEdited = (data) => {
+      // Compare as strings to handle UUID format differences
+      const eventConvId = String(data.conversationId || '');
+      const currentConvId = String(conversationId || '');
+
+      if (eventConvId === currentConvId) {
+        setMessages(prev => {
+          const messageExists = prev.some(msg => msg.id === data.messageId);
+          if (!messageExists) {
+            return prev;
+          }
+
+          return prev.map(msg =>
+            msg.id === data.messageId
+              ? {
+                ...msg,
+                content: data.content,
+                isEdited: true,
+                editedAt: data.editedAt,
+                updatedAt: data.editedAt
+              }
+              : msg
+          );
+        });
+      }
+    };
+
+    // Handle message deleted event - update to show deleted placeholder
+    const handleMessageDeleted = (data) => {
+      console.log('🗑️ Received message_deleted event:', data, 'Current conversationId:', conversationId);
+      // Compare as strings to handle UUID format differences
+      const eventConvId = String(data.conversationId || '');
+      const currentConvId = String(conversationId || '');
+
+      if (eventConvId === currentConvId) {
+        console.log('✅ Updating deleted message in UI:', data.messageId);
+        setMessages(prev => {
+          const messageExists = prev.some(msg => msg.id === data.messageId);
+          if (!messageExists) {
+            console.warn('⚠️ Message not found in current messages:', data.messageId);
+            return prev;
+          }
+
+          const updated = prev.map(msg =>
+            msg.id === data.messageId
+              ? {
+                ...msg,
+                content: data.content || '[This message was deleted]',
+                isDeleted: true,
+                deletedAt: data.deletedAt
+              }
+              : msg
+          );
+          console.log('🗑️ Updated deleted message:', updated.find(m => m.id === data.messageId));
+          return updated;
+        });
+      } else {
+        console.log('❌ Conversation ID mismatch. Event:', eventConvId, 'Current:', currentConvId, 'Types:', typeof data.conversationId, typeof conversationId);
+      }
+    };
+
     // Online/offline events are now handled globally in useSocket hook
 
     // Global online/offline events are now handled in useSocket hook
@@ -274,22 +413,21 @@ export function useChat(conversationId) {
     // Register event listeners
     socket.on('new_message', handleNewMessage);
     socket.on('user_typing', handleUserTyping);
-
-    // Test: Listen for any event to see if socket is working
-    socket.onAny((eventName, ...args) => {
-    });
+    socket.on('message_edited', handleMessageEdited);
+    socket.on('message_deleted', handleMessageDeleted);
 
     // Cleanup
     return () => {
       socket.off('new_message', handleNewMessage);
       socket.off('user_typing', handleUserTyping);
-      socket.offAny(); // Clean up the onAny listener
+      socket.off('message_edited', handleMessageEdited);
+      socket.off('message_deleted', handleMessageDeleted);
 
       if (isConnected) {
         leaveConversation(conversationId);
       }
     };
-  }, [socket, conversationId, isConnected, joinConversation, leaveConversation]);
+  }, [socket, conversationId, isConnected, joinConversation, leaveConversation, session?.user?.id]);
 
   // Load initial messages
   useEffect(() => {
@@ -316,6 +454,7 @@ export function useChat(conversationId) {
 
   return {
     messages,
+    setMessages,
     loading,
     error,
     sending,

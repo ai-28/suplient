@@ -48,6 +48,21 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { useClientProgress } from '@/app/hooks/useClientProgress';
 import { useConversationId } from '@/app/hooks/useConversationId';
 import { toast } from 'sonner';
+
+// Helper: Parse UTC timestamp correctly (server sends UTC timestamps without timezone)
+const parseAsUTC = (input) => {
+  if (!input) return new Date();
+  if (input instanceof Date) return input;
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (trimmed.endsWith('Z') || trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+      return new Date(trimmed);
+    }
+    const normalized = trimmed.replace(/\s+/, 'T');
+    return new Date(normalized + 'Z');
+  }
+  return new Date(input);
+};
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -1012,7 +1027,7 @@ export default function ClientProfile() {
                         <h3 className="text-xl font-semibold">{clientData.name}</h3>
                         <p className="text-sm text-gray-500">
                           Last active: {clientData.lastActive 
-                            ? new Date(clientData.lastActive).toLocaleDateString()
+                            ? parseAsUTC(clientData.lastActive).toLocaleDateString()
                             : 'Never'
                           }
                         </p>
@@ -1035,7 +1050,7 @@ export default function ClientProfile() {
                         {clientData.nextSession && (
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-4 w-4 text-gray-400" />
-                            <span>Next session: {new Date(clientData.nextSession).toLocaleString()}</span>
+                            <span>Next session: {parseAsUTC(clientData.nextSession).toLocaleString()}</span>
                           </div>
                         )}
                         {clientData.status && (
@@ -1083,7 +1098,7 @@ export default function ClientProfile() {
                                     {task.title}
                                   </p>
                                   <span className="text-xs text-gray-500">
-                                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
+                                    {task.dueDate ? parseAsUTC(task.dueDate).toLocaleDateString() : 'No due date'}
                                   </span>
                                 </div>
                               </div>
@@ -1161,7 +1176,7 @@ export default function ClientProfile() {
                                     {note.description || 'No description'}
                                   </p>
                                   <p className="text-xs text-gray-500 mt-1">
-                                    {new Date(note.createdAt).toLocaleDateString()}
+                                    {parseAsUTC(note.createdAt).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <div className="flex gap-1 ml-2">
@@ -1287,7 +1302,7 @@ export default function ClientProfile() {
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                       <span>{program.duration} weeks</span>
                                       <span>{program.elements?.length || 0} elements</span>
-                                      <span>Enrolled: {new Date(clientProgram.createdAt).toLocaleDateString()}</span>
+                                      <span>Enrolled: {parseAsUTC(clientProgram.createdAt).toLocaleDateString()}</span>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -1500,7 +1515,7 @@ export default function ClientProfile() {
                                 <div>
                                   <p className="font-medium">Joined</p>
                                   <p className="text-muted-foreground">
-                                    {new Date(group.joinedDate).toLocaleDateString()}
+                                    {parseAsUTC(group.joinedDate).toLocaleDateString()}
                                   </p>
                                 </div>
                               </div>
@@ -1770,7 +1785,23 @@ export default function ClientProfile() {
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
+                            {(() => {
+                              // Parse UTC timestamp correctly
+                              const ts = activity.createdAt;
+                              let date;
+                              if (typeof ts === 'string') {
+                                const trimmed = ts.trim();
+                                if (!trimmed.endsWith('Z') && !trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+                                  const normalized = trimmed.replace(/\s+/, 'T');
+                                  date = new Date(normalized + 'Z');
+                                } else {
+                                  date = new Date(trimmed);
+                                }
+                              } else {
+                                date = new Date(ts);
+                              }
+                              return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString();
+                            })()}
                           </p>
                         </div>
                       </div>

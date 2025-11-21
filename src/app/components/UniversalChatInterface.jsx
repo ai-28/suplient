@@ -15,6 +15,7 @@ import { ScheduleSessionDialog } from "@/app/components/ScheduleSessionDialog";
 import { EmojiButton } from "@/app/components/EmojiButton";
 import { MessageActions } from "@/app/components/MessageActions";
 import { ReplyPreview } from "@/app/components/ReplyPreview";
+import { RepliedMessage } from "@/app/components/RepliedMessage";
 import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTimestamp } from "@/app/utils/timestampGrouping";
 import { useChat } from "@/app/hooks/useChat";
 import { useSession } from "next-auth/react";
@@ -62,6 +63,7 @@ export function UniversalChatInterface({
   // Use the real-time chat hook
   const {
     messages,
+    setMessages,
     loading,
     error,
     sending,
@@ -124,10 +126,18 @@ export function UniversalChatInterface({
   }, [chatId, session?.user?.id]);
   const handleSendMessage = () => {
     if (message.trim()) {
+      // Only use replyToId if it's a valid UUID (not a temp ID)
+      // Temp IDs start with "temp-" or "socket-", real UUIDs are in UUID format
+      const isValidUUID = (id) => {
+        if (!id) return false;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(id);
+      };
+
       const messageData = {
         content: message.trim(),
         type: "text",
-        replyToId: replyToMessage?.id
+        replyToId: replyToMessage?.id && isValidUUID(replyToMessage.id) ? replyToMessage.id : null
       };
 
       sendMessage(messageData.content, messageData.type, messageData);
@@ -175,6 +185,105 @@ export function UniversalChatInterface({
   const handleCancelReply = () => {
     setReplyToMessage(null);
   };
+  
+  const handleEditMessage = async (messageId, newContent) => {
+    try {
+      // Optimistic update - update immediately in UI
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { 
+              ...msg, 
+              content: newContent, 
+              isEdited: true, 
+              editedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          : msg
+      ));
+
+      const response = await fetch(`/api/chat/messages/${messageId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: newContent }),
+      });
+
+      if (!response.ok) {
+        // Revert optimistic update on error
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to edit message');
+      }
+
+      const result = await response.json();
+      
+      // Update with server response (socket event will also update, but this ensures consistency)
+      if (result.message) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { 
+                ...msg, 
+                content: result.message.content, 
+                isEdited: result.message.isEdited, 
+                editedAt: result.message.editedAt,
+                updatedAt: result.message.updatedAt
+              }
+            : msg
+        ));
+      }
+    } catch (error) {
+      console.error('Error editing message:', error);
+      // Reload messages to get correct state
+      window.location.reload();
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      // Optimistic update - update immediately in UI
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { 
+              ...msg, 
+              content: '[This message was deleted]',
+              isDeleted: true,
+              deletedAt: new Date().toISOString()
+            }
+          : msg
+      ));
+
+      const response = await fetch(`/api/chat/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        // Revert optimistic update on error
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete message');
+      }
+
+      const result = await response.json();
+      
+      // Update with server response (socket event will also update, but this ensures consistency)
+      if (result.message) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { 
+                ...msg, 
+                content: result.message.content || '[This message was deleted]',
+                isDeleted: result.message.isDeleted,
+                deletedAt: result.message.deletedAt
+              }
+            : msg
+        ));
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      // Reload messages to get correct state
+      window.location.reload();
+    }
+  };
+  
   const scrollToMessage = (messageId) => {
     const messageElement = document.getElementById(`message-${messageId}`);
     if (messageElement) {
@@ -401,7 +510,8 @@ export function UniversalChatInterface({
             if (msg.isSystemMessage) {
               return <div key={msg.id}>{renderSystemMessage(msg)}</div>;
             }
-            const repliedMessage = msg.replyTo ? findRepliedMessage(msg.replyTo) : null;
+            // msg.replyTo is already a JSON object from the database, no need to search for it
+            const repliedMessage = msg.replyTo || null;
             // In monitoring mode, show coach messages on right, client messages on left
             const isMonitoringMode = chatType === "group" && participantName?.includes(" & ");
             const isOwnMessage = isMonitoringMode ? msg.isCoach : (msg.senderId === currentUserId);
@@ -442,7 +552,16 @@ export function UniversalChatInterface({
                           </Avatar>}
                         
                         {/* Message actions for own messages - positioned on left of bubble */}
-                        {isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} className="ml-1" />}
+                        {isOwnMessage && !msg.isSystemMessage && (
+                          <MessageActions 
+                            message={msg} 
+                            onReply={allowReplies ? handleReplyToMessage : undefined}
+                            onEdit={handleEditMessage}
+                            onDelete={handleDeleteMessage}
+                            currentUserId={currentUserId}
+                            className="ml-1" 
+                          />
+                        )}
 
                          <div className={`flex flex-col max-w-[70%] ${isOwnMessage ? "items-end" : "items-start"}`}>
                            {/* Sender name and timestamp - show for all messages in monitoring mode, or first in group for others */}
@@ -471,8 +590,25 @@ export function UniversalChatInterface({
                             })()} 
                             isOwnMessage={isOwnMessage} 
                           /> : (
-                            <div className={`p-3 rounded-lg ${isOwnMessage ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"} ${msg.status === 'sending' ? 'opacity-70' : ''} ${msg.status === 'error' ? 'bg-red-100 border-red-300' : ''}`}>
-                              <p className="text-sm leading-relaxed">{msg.content || '[No content]'}</p>
+                            <div className={`p-3 rounded-lg ${
+                              msg.isDeleted 
+                                ? "bg-muted/50 text-muted-foreground italic"  // Different style for deleted
+                                : isOwnMessage 
+                                  ? "bg-primary text-primary-foreground" 
+                                  : "bg-secondary text-secondary-foreground"
+                            } ${msg.status === 'sending' ? 'opacity-70' : ''} ${msg.status === 'error' ? 'bg-red-100 border-red-300' : ''}`}>
+                              <p className="text-sm leading-relaxed">
+                                {msg.isDeleted ? (
+                                  <span className="italic opacity-70">This message was deleted</span>
+                                ) : (
+                                  msg.content || '[No content]'
+                                )}
+                              </p>
+                              {msg.isEdited && !msg.isDeleted && (
+                                <span className="text-xs opacity-70 italic mt-1 block">
+                                  (edited)
+                                </span>
+                              )}
                               {msg.status === 'sending' && (
                                 <div className="flex items-center gap-1 mt-1">
                                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -500,7 +636,14 @@ export function UniversalChatInterface({
                         </div>
 
                         {/* Message actions for received messages - positioned on right of bubble */}
-                        {!isOwnMessage && !msg.isSystemMessage && <MessageActions message={msg} onReply={allowReplies ? handleReplyToMessage : undefined} className="ml-1" />}
+                        {!isOwnMessage && !msg.isSystemMessage && (
+                          <MessageActions 
+                            message={msg} 
+                            onReply={allowReplies ? handleReplyToMessage : undefined}
+                            currentUserId={currentUserId}
+                            className="ml-1" 
+                          />
+                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs">
