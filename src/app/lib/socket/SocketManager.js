@@ -79,16 +79,16 @@ class SocketManager {
         const conversations = await this.getUserConversations(socket.userId);
 
         conversations.forEach(conversation => {
-          socket.join(`conversation:${conversation.id}`);
+          socket.join(`conversation_${conversation.id}`);
           this.userRooms.set(socket.userId, [
             ...(this.userRooms.get(socket.userId) || []),
-            `conversation:${conversation.id}`
+            `conversation_${conversation.id}`
           ]);
         });
 
         // Emit online status to all conversations
         conversations.forEach(conversation => {
-          socket.to(`conversation:${conversation.id}`).emit('user_online', {
+          socket.to(`conversation_${conversation.id}`).emit('user_online', {
             userId: socket.userId,
             userName: socket.userName,
             conversationId: conversation.id
@@ -115,14 +115,14 @@ class SocketManager {
           return;
         }
 
-        socket.join(`conversation:${conversationId}`);
+        socket.join(`conversation_${conversationId}`);
 
         const currentRooms = this.userRooms.get(socket.userId) || [];
-        if (!currentRooms.includes(`conversation:${conversationId}`)) {
-          this.userRooms.set(socket.userId, [...currentRooms, `conversation:${conversationId}`]);
+        if (!currentRooms.includes(`conversation_${conversationId}`)) {
+          this.userRooms.set(socket.userId, [...currentRooms, `conversation_${conversationId}`]);
         }
 
-        socket.to(`conversation:${conversationId}`).emit('user_online', {
+        socket.to(`conversation_${conversationId}`).emit('user_online', {
           userId: socket.userId,
           userName: socket.userName,
           conversationId
@@ -137,12 +137,12 @@ class SocketManager {
 
     socket.on('leave_conversation', (data) => {
       const { conversationId } = data;
-      socket.leave(`conversation:${conversationId}`);
+      socket.leave(`conversation_${conversationId}`);
 
       const currentRooms = this.userRooms.get(socket.userId) || [];
-      this.userRooms.set(socket.userId, currentRooms.filter(room => room !== `conversation:${conversationId}`));
+      this.userRooms.set(socket.userId, currentRooms.filter(room => room !== `conversation_${conversationId}`));
 
-      socket.to(`conversation:${conversationId}`).emit('user_offline', {
+      socket.to(`conversation_${conversationId}`).emit('user_offline', {
         userId: socket.userId,
         userName: socket.userName,
         conversationId
@@ -184,7 +184,7 @@ class SocketManager {
           senderRole: socket.userRole
         };
 
-        this.io.to(`conversation:${conversationId}`).emit('new_message', messageData);
+        this.io.to(`conversation_${conversationId}`).emit('new_message', messageData);
         await this.updateConversationActivity(conversationId);
 
       } catch (error) {
@@ -203,7 +203,7 @@ class SocketManager {
         const isParticipant = await this.verifyConversationParticipant(conversationId, socket.userId);
         if (!isParticipant) return;
 
-        socket.to(`conversation:${conversationId}`).emit('user_typing', {
+        socket.to(`conversation_${conversationId}`).emit('user_typing', {
           userId: socket.userId,
           userName: socket.userName,
           conversationId,
@@ -221,7 +221,7 @@ class SocketManager {
         const isParticipant = await this.verifyConversationParticipant(conversationId, socket.userId);
         if (!isParticipant) return;
 
-        socket.to(`conversation:${conversationId}`).emit('user_typing', {
+        socket.to(`conversation_${conversationId}`).emit('user_typing', {
           userId: socket.userId,
           userName: socket.userName,
           conversationId,
@@ -240,8 +240,8 @@ class SocketManager {
 
     const rooms = this.userRooms.get(socket.userId) || [];
     rooms.forEach(room => {
-      if (room.startsWith('conversation:')) {
-        const conversationId = room.replace('conversation:', '');
+      if (room.startsWith('conversation_')) {
+        const conversationId = room.replace('conversation_', '');
         socket.to(room).emit('user_offline', {
           userId: socket.userId,
           userName: socket.userName,

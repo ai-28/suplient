@@ -68,8 +68,9 @@ function isSameDay(date1, date2) {
 }
 
 /**
- * Helper: Parse timestamp string as UTC (server sends UTC timestamps without timezone)
- * If string doesn't have timezone, append 'Z' to force UTC interpretation
+ * Helper: Parse timestamp string as UTC
+ * Server sends UTC timestamps as ISO strings (ending with 'Z') from TIMESTAMP WITH TIME ZONE columns
+ * If string doesn't have timezone, append 'Z' to force UTC interpretation (fallback for legacy data)
  */
 function parseAsUTC(input) {
   if (!input) return new Date();

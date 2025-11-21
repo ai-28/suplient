@@ -37,7 +37,7 @@ export function useChat(conversationId) {
 
       if (data.success) {
         const newMessages = (data.messages || []).map(msg => {
-          // Parse timestamp - server sends UTC timestamps without timezone
+          // Parse timestamp - server sends UTC timestamps as ISO strings (ending with 'Z')
           let timestamp = msg.timestamp || msg.createdAt;
           if (typeof timestamp === 'string') {
             const trimmed = timestamp.trim();
@@ -299,7 +299,7 @@ export function useChat(conversationId) {
           return prev;
         }
 
-        // Parse timestamp - server sends UTC timestamps without timezone
+        // Parse timestamp - server sends UTC timestamps as ISO strings (ending with 'Z')
         let timestamp = message.timestamp || message.createdAt;
         if (typeof timestamp === 'string') {
           const trimmed = timestamp.trim();
