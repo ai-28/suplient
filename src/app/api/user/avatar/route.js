@@ -49,9 +49,20 @@ export async function POST(request) {
             );
         }
 
-        // Check S3 credentials
-        if (!process.env.DO_SPACES_KEY || !process.env.DO_SPACES_SECRET || !process.env.DO_SPACES_BUCKET) {
+        // Check S3 credentials and configuration
+        if (!process.env.DO_SPACES_KEY || 
+            !process.env.DO_SPACES_SECRET || 
+            !process.env.DO_SPACES_BUCKET ||
+            !process.env.DO_SPACES_REGION ||
+            !process.env.DO_SPACES_ENDPOINT) {
             console.error('❌ Missing DigitalOcean Spaces credentials!');
+            console.error('Missing env vars:', {
+                hasKey: !!process.env.DO_SPACES_KEY,
+                hasSecret: !!process.env.DO_SPACES_SECRET,
+                hasBucket: !!process.env.DO_SPACES_BUCKET,
+                hasRegion: !!process.env.DO_SPACES_REGION,
+                hasEndpoint: !!process.env.DO_SPACES_ENDPOINT
+            });
             return NextResponse.json(
                 { success: false, error: 'Server configuration error: Missing S3 credentials' },
                 { status: 500 }
@@ -148,7 +159,13 @@ export async function POST(request) {
         });
 
     } catch (error) {
-        console.error('Error uploading avatar:', error);
+        console.error('❌ Error uploading avatar:', error);
+        console.error('Error details:', {
+            message: error.message,
+            name: error.name,
+            code: error.code,
+            stack: error.stack
+        });
         return NextResponse.json(
             { success: false, error: error.message || 'Failed to upload avatar' },
             { status: 500 }

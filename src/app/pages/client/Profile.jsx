@@ -549,6 +549,19 @@ export default function ClientProfile() {
         body: formDataUpload,
       });
 
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        let errorMessage = 'Failed to upload avatar';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = `Failed to upload avatar (${response.status})`;
+        }
+        toast.error(errorMessage);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -567,7 +580,7 @@ export default function ClientProfile() {
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to upload avatar');
+      toast.error(error.message || 'Failed to upload avatar');
     } finally {
       setUploadingAvatar(false);
     }

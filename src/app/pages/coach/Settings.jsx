@@ -793,6 +793,19 @@ export default function Settings() {
         body: formData,
       });
 
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        let errorMessage = t('settings.profile.avatarUploadFailed', 'Failed to upload avatar');
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = `${t('settings.profile.avatarUploadFailed', 'Failed to upload avatar')} (${response.status})`;
+        }
+        toast.error(errorMessage);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -811,7 +824,7 @@ export default function Settings() {
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error(t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'));
+      toast.error(error.message || t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'));
     } finally {
       setUploadingAvatar(false);
     }
