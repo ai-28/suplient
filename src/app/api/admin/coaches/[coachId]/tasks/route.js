@@ -114,6 +114,23 @@ export async function POST(request, { params }) {
       RETURNING *
     `;
 
+    // Send notification to coach about new task assigned by admin
+    try {
+      const { NotificationService } = require('@/app/lib/services/NotificationService');
+      
+      await NotificationService.notifyAdminTaskAssigned(
+        coachId,
+        session.user.id,
+        session.user.name,
+        title,
+        task.id
+      );
+      console.log('✅ Task assignment notification sent to coach:', coach[0].name);
+    } catch (notificationError) {
+      console.error('❌ Error creating task assignment notification:', notificationError);
+      // Don't fail task creation if notification fails
+    }
+
     return NextResponse.json({
       success: true,
       task: task

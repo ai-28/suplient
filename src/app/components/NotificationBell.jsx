@@ -124,25 +124,221 @@ export function NotificationBell({ userRole = 'client' }) {
   // Calculate unread count from filtered notifications
   const filteredUnreadCount = filteredNotifications.filter(n => !n.isRead).length;
 
-  const handleNotificationClick = async (notification) => {
-    // Only mark as read if it's unread
-    if (!notification.isRead) {
-    await markAsRead(notification.id);
+  // Navigation mapping function - determines where to navigate based on notification type and role
+  const getNotificationRoute = (notification) => {
+    // Parse data if it's a string (sometimes data comes as JSON string from database)
+    let data = notification.data || {};
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {
+        console.warn('Failed to parse notification data as JSON:', e);
+        data = {};
+      }
     }
+    const notificationType = data.notificationType || notification.type;
+
+    if (userRole === 'client') {
+      switch (notificationType) {
+        case 'new_message':
+          // Navigate to chat/sessions page
+          return '/client/sessions';
+        
+        case 'resource_shared':
+          // Navigate to resources page
+          return '/client/resources';
+        
+        case 'session_reminder':
+          // Navigate to sessions page
+          return '/client/sessions';
+        
+        case 'goal_achieved':
+          // Navigate to dashboard
+          return '/client/dashboard';
+        
+        case 'task_created':
+          // Navigate to tasks/action page
+          return '/client/tasks';
+        
+        case 'system':
+          // Check the notificationType in data to determine specific navigation
+          if (data.notificationType === 'resource_shared') {
+            return '/client/resources';
+          }
+          if (data.notificationType === 'task_created') {
+            // Navigate to tasks/action page
+            return '/client/tasks';
+          }
+          // Default to dashboard for system notifications
+          return '/client/dashboard';
+        
+        default:
+          return '/client/dashboard';
+      }
+    } else if (userRole === 'coach') {
+      switch (notification.type) {
+        case 'client_signup':
+          // Navigate to client profile if clientId exists
+          if (data.clientId) {
+            return `/coach/clients/${data.clientId}`;
+          }
+          // Otherwise go to clients list
+          return '/coach/clients';
+        
+        case 'task_completed':
+
+          return '/coach/tasks';
+        
+        case 'daily_checkin':
+          // Navigate to client profile with overview tab
+          if (data.clientId) {
+            return `/coach/clients/${data.clientId}?tab=overview`;
+          }
+          return '/coach/clients';
+        
+        case 'new_message':
+          // Navigate to client profile (chat is in the center column)
+          if (data.clientId) {
+            return `/coach/clients/${data.clientId}`;
+          }
+          // If conversationId exists, use it to get clientId (preferred method)
+          if (data.conversationId) {
+            return `FETCH_CLIENT_FROM_CONV:${data.conversationId}`;
+          }
+          // If senderId exists, we need to fetch clientId from userId (fallback)
+          if (data.senderId) {
+            return `FETCH_CLIENT_FROM_USER:${data.senderId}`;
+          }
+          return '/coach/clients';
+        
+        case 'group_join_request':
+          // Navigate to group detail page
+          if (data.groupId) {
+            return `/coach/group/${data.groupId}`;
+          }
+          return '/coach/groups';
+        
+        case 'goal_achieved':
+          // Navigate to client profile with progress tab
+          if (data.clientId) {
+            return `/coach/clients/${data.clientId}?tab=progress`;
+          }
+          return '/coach/clients';
+        
+        case 'system':
+          // Check the notificationType in data to determine specific navigation
+          if (data.notificationType === 'admin_task_assigned') {
+            // Navigate to tasks page
+            return '/coach/tasks';
+          }
+          if (data.notificationType === 'group_join_request') {
+            // Navigate to groups page
+            if (data.groupId) {
+              return `/coach/group/${data.groupId}`;
+            }
+            return '/coach/groups';
+          }
+          // Default to dashboard
+          return '/coach/dashboard';
+        
+        default:
+          return '/coach/dashboard';
+      }
+    } else if (userRole === 'admin') {
+      switch (notification.type) {
+        case 'client_signup':
+          // Navigate to clients page
+          return '/admin/clients';
+        
+        case 'system':
+          // Check the notificationType in data to determine specific navigation
+          if (data.notificationType === 'coach_task_completed') {
+            // Navigate to the coach's tasks page
+            if (data.coachId) {
+              return `/admin/coaches/${data.coachId}?tab=tasks`;
+            }
+            return '/admin/coaches';
+          }
+          // Admin notifications - could go to dashboard or relevant page
+          if (data.coachId) {
+            return `/admin/coaches/${data.coachId}`;
+          }
+          if (data.clientId) {
+            return '/admin/clients';
+          }
+          return '/admin/dashboard';
+        
+        default:
+          return '/admin/dashboard';
+      }
+    }
+
+    return null; // No navigation
+  };
+
+  const handleNotificationClick = async (notification) => {
+    // Mark as read if it's unread
+    if (!notification.isRead) {
+      await markAsRead(notification.id);
+    }
+    
+    // Close the notification popover
     setIsOpen(false);
     
-    // // Navigate based on notification type
-    // if (notification.type === 'resource_shared') {
-    //   router.push('/client/resources');
-    // } else if (notification.type === 'new_message') {
-    //   // Navigate to chat - you might want to add conversation ID to the data
-    //   router.push('/client/chat');
-    // } else if (notification.type === 'task_completed') {
-    //   router.push('/client/tasks');
-    // } else if (notification.type === 'daily_checkin') {
-    //   router.push('/client/journal');
-    // }
-    // Add more navigation cases as needed
+    // Get the route for this notification
+    let route = getNotificationRoute(notification);
+    
+    // Handle special case: need to fetch clientId for coach message notifications
+    if (route && route.startsWith('FETCH_CLIENT_FROM_CONV:')) {
+      const conversationId = route.replace('FETCH_CLIENT_FROM_CONV:', '');
+      try {
+        // Fetch clientId from conversationId (preferred method)
+        const response = await fetch(`/api/chat/conversations/${conversationId}/client`);
+        
+        if (!response.ok) {
+          route = '/coach/clients';
+        } else {
+          const data = await response.json();
+          
+          if (data.success && data.clientId) {
+            route = `/coach/clients/${data.clientId}`;
+          } else {
+            route = '/coach/clients';
+          }
+        }
+      } catch (error) {
+        // Fallback to clients list on error
+        route = '/coach/clients';
+      }
+    } else if (route && route.startsWith('FETCH_CLIENT_FROM_USER:')) {
+      const senderId = route.replace('FETCH_CLIENT_FROM_USER:', '');
+      try {
+        // Fetch clientId from senderId (userId) - fallback method
+        const response = await fetch(`/api/clients/by-user/${senderId}`);
+        
+        if (!response.ok) {
+          route = '/coach/clients';
+        } else {
+          const data = await response.json();
+          
+          if (data.success && data.client?.id) {
+            route = `/coach/clients/${data.client.id}`;
+          } else {
+            route = '/coach/clients';
+          }
+        }
+      } catch (error) {
+        // Fallback to clients list on error
+        route = '/coach/clients';
+      }
+    }
+    
+    if (route) {
+      // Small delay to ensure popover closes smoothly, then navigate
+      setTimeout(() => {
+        router.push(route);
+      }, 100);
+    }
   };
 
   const handleClearAll = async () => {
@@ -217,12 +413,12 @@ export function NotificationBell({ userRole = 'client' }) {
                   {filteredNotifications.map((notification) => (
                     <div
                       key={notification.id}
+                      onClick={() => handleNotificationClick(notification)}
                       className={`group p-3 border-b border-border dark:border-border cursor-pointer transition-colors ${
                         !notification.isRead 
                           ? 'bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100/50 dark:hover:bg-blue-950/40 border-l-4 border-l-blue-500' 
                           : 'bg-background dark:bg-background hover:bg-muted/50 dark:hover:bg-muted/50 opacity-70'
                       }`}
-
                     >
                       <div className="flex items-start space-x-3">
                         <div className="text-lg">
@@ -241,7 +437,10 @@ export function NotificationBell({ userRole = 'client' }) {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleNotificationClick(notification)}
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent triggering parent click
+                                    handleNotificationClick(notification);
+                                  }}
                                   className="h-6 px-2 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 border-primary/20 hover:border-primary/40"
                                 >
                                   <Check className="h-3 w-3 mr-1" />

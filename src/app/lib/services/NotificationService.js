@@ -220,6 +220,41 @@ class NotificationService {
             priority: 'high'
         });
     }
+
+    static async notifyAdminTaskAssigned(coachId, adminId, adminName, taskTitle, taskId) {
+        return await this.createAndEmitNotification({
+            userId: coachId,
+            type: 'system',
+            title: 'New Task Assigned',
+            message: `${adminName} assigned you a new task: "${taskTitle}"`,
+            data: {
+                adminId,
+                adminName,
+                taskTitle,
+                taskId,
+                notificationType: 'admin_task_assigned'
+            },
+            priority: 'normal'
+        });
+    }
+
+    static async notifyCoachTaskCompleted(adminId, coachId, coachName, taskTitle, taskId) {
+        return await this.createAndEmitNotification({
+            userId: adminId,
+            type: 'system',
+            title: 'Task Completed',
+            message: `${coachName} completed the task: "${taskTitle}"`,
+            data: {
+                adminId,
+                coachId,
+                coachName,
+                taskTitle,
+                taskId,
+                notificationType: 'coach_task_completed'
+            },
+            priority: 'normal'
+        });
+    }
 }
 
 // CommonJS exports

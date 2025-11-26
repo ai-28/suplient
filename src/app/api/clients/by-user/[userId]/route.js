@@ -11,7 +11,8 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const userId = params.userId;
+        // Extract userId from params (Next.js 13+ app router)
+        const { userId } = await params;
 
         if (!userId) {
             return NextResponse.json(
@@ -23,17 +24,21 @@ export async function GET(request, { params }) {
         // Verify the user is requesting their own client data or is a coach
         if (session.user.id !== userId) {
             // Check if the user is a coach for this client
+            // The userId is the User.id, we need to find the Client record where Client.userId = userId
             const coachCheck = await sql`
-                SELECT id FROM "Client" 
-                WHERE id = ${userId} AND "coachId" = ${session.user.id}
+                SELECT c.id FROM "Client" c
+                WHERE c."userId" = ${userId} AND c."coachId" = ${session.user.id}
                 LIMIT 1
             `;
 
             if (coachCheck.length === 0) {
-                return NextResponse.json(
-                    { error: 'Access denied' },
-                    { status: 403 }
-                );
+                // Also check if user is admin
+                if (session.user.role !== 'admin') {
+                    return NextResponse.json(
+                        { error: 'Access denied' },
+                        { status: 403 }
+                    );
+                }
             }
         }
 

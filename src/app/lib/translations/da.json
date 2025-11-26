@@ -681,6 +681,8 @@
         },
         "dashboard": {
             "title": "Mental Sundhed",
+            "greeting": "Hej",
+            "client": "Klient",
             "loadingAnalytics": "Indlæser analyser...",
             "errorLoadingAnalytics": "Fejl ved indlæsning af analyser",
             "loadingSessions": "Indlæser kommende sessioner...",

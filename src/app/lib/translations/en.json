@@ -719,6 +719,8 @@
         },
         "dashboard": {
             "title": "Mental Health",
+            "greeting": "Hi",
+            "client": "Client",
             "loadingAnalytics": "Loading analytics...",
             "errorLoadingAnalytics": "Error loading analytics",
             "loadingSessions": "Loading upcoming sessions...",

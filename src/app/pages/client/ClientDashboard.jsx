@@ -267,7 +267,9 @@ export default function ClientDashboard() {
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
         {/* Header with Profile */}
         <div className="flex items-center justify-between p-4">
-          <h1 className="text-xl font-semibold text-foreground">{t('client.dashboard.title', 'Mental Health')}</h1>
+          <h1 className="text-xl font-semibold text-foreground">
+            {t('client.dashboard.greeting', 'Hi')} {user?.name || t('client.dashboard.client', 'Client')}
+          </h1>
 
           <div className="flex items-center gap-2">
             {/* Notifications */}

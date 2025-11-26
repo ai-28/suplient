@@ -106,6 +106,39 @@ export async function PUT(request, { params }) {
         const updatedTask = await taskRepo.updateTask(taskId, updateData);
         console.log('✅ API: Task updated successfully:', updatedTask);
 
+        // If task status was changed to completed and was assigned by an admin, notify the admin
+        if (status === 'completed' && existingTask.assignedBy) {
+            try {
+                const { sql } = await import('@/app/lib/db/postgresql');
+                
+                // Check if the assigner is an admin
+                const assignerCheck = await sql`
+                    SELECT id, name, role
+                    FROM "User"
+                    WHERE id = ${existingTask.assignedBy} AND role = 'admin'
+                    LIMIT 1
+                `;
+
+                if (assignerCheck.length > 0) {
+                    const { NotificationService } = require('@/app/lib/services/NotificationService');
+                    const admin = assignerCheck[0];
+                    const coachName = session.user.name || 'Coach';
+
+                    await NotificationService.notifyCoachTaskCompleted(
+                        admin.id,
+                        session.user.id,
+                        coachName,
+                        existingTask.title,
+                        taskId
+                    );
+                    console.log(`✅ Coach task completion notification sent to admin: ${admin.name}`);
+                }
+            } catch (notificationError) {
+                console.error('❌ Error creating coach task completion notification:', notificationError);
+                // Don't fail task update if notification fails
+            }
+        }
+
         return NextResponse.json({
             message: 'Task updated successfully',
             task: updatedTask

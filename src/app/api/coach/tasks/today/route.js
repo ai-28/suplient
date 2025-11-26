@@ -87,9 +87,9 @@ export async function PUT(request) {
             return NextResponse.json({ error: 'Completed status is required' }, { status: 400 });
         }
 
-        // Verify the task belongs to the current coach
+        // Verify the task belongs to the current coach and get task details including assignedBy
         const taskResult = await sql`
-            SELECT t.id, t.title, t.status, t."coachId"
+            SELECT t.id, t.title, t.status, t."coachId", t."assignedBy"
             FROM "Task" t
             WHERE t.id = ${taskId} AND t."coachId" = ${session.user.id}
         `;
@@ -110,6 +110,37 @@ export async function PUT(request) {
             WHERE id = ${taskId}
             RETURNING *
         `;
+
+        // If task was completed and was assigned by an admin, notify the admin
+        if (completed && task.assignedBy) {
+            try {
+                // Check if the assigner is an admin
+                const assignerCheck = await sql`
+                    SELECT id, name, role
+                    FROM "User"
+                    WHERE id = ${task.assignedBy} AND role = 'admin'
+                    LIMIT 1
+                `;
+
+                if (assignerCheck.length > 0) {
+                    const { NotificationService } = require('@/app/lib/services/NotificationService');
+                    const admin = assignerCheck[0];
+                    const coachName = session.user.name || 'Coach';
+
+                    await NotificationService.notifyCoachTaskCompleted(
+                        admin.id,
+                        session.user.id,
+                        coachName,
+                        task.title,
+                        taskId
+                    );
+                    console.log(`✅ Coach task completion notification sent to admin: ${admin.name}`);
+                }
+            } catch (notificationError) {
+                console.error('❌ Error creating coach task completion notification:', notificationError);
+                // Don't fail task completion if notification fails
+            }
+        }
 
         return NextResponse.json({
             message: completed ? 'Task marked as completed' : 'Task marked as pending',
