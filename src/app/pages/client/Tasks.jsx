@@ -415,7 +415,10 @@ export default function ClientTasks() {
                               if (diffDays < 0) return t('tasks.status.overdue', "Overdue");
                               if (diffDays === 0) return t('common.time.today', "Today");
                               if (diffDays === 1) return t('common.time.tomorrow', "Tomorrow");
-                              if (diffDays < 7) return t('common.time.inDays', "In {count} days", { count: diffDays });
+                              if (diffDays < 7) {
+                                const translation = t('common.time.inDays', "In {count} days");
+                                return translation.replace('{count}', diffDays);
+                              }
                               return date.toLocaleDateString();
                             })()}
                           </div>
