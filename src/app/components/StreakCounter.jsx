@@ -18,7 +18,7 @@ export function StreakCounter({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 p-2.5 bg-card rounded-lg border">
+      <div className="flex items-center justify-between p-2.5 bg-card rounded-lg border">
         <div className="flex items-center gap-1.5">
           <Flame className="w-4 h-4 text-orange-500" />
           <span className="text-sm font-semibold text-foreground">{streak}</span>

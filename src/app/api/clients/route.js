@@ -158,3 +158,104 @@ function determineStage(status, type) {
     if (type?.toLowerCase() === 'personal') return 'personal';
     return 'light';
 }
+
+export async function PUT(request) {
+    try {
+        const session = await getServerSession(authOptions);
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Verify user is a coach
+        const user = await sql`
+            SELECT id, role FROM "User" WHERE id = ${session.user.id}
+        `;
+
+        if (user.length === 0 || user[0].role !== 'coach') {
+            return NextResponse.json(
+                { error: 'Only coaches can update client status' },
+                { status: 403 }
+            );
+        }
+
+        const coachId = session.user.id;
+        const body = await request.json();
+        const { id, status } = body;
+
+        // Validate required fields
+        if (!id || !status) {
+            return NextResponse.json(
+                { error: 'Client ID and status are required' },
+                { status: 400 }
+            );
+        }
+
+        // Verify the client belongs to this coach
+        const clientCheck = await sql`
+            SELECT c.id, c."userId", c."coachId"
+            FROM "Client" c
+            WHERE c.id = ${id} AND c."coachId" = ${coachId}
+        `;
+
+        if (clientCheck.length === 0) {
+            return NextResponse.json(
+                { error: 'Client not found or you do not have permission to update this client' },
+                { status: 404 }
+            );
+        }
+
+        const userId = clientCheck[0].userId;
+
+        // Update status in User table
+        const updatedUser = await sql`
+            UPDATE "User" 
+            SET 
+                "isActive" = ${status === 'active' || status === 'Active'},
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE id = ${userId} AND role = 'client'
+            RETURNING id, name, email, phone, "address", "coachId", bio, role, "isActive", "createdAt", "updatedAt"
+        `;
+
+        if (updatedUser.length === 0) {
+            return NextResponse.json(
+                { error: 'Client not found or update failed' },
+                { status: 404 }
+            );
+        }
+
+        // Update status in Client table
+        const statusValue = status.toLowerCase() === 'active' ? 'active' : 'inactive';
+        const updatedClient = await sql`
+            UPDATE "Client" 
+            SET 
+                status = ${statusValue},
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE id = ${id} AND "coachId" = ${coachId}
+            RETURNING id, status, "updatedAt"
+        `;
+
+        if (updatedClient.length === 0) {
+            return NextResponse.json(
+                { error: 'Failed to update client status' },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json({
+            success: true,
+            message: 'Client status updated successfully',
+            client: {
+                id: updatedUser[0].id,
+                status: updatedClient[0].status
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating client status:', error);
+        return NextResponse.json(
+            { error: 'Failed to update client status' },
+            { status: 500 }
+        );
+    }
+}

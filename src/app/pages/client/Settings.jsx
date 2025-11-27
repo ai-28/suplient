@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -15,6 +17,7 @@ import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { useTimeFormat } from "@/app/contexts/TimeFormatContext";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -25,10 +28,13 @@ import {
   MapPin,
   Calendar,
   Clock,
-  Key
+  Key,
+  LogOut,
+  UserX
 } from "lucide-react";
 
 export default function ClientSettings() {
+  const { data: session } = useSession();
   const t = useTranslation();
   const { timeFormat, setTimeFormat } = useTimeFormat();
   const [notifications, setNotifications] = useState({
@@ -37,6 +43,7 @@ export default function ClientSettings() {
     sms: true,
     calendar: true
   });
+  const [deactivating, setDeactivating] = useState(false);
 
   const handleTimeFormatChange = (value) => {
     setTimeFormat(value);
@@ -44,6 +51,40 @@ export default function ClientSettings() {
       title: "Time Format Updated",
       description: "Your time format preference has been saved successfully.",
     });
+  };
+
+  const handleDeactivateProfile = async () => {
+    if (!session?.user?.id) {
+      toast.error(t('common.messages.mustBeLoggedIn', 'You must be logged in to deactivate your profile'));
+      return;
+    }
+
+    try {
+      setDeactivating(true);
+      const response = await fetch('/api/user/deactivate-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(t('settings.deactivate.success', 'Profile deactivated successfully'));
+        // Sign out after deactivation
+        setTimeout(() => {
+          signOut({ callbackUrl: '/login' });
+        }, 2000);
+      } else {
+        toast.error(data.error || t('settings.deactivate.failed', 'Failed to deactivate profile'));
+      }
+    } catch (error) {
+      console.error('Error deactivating profile:', error);
+      toast.error(t('settings.deactivate.failed', 'Failed to deactivate profile'));
+    } finally {
+      setDeactivating(false);
+    }
   };
 
   return (
@@ -57,7 +98,6 @@ export default function ClientSettings() {
           </h2>
           <p className="text-muted-foreground mt-1">{t('settings.title', 'Manage your settings')}</p>
         </div>
-        <LanguageSelector variant="header" />
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
@@ -240,6 +280,74 @@ export default function ClientSettings() {
           <TwoFactorSettings />
         </TabsContent>
       </Tabs>
+
+      {/* Deactivate Profile and Logout Section */}
+      <div className="mt-8 pt-6 border-t border-border space-y-4">
+        {/* Deactivate Profile */}
+        <Card className="card-standard">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserX className="h-5 w-5 text-primary" />
+              {t('settings.deactivate.title', 'Deactivate Profile')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t('settings.deactivate.description', 'Deactivating your profile will disable your account. You can contact your coach to reactivate it later.')}
+              </p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="gap-2" disabled={deactivating}>
+                    <UserX className="h-4 w-4" />
+                    {t('settings.deactivate.button', 'Deactivate Profile')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('settings.deactivate.confirmTitle', 'Deactivate Profile')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('settings.deactivate.confirmDescription', 'Are you sure you want to deactivate your profile? Your account will be disabled and you will be signed out. You can contact your coach to reactivate it later.')}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('common.buttons.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeactivateProfile}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={deactivating}
+                    >
+                      {deactivating ? t('common.messages.loading') : t('settings.deactivate.confirmButton', 'Deactivate')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Logout Section */}
+        <Card className="card-standard">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">{t('settings.logout.title', 'Log Out')}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('settings.logout.description', 'Sign out of your account')}
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                {t('settings.logout.button', 'Log Out')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

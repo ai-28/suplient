@@ -3,12 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Button } from "@/app/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/app/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -19,7 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  LogOut,
   Calendar,
   Clock,
   MapPin,
@@ -27,14 +20,13 @@ import {
   User as UserIcon
 } from "lucide-react";
 import { NotificationBell } from "@/app/components/NotificationBell";
-import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { GoalAnalyticsChart } from "@/app/components/GoalAnalyticsChart";
 import { StreakCounter } from "@/app/components/StreakCounter";
 import { DailyNotes } from "@/app/components/DailyNotes";
 import { useAuth } from "../../context/AuthContext";
-import { signOut } from "next-auth/react";
 import { useSocket } from "@/app/hooks/useSocket";
 import { useTranslation } from "@/app/context/LanguageContext";
 
@@ -210,13 +202,6 @@ export default function ClientDashboard() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut({ callbackUrl: '/' });
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
 
   const handleViewSession = (session) => {
     setSelectedSession(session);
@@ -275,37 +260,28 @@ export default function ClientDashboard() {
             {/* Notifications */}
             <NotificationBell userRole="client" />
             
-            {/* Language Selector */}
-            <LanguageSelector variant="header" />
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Avatar className="h-8 w-8">
-                    {user?.avatar && (
-                      <AvatarImage
-                        src={user.avatar}
-                        alt={user?.name || 'Profile'}
-                        className="object-cover"
-                      />
-                    )}
-                    <AvatarFallback>
-                      {user?.name ? user.name.slice(0, 2).toUpperCase() : "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => router.push('/client/profile')}>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>{t('client.navigation.profile', 'Profile')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>{t('client.navigation.signOut', 'Sign Out')}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => router.push('/client/profile')}
+              className="cursor-pointer"
+            >
+              <Avatar className="h-8 w-8">
+                {user?.avatar && (
+                  <AvatarImage
+                    src={user.avatar}
+                    alt={user?.name || 'Profile'}
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback>
+                  {user?.name ? user.name.slice(0, 2).toUpperCase() : "U"}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
           </div>
         </div>
 

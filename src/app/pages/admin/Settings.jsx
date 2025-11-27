@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -18,7 +19,9 @@ import {
   Camera,
   X,
   Loader2,
-  Bell
+  Bell,
+  Globe,
+  LogOut
 } from "lucide-react";
 
 import { useTranslation } from "@/app/context/LanguageContext";
@@ -135,8 +138,18 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
       </Card>
 
       {/* Language Settings */}
-
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-primary" />
+            {t('settings.language.title', 'Language')}
+          </CardTitle>
+          <CardDescription>{t('settings.language.description', 'Choose your preferred language')}</CardDescription>
+        </CardHeader>
+        <CardContent>
           <LanguageSelector />
+        </CardContent>
+      </Card>
 
       {/* Notification Settings */}
       <Card>
@@ -639,6 +652,30 @@ export default function AdminSettings() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Logout Section */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <Card className="card-standard">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">{t('settings.logout.title', 'Log Out')}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('settings.logout.description', 'Sign out of your account')}
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                {t('settings.logout.button', 'Log Out')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -6,46 +6,12 @@ import { Badge } from "@/app/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
 import { ArrowLeft, CheckCircle, Circle, Clock, Target, Calendar, AlertTriangle, ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { TaskCelebration } from "@/app/components/TaskCelebration";
 import { StreakCounter } from "@/app/components/StreakCounter";
 import { toast } from "sonner";
 import { useTranslation } from "@/app/context/LanguageContext";
-
-// Demo data for tasks
-const demoTasks = [
-  {
-    id: "task_1",
-    title: "Complete morning meditation",
-    description: "Practice mindfulness for 15 minutes",
-    dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    priority: "high",
-    isCompleted: false,
-    category: "daily",
-    estimatedTime: 15
-  },
-  {
-    id: "task_2",
-    title: "Read anxiety management chapter",
-    description: "Read pages 45-60 from the workbook",
-    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    priority: "medium",
-    isCompleted: false,
-    category: "weekly",
-    estimatedTime: 30
-  },
-  {
-    id: "task_3",
-    title: "Practice breathing exercises",
-    description: "Do 3 sets of 4-7-8 breathing",
-    dueDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    priority: "high",
-    isCompleted: true,
-    category: "daily",
-    estimatedTime: 10
-  }
-];
 
 // Real useClientTasks hook with API calls
 const useClientTasks = () => {
@@ -196,80 +162,39 @@ const useClientTasks = () => {
   };
 };
 
-// Real useClientGamification hook with API data
-const useClientGamification = () => {
-  const [gamificationData, setGamificationData] = useState({
-    streak: 0,
-    totalPoints: 0,
-    level: 0,
-    pointsToNextLevel: 100,
-    activeMilestone: "Getting Started"
-  });
+// Simple analytics hook for gamification (matching Dashboard implementation)
+const useAnalytics = () => {
+  const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/analytics?period=today');
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics data');
+      }
+      const data = await response.json();
+      setAnalyticsData(data);
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchGamificationData = async () => {
-      try {
-        const response = await fetch('/api/analytics?period=today');
-        if (response.ok) {
-          const data = await response.json();
-          const level = Math.floor((data.totalEngagementPoints || 0) / 100) + 1;
-          const pointsToNextLevel = (level * 100) - (data.totalEngagementPoints || 0);
-          
-          setGamificationData({
-            streak: data.dailyStreak || 0,
-            totalPoints: data.totalEngagementPoints || 0,
-            level,
-            pointsToNextLevel,
-            activeMilestone: getMilestoneName(level)
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching gamification data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGamificationData();
+    fetchAnalytics();
   }, []);
 
-  const getMilestoneName = (level) => {
-    if (level >= 10) return "Master";
-    if (level >= 7) return "Expert";
-    if (level >= 5) return "Advanced";
-    if (level >= 3) return "Intermediate";
-    return "Beginner";
-  };
-  
-  const onTaskCompleted = async () => {
-    // Refresh gamification data after task completion
-    try {
-      const response = await fetch('/api/analytics?period=today');
-      if (response.ok) {
-        const data = await response.json();
-        const level = Math.floor((data.totalEngagementPoints || 0) / 100) + 1;
-        const pointsToNextLevel = (level * 100) - (data.totalEngagementPoints || 0);
-        
-        setGamificationData({
-          streak: data.dailyStreak || 0,
-          totalPoints: data.totalEngagementPoints || 0,
-          level,
-          pointsToNextLevel,
-          activeMilestone: getMilestoneName(level)
-        });
-      }
-    } catch (error) {
-      console.error('Error refreshing gamification data:', error);
-    }
-    
-    return { milestone: "Task completed! +1 point" };
-  };
-  
-  return { 
-    ...gamificationData, 
-    onTaskCompleted, 
-    loading 
+  return {
+    analyticsData,
+    loading,
+    error,
+    refetch: fetchAnalytics
   };
 };
 
@@ -292,18 +217,24 @@ export default function ClientTasks() {
   
   const { visibleTasks, filterTasks, taskStats, toggleTaskCompletion, isLoading, error } = useClientTasks();
   
-  // Gamification system
-  const { 
-    streak, 
-    totalPoints, 
-    level, 
-    pointsToNextLevel, 
-    activeMilestone, 
-    onTaskCompleted,
-    loading: gamificationLoading
-  } = useClientGamification();
+  // Gamification system (matching Dashboard implementation)
+  const { analyticsData, loading: analyticsLoading, refetch: refetchAnalytics } = useAnalytics();
   
-  const [recentMilestone, setRecentMilestone] = useState(null);
+  // Memoize gamification calculations (same as Dashboard)
+  const gamification = useMemo(() => {
+    if (!analyticsData) return { streak: 0, totalPoints: 0, level: 1, pointsToNextLevel: 100 };
+    
+    const totalPoints = analyticsData.totalEngagementPoints || 0;
+    const level = Math.floor(totalPoints / 100) + 1;
+    const pointsToNextLevel = (level * 100) - totalPoints;
+    
+    return {
+      streak: analyticsData.dailyStreak || 0,
+      totalPoints,
+      level,
+      pointsToNextLevel
+    };
+  }, [analyticsData]);
   
   // Motivational quotes
   const motivationalQuotes = [
@@ -318,11 +249,8 @@ export default function ClientTasks() {
 
   const handleTaskToggle = async (taskId) => {
     const success = await toggleTaskCompletion(taskId, async () => {
-      const result = await onTaskCompleted();
-      if (result.milestone) {
-        setRecentMilestone(result.milestone);
-        setTimeout(() => setRecentMilestone(null), 5000); // Clear after 5 seconds
-      }
+      // Refresh analytics data after task completion
+      await refetchAnalytics();
       setShowCelebration(true);
     });
   };
@@ -557,13 +485,11 @@ export default function ClientTasks() {
         )}
 
         {/* Streak Counter */}
-        <StreakCounter 
-          streak={streak}
-          totalPoints={totalPoints}
-          level={level}
-          pointsToNextLevel={pointsToNextLevel}
-          activeMilestone={activeMilestone}
-          recentMilestone={recentMilestone}
+        <StreakCounter
+          streak={gamification.streak}
+          totalPoints={gamification.totalPoints}
+          level={gamification.level}
+          pointsToNextLevel={gamification.pointsToNextLevel}
         />
       </div>
       

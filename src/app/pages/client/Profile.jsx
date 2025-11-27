@@ -9,9 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Badge } from "@/app/components/ui/badge";
 import { Switch } from "@/app/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { GroupOverviewModal } from "@/app/components/GroupOverviewModal";
 import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
-import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { 
   User, 
   Mail, 
@@ -32,10 +32,13 @@ import {
   TrendingDown,
   Camera,
   X,
-  Loader2
+  Loader2,
+  LogOut,
+  UserX
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useGroups } from "@/app/hooks/useGroups";
 import { toast } from "sonner";
@@ -294,6 +297,9 @@ export default function ClientProfile() {
   // Avatar upload state
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+
+  // Deactivate profile state
+  const [deactivating, setDeactivating] = useState(false);
 
   // Fetch user data on component mount
   useEffect(() => {
@@ -655,6 +661,41 @@ export default function ClientProfile() {
     }
   };
 
+  // Handle deactivate profile
+  const handleDeactivateProfile = async () => {
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to deactivate your profile');
+      return;
+    }
+
+    try {
+      setDeactivating(true);
+      const response = await fetch('/api/user/deactivate-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Profile deactivated successfully');
+        // Sign out after deactivation
+        setTimeout(() => {
+          signOut({ callbackUrl: '/login' });
+        }, 2000);
+      } else {
+        toast.error(data.error || 'Failed to deactivate profile');
+      }
+    } catch (error) {
+      console.error('Error deactivating profile:', error);
+      toast.error('Failed to deactivate profile');
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
   // Get assigned therapist from user data
   const assignedTherapist = userData?.coachId ? {
     name: userData.coachName || "Your Coach", 
@@ -749,7 +790,7 @@ export default function ClientProfile() {
   // Show loading state
   if (loading) {
     return (
-      <div className={`${isMobile ? 'px-4 pb-20' : 'pb-6'}`}>
+      <div className={`${isMobile ? 'px-4 pb-24' : 'pb-6'}`}>
         <div className={`space-y-6 ${isMobile ? 'space-y-4' : 'space-y-8'} max-w-6xl mx-auto`}>
           <div className={`${isMobile ? 'text-center pt-4' : 'pt-6'}`}>
             <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>My Profile</h1>
@@ -767,7 +808,7 @@ export default function ClientProfile() {
   }
 
   return (
-    <div className={`${isMobile ? 'px-4 pb-20' : 'pb-6'}`}>
+    <div className={`${isMobile ? 'px-4 pb-24' : 'pb-6'}`}>
       <div className={`space-y-6 ${isMobile ? 'space-y-4' : 'space-y-8'} max-w-6xl mx-auto`}>
         <div className={`${isMobile ? 'text-center pt-4' : 'pt-6'} flex items-start justify-between`}>
           <div>
@@ -776,9 +817,6 @@ export default function ClientProfile() {
               Manage your personal information and preferences.
             </p>
           </div>
-          {!isMobile && (
-            <LanguageSelector variant="header" />
-          )}
         </div>
 
       <Tabs defaultValue="personal" className="space-y-4">
@@ -1537,6 +1575,78 @@ export default function ClientProfile() {
                     onCheckedChange={handleNotificationToggle}
                     className={`${isMobile ? 'self-end' : ''}`} 
                   />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Deactivate Profile and Logout Section */}
+          <div className={`mt-6 pt-6 border-t border-border space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
+            {/* Deactivate Profile */}
+            <Card>
+              <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
+                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
+                  <UserX className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+                  Deactivate Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Deactivating your profile will disable your account. You can contact your coach to reactivate it later.
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="destructive" 
+                      className={`gap-2 ${isMobile ? 'w-full text-sm' : ''}`} 
+                      disabled={deactivating}
+                      size={isMobile ? "sm" : "default"}
+                    >
+                      <UserX className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                      Deactivate Profile
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className={isMobile ? 'mx-4' : ''}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>Deactivate Profile</AlertDialogTitle>
+                      <AlertDialogDescription className={isMobile ? 'text-sm' : ''}>
+                        Are you sure you want to deactivate your profile? Your account will be disabled and you will be signed out. You can contact your coach to reactivate it later.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
+                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeactivateProfile}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={deactivating}
+                      >
+                        {deactivating ? 'Deactivating...' : 'Deactivate'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+
+            {/* Logout Section */}
+            <Card>
+              <CardContent className={`pt-6 ${isMobile ? 'p-3' : ''}`}>
+                <div className={`flex items-center justify-between ${isMobile ? 'flex-col gap-4' : ''}`}>
+                  <div>
+                    <h3 className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'}`}>Log Out</h3>
+                    <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      Sign out of your account
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className={`gap-2 ${isMobile ? 'w-full text-sm' : ''}`}
+                    size={isMobile ? "sm" : "default"}
+                  >
+                    <LogOut className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                    Log Out
+                  </Button>
                 </div>
               </CardContent>
             </Card>

@@ -28,7 +28,9 @@ import {
   ChevronDown,
   ArrowUpDown,
   StickyNote,
-  MoreVertical
+  MoreVertical,
+  Ban,
+  Loader2
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -49,10 +51,11 @@ export default function Clients() {
   const t = useTranslation();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("status.active");  
+  const [filter, setFilter] = useState("clients.all"); // Show all clients by default including inactive
   const [viewMode, setViewMode] = useState("funnel"); // "list" or "funnel"
   const [visibleColumns, setVisibleColumns] = useState({});
   const [sortBy, setSortBy] = useState("activity"); // "activity", "name", "created", "unread", "session", "oldest", "type"
+  const [suspending, setSuspending] = useState(false);
   const router = useRouter();
 
   // Fetch clients data from API
@@ -186,6 +189,54 @@ export default function Clients() {
     } catch (error) {
       console.error('Error updating client stage:', error);
       toast.error('Failed to update client stage');
+    }
+  };
+
+  // Handle client activate/deactivate
+  const handleSuspend = async (clientId, currentStatus) => {
+    try {
+      setSuspending(true);
+      // Normalize status to lowercase for comparison
+      const normalizedStatus = (currentStatus || '').toLowerCase();
+      const newStatus = normalizedStatus === 'active' ? 'inactive' : 'active';
+      const action = newStatus === 'inactive' ? 'suspend' : 'activate';
+      
+      const response = await fetch('/api/clients', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: clientId,
+          status: newStatus
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the client in the list
+        setClients(clients.map(client => 
+          client.id === clientId ? { ...client, status: newStatus === 'active' ? 'Active' : 'Inactive' } : client
+        ));
+        toast.success(`Client ${action}ed successfully!`, {
+          description: `Client status changed to ${newStatus}.`
+        });
+        // Refresh clients to ensure consistency
+        await fetchClients();
+      } else {
+        console.error(`Failed to ${action} client:`, data.error);
+        toast.error(`Failed to ${action} client`, {
+          description: data.error
+        });
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing client:`, error);
+      toast.error(`Error ${action}ing client`, {
+        description: 'Please try again.'
+      });
+    } finally {
+      setSuspending(false);
     }
   };
 
@@ -432,7 +483,11 @@ export default function Clients() {
                      {stageClients.map((client) => (
                        <div
                          key={client.id}
-                         className="p-4 rounded-lg border border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors h-[140px] flex flex-col"
+                         className={`p-4 rounded-lg border cursor-pointer transition-colors h-[140px] flex flex-col ${
+                           client.status === "Inactive" || client.status === "inactive"
+                             ? "border-orange-300 bg-orange-50/50 hover:bg-orange-100/50"
+                             : "border-border bg-background hover:bg-muted/50"
+                         }`}
                          onClick={() => router.push(`/coach/clients/${client.id}`)}
                        >
                          <div className="flex items-center gap-2 mb-3">
@@ -448,7 +503,14 @@ export default function Clients() {
                                {client.name.split(' ').map(n => n[0]).join('')}
                              </AvatarFallback>
                            </Avatar>
-                           <span className="font-medium text-sm text-foreground">{client.name}</span>
+                           <div className="flex items-center gap-2 flex-1">
+                             <span className="font-medium text-sm text-foreground">{client.name}</span>
+                             {(client.status === "Inactive" || client.status === "inactive") && (
+                               <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
+                                 Inactive
+                               </Badge>
+                             )}
+                           </div>
                            <span className="text-xl ml-auto">{client.mood}</span>
                            <DropdownMenu>
                              <DropdownMenuTrigger asChild>
@@ -479,6 +541,22 @@ export default function Clients() {
                                    </div>
                                  </DropdownMenuItem>
                                ))}
+                               <DropdownMenuSeparator />
+                               <DropdownMenuItem
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleSuspend(client.id, client.status);
+                                 }}
+                                 disabled={suspending}
+                                 className={client.status === "Active" ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+                               >
+                                 {suspending ? (
+                                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                 ) : (
+                                   <Ban className="h-4 w-4 mr-2" />
+                                 )}
+                                 {client.status === "Active" ? "Deactivate" : "Activate"}
+                               </DropdownMenuItem>
                              </DropdownMenuContent>
                            </DropdownMenu>
                          </div>
@@ -599,7 +677,11 @@ export default function Clients() {
                 return (
                   <div 
                     key={client.id} 
-                    className="grid grid-cols-8 gap-4 p-4 hover:bg-muted/50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-border"
+                    className={`grid grid-cols-8 gap-4 p-4 rounded-lg transition-colors cursor-pointer ${
+                      client.status === "Inactive" || client.status === "inactive"
+                        ? "border border-orange-300 bg-orange-50/50 hover:bg-orange-100/50"
+                        : "border border-transparent hover:bg-muted/50 hover:border-border"
+                    }`}
                     onClick={() => router.push(`/coach/clients/${client.id}`)}
                   >
                     <div className="flex items-center gap-3">
@@ -624,9 +706,9 @@ export default function Clients() {
                     </div>
                     <div>
                       <Badge 
-                        className={`${client.status === 'Active' 
+                        className={`${client.status === 'Active' || client.status === 'active'
                           ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted text-muted-foreground'
+                          : 'bg-orange-100 text-orange-700 border-orange-300'
                         }`}
                       >
                         {client.status}
@@ -690,6 +772,22 @@ export default function Clients() {
                           </p>
                         </TooltipContent>
                       </Tooltip>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSuspend(client.id, client.status);
+                        }}
+                        disabled={suspending}
+                        className={client.status === "Active" ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+                      >
+                        {suspending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Ban className="h-4 w-4" />
+                        )}
+                      </Button>
                       <Button 
                         size="sm" 
                         variant="ghost" 

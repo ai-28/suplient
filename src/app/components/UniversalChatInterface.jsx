@@ -400,7 +400,7 @@ export function UniversalChatInterface({
   }
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
       {/* Chat Header - Fixed for client, normal for coach */}
-      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40 ${chatType === "personal" ? "top-12" : "top-0"}` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
+      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40 ${chatType === "personal" ? "top-12" : "top-12"}` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
         <div className="flex items-center gap-3">
           {showBackButton && (
             <Button 
