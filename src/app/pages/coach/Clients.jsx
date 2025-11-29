@@ -46,6 +46,63 @@ import { useTranslation } from "@/app/context/LanguageContext";
 
 // Real data will be fetched from API and stored in clients state
 
+// Helper function to format date in local timezone
+// Expects ISO string (UTC) from API and converts to local time for display
+const formatDateLocal = (dateString) => {
+  if (!dateString) return 'Never';
+  
+  // Parse UTC timestamp (ISO string with 'Z' or explicit UTC)
+  // JavaScript's Date automatically converts UTC to local timezone
+  let date;
+  if (typeof dateString === 'string') {
+    // If it's an ISO string (ends with Z), Date will parse it as UTC
+    // If it doesn't have timezone, assume UTC (since API sends UTC)
+    const trimmed = dateString.trim();
+    if (!trimmed.endsWith('Z') && !trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+      // No timezone indicator - treat as UTC
+      date = new Date(trimmed + 'Z');
+    } else {
+      date = new Date(trimmed);
+    }
+  } else {
+    date = new Date(dateString);
+  }
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) return 'Never';
+  
+  // Format in local timezone (toLocaleString automatically uses browser's timezone)
+  const now = new Date();
+  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+  
+  if (diffInHours < 24) {
+    // Today - show time only
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  } else if (diffInHours < 48) {
+    // Yesterday
+    return 'Yesterday ' + date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  } else {
+    // Older - show date and time
+    return date.toLocaleDateString([], { 
+      month: 'short', 
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    }) + ' ' + date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  }
+};
+
 export default function Clients() {
   const { data: session } = useSession();
   const t = useTranslation();
@@ -449,7 +506,7 @@ export default function Clients() {
               checked={sortBy === "oldest"}
               onCheckedChange={() => setSortBy("oldest")}
             >
-              {"Last Active"}
+              {"Last Login"}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={sortBy === "type"}
@@ -655,7 +712,7 @@ export default function Clients() {
                 <div>Type</div>
                 <div>Status</div>
                 <div>Mood</div>
-                <div>Last Active</div>
+                <div>Last Login</div>
                 <div>Created</div>
                 <div>Session</div>
                 <div>Actions</div>
@@ -715,8 +772,8 @@ export default function Clients() {
                       </Badge>
                     </div>
                     <div className="text-2xl">{client.mood}</div>
-                    <div className="text-sm text-foreground">{client.lastActive}</div>
-                    <div className="text-sm text-muted-foreground">{client.created}</div>
+                    <div className="text-sm text-foreground">{formatDateLocal(client.lastActive)}</div>
+                    <div className="text-sm text-muted-foreground">{formatDateLocal(client.created)}</div>
                     <div className="text-sm text-muted-foreground">
                       {client.scheduledSession || "No Session"}
                     </div>

@@ -706,7 +706,13 @@
         "next": "Next",
         "daysToGo": "days to go",
         "progress": "Progress",
-        "toLevel": "to Level"
+        "toLevel": "to Level",
+        "streakTitle": "Daily Streak",
+        "streakDescription": "Your consecutive days of completing daily check-ins. Complete a check-in each day to maintain your streak!",
+        "pointsTitle": "Engagement Points",
+        "pointsDescription": "Earn 1 point for each: daily check-ins, completed tasks, viewed resources, and attended sessions. Points help you level up and track your progress!",
+        "levelTitle": "Level",
+        "levelDescription": "Level up every 100 points! Your level shows your overall engagement and progress. Keep earning points to reach the next level."
     },
     "client": {
         "navigation": {

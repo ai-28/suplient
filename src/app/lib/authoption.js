@@ -151,6 +151,43 @@ const authOptions = {
     secret: process.env.NEXTAUTH_SECRET,
     debug: process.env.NODE_ENV === 'development',
     callbacks: {
+        async signIn({ user, account, profile }) {
+            // Update lastActive for clients on sign-in
+            if (user?.role === 'client' && user?.id) {
+                try {
+                    const clientResult = await sql`
+                        SELECT c.id, c."lastActive"
+                        FROM "Client" c
+                        WHERE c."userId" = ${user.id}
+                        LIMIT 1
+                    `;
+
+                    if (clientResult.length > 0) {
+                        const client = clientResult[0];
+                        const now = new Date();
+                        
+                        // Only update if lastActive is NULL or older than 1 hour (server-side throttling)
+                        const shouldUpdate = !client.lastActive || 
+                            (new Date(client.lastActive).getTime() < (now.getTime() - 60 * 60 * 1000));
+
+                        if (shouldUpdate) {
+                            // Store as UTC timestamp explicitly
+                            await sql`
+                                UPDATE "Client"
+                                SET "lastActive" = (NOW() AT TIME ZONE 'UTC'),
+                                    "updatedAt" = (NOW() AT TIME ZONE 'UTC')
+                                WHERE id = ${client.id}
+                            `;
+                            console.log('✅ Updated lastActive for client on signIn:', user.id);
+                        }
+                    }
+                } catch (error) {
+                    // Don't fail sign-in if lastActive update fails
+                    console.error('Error updating lastActive on signIn:', error);
+                }
+            }
+            return true; // Allow sign-in to proceed
+        },
         async jwt({ token, account, user, trigger, session: jwtSession }) {
             if (account) {
                 token.accessToken = account.access_token;

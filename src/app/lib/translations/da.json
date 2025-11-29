@@ -668,7 +668,13 @@
         "next": "Næste",
         "daysToGo": "dage tilbage",
         "progress": "Fremgang",
-        "toLevel": "til Niveau"
+        "toLevel": "til Niveau",
+        "streakTitle": "Daglig Streak",
+        "streakDescription": "Dine på hinanden følgende dage med at fuldføre daglige tjek-ind. Fuldfør et tjek-ind hver dag for at bevare din streak!",
+        "pointsTitle": "Engagement Point",
+        "pointsDescription": "Optjen 1 point for hver: daglige tjek-ind, afsluttede opgaver, viste ressourcer og deltagelse i sessioner. Point hjælper dig med at stige i niveau og spore din fremgang!",
+        "levelTitle": "Niveau",
+        "levelDescription": "Stig i niveau hver 100. point! Dit niveau viser dit samlede engagement og fremgang. Bliv ved med at optjene point for at nå næste niveau."
     },
     "client": {
         "navigation": {

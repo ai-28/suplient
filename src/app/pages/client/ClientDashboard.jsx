@@ -28,6 +28,7 @@ import { StreakCounter } from "@/app/components/StreakCounter";
 import { DailyNotes } from "@/app/components/DailyNotes";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "@/app/hooks/useSocket";
+import { useUpdateLastActive } from "@/app/hooks/useUpdateLastActive";
 import { useTranslation } from "@/app/context/LanguageContext";
 
 // Helper function to format date in local timezone (YYYY-MM-DD)
@@ -159,6 +160,9 @@ export default function ClientDashboard() {
   
   // Initialize socket connection for real-time notifications
   useSocket();
+  
+  // Update lastActive when client accesses platform (with throttling)
+  const { updateLastActive } = useUpdateLastActive();
   
   // Check online status
   useEffect(() => {

@@ -106,7 +106,7 @@ export async function GET(request) {
                 avatar: client.avatar, // Include avatar field
                 type: client.type || 'Personal',
                 status: client.status ? client.status.charAt(0).toUpperCase() + client.status.slice(1).toLowerCase() : 'Active',
-                lastActive: client.lastActive ? formatDate(client.lastActive) : 'Never',
+                lastActive: formatDate(client.lastActive), // ISO string or null
                 created: formatDate(client.createdAt),
                 mood: client.mood || '😐',
                 stage: client.stageId || determineStage(client.status, client.type),
@@ -138,16 +138,34 @@ export async function GET(request) {
 }
 
 // Helper function to format date
+// Returns ISO string (UTC) so client can format in their local timezone
 function formatDate(dateString) {
-    if (!dateString) return 'Never';
+    if (!dateString) return null; // Return null so client can handle formatting
 
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    // PostgreSQL TIMESTAMP (without timezone) stores values as-is
+    // Since we store UTC using (NOW() AT TIME ZONE 'UTC'), we need to ensure
+    // the returned value is treated as UTC when parsed by JavaScript
+    let date;
+    if (typeof dateString === 'string') {
+        // PostgreSQL returns TIMESTAMP as string without timezone
+        // Since we stored it as UTC, we need to append 'Z' to indicate UTC
+        const trimmed = dateString.trim();
+        if (!trimmed.endsWith('Z') && !trimmed.match(/[+-]\d{2}:?\d{2}$/)) {
+            // No timezone indicator - treat as UTC (since we stored it as UTC)
+            date = new Date(trimmed + 'Z');
+        } else {
+            date = new Date(trimmed);
+        }
+    } else if (dateString instanceof Date) {
+        date = dateString;
+    } else {
+        // Handle Date object from PostgreSQL
+        date = new Date(dateString);
+    }
 
-    return `${day}/${month} ${hours}:${minutes}`;
+    // Return ISO string (always UTC, ends with 'Z')
+    // Client will parse this and convert to local timezone
+    return date.toISOString();
 }
 
 // Helper function to determine stage based on status and type
