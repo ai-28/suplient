@@ -13,65 +13,44 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/pop
 import { format } from "date-fns";
 import { cn } from "@/app/lib/utils";
 
-// Fixed goal fields from the image
-const goalFields = [
-  {
-    id: "sleep_quality",
-    name: "Sleep Quality",
-    icon: "🌙",
-    category: "Health"
-  },
-  {
-    id: "nutrition",
-    name: "Nutrition",
-    icon: "🥗",
-    category: "Health"
-  },
-  {
-    id: "physical_activity",
-    name: "Physical Activity",
-    icon: "🏃‍♂️",
-    category: "Fitness"
-  },
-  {
-    id: "learning",
-    name: "Learning",
-    icon: "📚",
-    category: "Education"
-  },
-  {
-    id: "maintaining_relationships",
-    name: "Maintaining Relationships",
-    icon: "❤️",
-    category: "Social"
-  }
-];
+// Hook to fetch active goals and habits from database
+const useGoalsAndHabits = () => {
+  const [goals, setGoals] = useState([]);
+  const [habits, setHabits] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-// Fixed bad habit fields from the image
-const badHabitFields = [
-  {
-    id: "excessive_social_media",
-    name: "Excessive Social Media",
-    icon: "📱",
-    category: "Digital"
-  },
-  {
-    id: "procrastination",
-    name: "Procrastination",
-    icon: "⏰",
-    category: "Productivity"
-  },
-  {
-    id: "negative_thinking",
-    name: "Negative Thinking",
-    icon: "☁️",
-    category: "Mental"
-  }
-];
+  useEffect(() => {
+    const fetchGoalsAndHabits = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/client/goals');
+        const data = await response.json();
 
-// Mock functions to replace missing hooks
-const getActiveGoals = () => goalFields;
-const getActiveBadHabits = () => badHabitFields;
+        if (data.success) {
+          // Filter to only active goals and habits
+          const activeGoals = data.goals.filter(g => g.isActive);
+          const activeHabits = data.badHabits.filter(h => h.isActive);
+          setGoals(activeGoals);
+          setHabits(activeHabits);
+        } else {
+          console.error('Failed to load goals and habits');
+          setGoals([]);
+          setHabits([]);
+        }
+      } catch (error) {
+        console.error('Error fetching goals and habits:', error);
+        setGoals([]);
+        setHabits([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGoalsAndHabits();
+  }, []);
+
+  return { goals, habits, loading };
+};
 
 // Helper function to format date in local timezone (YYYY-MM-DD)
 // This ensures the date matches what the user selected, regardless of timezone
@@ -134,39 +113,71 @@ const useDailyTracking = (goals, habits) => {
 export default function ClientJournal() {
   const router = useRouter();
   const t = useTranslation();
-  const activeGoals = getActiveGoals();
-  const activeBadHabits = getActiveBadHabits();
+  const { goals: activeGoals, habits: activeBadHabits, loading: goalsLoading } = useGoalsAndHabits();
   const { saveDailyEntry, getTodayEntry, isLoading } = useDailyTracking(activeGoals, activeBadHabits);
   
   // Selected date for check-in (defaults to today)
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isLoadingEntry, setIsLoadingEntry] = useState(false);
   
-  // Single form data object with all fields
-  const [formData, setFormData] = useState({
-    // Goal scores (default to 3 as shown in image)
-    sleepQuality: 3,
-    nutrition: 3,
-    physicalActivity: 3,
-    learning: 3,
-    maintainingRelationships: 3,
+  // Initialize form data with dynamic goals and habits
+  const initializeFormData = (goals, habits) => {
+    const formData = {
+      goalScores: {},
+      habitScores: {},
+      notes: "",
+      date: formatDateLocal(new Date()),
+    };
     
-    // Bad habit scores (default to 2 as shown in image)
-    excessiveSocialMedia: 2,
-    procrastination: 2,
-    negativeThinking: 2,
+    // Initialize goal scores (default to 3)
+    goals.forEach(goal => {
+      formData.goalScores[goal.id] = 3;
+    });
     
-    // Notes
-    notes: "",
+    // Initialize habit scores (default to 2)
+    habits.forEach(habit => {
+      formData.habitScores[habit.id] = 2;
+    });
     
-    // Metadata - use local timezone date
-    date: formatDateLocal(new Date()),
-  });
+    return formData;
+  };
+  
+  const [formData, setFormData] = useState(() => initializeFormData(activeGoals, activeBadHabits));
+  
+  // Update form data when goals/habits are loaded
+  useEffect(() => {
+    if (!goalsLoading && (activeGoals.length > 0 || activeBadHabits.length > 0)) {
+      setFormData(prev => {
+        const newFormData = { ...prev };
+        
+        // Ensure all active goals have scores
+        activeGoals.forEach(goal => {
+          if (!newFormData.goalScores || newFormData.goalScores[goal.id] === undefined) {
+            if (!newFormData.goalScores) newFormData.goalScores = {};
+            newFormData.goalScores[goal.id] = 3;
+          }
+        });
+        
+        // Ensure all active habits have scores
+        activeBadHabits.forEach(habit => {
+          if (!newFormData.habitScores || newFormData.habitScores[habit.id] === undefined) {
+            if (!newFormData.habitScores) newFormData.habitScores = {};
+            newFormData.habitScores[habit.id] = 2;
+          }
+        });
+        
+        return newFormData;
+      });
+    }
+  }, [activeGoals, activeBadHabits, goalsLoading]);
 
-  // Load existing check-in data when date changes
+  // Load existing check-in data when date changes or goals/habits are loaded
   useEffect(() => {
     const loadEntryForDate = async () => {
       if (!selectedDate) return;
+      
+      // Don't load if goals/habits are still loading
+      if (goalsLoading) return;
       
       // Format date in local timezone to match what user selected
       const dateString = formatDateLocal(selectedDate);
@@ -176,42 +187,147 @@ export default function ClientJournal() {
         const existingEntry = await getTodayEntry(dateString);
         
         if (existingEntry) {
-          // Load existing data - API returns fields directly, not nested in responses
+          // Load existing data - use JSONB fields
+          // Parse JSONB if it's a string (PostgreSQL sometimes returns JSONB as string)
+          let goalScores = existingEntry.goalScores || {};
+          let habitScores = existingEntry.habitScores || {};
+          
+          // If goalScores/habitScores are strings, parse them
+          if (typeof goalScores === 'string') {
+            try {
+              goalScores = JSON.parse(goalScores);
+            } catch (e) {
+              console.error('Error parsing goalScores:', e);
+              goalScores = {};
+            }
+          }
+          
+          if (typeof habitScores === 'string') {
+            try {
+              habitScores = JSON.parse(habitScores);
+            } catch (e) {
+              console.error('Error parsing habitScores:', e);
+              habitScores = {};
+            }
+          }
+          
+          console.log('📊 Loading check-in data:', {
+            date: dateString,
+            goalScores,
+            habitScores,
+            activeGoals: activeGoals.map(g => ({ id: g.id, name: g.name })),
+            activeBadHabits: activeBadHabits.map(h => ({ id: h.id, name: h.name }))
+          });
+          
+          // Initialize with defaults for all active goals/habits
+          const newGoalScores = {};
+          const newHabitScores = {};
+          
+          activeGoals.forEach(goal => {
+            // Try multiple ID formats for matching (UUID object, string, lowercase)
+            const goalIdStr = String(goal.id);
+            const goalIdLower = goalIdStr.toLowerCase();
+            
+            // Check all possible ID formats
+            let score = goalScores[goal.id];
+            if (score === undefined) score = goalScores[goalIdStr];
+            if (score === undefined) score = goalScores[goalIdLower];
+            // Also check if keys are stored differently
+            const goalKeys = Object.keys(goalScores);
+            const matchingKey = goalKeys.find(key => 
+              String(key).toLowerCase() === goalIdLower
+            );
+            if (score === undefined && matchingKey) {
+              score = goalScores[matchingKey];
+            }
+            
+            // Default to 3 if not found
+            if (score === undefined) score = 3;
+            
+            newGoalScores[goal.id] = score;
+            console.log(`Goal ${goal.name} (${goal.id}): score = ${score}`, {
+              found: score !== 3,
+              goalScoresKeys: Object.keys(goalScores),
+              tried: [goal.id, goalIdStr, goalIdLower, matchingKey]
+            });
+          });
+          
+          activeBadHabits.forEach(habit => {
+            // Try multiple ID formats for matching (UUID object, string, lowercase)
+            const habitIdStr = String(habit.id);
+            const habitIdLower = habitIdStr.toLowerCase();
+            
+            // Check all possible ID formats
+            let score = habitScores[habit.id];
+            if (score === undefined) score = habitScores[habitIdStr];
+            if (score === undefined) score = habitScores[habitIdLower];
+            // Also check if keys are stored differently
+            const habitKeys = Object.keys(habitScores);
+            const matchingKey = habitKeys.find(key => 
+              String(key).toLowerCase() === habitIdLower
+            );
+            if (score === undefined && matchingKey) {
+              score = habitScores[matchingKey];
+            }
+            
+            // Default to 2 if not found
+            if (score === undefined) score = 2;
+            
+            newHabitScores[habit.id] = score;
+            console.log(`Habit ${habit.name} (${habit.id}): score = ${score}`, {
+              found: score !== 2,
+              habitScoresKeys: Object.keys(habitScores),
+              tried: [habit.id, habitIdStr, habitIdLower, matchingKey]
+            });
+          });
+          
           setFormData(prev => ({
             ...prev,
             date: dateString,
-            sleepQuality: existingEntry.sleepQuality ?? 3,
-            nutrition: existingEntry.nutrition ?? 3,
-            physicalActivity: existingEntry.physicalActivity ?? 3,
-            learning: existingEntry.learning ?? 3,
-            maintainingRelationships: existingEntry.maintainingRelationships ?? 3,
-            excessiveSocialMedia: existingEntry.excessiveSocialMedia ?? 2,
-            procrastination: existingEntry.procrastination ?? 2,
-            negativeThinking: existingEntry.negativeThinking ?? 2,
+            goalScores: newGoalScores,
+            habitScores: newHabitScores,
             notes: existingEntry.notes ?? "",
           }));
         } else {
           // Reset to defaults for new date
+          const newGoalScores = {};
+          const newHabitScores = {};
+          
+          activeGoals.forEach(goal => {
+            newGoalScores[goal.id] = 3;
+          });
+          
+          activeBadHabits.forEach(habit => {
+            newHabitScores[habit.id] = 2;
+          });
+          
           setFormData(prev => ({
             ...prev,
             date: dateString,
-            sleepQuality: 3,
-            nutrition: 3,
-            physicalActivity: 3,
-            learning: 3,
-            maintainingRelationships: 3,
-            excessiveSocialMedia: 2,
-            procrastination: 2,
-            negativeThinking: 2,
+            goalScores: newGoalScores,
+            habitScores: newHabitScores,
             notes: "",
           }));
         }
       } catch (error) {
         console.error('Error loading entry:', error);
         // Reset to defaults on error
+        const newGoalScores = {};
+        const newHabitScores = {};
+        
+        activeGoals.forEach(goal => {
+          newGoalScores[goal.id] = 3;
+        });
+        
+        activeBadHabits.forEach(habit => {
+          newHabitScores[habit.id] = 2;
+        });
+        
         setFormData(prev => ({
           ...prev,
           date: dateString,
+          goalScores: newGoalScores,
+          habitScores: newHabitScores,
         }));
       } finally {
         setIsLoadingEntry(false);
@@ -220,13 +336,36 @@ export default function ClientJournal() {
 
     loadEntryForDate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]);
+  }, [
+    selectedDate, 
+    goalsLoading, 
+    // Use stringified IDs to detect when goals/habits change
+    JSON.stringify(activeGoals.map(g => g.id).sort()),
+    JSON.stringify(activeBadHabits.map(h => h.id).sort())
+  ]);
 
   const handleSave = async () => {
     if (isLoading) return; // Prevent multiple clicks
     
     try {
-      const result = await saveDailyEntry(formData);
+      // Ensure all IDs are strings for JSONB storage
+      const normalizedFormData = {
+        ...formData,
+        goalScores: Object.fromEntries(
+          Object.entries(formData.goalScores || {}).map(([id, score]) => [String(id), score])
+        ),
+        habitScores: Object.fromEntries(
+          Object.entries(formData.habitScores || {}).map(([id, score]) => [String(id), score])
+        )
+      };
+      
+      console.log('💾 Saving check-in:', {
+        date: normalizedFormData.date,
+        goalScores: normalizedFormData.goalScores,
+        habitScores: normalizedFormData.habitScores
+      });
+      
+      const result = await saveDailyEntry(normalizedFormData);
       
       // Create activity for daily check-in
       try {
@@ -272,6 +411,28 @@ export default function ClientJournal() {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  // Helper function to update goal score
+  const updateGoalScore = (goalId, score) => {
+    setFormData(prev => ({
+      ...prev,
+      goalScores: {
+        ...prev.goalScores,
+        [goalId]: Math.max(0, Math.min(5, score))
+      }
+    }));
+  };
+
+  // Helper function to update habit score
+  const updateHabitScore = (habitId, score) => {
+    setFormData(prev => ({
+      ...prev,
+      habitScores: {
+        ...prev.habitScores,
+        [habitId]: Math.max(0, Math.min(5, score))
+      }
     }));
   };
 
@@ -353,7 +514,11 @@ export default function ClientJournal() {
         )} */}
         
         {/* Goals */}
-        {!isLoadingEntry && (
+        {goalsLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : !isLoadingEntry && activeGoals.length > 0 ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
@@ -361,151 +526,57 @@ export default function ClientJournal() {
             </div>
             
             <div className="space-y-4">
-              {/* Sleep Quality */}
-              <div className="bg-card/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🌙</span>
-                    <span className="font-medium">{t('journal.sleepQuality', 'Sleep Quality')}</span>
+              {activeGoals.map((goal) => {
+                const score = formData.goalScores?.[goal.id] ?? 3;
+                return (
+                  <div key={goal.id} className="bg-card/50 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{goal.icon || '🎯'}</span>
+                        <span className="font-medium">{goal.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{getScoreEmoji(score)}</span>
+                        <span className="text-lg font-semibold min-w-[20px]">{score}</span>
+                      </div>
+                    </div>
+                    <div className="px-2">
+                      <Slider
+                        value={[score]}
+                        onValueChange={(value) => updateGoalScore(goal.id, value[0])}
+                        max={5}
+                        min={0}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>{t('journal.poor', 'Poor')}</span>
+                        <span>{t('journal.amazing', 'Amazing')}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getScoreEmoji(formData.sleepQuality)}</span>
-                    <span className="text-lg font-semibold min-w-[20px]">{formData.sleepQuality}</span>
-                  </div>
-                </div>
-                <div className="px-2">
-                  <Slider
-                    value={[formData.sleepQuality]}
-                    onValueChange={(value) => updateFormData('sleepQuality', Math.max(0, Math.min(5, value[0])))}
-                    max={5}
-                    min={0}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{t('journal.poor', 'Poor')}</span>
-                    <span>{t('journal.amazing', 'Amazing')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Nutrition */}
-              <div className="bg-card/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🥗</span>
-                    <span className="font-medium">{t('journal.nutrition', 'Nutrition')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getScoreEmoji(formData.nutrition)}</span>
-                    <span className="text-lg font-semibold min-w-[20px]">{formData.nutrition}</span>
-                  </div>
-                </div>
-                <div className="px-2">
-                  <Slider
-                    value={[formData.nutrition]}
-                    onValueChange={(value) => updateFormData('nutrition', Math.max(0, Math.min(5, value[0])))}
-                    max={5}
-                    min={0}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{t('journal.poor', 'Poor')}</span>
-                    <span>{t('journal.amazing', 'Amazing')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Physical Activity */}
-              <div className="bg-card/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🏃‍♂️</span>
-                    <span className="font-medium">{t('journal.physicalActivity', 'Physical Activity')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getScoreEmoji(formData.physicalActivity)}</span>
-                    <span className="text-lg font-semibold min-w-[20px]">{formData.physicalActivity}</span>
-                  </div>
-                </div>
-                <div className="px-2">
-                  <Slider
-                    value={[formData.physicalActivity]}
-                    onValueChange={(value) => updateFormData('physicalActivity', Math.max(0, Math.min(5, value[0])))}
-                    max={5}
-                    min={0}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{t('journal.poor', 'Poor')}</span>
-                    <span>{t('journal.amazing', 'Amazing')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Learning */}
-              <div className="bg-card/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">📚</span>
-                    <span className="font-medium">{t('journal.learning', 'Learning')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getScoreEmoji(formData.learning)}</span>
-                    <span className="text-lg font-semibold min-w-[20px]">{formData.learning}</span>
-                  </div>
-                </div>
-                <div className="px-2">
-                  <Slider
-                    value={[formData.learning]}
-                    onValueChange={(value) => updateFormData('learning', Math.max(0, Math.min(5, value[0])))}
-                    max={5}
-                    min={0}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{t('journal.poor', 'Poor')}</span>
-                    <span>{t('journal.amazing', 'Amazing')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Maintaining Relationships */}
-              <div className="bg-card/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">❤️</span>
-                    <span className="font-medium">{t('journal.maintainingRelationships', 'Maintaining Relationships')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getScoreEmoji(formData.maintainingRelationships)}</span>
-                    <span className="text-lg font-semibold min-w-[20px]">{formData.maintainingRelationships}</span>
-                  </div>
-                </div>
-                <div className="px-2">
-                  <Slider
-                    value={[formData.maintainingRelationships]}
-                    onValueChange={(value) => updateFormData('maintainingRelationships', Math.max(0, Math.min(5, value[0])))}
-                    max={5}
-                    min={0}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{t('journal.poor', 'Poor')}</span>
-                    <span>{t('journal.amazing', 'Amazing')}</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
-        )}
+        ) : !isLoadingEntry && activeGoals.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <h3 className="font-semibold">{t('journal.noActiveGoals', 'No Active Goals')}</h3>
+            <p className="text-sm mt-2">
+              {t('journal.setupGoalsDesc', 'Set up your goals to start quick daily tracking.')}
+            </p>
+            <Button 
+              onClick={() => router.push('/client/profile?tab=goals')} 
+              className="mt-4"
+              variant="outline"
+            >
+              {t('journal.setUpGoals', 'Set Up Goals')}
+            </Button>
+          </div>
+        ) : null}
 
         {/* Bad Habits */}
-        {!isLoadingEntry && (
+        {goalsLoading ? null : !isLoadingEntry && activeBadHabits.length > 0 ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-destructive" />
@@ -513,92 +584,54 @@ export default function ClientJournal() {
             </div>
             
             <div className="space-y-4">
-              {/* Excessive Social Media */}
-              <div className="bg-card/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">📱</span>
-                    <span className="font-medium">{t('journal.excessiveSocialMedia', 'Excessive Social Media')}</span>
+              {activeBadHabits.map((habit) => {
+                const score = formData.habitScores?.[habit.id] ?? 2;
+                return (
+                  <div key={habit.id} className="bg-card/50 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{habit.icon || '📱'}</span>
+                        <span className="font-medium">{habit.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{getBadHabitEmoji(score)}</span>
+                        <span className="text-lg font-semibold min-w-[20px]">{score}</span>
+                      </div>
+                    </div>
+                    <div className="px-2">
+                      <Slider
+                        value={[score]}
+                        onValueChange={(value) => updateHabitScore(habit.id, value[0])}
+                        max={5}
+                        min={0}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>{t('journal.none', 'None')}</span>
+                        <span>{t('journal.overdidIt', 'Overdid it')}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getBadHabitEmoji(formData.excessiveSocialMedia)}</span>
-                    <span className="text-lg font-semibold min-w-[20px]">{formData.excessiveSocialMedia}</span>
-                  </div>
-                </div>
-                <div className="px-2">
-                  <Slider
-                    value={[formData.excessiveSocialMedia]}
-                    onValueChange={(value) => updateFormData('excessiveSocialMedia', Math.max(0, Math.min(5, value[0])))}
-                    max={5}
-                    min={0}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{t('journal.none', 'None')}</span>
-                    <span>{t('journal.overdidIt', 'Overdid it')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Procrastination */}
-              <div className="bg-card/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">⏰</span>
-                    <span className="font-medium">{t('journal.procrastination', 'Procrastination')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getBadHabitEmoji(formData.procrastination)}</span>
-                    <span className="text-lg font-semibold min-w-[20px]">{formData.procrastination}</span>
-                  </div>
-                </div>
-                <div className="px-2">
-                  <Slider
-                    value={[formData.procrastination]}
-                    onValueChange={(value) => updateFormData('procrastination', Math.max(0, Math.min(5, value[0])))}
-                    max={5}
-                    min={0}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{t('journal.none', 'None')}</span>
-                    <span>{t('journal.overdidIt', 'Overdid it')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Negative Thinking */}
-              <div className="bg-card/50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">☁️</span>
-                    <span className="font-medium">{t('journal.negativeThinking', 'Negative Thinking')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getBadHabitEmoji(formData.negativeThinking)}</span>
-                    <span className="text-lg font-semibold min-w-[20px]">{formData.negativeThinking}</span>
-                  </div>
-                </div>
-                <div className="px-2">
-                  <Slider
-                    value={[formData.negativeThinking]}
-                    onValueChange={(value) => updateFormData('negativeThinking', Math.max(0, Math.min(5, value[0])))}
-                    max={5}
-                    min={0}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{t('journal.none', 'None')}</span>
-                    <span>{t('journal.overdidIt', 'Overdid it')}</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
-        )}
+        ) : !isLoadingEntry && activeBadHabits.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <h3 className="font-semibold">{t('journal.noActiveHabits', 'No Active Habits')}</h3>
+            <p className="text-sm mt-2">
+              {t('journal.setupHabitsDesc', 'Set up habits to track in your profile settings.')}
+            </p>
+            <Button 
+              onClick={() => router.push('/client/profile?tab=goals')} 
+              className="mt-4"
+              variant="outline"
+            >
+              {t('journal.setUpHabits', 'Set Up Habits')}
+            </Button>
+          </div>
+        ) : null}
 
         {/* Quick Notes */}
         {!isLoadingEntry && (

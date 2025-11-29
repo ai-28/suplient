@@ -3,17 +3,14 @@ import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
 import { sql } from '@/app/lib/db/postgresql';
 
-// Helper function to get client ID from session
-async function getClientId(session) {
-    const clientResult = await sql`
-        SELECT id FROM "Client" WHERE "userId" = ${session.user.id}
+// Helper function to verify coach has access to client
+async function verifyCoachAccess(coachId, clientId) {
+    const result = await sql`
+        SELECT c.id 
+        FROM "Client" c
+        WHERE c.id = ${clientId} AND c."coachId" = ${coachId}
     `;
-
-    if (clientResult.length === 0) {
-        return null;
-    }
-
-    return clientResult[0].id;
+    return result.length > 0;
 }
 
 // Helper function to get latest check-in scores
@@ -32,73 +29,8 @@ async function getLatestCheckInScores(clientId) {
     return latestCheckIn.length > 0 ? latestCheckIn[0] : null;
 }
 
-// Helper function to get average scores for the last 30 days
-// Note: This function now calculates averages from JSONB fields
-async function getAverageScores(clientId) {
-    // Get all check-ins from the last 30 days
-    const checkIns = await sql`
-        SELECT 
-            "goalScores",
-            "habitScores"
-        FROM "CheckIn"
-        WHERE "clientId" = ${clientId}
-        AND date >= CURRENT_DATE - INTERVAL '30 days'
-    `;
-
-    if (checkIns.length === 0) {
-        return null;
-    }
-
-    // Calculate averages from JSONB data
-    const goalScoreSums = {};
-    const habitScoreSums = {};
-    const goalScoreCounts = {};
-    const habitScoreCounts = {};
-
-    checkIns.forEach(checkIn => {
-        const goalScores = checkIn.goalScores || {};
-        const habitScores = checkIn.habitScores || {};
-
-        // Sum up goal scores
-        Object.keys(goalScores).forEach(goalId => {
-            if (!goalScoreSums[goalId]) {
-                goalScoreSums[goalId] = 0;
-                goalScoreCounts[goalId] = 0;
-            }
-            goalScoreSums[goalId] += goalScores[goalId];
-            goalScoreCounts[goalId]++;
-        });
-
-        // Sum up habit scores
-        Object.keys(habitScores).forEach(habitId => {
-            if (!habitScoreSums[habitId]) {
-                habitScoreSums[habitId] = 0;
-                habitScoreCounts[habitId] = 0;
-            }
-            habitScoreSums[habitId] += habitScores[habitId];
-            habitScoreCounts[habitId]++;
-        });
-    });
-
-    // Calculate averages
-    const avgGoalScores = {};
-    const avgHabitScores = {};
-
-    Object.keys(goalScoreSums).forEach(goalId => {
-        avgGoalScores[goalId] = goalScoreSums[goalId] / goalScoreCounts[goalId];
-    });
-
-    Object.keys(habitScoreSums).forEach(habitId => {
-        avgHabitScores[habitId] = habitScoreSums[habitId] / habitScoreCounts[habitId];
-    });
-
-    return {
-        goalScores: avgGoalScores,
-        habitScores: avgHabitScores
-    };
-}
-
-export async function GET(request) {
+// GET - Fetch client's goals and habits
+export async function GET(request, { params }) {
     try {
         const session = await getServerSession(authOptions);
 
@@ -106,9 +38,28 @@ export async function GET(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const clientId = await getClientId(session);
-        if (!clientId) {
-            return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        // Verify user is a coach
+        const user = await sql`
+            SELECT id, role FROM "User" WHERE id = ${session.user.id}
+        `;
+
+        if (user.length === 0 || user[0].role !== 'coach') {
+            return NextResponse.json(
+                { error: 'Only coaches can access this endpoint' },
+                { status: 403 }
+            );
+        }
+
+        const coachId = user[0].id;
+        const { id: clientId } = await params;
+
+        // Verify coach has access to this client
+        const hasAccess = await verifyCoachAccess(coachId, clientId);
+        if (!hasAccess) {
+            return NextResponse.json(
+                { error: 'Client not found or you do not have access' },
+                { status: 404 }
+            );
         }
 
         // Fetch goals from database
@@ -149,26 +100,50 @@ export async function GET(request) {
 
         // Get latest check-in scores
         const latestCheckIn = await getLatestCheckInScores(clientId);
-        const averageScores = await getAverageScores(clientId);
+        let goalScores = latestCheckIn?.goalScores || {};
+        let habitScores = latestCheckIn?.habitScores || {};
+        
+        // Parse JSONB if it's a string
+        if (typeof goalScores === 'string') {
+            try {
+                goalScores = JSON.parse(goalScores);
+            } catch (e) {
+                console.error('Error parsing goalScores:', e);
+                goalScores = {};
+            }
+        }
+        
+        if (typeof habitScores === 'string') {
+            try {
+                habitScores = JSON.parse(habitScores);
+            } catch (e) {
+                console.error('Error parsing habitScores:', e);
+                habitScores = {};
+            }
+        }
 
-        // Get goal scores from latest check-in (use JSON field if available, fallback to legacy columns)
-        const goalScores = latestCheckIn?.goalScores || {};
-        const habitScores = latestCheckIn?.habitScores || {};
-
-        // Map goals with scores
+        // Map goals with scores - handle UUID/string ID matching
         const goals = goalsData.map(goal => {
-            let currentScore = 3;
-            let averageScore = 3;
-
-            // Get score from JSON field
-            if (goalScores && goalScores[goal.id] !== undefined) {
-                currentScore = goalScores[goal.id];
+            // Try multiple ID formats for matching (UUID object, string, lowercase)
+            const goalIdStr = String(goal.id);
+            const goalIdLower = goalIdStr.toLowerCase();
+            
+            let currentScore = goalScores[goal.id];
+            if (currentScore === undefined) currentScore = goalScores[goalIdStr];
+            if (currentScore === undefined) currentScore = goalScores[goalIdLower];
+            // Also check if keys are stored differently
+            const goalKeys = Object.keys(goalScores);
+            const matchingKey = goalKeys.find(key => 
+                String(key).toLowerCase() === goalIdLower
+            );
+            if (currentScore === undefined && matchingKey) {
+                currentScore = goalScores[matchingKey];
             }
-
-            // Get average score from calculated averages
-            if (averageScores && averageScores.goalScores && averageScores.goalScores[goal.id] !== undefined) {
-                averageScore = Math.round(averageScores.goalScores[goal.id] * 10) / 10; // Round to 1 decimal
-            }
+            
+            // Default to 3 if not found
+            if (currentScore === undefined) currentScore = 3;
+            
+            const averageScore = 3; // Could calculate from check-ins if needed
 
             return {
                 id: goal.id,
@@ -183,20 +158,28 @@ export async function GET(request) {
             };
         });
 
-        // Map habits with scores
+        // Map habits with scores - handle UUID/string ID matching
         const habits = habitsData.map(habit => {
-            let currentScore = 2;
-            let averageScore = 2;
-
-            // Get score from JSON field
-            if (habitScores && habitScores[habit.id] !== undefined) {
-                currentScore = habitScores[habit.id];
+            // Try multiple ID formats for matching (UUID object, string, lowercase)
+            const habitIdStr = String(habit.id);
+            const habitIdLower = habitIdStr.toLowerCase();
+            
+            let currentScore = habitScores[habit.id];
+            if (currentScore === undefined) currentScore = habitScores[habitIdStr];
+            if (currentScore === undefined) currentScore = habitScores[habitIdLower];
+            // Also check if keys are stored differently
+            const habitKeys = Object.keys(habitScores);
+            const matchingKey = habitKeys.find(key => 
+                String(key).toLowerCase() === habitIdLower
+            );
+            if (currentScore === undefined && matchingKey) {
+                currentScore = habitScores[matchingKey];
             }
-
-            // Get average score from calculated averages
-            if (averageScores && averageScores.habitScores && averageScores.habitScores[habit.id] !== undefined) {
-                averageScore = Math.round(averageScores.habitScores[habit.id] * 10) / 10; // Round to 1 decimal
-            }
+            
+            // Default to 2 if not found
+            if (currentScore === undefined) currentScore = 2;
+            
+            const averageScore = 2; // Could calculate from check-ins if needed
 
             return {
                 id: habit.id,
@@ -211,19 +194,10 @@ export async function GET(request) {
             };
         });
 
-        // Get total check-ins count
-        const checkInCount = await sql`
-            SELECT COUNT(*) as total_checkins
-            FROM "CheckIn"
-            WHERE "clientId" = ${clientId}
-        `;
-
         return NextResponse.json({
             success: true,
             goals,
-            badHabits: habits,
-            totalCheckIns: checkInCount[0]?.total_checkins || 0,
-            lastCheckInDate: latestCheckIn?.date || null
+            badHabits: habits
         });
 
     } catch (error) {
@@ -235,8 +209,8 @@ export async function GET(request) {
     }
 }
 
-// POST - Create a new custom goal or habit
-export async function POST(request) {
+// POST - Create a new goal or habit for the client
+export async function POST(request, { params }) {
     try {
         const session = await getServerSession(authOptions);
 
@@ -244,9 +218,28 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const clientId = await getClientId(session);
-        if (!clientId) {
-            return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        // Verify user is a coach
+        const user = await sql`
+            SELECT id, role FROM "User" WHERE id = ${session.user.id}
+        `;
+
+        if (user.length === 0 || user[0].role !== 'coach') {
+            return NextResponse.json(
+                { error: 'Only coaches can access this endpoint' },
+                { status: 403 }
+            );
+        }
+
+        const coachId = user[0].id;
+        const { id: clientId } = await params;
+
+        // Verify coach has access to this client
+        const hasAccess = await verifyCoachAccess(coachId, clientId);
+        if (!hasAccess) {
+            return NextResponse.json(
+                { error: 'Client not found or you do not have access' },
+                { status: 404 }
+            );
         }
 
         const body = await request.json();
@@ -314,7 +307,7 @@ export async function POST(request) {
 }
 
 // PUT - Update a goal or habit (toggle active, update details)
-export async function PUT(request) {
+export async function PUT(request, { params }) {
     try {
         const session = await getServerSession(authOptions);
 
@@ -322,13 +315,32 @@ export async function PUT(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const clientId = await getClientId(session);
-        if (!clientId) {
-            return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        // Verify user is a coach
+        const user = await sql`
+            SELECT id, role FROM "User" WHERE id = ${session.user.id}
+        `;
+
+        if (user.length === 0 || user[0].role !== 'coach') {
+            return NextResponse.json(
+                { error: 'Only coaches can access this endpoint' },
+                { status: 403 }
+            );
+        }
+
+        const coachId = user[0].id;
+        const { id: clientId } = await params;
+
+        // Verify coach has access to this client
+        const hasAccess = await verifyCoachAccess(coachId, clientId);
+        if (!hasAccess) {
+            return NextResponse.json(
+                { error: 'Client not found or you do not have access' },
+                { status: 404 }
+            );
         }
 
         const body = await request.json();
-        const { id, type, isActive, name, description, icon, color, category, order, orders } = body;
+        const { id, type, isActive, name, icon, color, order, orders } = body;
 
         if (!id || !type) {
             return NextResponse.json(
@@ -361,7 +373,7 @@ export async function PUT(request) {
             return NextResponse.json({ success: true, message: 'Order updated successfully' });
         }
 
-        // Build update query - handle each field separately
+        // Build update query
         let result;
 
         if (type === 'goal') {
@@ -460,7 +472,7 @@ export async function PUT(request) {
 }
 
 // DELETE - Delete a custom goal or habit
-export async function DELETE(request) {
+export async function DELETE(request, { params }) {
     try {
         const session = await getServerSession(authOptions);
 
@@ -468,9 +480,28 @@ export async function DELETE(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const clientId = await getClientId(session);
-        if (!clientId) {
-            return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        // Verify user is a coach
+        const user = await sql`
+            SELECT id, role FROM "User" WHERE id = ${session.user.id}
+        `;
+
+        if (user.length === 0 || user[0].role !== 'coach') {
+            return NextResponse.json(
+                { error: 'Only coaches can access this endpoint' },
+                { status: 403 }
+            );
+        }
+
+        const coachId = user[0].id;
+        const { id: clientId } = await params;
+
+        // Verify coach has access to this client
+        const hasAccess = await verifyCoachAccess(coachId, clientId);
+        if (!hasAccess) {
+            return NextResponse.json(
+                { error: 'Client not found or you do not have access' },
+                { status: 404 }
+            );
         }
 
         const { searchParams } = new URL(request.url);
@@ -522,3 +553,4 @@ export async function DELETE(request) {
         );
     }
 }
+

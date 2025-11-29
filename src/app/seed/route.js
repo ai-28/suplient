@@ -425,25 +425,70 @@ async function seedNote() {
   }
 }
 
+async function createGoalsAndHabitsTables() {
+  try {
+    // Create Goal table for client goals (both default and custom)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "Goal" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        icon VARCHAR(10),
+        color VARCHAR(50),
+        "isActive" BOOLEAN DEFAULT true,
+        "isCustom" BOOLEAN DEFAULT false,
+        "isDefault" BOOLEAN DEFAULT false,
+        "order" INTEGER DEFAULT 0,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Create Habit table for client habits (both default and custom)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "Habit" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        icon VARCHAR(10),
+        color VARCHAR(50),
+        "isActive" BOOLEAN DEFAULT true,
+        "isCustom" BOOLEAN DEFAULT false,
+        "isDefault" BOOLEAN DEFAULT false,
+        "order" INTEGER DEFAULT 0,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_goal_client_id ON "Goal"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_goal_active ON "Goal"("isActive")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_habit_client_id ON "Habit"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_habit_active ON "Habit"("isActive")`;
+
+    console.log('✅ Goals and Habits tables created successfully');
+  } catch (error) {
+    console.error('Error creating Goals and Habits tables:', error);
+    throw error;
+  }
+}
+
 async function createCheckInTable() {
   try {
     // Create CheckIn table for daily journal entries
+    // Uses dynamic JSONB fields for goals and habits
     await sql`
       CREATE TABLE IF NOT EXISTS "CheckIn" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
-       
-        -- Goal scores (0-5 scale)
-        "sleepQuality" INTEGER NOT NULL DEFAULT 3 CHECK ("sleepQuality" >= 0 AND "sleepQuality" <= 5),
-        nutrition INTEGER NOT NULL DEFAULT 3 CHECK (nutrition >= 0 AND nutrition <= 5),
-        "physicalActivity" INTEGER NOT NULL DEFAULT 3 CHECK ("physicalActivity" >= 0 AND "physicalActivity" <= 5),
-        learning INTEGER NOT NULL DEFAULT 3 CHECK (learning >= 0 AND learning <= 5),
-        "maintainingRelationships" INTEGER NOT NULL DEFAULT 3 CHECK ("maintainingRelationships" >= 0 AND "maintainingRelationships" <= 5),
         
-        -- Bad habit scores (0-5 scale)
-        "excessiveSocialMedia" INTEGER NOT NULL DEFAULT 2 CHECK ("excessiveSocialMedia" >= 0 AND "excessiveSocialMedia" <= 5),
-        procrastination INTEGER NOT NULL DEFAULT 2 CHECK (procrastination >= 0 AND procrastination <= 5),
-        "negativeThinking" INTEGER NOT NULL DEFAULT 2 CHECK ("negativeThinking" >= 0 AND "negativeThinking" <= 5),
+        -- Dynamic goal and habit scores stored as JSON
+        -- Format: { "goalId": score, "habitId": score }
+        "goalScores" JSONB DEFAULT '{}',
+        "habitScores" JSONB DEFAULT '{}',
         
         -- Notes
         notes TEXT,
@@ -458,13 +503,82 @@ async function createCheckInTable() {
       );
     `;
 
+    // Add goalScores and habitScores columns if they don't exist (for existing tables)
+    try {
+      await sql`ALTER TABLE "CheckIn" ADD COLUMN IF NOT EXISTS "goalScores" JSONB DEFAULT '{}'`;
+      await sql`ALTER TABLE "CheckIn" ADD COLUMN IF NOT EXISTS "habitScores" JSONB DEFAULT '{}'`;
+    } catch (error) {
+      console.log('Note: goalScores/habitScores columns may already exist in CheckIn table');
+    }
+
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_checkin_client_id ON "CheckIn"("clientId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_checkin_date ON "CheckIn"(date)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_checkin_created_at ON "CheckIn"("createdAt")`;
 
+    // Create GIN indexes for JSONB columns (only if columns exist)
+    try {
+      await sql`CREATE INDEX IF NOT EXISTS idx_checkin_goal_scores ON "CheckIn" USING GIN("goalScores")`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_checkin_habit_scores ON "CheckIn" USING GIN("habitScores")`;
+    } catch (error) {
+      console.log('Note: GIN indexes for goalScores/habitScores may have failed, but this is okay if columns don\'t exist yet');
+    }
+
+    console.log('✅ CheckIn table created successfully');
   } catch (error) {
     console.error('Error creating CheckIn table:', error);
+    throw error;
+  }
+}
+
+async function seedDefaultGoalsAndHabits() {
+  try {
+    // Get all clients
+    const clients = await sql`SELECT id FROM "Client"`;
+
+    for (const client of clients) {
+      // Check if default goals already exist for this client
+      const existingGoals = await sql`
+        SELECT id FROM "Goal" 
+        WHERE "clientId" = ${client.id} AND "isDefault" = true
+        LIMIT 1
+      `;
+
+      if (existingGoals.length === 0) {
+        // Insert default goals
+        await sql`
+          INSERT INTO "Goal" ("clientId", name, icon, color, "isActive", "isCustom", "isDefault", "order")
+          VALUES
+            (${client.id}, 'Sleep Quality', '🌙', '#3B82F6', true, false, true, 1),
+            (${client.id}, 'Nutrition', '🥗', '#10B981', true, false, true, 2),
+            (${client.id}, 'Physical Activity', '🏃‍♂️', '#F59E0B', true, false, true, 3),
+            (${client.id}, 'Learning', '📚', '#8B5CF6', true, false, true, 4),
+            (${client.id}, 'Maintaining Relationships', '❤️', '#EC4899', true, false, true, 5)
+        `;
+      }
+
+      // Check if default habits already exist for this client
+      const existingHabits = await sql`
+        SELECT id FROM "Habit" 
+        WHERE "clientId" = ${client.id} AND "isDefault" = true
+        LIMIT 1
+      `;
+
+      if (existingHabits.length === 0) {
+        // Insert default habits
+        await sql`
+          INSERT INTO "Habit" ("clientId", name, icon, color, "isActive", "isCustom", "isDefault", "order")
+          VALUES
+            (${client.id}, 'Excessive Social Media', '📱', '#EF4444', true, false, true, 1),
+            (${client.id}, 'Procrastination', '⏰', '#F97316', true, false, true, 2),
+            (${client.id}, 'Negative Thinking', '☁️', '#6B7280', true, false, true, 3)
+        `;
+      }
+    }
+
+    console.log('✅ Default goals and habits seeded successfully');
+  } catch (error) {
+    console.error('Error seeding default goals and habits:', error);
     throw error;
   }
 }
@@ -756,6 +870,7 @@ export async function GET() {
     await createChatTables(); // Create Chat tables
     await createResourceTable(); // Create Resource table for library
     await seedNote();
+    await createGoalsAndHabitsTables(); // Create Goal and Habit tables
     await createCheckInTable(); // Create CheckIn table for daily journal entries
     await createUserStatsTable(); // Create user stats table
     await createResourceCompletionTable(); // Create resource completion table
@@ -763,6 +878,7 @@ export async function GET() {
     await createPipelineTables(); // Create pipeline tables
     await createStripeAccountTable(); // Create StripeAccount table
     await createPlatformSettingsTable();
+    await seedDefaultGoalsAndHabits(); // Seed default goals and habits for all clients
     console.log('Database seeded successfully');
 
     return new Response(JSON.stringify({

@@ -85,6 +85,17 @@ export async function POST(request) {
       VALUES (${newUser.id}, ${session.user.id}, ${name}, ${email}, ${'personal'}, ${'active'}, ${concerns}, NOW(), NOW())
       RETURNING id, name, email
     `;
+        
+        // Create default goals and habits for the new client
+        try {
+            const { createDefaultGoalsAndHabitsForClient } = await import('@/app/lib/db/goalsHabitsHelpers');
+            await createDefaultGoalsAndHabitsForClient(newClient.id);
+            console.log('✅ Default goals and habits created for new client:', newClient.id);
+        } catch (goalsError) {
+            console.error('❌ Error creating default goals and habits:', goalsError);
+            // Don't fail the registration if goals/habits creation fails
+        }
+        
         // Send welcome email for clients
         await sendClientRegistrationEmail({
             name: newUser.name,

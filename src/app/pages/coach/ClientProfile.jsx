@@ -82,6 +82,7 @@ import { EnrollClientDialog } from "@/app/components/EnrollClientDialog";
 import { CreateNoteDialog } from "@/app/components/CreateNoteDialog";
 import { EditNoteDialog } from "@/app/components/EditNoteDialog";
 import { CoachClientCheckInView } from "@/app/components/CoachClientCheckInView";
+import { CoachClientGoalsHabits } from "@/app/components/CoachClientGoalsHabits";
 
 // Demo data for files (these will be replaced with real data later)
 
@@ -1004,7 +1005,7 @@ export default function ClientProfile() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 flex-1">
-            <div className="grid grid-cols-1 lg:grid-cols-[30%_40%_30%] gap-6 h-full min-h-[calc(100vh-300px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-[3fr_4fr_3fr] gap-6 h-full min-h-[calc(100vh-300px)]">
               {/* Left Column - Client Details + Tasks */}
               <div className="flex flex-col space-y-6">
                 {/* Client Details */}
@@ -1731,6 +1732,9 @@ export default function ClientProfile() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Goals & Habits Management */}
+            <CoachClientGoalsHabits clientId={id} />
 
             {/* Daily Check-in View */}
             <CoachClientCheckInView clientId={id} />

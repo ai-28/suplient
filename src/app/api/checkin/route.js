@@ -19,47 +19,37 @@ export async function POST(request) {
         // Parse the request body
         const body = await request.json();
 
-        // Validate required fields
+        // Extract data from request body
         const {
-            sleepQuality,
-            nutrition,
-            physicalActivity,
-            learning,
-            maintainingRelationships,
-            excessiveSocialMedia,
-            procrastination,
-            negativeThinking,
+            goalScores = {},
+            habitScores = {},
             notes,
             date
         } = body;
 
-        // Validate that all required fields are present and within valid range
-        const requiredFields = {
-            sleepQuality,
-            nutrition,
-            physicalActivity,
-            learning,
-            maintainingRelationships,
-            excessiveSocialMedia,
-            procrastination,
-            negativeThinking
-        };
-
-        for (const [field, value] of Object.entries(requiredFields)) {
-            if (value === undefined || value === null) {
-                return NextResponse.json(
-                    { error: `Missing required field: ${field}` },
-                    { status: 400 }
-                );
-            }
-
-            if (typeof value !== 'number' || value < 0 || value > 5) {
-                return NextResponse.json(
-                    { error: `Invalid value for ${field}. Must be a number between 0 and 5` },
-                    { status: 400 }
-                );
+        // Validate goalScores and habitScores if provided
+        if (goalScores && typeof goalScores === 'object') {
+            for (const [goalId, score] of Object.entries(goalScores)) {
+                if (typeof score !== 'number' || score < 0 || score > 5) {
+                    return NextResponse.json(
+                        { error: `Invalid score for goal ${goalId}. Must be a number between 0 and 5` },
+                        { status: 400 }
+                    );
+                }
             }
         }
+
+        if (habitScores && typeof habitScores === 'object') {
+            for (const [habitId, score] of Object.entries(habitScores)) {
+                if (typeof score !== 'number' || score < 0 || score > 5) {
+                    return NextResponse.json(
+                        { error: `Invalid score for habit ${habitId}. Must be a number between 0 and 5` },
+                        { status: 400 }
+                    );
+                }
+            }
+        }
+
 
         // Get the client ID from the user session
         // Assuming the user is a client, we need to get their client record
@@ -78,44 +68,31 @@ export async function POST(request) {
 
         const clientId = clientResult[0].id;
 
+        // Convert goalScores and habitScores to JSONB
+        const goalScoresJson = JSON.stringify(goalScores || {});
+        const habitScoresJson = JSON.stringify(habitScores || {});
+
         // Use PostgreSQL UPSERT (INSERT ... ON CONFLICT) for atomic operation
         // This handles multiple saves on the same date automatically
+        // Uses JSONB fields for goals and habits
         const result = await sql`
       INSERT INTO "CheckIn" (
         "clientId",
-        "sleepQuality",
-        nutrition,
-        "physicalActivity",
-        learning,
-        "maintainingRelationships",
-        "excessiveSocialMedia",
-        procrastination,
-        "negativeThinking",
+        "goalScores",
+        "habitScores",
         notes,
         date
       ) VALUES (
         ${clientId},
-        ${sleepQuality},
-        ${nutrition},
-        ${physicalActivity},
-        ${learning},
-        ${maintainingRelationships},
-        ${excessiveSocialMedia},
-        ${procrastination},
-        ${negativeThinking},
+        ${goalScoresJson}::jsonb,
+        ${habitScoresJson}::jsonb,
         ${notes || null},
         ${date}
       )
       ON CONFLICT ("clientId", date) 
       DO UPDATE SET
-        "sleepQuality" = EXCLUDED."sleepQuality",
-        nutrition = EXCLUDED.nutrition,
-        "physicalActivity" = EXCLUDED."physicalActivity",
-        learning = EXCLUDED.learning,
-        "maintainingRelationships" = EXCLUDED."maintainingRelationships",
-        "excessiveSocialMedia" = EXCLUDED."excessiveSocialMedia",
-        procrastination = EXCLUDED.procrastination,
-        "negativeThinking" = EXCLUDED."negativeThinking",
+        "goalScores" = EXCLUDED."goalScores",
+        "habitScores" = EXCLUDED."habitScores",
         notes = EXCLUDED.notes,
         "updatedAt" = CURRENT_TIMESTAMP
       RETURNING id, 
@@ -153,14 +130,8 @@ export async function POST(request) {
             await activityHelpers.createDailyCheckinActivity(session.user.id, clientId, {
                 id: checkInId,
                 responses: {
-                    sleepQuality,
-                    nutrition,
-                    physicalActivity,
-                    learning,
-                    maintainingRelationships,
-                    excessiveSocialMedia,
-                    procrastination,
-                    negativeThinking,
+                    goalScores,
+                    habitScores,
                     notes
                 },
                 mood: notes || 'Daily check-in completed'

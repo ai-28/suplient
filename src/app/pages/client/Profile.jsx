@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { GroupOverviewModal } from "@/app/components/GroupOverviewModal";
 import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
+import { IconPicker } from "@/app/components/IconPicker";
+import { ColorPicker } from "@/app/components/ColorPicker";
 import { 
   User, 
   Mail, 
@@ -172,60 +174,150 @@ const useGoalTracking = () => {
     fetchGoals();
   }, []);
 
-  const toggleGoal = (goalId) => {
-    setGoals(prev => prev.map(goal => 
-      goal.id === goalId 
-        ? { ...goal, isActive: !goal.isActive }
-        : goal
-    ));
+  const toggleGoal = async (goalId) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    try {
+      const response = await fetch('/api/client/goals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: goalId,
+          type: 'goal',
+          isActive: !goal.isActive
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setGoals(prev => prev.map(g => 
+          g.id === goalId ? { ...g, isActive: !g.isActive } : g
+        ));
+      } else {
+        throw new Error(data.error || 'Failed to update goal');
+      }
+    } catch (error) {
+      console.error('Error toggling goal:', error);
+      throw error;
+    }
   };
 
-  const toggleBadHabit = (habitId) => {
-    setBadHabits(prev => prev.map(habit => 
-      habit.id === habitId 
-        ? { ...habit, isActive: !habit.isActive }
-        : habit
-    ));
+  const toggleBadHabit = async (habitId) => {
+    const habit = badHabits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    try {
+      const response = await fetch('/api/client/goals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: habitId,
+          type: 'habit',
+          isActive: !habit.isActive
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setBadHabits(prev => prev.map(h => 
+          h.id === habitId ? { ...h, isActive: !h.isActive } : h
+        ));
+      } else {
+        throw new Error(data.error || 'Failed to update habit');
+      }
+    } catch (error) {
+      console.error('Error toggling habit:', error);
+      throw error;
+    }
   };
 
-  const addCustomGoal = (name, description) => {
-    const newGoal = {
-      id: Date.now(),
-      name,
-      description,
-      isActive: true,
-      isCustom: true,
-      category: "custom",
-      targetValue: 1,
-      currentValue: 0,
-      unit: "times per week",
-      progress: 0
-    };
-    setGoals(prev => [...prev, newGoal]);
+  const addCustomGoal = async (name, icon = '🎯', color = '#3B82F6') => {
+    try {
+      const response = await fetch('/api/client/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'goal',
+          name,
+          icon,
+          color
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setGoals(prev => [...prev, data.goal]);
+        return data.goal;
+      } else {
+        throw new Error(data.error || 'Failed to create goal');
+      }
+    } catch (error) {
+      console.error('Error adding custom goal:', error);
+      throw error;
+    }
   };
 
-  const removeCustomGoal = (goalId) => {
-    setGoals(prev => prev.filter(goal => goal.id !== goalId));
+  const removeCustomGoal = async (goalId) => {
+    try {
+      const response = await fetch(`/api/client/goals?id=${goalId}&type=goal`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setGoals(prev => prev.filter(goal => goal.id !== goalId));
+      } else {
+        throw new Error(data.error || 'Failed to delete goal');
+      }
+    } catch (error) {
+      console.error('Error removing custom goal:', error);
+      throw error;
+    }
   };
 
-  const addCustomBadHabit = (name, description) => {
-    const newHabit = {
-      id: Date.now(),
-      name,
-      description,
-      isActive: true,
-      isCustom: true,
-      category: "custom",
-      targetValue: 0,
-      currentValue: 1,
-      unit: "times per week",
-      progress: 0
-    };
-    setBadHabits(prev => [...prev, newHabit]);
+  const addCustomBadHabit = async (name, icon = '📱', color = '#EF4444') => {
+    try {
+      const response = await fetch('/api/client/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'habit',
+          name,
+          icon,
+          color
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setBadHabits(prev => [...prev, data.habit]);
+        return data.habit;
+      } else {
+        throw new Error(data.error || 'Failed to create habit');
+      }
+    } catch (error) {
+      console.error('Error adding custom habit:', error);
+      throw error;
+    }
   };
 
-  const removeCustomBadHabit = (habitId) => {
-    setBadHabits(prev => prev.filter(habit => habit.id !== habitId));
+  const removeCustomBadHabit = async (habitId) => {
+    try {
+      const response = await fetch(`/api/client/goals?id=${habitId}&type=habit`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setBadHabits(prev => prev.filter(habit => habit.id !== habitId));
+      } else {
+        throw new Error(data.error || 'Failed to delete habit');
+      }
+    } catch (error) {
+      console.error('Error removing custom habit:', error);
+      throw error;
+    }
   };
 
   const calculateOverallScore = () => {
@@ -372,11 +464,13 @@ export default function ClientProfile() {
 
   const [showCustomGoalDialog, setShowCustomGoalDialog] = useState(false);
   const [newGoalName, setNewGoalName] = useState("");
-  const [newGoalDescription, setNewGoalDescription] = useState("");
+  const [newGoalIcon, setNewGoalIcon] = useState("🎯");
+  const [newGoalColor, setNewGoalColor] = useState("#3B82F6");
   
   const [showCustomBadHabitDialog, setShowCustomBadHabitDialog] = useState(false);
   const [newBadHabitName, setNewBadHabitName] = useState("");
-  const [newBadHabitDescription, setNewBadHabitDescription] = useState("");
+  const [newBadHabitIcon, setNewBadHabitIcon] = useState("📱");
+  const [newBadHabitColor, setNewBadHabitColor] = useState("#EF4444");
 
   // Contact therapist dialog state
   const [showContactDialog, setShowContactDialog] = useState(false);
@@ -404,50 +498,76 @@ export default function ClientProfile() {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  const handleAddCustomGoal = () => {
+  const handleAddCustomGoal = async () => {
     if (!newGoalName.trim()) {
       toast.error("Please enter a goal name");
       return;
     }
     
-    addCustomGoal(newGoalName.trim(), newGoalDescription.trim());
-    setNewGoalName("");
-    setNewGoalDescription("");
-    setShowCustomGoalDialog(false);
-    toast.success("Custom goal added successfully!");
+    try {
+      await addCustomGoal(newGoalName.trim(), newGoalIcon, newGoalColor);
+      setNewGoalName("");
+      setNewGoalIcon("🎯");
+      setNewGoalColor("#3B82F6");
+      setShowCustomGoalDialog(false);
+      toast.success("Custom goal added successfully!");
+    } catch (error) {
+      toast.error(error.message || "Failed to add custom goal");
+    }
   };
 
-  const handleAddCustomBadHabit = () => {
+  const handleAddCustomBadHabit = async () => {
     if (!newBadHabitName.trim()) {
       toast.error("Please enter a habit name");
       return;
     }
     
-    addCustomBadHabit(newBadHabitName.trim(), newBadHabitDescription.trim());
-    setNewBadHabitName("");
-    setNewBadHabitDescription("");
-    setShowCustomBadHabitDialog(false);
-    toast.success("Custom habit added successfully!");
+    try {
+      await addCustomBadHabit(newBadHabitName.trim(), newBadHabitIcon, newBadHabitColor);
+      setNewBadHabitName("");
+      setNewBadHabitIcon("📱");
+      setNewBadHabitColor("#EF4444");
+      setShowCustomBadHabitDialog(false);
+      toast.success("Custom habit added successfully!");
+    } catch (error) {
+      toast.error(error.message || "Failed to add custom habit");
+    }
   };
 
-  const handleToggleGoal = (goalId) => {
-    toggleGoal(goalId);
-    toast.success("Goal updated successfully!");
+  const handleToggleGoal = async (goalId) => {
+    try {
+      await toggleGoal(goalId);
+      toast.success("Goal updated successfully!");
+    } catch (error) {
+      toast.error(error.message || "Failed to update goal");
+    }
   };
 
-  const handleToggleBadHabit = (habitId) => {
-    toggleBadHabit(habitId);
-    toast.success("Habit tracking updated!");
+  const handleToggleBadHabit = async (habitId) => {
+    try {
+      await toggleBadHabit(habitId);
+      toast.success("Habit tracking updated!");
+    } catch (error) {
+      toast.error(error.message || "Failed to update habit");
+    }
   };
 
-  const handleRemoveCustomGoal = (goalId, goalName) => {
-    removeCustomGoal(goalId);
-    toast.success(`"${goalName}" removed successfully!`);
+  const handleRemoveCustomGoal = async (goalId, goalName) => {
+    try {
+      await removeCustomGoal(goalId);
+      toast.success(`"${goalName}" removed successfully!`);
+    } catch (error) {
+      toast.error(error.message || "Failed to remove goal");
+    }
   };
 
-  const handleRemoveCustomBadHabit = (habitId, habitName) => {
-    removeCustomBadHabit(habitId);
-    toast.success(`"${habitName}" removed successfully!`);
+  const handleRemoveCustomBadHabit = async (habitId, habitName) => {
+    try {
+      await removeCustomBadHabit(habitId);
+      toast.success(`"${habitName}" removed successfully!`);
+    } catch (error) {
+      toast.error(error.message || "Failed to remove habit");
+    }
   };
 
   const handleNotificationToggle = async (enabled) => {
@@ -1155,13 +1275,10 @@ export default function ClientProfile() {
                       <div className="flex-1">
                         <div className={`flex items-center gap-2 mb-1 ${isMobile ? 'flex-wrap' : ''}`}>
                           <h3 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{goal.name}</h3>
-                          {goal.category === 'custom' && (
+                          {goal.isCustom && (
                             <Badge variant="secondary" className={`${isMobile ? 'text-xs px-1 py-0' : 'text-xs'}`}>Custom</Badge>
                           )}
                         </div>
-                        <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          {goal.description}
-                        </p>
                         {goal.isActive && (
                           <div className={`mt-2 ${isMobile ? 'mt-1' : ''}`}>
                             <div className={`flex items-center gap-2 text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>
@@ -1181,7 +1298,7 @@ export default function ClientProfile() {
                       </div>
                     </div>
                     <div className={`flex items-center gap-2 ${isMobile ? 'justify-between' : ''}`}>
-                      {goal.category === 'custom' && (
+                      {goal.isCustom && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1224,12 +1341,18 @@ export default function ClientProfile() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Description</Label>
-                      <Textarea
-                        placeholder="Describe what this goal means to you..."
-                        value={newGoalDescription}
-                        onChange={(e) => setNewGoalDescription(e.target.value)}
-                        className={`${isMobile ? 'min-h-16' : 'min-h-20'}`}
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Icon</Label>
+                      <IconPicker
+                        value={newGoalIcon}
+                        onChange={setNewGoalIcon}
+                        placeholder="🎯"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Color</Label>
+                      <ColorPicker
+                        value={newGoalColor}
+                        onChange={setNewGoalColor}
                       />
                     </div>
                     <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
@@ -1241,7 +1364,8 @@ export default function ClientProfile() {
                         onClick={() => {
                           setShowCustomGoalDialog(false);
                           setNewGoalName("");
-                          setNewGoalDescription("");
+                          setNewGoalIcon("🎯");
+                          setNewGoalColor("#3B82F6");
                         }}
                         size={isMobile ? "sm" : "sm"}
                         className={`${isMobile ? 'w-full h-10' : ''}`}
@@ -1280,17 +1404,14 @@ export default function ClientProfile() {
                       <div className="flex-1">
                         <div className={`flex items-center gap-2 mb-1 ${isMobile ? 'flex-wrap' : ''}`}>
                           <h3 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{habit.name}</h3>
-                          {habit.category === 'custom' && (
+                          {habit.isCustom && (
                             <Badge variant="secondary" className={`${isMobile ? 'text-xs px-1 py-0' : 'text-xs'}`}>Custom</Badge>
                           )}
                         </div>
-                        <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          {habit.description}
-                        </p>
                       </div>
                     </div>
                     <div className={`flex items-center gap-2 ${isMobile ? 'justify-between' : ''}`}>
-                      {habit.category === 'custom' && (
+                      {habit.isCustom && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1333,12 +1454,18 @@ export default function ClientProfile() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Description</Label>
-                      <Textarea
-                        placeholder="Describe the habit you want to reduce..."
-                        value={newBadHabitDescription}
-                        onChange={(e) => setNewBadHabitDescription(e.target.value)}
-                        className={`${isMobile ? 'min-h-16' : 'min-h-20'}`}
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Icon</Label>
+                      <IconPicker
+                        value={newBadHabitIcon}
+                        onChange={setNewBadHabitIcon}
+                        placeholder="📱"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Color</Label>
+                      <ColorPicker
+                        value={newBadHabitColor}
+                        onChange={setNewBadHabitColor}
                       />
                     </div>
                     <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
@@ -1350,7 +1477,8 @@ export default function ClientProfile() {
                         onClick={() => {
                           setShowCustomBadHabitDialog(false);
                           setNewBadHabitName("");
-                          setNewBadHabitDescription("");
+                          setNewBadHabitIcon("📱");
+                          setNewBadHabitColor("#EF4444");
                         }}
                         size={isMobile ? "sm" : "sm"}
                         className={`${isMobile ? 'w-full h-10' : ''}`}

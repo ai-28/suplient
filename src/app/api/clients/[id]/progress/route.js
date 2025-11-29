@@ -36,18 +36,53 @@ export async function GET(request, { params }) {
         const eightWeeksAgo = new Date();
         eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56); // 8 weeks ago
 
+        // Get active goals and habits for this client
+        const goalsResult = await sql`
+            SELECT id, name, "isActive"
+            FROM "Goal"
+            WHERE "clientId" = ${clientId} AND "isActive" = true
+            ORDER BY "order" ASC, "createdAt" ASC
+        `;
+
+        const habitsResult = await sql`
+            SELECT id, name, "isActive"
+            FROM "Habit"
+            WHERE "clientId" = ${clientId} AND "isActive" = true
+            ORDER BY "order" ASC, "createdAt" ASC
+        `;
+
+        const activeGoals = goalsResult || [];
+        const activeHabits = habitsResult || [];
+
+        // Helper function to normalize ID for matching
+        const normalizeId = (id) => String(id).toLowerCase();
+
+        // Helper function to get score from JSONB with ID matching
+        const getScoreFromJsonb = (jsonb, targetId) => {
+            if (!jsonb || typeof jsonb !== 'object') return undefined;
+
+            const targetIdStr = String(targetId);
+            const targetIdLower = normalizeId(targetId);
+
+            // Try direct match
+            if (jsonb[targetId] !== undefined) return jsonb[targetId];
+            if (jsonb[targetIdStr] !== undefined) return jsonb[targetIdStr];
+            if (jsonb[targetIdLower] !== undefined) return jsonb[targetIdLower];
+
+            // Try case-insensitive match
+            const keys = Object.keys(jsonb);
+            const matchingKey = keys.find(key => normalizeId(key) === targetIdLower);
+            if (matchingKey !== undefined) return jsonb[matchingKey];
+
+            return undefined;
+        };
+
         // 1. Get daily check-ins for wellbeing calculation
         const checkInsResult = await sql`
             SELECT 
                 date,
-                "sleepQuality",
-                nutrition,
-                "physicalActivity",
-                learning,
-                "maintainingRelationships",
-                "excessiveSocialMedia",
-                procrastination,
-                "negativeThinking"
+                "goalScores",
+                "habitScores"
             FROM "CheckIn"
             WHERE "clientId" = ${clientId}
             AND date >= ${eightWeeksAgo.toISOString().split('T')[0]}
@@ -113,22 +148,98 @@ export async function GET(request, { params }) {
             });
 
             let wellbeingScore = 0; // No data = 0 score
-            if (weekCheckIns.length > 0) {
-                const avgSleep = weekCheckIns.reduce((sum, c) => sum + c.sleepQuality, 0) / weekCheckIns.length;
-                const avgNutrition = weekCheckIns.reduce((sum, c) => sum + c.nutrition, 0) / weekCheckIns.length;
-                const avgPhysical = weekCheckIns.reduce((sum, c) => sum + c.physicalActivity, 0) / weekCheckIns.length;
-                const avgLearning = weekCheckIns.reduce((sum, c) => sum + c.learning, 0) / weekCheckIns.length;
-                const avgRelationships = weekCheckIns.reduce((sum, c) => sum + c.maintainingRelationships, 0) / weekCheckIns.length;
+            if (weekCheckIns.length > 0 && (activeGoals.length > 0 || activeHabits.length > 0)) {
+                // Calculate average scores for all active goals (positive factors)
+                const goalScoreSums = {};
+                const goalScoreCounts = {};
 
-                // Reduce negative habits
-                const avgSocialMedia = weekCheckIns.reduce((sum, c) => sum + c.excessiveSocialMedia, 0) / weekCheckIns.length;
-                const avgProcrastination = weekCheckIns.reduce((sum, c) => sum + c.procrastination, 0) / weekCheckIns.length;
-                const avgNegativeThinking = weekCheckIns.reduce((sum, c) => sum + c.negativeThinking, 0) / weekCheckIns.length;
+                // Calculate average scores for all active habits (negative factors)
+                const habitScoreSums = {};
+                const habitScoreCounts = {};
 
-                // Calculate wellbeing: positive factors - negative factors, normalized to 1-10
-                const positiveScore = (avgSleep + avgNutrition + avgPhysical + avgLearning + avgRelationships) / 5;
-                const negativeScore = (avgSocialMedia + avgProcrastination + avgNegativeThinking) / 3;
-                wellbeingScore = Math.max(1, Math.min(10, positiveScore - (negativeScore - 2.5) * 0.5));
+                weekCheckIns.forEach(checkin => {
+                    let goalScores = checkin.goalScores || {};
+                    let habitScores = checkin.habitScores || {};
+
+                    // Parse JSONB if it's a string
+                    if (typeof goalScores === 'string') {
+                        try {
+                            goalScores = JSON.parse(goalScores);
+                        } catch (e) {
+                            console.error('Error parsing goalScores in progress API:', e);
+                            goalScores = {};
+                        }
+                    }
+                    if (typeof habitScores === 'string') {
+                        try {
+                            habitScores = JSON.parse(habitScores);
+                        } catch (e) {
+                            console.error('Error parsing habitScores in progress API:', e);
+                            habitScores = {};
+                        }
+                    }
+
+                    // Sum goal scores
+                    activeGoals.forEach(goal => {
+                        const score = getScoreFromJsonb(goalScores, goal.id);
+                        if (score !== undefined && typeof score === 'number') {
+                            const goalIdKey = normalizeId(goal.id);
+                            if (!goalScoreSums[goalIdKey]) {
+                                goalScoreSums[goalIdKey] = 0;
+                                goalScoreCounts[goalIdKey] = 0;
+                            }
+                            goalScoreSums[goalIdKey] += score;
+                            goalScoreCounts[goalIdKey]++;
+                        }
+                    });
+
+                    // Sum habit scores
+                    activeHabits.forEach(habit => {
+                        const score = getScoreFromJsonb(habitScores, habit.id);
+                        if (score !== undefined && typeof score === 'number') {
+                            const habitIdKey = normalizeId(habit.id);
+                            if (!habitScoreSums[habitIdKey]) {
+                                habitScoreSums[habitIdKey] = 0;
+                                habitScoreCounts[habitIdKey] = 0;
+                            }
+                            habitScoreSums[habitIdKey] += score;
+                            habitScoreCounts[habitIdKey]++;
+                        }
+                    });
+                });
+
+                // Calculate averages for goals
+                const avgGoalScores = [];
+                Object.keys(goalScoreSums).forEach(goalIdKey => {
+                    if (goalScoreCounts[goalIdKey] > 0) {
+                        avgGoalScores.push(goalScoreSums[goalIdKey] / goalScoreCounts[goalIdKey]);
+                    }
+                });
+
+                // Calculate averages for habits
+                const avgHabitScores = [];
+                Object.keys(habitScoreSums).forEach(habitIdKey => {
+                    if (habitScoreCounts[habitIdKey] > 0) {
+                        avgHabitScores.push(habitScoreSums[habitIdKey] / habitScoreCounts[habitIdKey]);
+                    }
+                });
+
+                // Calculate wellbeing: positive factors (goals) - negative factors (habits), normalized to 1-10
+                const positiveScore = avgGoalScores.length > 0
+                    ? avgGoalScores.reduce((sum, score) => sum + score, 0) / avgGoalScores.length
+                    : 0;
+
+                const negativeScore = avgHabitScores.length > 0
+                    ? avgHabitScores.reduce((sum, score) => sum + score, 0) / avgHabitScores.length
+                    : 0;
+
+                // If no goals tracked, use default positive score of 3 (middle of 0-5 scale)
+                const finalPositiveScore = avgGoalScores.length > 0 ? positiveScore : 3;
+
+                // If no habits tracked, use default negative score of 2.5 (middle of 0-5 scale)
+                const finalNegativeScore = avgHabitScores.length > 0 ? negativeScore : 2.5;
+
+                wellbeingScore = Math.max(1, Math.min(10, finalPositiveScore - (finalNegativeScore - 2.5) * 0.5));
             }
 
             // Calculate performance score using completion rates

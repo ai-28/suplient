@@ -82,14 +82,30 @@ export async function GET(request) {
         const startDateStr = formatDateLocal(startDate);
         const endDateStr = formatDateLocal(endDate);
 
-        // Map database fields to goal analytics format
-        const goalMapping = {
-            sleepQuality: { name: "Sleep Quality", color: "#3b82f6", icon: "😴" },
-            nutrition: { name: "Nutrition", color: "#10b981", icon: "🥗" },
-            physicalActivity: { name: "Physical Activity", color: "#8b5cf6", icon: "💪" },
-            learning: { name: "Learning", color: "#f59e0b", icon: "📚" },
-            maintainingRelationships: { name: "Relationships", color: "#06b6d4", icon: "👥" }
-        };
+        // Fetch active goals from the Goal table to get actual goal data
+        const goalsData = await sql`
+            SELECT 
+                id,
+                name,
+                icon,
+                color,
+                "isActive"
+            FROM "Goal"
+            WHERE "clientId" = ${clientId}
+            AND "isActive" = true
+            ORDER BY "order" ASC, "createdAt" ASC
+        `;
+
+        // Create a mapping of goal ID to goal info
+        const goalMapping = {};
+        goalsData.forEach(goal => {
+            goalMapping[goal.id] = {
+                id: goal.id,
+                name: goal.name,
+                color: goal.color || '#3b82f6',
+                icon: goal.icon || '🎯'
+            };
+        });
 
         // Calculate goal distribution based on period
         let goalDistribution = [];
@@ -97,7 +113,7 @@ export async function GET(request) {
         if (period === 'today') {
             // For today, query the specific date directly
             const todayCheckInResult = await sql`
-                SELECT * FROM "CheckIn" 
+                SELECT "goalScores" FROM "CheckIn" 
                 WHERE "clientId" = ${clientId} 
                 AND date = ${targetDateStr}
                 LIMIT 1
@@ -105,55 +121,138 @@ export async function GET(request) {
 
             if (todayCheckInResult.length > 0) {
                 const todayCheckIn = todayCheckInResult[0];
-                goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
-                    id: field,
-                    name: config.name,
-                    value: todayCheckIn[field] || 0,
-                    color: config.color,
-                    icon: config.icon
-                }));
+                let goalScores = todayCheckIn.goalScores || {};
+
+                // Parse JSONB if it's a string
+                if (typeof goalScores === 'string') {
+                    try {
+                        goalScores = JSON.parse(goalScores);
+                    } catch (e) {
+                        console.error('Error parsing goalScores:', e);
+                        goalScores = {};
+                    }
+                }
+
+                // Map goals with their scores from JSONB
+                goalDistribution = goalsData.map(goal => {
+                    const goalInfo = goalMapping[goal.id];
+
+                    // Try multiple ID formats for matching (UUID object, string, lowercase)
+                    const goalIdStr = String(goal.id);
+                    const goalIdLower = goalIdStr.toLowerCase();
+
+                    let score = goalScores[goal.id];
+                    if (score === undefined) score = goalScores[goalIdStr];
+                    if (score === undefined) score = goalScores[goalIdLower];
+                    // Also check if keys are stored differently
+                    const goalKeys = Object.keys(goalScores);
+                    const matchingKey = goalKeys.find(key =>
+                        String(key).toLowerCase() === goalIdLower
+                    );
+                    if (score === undefined && matchingKey) {
+                        score = goalScores[matchingKey];
+                    }
+
+                    return {
+                        id: goal.id,
+                        name: goalInfo.name,
+                        value: score !== undefined ? score : 0,
+                        color: goalInfo.color,
+                        icon: goalInfo.icon
+                    };
+                });
             } else {
                 // No check-in for this date, return zeros
-                goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
-                    id: field,
-                    name: config.name,
-                    value: 0,
-                    color: config.color,
-                    icon: config.icon
-                }));
+                goalDistribution = goalsData.map(goal => {
+                    const goalInfo = goalMapping[goal.id];
+                    return {
+                        id: goal.id,
+                        name: goalInfo.name,
+                        value: 0,
+                        color: goalInfo.color,
+                        icon: goalInfo.icon
+                    };
+                });
             }
         } else if (period === 'week' || period === 'month') {
             // Get check-ins for the specified period
             const checkInsResult = await sql`
-                SELECT * FROM "CheckIn" 
+                SELECT "goalScores" FROM "CheckIn" 
                 WHERE "clientId" = ${clientId} 
                 AND date >= ${startDateStr} 
                 AND date <= ${endDateStr}
                 ORDER BY date DESC
             `;
-            // For week/month, calculate averages
+
+            // For week/month, calculate averages from JSONB data
             if (checkInsResult.length > 0) {
-                const goalFields = Object.keys(goalMapping);
-                goalDistribution = Object.entries(goalMapping).map(([field, config]) => {
-                    const sum = checkInsResult.reduce((acc, checkIn) => acc + (checkIn[field] || 0), 0);
-                    const average = Math.round((sum / checkInsResult.length) * 10) / 10; // Round to 1 decimal
+                // Calculate sum and count for each goal
+                // Use normalized string IDs as keys for aggregation
+                const goalSums = {};
+                const goalCounts = {};
+
+                checkInsResult.forEach(checkIn => {
+                    let goalScores = checkIn.goalScores || {};
+
+                    // Parse JSONB if it's a string
+                    if (typeof goalScores === 'string') {
+                        try {
+                            goalScores = JSON.parse(goalScores);
+                        } catch (e) {
+                            console.error('Error parsing goalScores:', e);
+                            goalScores = {};
+                        }
+                    }
+
+                    // Aggregate scores using normalized (lowercase string) IDs
+                    Object.keys(goalScores).forEach(goalIdKey => {
+                        const normalizedKey = String(goalIdKey).toLowerCase();
+                        if (!goalSums[normalizedKey]) {
+                            goalSums[normalizedKey] = 0;
+                            goalCounts[normalizedKey] = 0;
+                        }
+                        goalSums[normalizedKey] += goalScores[goalIdKey];
+                        goalCounts[normalizedKey]++;
+                    });
+                });
+
+                // Map goals with their average scores
+                goalDistribution = goalsData.map(goal => {
+                    const goalInfo = goalMapping[goal.id];
+
+                    // Try to find matching aggregated data using multiple ID formats
+                    const goalIdStr = String(goal.id);
+                    const goalIdLower = goalIdStr.toLowerCase();
+
+                    // Find matching key in aggregated data
+                    const matchingKey = Object.keys(goalSums).find(key =>
+                        key.toLowerCase() === goalIdLower
+                    );
+
+                    const sum = matchingKey ? goalSums[matchingKey] : 0;
+                    const count = matchingKey ? goalCounts[matchingKey] : 0;
+                    const average = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
+
                     return {
-                        id: field,
-                        name: config.name,
+                        id: goal.id,
+                        name: goalInfo.name,
                         value: average,
-                        color: config.color,
-                        icon: config.icon
+                        color: goalInfo.color,
+                        icon: goalInfo.icon
                     };
                 });
             } else {
                 // No check-ins in period, return zeros
-                goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
-                    id: field,
-                    name: config.name,
-                    value: 0,
-                    color: config.color,
-                    icon: config.icon
-                }));
+                goalDistribution = goalsData.map(goal => {
+                    const goalInfo = goalMapping[goal.id];
+                    return {
+                        id: goal.id,
+                        name: goalInfo.name,
+                        value: 0,
+                        color: goalInfo.color,
+                        icon: goalInfo.icon
+                    };
+                });
             }
         }
 

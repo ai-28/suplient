@@ -322,7 +322,7 @@ console.log(groupProgressData)
           </div>
 
           <TabsContent value="overview" className="px-6 py-4 flex-1">
-            <div className="grid grid-cols-1 lg:grid-cols-[30%_40%_30%] gap-6 h-full min-h-[calc(100vh-200px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-[3fr_4fr_3fr] gap-6 h-full min-h-[calc(100vh-200px)]">
               {/* Left Column */}
               <div className="flex flex-col space-y-6">
                 <GroupInfoPanel 

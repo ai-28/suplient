@@ -45,14 +45,8 @@ export async function GET(request, { params }) {
         const checkInResult = await sql`
             SELECT 
                 date,
-                "sleepQuality",
-                nutrition,
-                "physicalActivity",
-                learning,
-                "maintainingRelationships",
-                "excessiveSocialMedia",
-                procrastination,
-                "negativeThinking",
+                "goalScores",
+                "habitScores",
                 notes
             FROM "CheckIn"
             WHERE "clientId" = ${clientId}
@@ -70,45 +64,114 @@ export async function GET(request, { params }) {
         }
 
         const checkIn = checkInResult[0];
+        
+        // Parse JSONB fields if needed
+        let goalScores = checkIn.goalScores || {};
+        let habitScores = checkIn.habitScores || {};
+        
+        if (typeof goalScores === 'string') {
+            try {
+                goalScores = JSON.parse(goalScores);
+            } catch (e) {
+                console.error('Error parsing goalScores:', e);
+                goalScores = {};
+            }
+        }
+        
+        if (typeof habitScores === 'string') {
+            try {
+                habitScores = JSON.parse(habitScores);
+            } catch (e) {
+                console.error('Error parsing habitScores:', e);
+                habitScores = {};
+            }
+        }
 
-        // Map goal fields
-        const goalMapping = {
-            sleepQuality: { name: "Sleep Quality", color: "#3b82f6", icon: "😴" },
-            nutrition: { name: "Nutrition", color: "#10b981", icon: "🥗" },
-            physicalActivity: { name: "Physical Activity", color: "#8b5cf6", icon: "💪" },
-            learning: { name: "Learning", color: "#f59e0b", icon: "📚" },
-            maintainingRelationships: { name: "Relationships", color: "#06b6d4", icon: "👥" }
-        };
+        // Fetch goals and habits from database to get actual data
+        const goalsData = await sql`
+            SELECT 
+                id,
+                name,
+                icon,
+                color,
+                "isActive"
+            FROM "Goal"
+            WHERE "clientId" = ${clientId}
+            AND "isActive" = true
+            ORDER BY "order" ASC, "createdAt" ASC
+        `;
 
-        // Map bad habit fields
-        const badHabitMapping = {
-            excessiveSocialMedia: { name: "Excessive Social Media", color: "#ef4444", icon: "📱" },
-            procrastination: { name: "Procrastination", color: "#f97316", icon: "⏰" },
-            negativeThinking: { name: "Negative Thinking", color: "#dc2626", icon: "☁️" }
-        };
+        const habitsData = await sql`
+            SELECT 
+                id,
+                name,
+                icon,
+                color,
+                "isActive"
+            FROM "Habit"
+            WHERE "clientId" = ${clientId}
+            AND "isActive" = true
+            ORDER BY "order" ASC, "createdAt" ASC
+        `;
 
-        // Build goal distribution
-        const goalDistribution = Object.entries(goalMapping).map(([field, config]) => ({
-            id: field,
-            name: config.name,
-            value: checkIn[field] || 0,
-            color: config.color,
-            icon: config.icon
-        }));
+        // Build goal distribution from JSONB data
+        const goalDistribution = goalsData.map(goal => {
+            // Try multiple ID formats for matching
+            const goalIdStr = String(goal.id);
+            const goalIdLower = goalIdStr.toLowerCase();
+            
+            let score = goalScores[goal.id];
+            if (score === undefined) score = goalScores[goalIdStr];
+            if (score === undefined) score = goalScores[goalIdLower];
+            const goalKeys = Object.keys(goalScores);
+            const matchingKey = goalKeys.find(key => 
+                String(key).toLowerCase() === goalIdLower
+            );
+            if (score === undefined && matchingKey) {
+                score = goalScores[matchingKey];
+            }
+            
+            return {
+                id: goal.id,
+                name: goal.name,
+                value: score !== undefined ? score : 0,
+                color: goal.color || '#3b82f6',
+                icon: goal.icon || '🎯'
+            };
+        });
 
-        // Build bad habits distribution
-        const badHabits = Object.entries(badHabitMapping).map(([field, config]) => ({
-            id: field,
-            name: config.name,
-            value: checkIn[field] || 0,
-            color: config.color,
-            icon: config.icon
-        }));
+        // Build bad habits distribution from JSONB data
+        const badHabits = habitsData.map(habit => {
+            // Try multiple ID formats for matching
+            const habitIdStr = String(habit.id);
+            const habitIdLower = habitIdStr.toLowerCase();
+            
+            let score = habitScores[habit.id];
+            if (score === undefined) score = habitScores[habitIdStr];
+            if (score === undefined) score = habitScores[habitIdLower];
+            const habitKeys = Object.keys(habitScores);
+            const matchingKey = habitKeys.find(key => 
+                String(key).toLowerCase() === habitIdLower
+            );
+            if (score === undefined && matchingKey) {
+                score = habitScores[matchingKey];
+            }
+            
+            return {
+                id: habit.id,
+                name: habit.name,
+                value: score !== undefined ? score : 0,
+                color: habit.color || '#ef4444',
+                icon: habit.icon || '📱'
+            };
+        });
 
         return NextResponse.json({
             checkIn: {
                 date: checkIn.date,
-                ...checkIn
+                goalScores,
+                habitScores,
+                notes: checkIn.notes
             },
             goalDistribution,
             badHabits,

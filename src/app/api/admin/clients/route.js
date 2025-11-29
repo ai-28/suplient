@@ -98,6 +98,16 @@ export async function POST(request) {
 
         const client = newClient[0];
 
+        // Create default goals and habits for the new client
+        try {
+            const { createDefaultGoalsAndHabitsForClient } = await import('@/app/lib/db/goalsHabitsHelpers');
+            await createDefaultGoalsAndHabitsForClient(client.id);
+            console.log('✅ Default goals and habits created for new client:', client.id);
+        } catch (goalsError) {
+            console.error('❌ Error creating default goals and habits:', goalsError);
+            // Don't fail the creation if goals/habits creation fails
+        }
+
         // Send registration email to client with temporary password
         try {
             await sendClientRegistrationEmail({

@@ -330,6 +330,15 @@ export async function POST(request) {
           RETURNING id, name, email
         `;
 
+                // Create default goals and habits for the new client
+                try {
+                    const { createDefaultGoalsAndHabitsForClient } = await import('@/app/lib/db/goalsHabitsHelpers');
+                    await createDefaultGoalsAndHabitsForClient(newClient.id);
+                } catch (goalsError) {
+                    console.error('❌ Error creating default goals and habits for imported client:', goalsError);
+                    // Don't fail the import if goals/habits creation fails
+                }
+
                 // Send registration email
                 try {
                     await sendClientRegistrationEmail({
