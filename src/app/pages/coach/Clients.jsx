@@ -394,7 +394,7 @@ export default function Clients() {
 
   return (
     <TooltipProvider>
-      <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
+      <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''} overflow-x-hidden max-w-full`}>
         {/* Page Header */}
         <PageHeader 
           title={t('navigation.clients')} 
@@ -428,7 +428,7 @@ export default function Clients() {
         </PageHeader>
 
       {/* Controls */}
-      <div className={`flex items-center ${isMobile ? 'flex-wrap gap-2 pt-3' : 'gap-3 pt-4'} border-t border-border`}>
+      <div className={`flex items-center ${isMobile ? 'flex-wrap gap-2 pt-3' : 'gap-3 pt-4'} border-t border-border overflow-x-auto max-w-full`}>
         {/* Column Visibility and Filter Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -536,13 +536,13 @@ export default function Clients() {
 
       {/* Funnel View */}
       {viewMode === "funnel" && (
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-x-hidden max-w-full">
           {/* Funnel Columns */}
-          <div className={`${isMobile ? 'flex flex-col' : 'grid gap-4'}`} style={!isMobile ? { gridTemplateColumns: `repeat(${Object.values(visibleColumns).filter(Boolean).length}, 1fr)` } : {}}>
+          <div className={`${isMobile ? 'flex flex-col' : 'grid gap-4'} overflow-x-auto`} style={!isMobile ? { gridTemplateColumns: `repeat(${Object.values(visibleColumns).filter(Boolean).length}, minmax(280px, 1fr))` } : {}}>
             {funnelStages.filter(stage => visibleColumns[stage.id]).map((stage) => {
               const stageClients = getClientsByStage(stage.id);
               return (
-                <Card key={stage.id} className={`card-standard flex flex-col ${isMobile ? 'h-auto mb-4' : 'h-[600px]'} ${isMobile ? 'p-3' : ''}`}>
+                <Card key={stage.id} className={`card-standard flex flex-col ${isMobile ? 'h-auto mb-4' : 'h-[600px]'} ${isMobile ? 'p-3' : ''} min-w-[280px] max-w-full`}>
                    <CardHeader className={`pb-4 flex-shrink-0 ${isMobile ? 'pb-3 px-0' : ''}`}>
                      <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-foreground flex items-center justify-between`}>
                        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
@@ -713,18 +713,18 @@ export default function Clients() {
 
       {/* List View */}
       {viewMode === "list" && (
-        <Card className={`shadow-soft border-border bg-card ${isMobile ? 'p-3' : ''}`}>
+        <Card className={`shadow-soft border-border bg-card ${isMobile ? 'p-3' : ''} overflow-x-hidden max-w-full`}>
            <CardHeader className={isMobile ? 'px-0 pb-3' : ''}>
              <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                <Users className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
                {"Client List"} ({sortedClients.length})
              </CardTitle>
            </CardHeader>
-          <CardContent className={isMobile ? 'px-0' : ''}>
-            <div className={`space-y-1 ${isMobile ? 'space-y-3' : ''}`}>
+          <CardContent className={`${isMobile ? 'px-0' : ''} overflow-x-auto max-w-full`}>
+            <div className={`space-y-1 ${isMobile ? 'space-y-3' : ''} min-w-0`}>
               {/* Header Row - Hidden on mobile */}
               {!isMobile && (
-                <div className="grid grid-cols-8 gap-4 p-4 text-sm font-medium text-muted-foreground bg-muted/30 rounded-lg">
+                <div className="grid grid-cols-8 gap-4 p-4 text-sm font-medium text-muted-foreground bg-muted/30 rounded-lg min-w-[800px]">
                   <div>Name</div>
                   <div>Type</div>
                   <div>Status</div>
@@ -752,7 +752,7 @@ export default function Clients() {
                 return (
                   <div 
                     key={client.id} 
-                    className={`${isMobile ? 'flex flex-col space-y-3 p-3' : 'grid grid-cols-8 gap-4 p-4'} rounded-lg transition-colors cursor-pointer ${
+                    className={`${isMobile ? 'flex flex-col space-y-3 p-3' : 'grid grid-cols-8 gap-4 p-4 min-w-[800px]'} rounded-lg transition-colors cursor-pointer ${
                       client.status === "Inactive" || client.status === "inactive"
                         ? "border border-orange-300 bg-orange-50/50 hover:bg-orange-100/50"
                         : "border border-transparent hover:bg-muted/50 hover:border-border"

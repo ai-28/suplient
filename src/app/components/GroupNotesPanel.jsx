@@ -10,6 +10,22 @@ export function GroupNotesPanel({ groupId }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
 
   const fetchGroupNotes = async () => {
     try {
@@ -40,55 +56,55 @@ export function GroupNotesPanel({ groupId }) {
   };
 
   return (
-    <Card className="shadow-soft border-border bg-card">
-      <CardHeader className="pb-3">
+    <Card className={`${isMobile ? 'p-0 shadow-none border-0' : 'shadow-soft border-border'} bg-card`}>
+      <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'}>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-foreground text-sm">Notes</CardTitle>
+          <CardTitle className={`text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Notes</CardTitle>
           <CreateGroupNoteDialog 
             groupId={groupId}
             onNoteCreated={handleNoteCreated}
           >
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Button size={isMobile ? "sm" : "sm"} variant="ghost" className={isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'}>
+              <svg className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
             </Button>
           </CreateGroupNoteDialog>
         </div>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[250px]">
+      <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
+        <ScrollArea className={isMobile ? 'h-[200px]' : 'h-[250px]'}>
           {loading ? (
-            <div className="flex items-center justify-center h-32">
+            <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
               <div className="text-center">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Loading notes...</p>
+                <Loader2 className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
+                <p className={`${isMobile ? 'text-xs mt-1' : 'text-sm mt-2'} text-muted-foreground`}>Loading notes...</p>
               </div>
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center h-32">
+            <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
               <div className="text-center">
-                <p className="text-sm text-destructive mb-2">Error: {error}</p>
-                <Button size="sm" variant="outline" onClick={fetchGroupNotes}>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive ${isMobile ? 'mb-1' : 'mb-2'} break-words`}>Error: {error}</p>
+                <Button size={isMobile ? "sm" : "sm"} variant="outline" onClick={fetchGroupNotes} className={isMobile ? 'text-xs h-7 mt-1' : ''}>
                   Try Again
                 </Button>
               </div>
             </div>
           ) : notes.length === 0 ? (
-            <div className="flex items-center justify-center h-32">
+            <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">No notes yet</p>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>No notes yet</p>
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
               {notes.map((note) => (
-                <div key={note.id} className="p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-                  <h4 className="text-xs font-medium text-foreground truncate">{note.title}</h4>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                <div key={note.id} className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer`}>
+                  <h4 className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium text-foreground break-words`}>{note.title}</h4>
+                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1 line-clamp-2 break-words`}>
                     {note.description || 'No description'}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1`}>
                     {new Date(note.createdAt).toLocaleDateString()}
                   </p>
                 </div>

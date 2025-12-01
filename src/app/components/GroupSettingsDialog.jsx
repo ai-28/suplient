@@ -32,6 +32,22 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
   const [membersLoading, setMembersLoading] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
 
   // Initialize form fields when group data is available
   useEffect(() => {
@@ -186,61 +202,61 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-3">
-          <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-3">
-            <div className="bg-gradient-primary rounded-lg p-2">
-              <Settings className="h-6 w-6 text-white" />
+      <DialogContent className={`${isMobile ? 'max-w-full mx-2' : 'max-w-4xl'} max-h-[90vh] overflow-y-auto`}>
+        <DialogHeader className={isMobile ? 'space-y-2' : 'space-y-3'}>
+          <DialogTitle className={`${isMobile ? 'text-base' : 'text-2xl'} font-bold text-foreground flex items-center gap-3 break-words`}>
+            <div className={`bg-gradient-primary rounded-lg ${isMobile ? 'p-1' : 'p-2'}`}>
+              <Settings className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
             </div>
-            Group Settings - {group.name}
+            <span className="break-words min-w-0 flex-1">Group Settings - {group.name}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="settings" className="py-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="requests">Requests</TabsTrigger>
+        <Tabs defaultValue="settings" className={isMobile ? 'py-2' : 'py-6'}>
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3 gap-1 h-auto p-1' : 'grid-cols-3'}`}>
+            <TabsTrigger value="settings" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>Settings</TabsTrigger>
+            <TabsTrigger value="members" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>Members</TabsTrigger>
+            <TabsTrigger value="requests" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>Requests</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="settings" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <TabsContent value="settings" className={isMobile ? 'mt-2' : 'mt-6'}>
+            <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-2'} ${isMobile ? 'gap-3' : 'gap-8'}`}>
           {/* Left Column - Basic Settings */}
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Users2 className="h-5 w-5 text-primary" />
+          <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
+            <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+              <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground flex items-center gap-2`}>
+                <Users2 className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
                 Basic Information
               </h3>
               
-              <div className="space-y-4">
+              <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
                 <div>
-                  <Label htmlFor="groupName">Group Name</Label>
+                  <Label htmlFor="groupName" className={isMobile ? 'text-xs' : ''}>Group Name</Label>
                   <Input
                     id="groupName"
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
                     placeholder="Enter group name"
-                    className="mt-1"
+                    className={`mt-1 ${isMobile ? 'text-xs h-8' : ''}`}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description" className={isMobile ? 'text-xs' : ''}>Description</Label>
                   <Textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe the group's purpose and goals..."
-                    className="mt-1 min-h-[100px]"
+                    className={`mt-1 ${isMobile ? 'min-h-[60px] text-xs' : 'min-h-[100px]'}`}
                   />
                 </div>
 
 
                 <div>
-                  <Label htmlFor="capacity">Maximum Capacity</Label>
+                  <Label htmlFor="capacity" className={isMobile ? 'text-xs' : ''}>Maximum Capacity</Label>
                   <Select value={capacity} onValueChange={setCapacity}>
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger className={isMobile ? 'mt-1 text-xs h-8' : 'mt-1'}>
                       <SelectValue placeholder="Select capacity" />
                     </SelectTrigger>
                     <SelectContent>
@@ -256,25 +272,26 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
             </div>
 
             {/* Session Schedule */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
+            <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+              <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground flex items-center gap-2`}>
+                <Calendar className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
                 Next Session
               </h3>
               
-              <div className="bg-muted rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-foreground">Scheduled for</p>
-                    <p className="text-sm text-muted-foreground">{group.nextSession}</p>
+              <div className={`bg-muted rounded-lg ${isMobile ? 'p-2' : 'p-4'}`}>
+                <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'justify-between'}`}>
+                  <div className={isMobile ? 'w-full' : ''}>
+                    <p className={`${isMobile ? 'text-xs' : ''} font-medium text-foreground break-words`}>Scheduled for</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{group.nextSession}</p>
                   </div>
-                  <Badge variant="secondary">Confirmed</Badge>
+                  <Badge variant="secondary" className={isMobile ? 'text-xs w-full justify-center' : ''}>Confirmed</Badge>
                 </div>
               </div>
               </div>
             </div>
 
             {/* Right Column - Session Schedule */}
+            {!isMobile && (
             <div className="space-y-6">
               {/* Session Schedule */}
               <div className="space-y-4">
@@ -294,73 +311,74 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                 </div>
               </div>
             </div>
+            )}
             </div>
           </TabsContent>
 
-          <TabsContent value="members" className="mt-6">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Users2 className="h-5 w-5 text-primary" />
+          <TabsContent value="members" className={isMobile ? 'mt-2' : 'mt-6'}>
+            <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
+              <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+                <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground flex items-center gap-2`}>
+                  <Users2 className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
                   Members ({membersLoading ? "..." : members.length})
                 </h3>
 
-                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                <div className={`space-y-3 ${isMobile ? 'max-h-[300px]' : 'max-h-[400px]'} overflow-y-auto`}>
                   {membersLoading ? (
-                    <div className="flex items-center justify-center p-8">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      <span className="text-muted-foreground">Loading members...</span>
+                    <div className={`flex items-center justify-center ${isMobile ? 'p-4' : 'p-8'}`}>
+                      <Loader2 className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
+                      <span className={`${isMobile ? 'text-xs ml-1' : 'text-sm ml-2'} text-muted-foreground`}>Loading members...</span>
                     </div>
                   ) : members.length === 0 ? (
-                    <div className="flex items-center justify-center p-8">
+                    <div className={`flex items-center justify-center ${isMobile ? 'p-4' : 'p-8'}`}>
                       <div className="text-center">
-                        <Users2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground font-medium">No members yet</p>
-                        <p className="text-sm text-muted-foreground mt-1">Add members to get started</p>
+                        <Users2 className={isMobile ? 'h-8 w-8' : 'h-12 w-12'} />
+                        <p className={`${isMobile ? 'text-xs' : ''} text-muted-foreground font-medium break-words`}>No members yet</p>
+                        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mt-1 break-words`}>Add members to get started</p>
                       </div>
                     </div>
                   ) : (
                     members.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
+                    <div key={member.id} className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} ${isMobile ? 'p-2' : 'p-3'} bg-card border border-border rounded-lg gap-2`}>
+                      <div className={`flex items-center ${isMobile ? 'w-full' : 'gap-3'} min-w-0`}>
+                        <Avatar className={isMobile ? 'h-8 w-8' : 'h-10 w-10'}>
                           <AvatarFallback className="bg-primary text-primary-foreground">
                             {member.initial}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="font-medium text-foreground">{member.name}</p>
-                          <p className="text-sm text-muted-foreground">
+                        <div className="flex-1 min-w-0">
+                          <p className={`${isMobile ? 'text-xs' : ''} font-medium text-foreground break-words`}>{member.name}</p>
+                          <p className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-muted-foreground break-words`}>
                             Joined {new Date(member.joinDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={member.status === "active" ? "success" : member.status === "pending" ? "warning" : "secondary"}>
+                      <div className={`flex items-center gap-2 ${isMobile ? 'w-full justify-end' : ''}`}>
+                        <Badge variant={member.status === "active" ? "success" : member.status === "pending" ? "warning" : "secondary"} className={isMobile ? 'text-xs' : ''}>
                           {member.status}
                         </Badge>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
-                              size="sm"
+                              size={isMobile ? "sm" : "sm"}
                               variant="ghost"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className={`text-destructive hover:text-destructive hover:bg-destructive/10 ${isMobile ? 'h-7 w-7 p-0' : ''}`}
                             >
-                              <UserMinus className="h-4 w-4" />
+                              <UserMinus className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className={isMobile ? 'mx-2 max-w-[calc(100vw-1rem)]' : ''}>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Remove Member</AlertDialogTitle>
-                              <AlertDialogDescription>
+                              <AlertDialogTitle className={isMobile ? 'text-sm' : ''}>Remove Member</AlertDialogTitle>
+                              <AlertDialogDescription className={isMobile ? 'text-xs' : ''}>
                                 Are you sure you want to remove {member.name} from this group? This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
+                              <AlertDialogCancel className={isMobile ? 'w-full text-xs' : ''}>Cancel</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleRemoveMember(member.id, member.name)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                className={`bg-destructive text-destructive-foreground hover:bg-destructive/90 ${isMobile ? 'w-full text-xs' : ''}`}
                               >
                                 Remove Member
                               </AlertDialogAction>
@@ -375,8 +393,8 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
 
                 {/* Add Member Form */}
                 {showAddMember ? (
-                  <div className="space-y-3 p-4 bg-muted rounded-lg">
-                    <Label htmlFor="newMemberEmail">Member Email</Label>
+                  <div className={`space-y-3 ${isMobile ? 'p-2 space-y-2' : 'p-4'} bg-muted rounded-lg`}>
+                    <Label htmlFor="newMemberEmail" className={isMobile ? 'text-xs' : ''}>Member Email</Label>
                     <Input
                       id="newMemberEmail"
                       type="email"
@@ -384,16 +402,17 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                       onChange={(e) => setNewMemberEmail(e.target.value)}
                       placeholder="Enter member email address"
                       onKeyPress={(e) => e.key === 'Enter' && handleAddMember()}
+                      className={isMobile ? 'text-xs h-8' : ''}
                     />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleAddMember} className="flex-1">
-                        <UserPlus className="h-4 w-4 mr-2" />
+                    <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
+                      <Button size={isMobile ? "sm" : "sm"} onClick={handleAddMember} className={`${isMobile ? 'w-full text-xs h-8' : 'flex-1'}`}>
+                        <UserPlus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                         Send Invitation
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => {
+                      <Button size={isMobile ? "sm" : "sm"} variant="outline" onClick={() => {
                         setShowAddMember(false);
                         setNewMemberEmail("");
-                      }}>
+                      }} className={isMobile ? 'w-full text-xs h-8' : ''}>
                         Cancel
                       </Button>
                     </div>
@@ -401,10 +420,11 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                 ) : (
                   <Button 
                     variant="outline" 
-                    className="w-full"
+                    className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
                     onClick={() => setShowAddMember(true)}
+                    size={isMobile ? "sm" : "default"}
                   >
-                    <UserPlus className="h-4 w-4 mr-2" />
+                    <UserPlus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                     Invite New Member
                   </Button>
                 )}
@@ -412,35 +432,36 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
             </div>
           </TabsContent>
 
-          <TabsContent value="requests" className="mt-6">
+          <TabsContent value="requests" className={isMobile ? 'mt-2' : 'mt-6'}>
             <MembershipRequestsPanel groupId={group?.id} />
           </TabsContent>
         </Tabs>
 
         {/* Action Buttons */}
-        <div className="flex justify-between pt-6 border-t border-border">
+        <div className={`flex ${isMobile ? 'flex-col gap-2' : 'justify-between'} ${isMobile ? 'pt-3' : 'pt-6'} border-t border-border`}>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
                 variant="destructive"
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 ${isMobile ? 'w-full text-xs h-8' : ''}`}
+                size={isMobile ? "sm" : "default"}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                 Delete Group
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className={isMobile ? 'mx-2 max-w-[calc(100vw-1rem)]' : ''}>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete Group</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className={isMobile ? 'text-sm' : ''}>Delete Group</AlertDialogTitle>
+                <AlertDialogDescription className={isMobile ? 'text-xs break-words' : ''}>
                   Are you sure you want to delete "{group.name}"? This action cannot be undone. All group data, members, and sessions will be permanently removed.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
+                <AlertDialogCancel className={isMobile ? 'w-full text-xs' : ''}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDeleteGroup}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className={`bg-destructive text-destructive-foreground hover:bg-destructive/90 ${isMobile ? 'w-full text-xs' : ''}`}
                 >
                   Delete Group
                 </AlertDialogAction>
@@ -448,12 +469,12 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
             </AlertDialogContent>
           </AlertDialog>
 
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <div className={`flex ${isMobile ? 'flex-col gap-2 w-full' : 'gap-3'}`}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-gradient-primary text-black hover:text-white">
-              <Save className="h-4 w-4 mr-2" />
+            <Button onClick={handleSave} className={`bg-gradient-primary text-black hover:text-white ${isMobile ? 'w-full text-xs h-8' : ''}`} size={isMobile ? "sm" : "default"}>
+              <Save className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
               Save Changes
             </Button>
           </div>

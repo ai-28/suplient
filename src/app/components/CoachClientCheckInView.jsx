@@ -25,6 +25,22 @@ export function CoachClientCheckInView({ clientId }) {
   const [checkInData, setCheckInData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
 
   // Fetch check-in data when date changes
   useEffect(() => {
@@ -134,37 +150,42 @@ export function CoachClientCheckInView({ clientId }) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5" />
+    <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+      <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+        <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : ''}`}>
+          <CalendarIcon className={isMobile ? 'h-3 w-3' : 'h-5 w-5'} />
           {t('clients.dailyCheckIn', 'Daily Check-in')}
         </CardTitle>
-        <CardDescription>
+        <CardDescription className={isMobile ? 'text-xs hidden' : ''}>
           {t('clients.viewClientDailyTracking', 'View client\'s daily check-in metrics and notes')}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className={`space-y-6 ${isMobile ? 'px-2 pb-2 space-y-3' : ''}`}>
         {/* Date Selector */}
-        <div className="flex items-center justify-center gap-2 p-4 bg-muted/30 rounded-lg">
+        <div className={`flex items-center justify-center gap-2 ${isMobile ? 'p-2' : 'p-4'} bg-muted/30 rounded-lg ${isMobile ? 'flex-wrap' : ''}`}>
           <Button
             variant="ghost"
-            size="icon"
+            size={isMobile ? "sm" : "icon"}
             onClick={() => navigateDate('prev')}
+            className={isMobile ? 'h-8 w-8 p-0' : ''}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
           </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
+                size={isMobile ? "sm" : "default"}
                 className={cn(
-                  "justify-start text-left font-normal min-w-[200px]",
+                  "justify-start text-left font-normal",
+                  isMobile ? "min-w-0 flex-1 text-xs px-2" : "min-w-[200px]",
                   !selectedDate && "text-muted-foreground"
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                <CalendarIcon className={cn(isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4')} />
+                <span className={isMobile ? 'truncate' : ''}>
+                  {selectedDate ? format(selectedDate, isMobile ? "MMM d" : "PPP") : "Pick a date"}
+                </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="center">
@@ -182,17 +203,18 @@ export function CoachClientCheckInView({ clientId }) {
           </Popover>
           <Button
             variant="ghost"
-            size="icon"
+            size={isMobile ? "sm" : "icon"}
             onClick={() => navigateDate('next')}
             disabled={isToday(selectedDate)}
+            className={isMobile ? 'h-8 w-8 p-0' : ''}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            size={isMobile ? "sm" : "sm"}
             onClick={() => setSelectedDate(new Date())}
-            className="ml-2"
+            className={isMobile ? 'ml-0 text-xs px-2 h-8' : 'ml-2'}
           >
             {t('common.time.today', 'Today')}
           </Button>
@@ -200,9 +222,9 @@ export function CoachClientCheckInView({ clientId }) {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-            <span className="text-sm text-muted-foreground">
+          <div className={`flex items-center justify-center ${isMobile ? 'p-4' : 'p-8'}`}>
+            <Loader2 className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
+            <span className={`${isMobile ? 'text-xs ml-1' : 'text-sm ml-2'} text-muted-foreground`}>
               {t('clients.loadingCheckIn', 'Loading check-in data...')}
             </span>
           </div>
@@ -210,17 +232,17 @@ export function CoachClientCheckInView({ clientId }) {
 
         {/* Error State */}
         {error && (
-          <div className="text-center py-8 text-red-500">
-            <p>{t('clients.errorLoadingCheckIn', 'Error loading check-in data')}: {error}</p>
+          <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-red-500`}>
+            <p className={isMobile ? 'text-xs break-words' : 'text-sm'}>{t('clients.errorLoadingCheckIn', 'Error loading check-in data')}: {error}</p>
           </div>
         )}
 
         {/* No Data State */}
         {!loading && !error && !checkInData?.checkIn && (
-          <div className="text-center py-8 text-muted-foreground">
-            <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>{t('clients.noCheckInForDate', 'No check-in found for this date')}</p>
-            <p className="text-sm mt-1">
+          <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-muted-foreground`}>
+            <CalendarIcon className={isMobile ? 'h-8 w-8' : 'h-12 w-12'} />
+            <p className={isMobile ? 'text-xs' : 'text-sm'}>{t('clients.noCheckInForDate', 'No check-in found for this date')}</p>
+            <p className={`${isMobile ? 'text-xs' : 'text-sm'} mt-1 break-words`}>
               {formatDate(selectedDate)}
             </p>
           </div>
@@ -228,29 +250,29 @@ export function CoachClientCheckInView({ clientId }) {
 
         {/* Check-in Data */}
         {!loading && !error && checkInData?.checkIn && (
-          <div className="space-y-6">
+          <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
             {/* Goal Metrics - Polar Chart */}
             {checkInData.goalDistribution && checkInData.goalDistribution.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
+              <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+                <h3 className={isMobile ? 'text-sm font-semibold' : 'text-lg font-semibold'}>
                   {t('clients.goalMetrics', 'Goal Metrics')}
                 </h3>
-                <div className="h-80 w-full">
+                <div className={isMobile ? 'h-64 w-full' : 'h-80 w-full'}>
                   {polarData && (
                     <PolarAreaChart data={polarData} options={polarOptions} />
                   )}
                 </div>
                 {/* Goal Legend */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-2 gap-2'}`}>
                   {checkInData.goalDistribution.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2 p-2 rounded bg-muted/30">
+                    <div key={item.id} className={`flex items-center gap-2 ${isMobile ? 'p-1.5' : 'p-2'} rounded bg-muted/30 min-w-0`}>
                       <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        className={`${isMobile ? 'w-2 h-2' : 'w-3 h-3'} rounded-full flex-shrink-0`}
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="text-sm">{item.icon}</span>
-                      <span className="text-sm font-medium truncate">{item.name}</span>
-                      <span className="text-sm text-muted-foreground ml-auto">{item.value}/5</span>
+                      <span className={isMobile ? 'text-xs' : 'text-sm'}>{item.icon}</span>
+                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium break-words flex-1 min-w-0`}>{item.name}</span>
+                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground flex-shrink-0 ml-auto`}>{item.value}/5</span>
                     </div>
                   ))}
                 </div>
@@ -259,19 +281,19 @@ export function CoachClientCheckInView({ clientId }) {
 
             {/* Bad Habits */}
             {checkInData.badHabits && checkInData.badHabits.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
+              <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+                <h3 className={isMobile ? 'text-sm font-semibold' : 'text-lg font-semibold'}>
                   {t('clients.badHabits', 'Habits to Reduce')}
                 </h3>
-                <div className="grid grid-cols-1 gap-3">
+                <div className={`grid grid-cols-1 ${isMobile ? 'gap-2' : 'gap-3'}`}>
                   {checkInData.badHabits.map((habit) => (
-                    <div key={habit.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{habit.icon}</span>
-                        <span className="text-sm font-medium">{habit.name}</span>
+                    <div key={habit.id} className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} ${isMobile ? 'p-2' : 'p-3'} rounded-lg bg-muted/30 gap-2`}>
+                      <div className={`flex items-center gap-2 ${isMobile ? 'w-full' : ''} min-w-0`}>
+                        <span className={isMobile ? 'text-sm' : 'text-lg'}>{habit.icon}</span>
+                        <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium break-words flex-1 min-w-0`}>{habit.name}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className={`flex items-center gap-2 ${isMobile ? 'w-full' : ''}`}>
+                        <div className={`${isMobile ? 'flex-1' : 'w-24'} h-2 bg-gray-200 rounded-full overflow-hidden`}>
                           <div
                             className="h-full rounded-full"
                             style={{
@@ -280,7 +302,7 @@ export function CoachClientCheckInView({ clientId }) {
                             }}
                           />
                         </div>
-                        <span className="text-sm text-muted-foreground min-w-[30px] text-right">
+                        <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'min-w-[25px]' : 'min-w-[30px]'} text-right flex-shrink-0`}>
                           {habit.value}/5
                         </span>
                       </div>
@@ -291,19 +313,19 @@ export function CoachClientCheckInView({ clientId }) {
             )}
 
             {/* Daily Notes */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">
+            <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+              <h3 className={isMobile ? 'text-sm font-semibold' : 'text-lg font-semibold'}>
                 {t('clients.dailyNotes', 'Daily Notes')}
               </h3>
               {checkInData.notes ? (
-                <div className="p-4 rounded-lg bg-muted/30 border">
-                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                <div className={`${isMobile ? 'p-2' : 'p-4'} rounded-lg bg-muted/30 border`}>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground whitespace-pre-wrap break-words`}>
                     {checkInData.notes}
                   </p>
                 </div>
               ) : (
-                <div className="p-4 rounded-lg bg-muted/30 border text-center text-muted-foreground">
-                  <p className="text-sm">
+                <div className={`${isMobile ? 'p-2' : 'p-4'} rounded-lg bg-muted/30 border text-center text-muted-foreground`}>
+                  <p className={isMobile ? 'text-xs' : 'text-sm'}>
                     {t('clients.noNotesForDate', 'No notes saved for this date')}
                   </p>
                 </div>

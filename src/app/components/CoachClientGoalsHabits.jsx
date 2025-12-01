@@ -19,6 +19,22 @@ export function CoachClientGoalsHabits({ clientId }) {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
 
   // Add goal/habit dialog state
   const [showAddGoalDialog, setShowAddGoalDialog] = useState(false);
@@ -228,11 +244,11 @@ export function CoachClientGoalsHabits({ clientId }) {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-            <span className="text-sm text-muted-foreground">Loading goals and habits...</span>
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <CardContent className={isMobile ? 'p-2' : 'p-6'}>
+          <div className={`flex items-center justify-center ${isMobile ? 'py-4' : 'py-8'}`}>
+            <Loader2 className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
+            <span className={`${isMobile ? 'text-xs ml-1' : 'text-sm ml-2'} text-muted-foreground`}>Loading goals and habits...</span>
           </div>
         </CardContent>
       </Card>
@@ -241,10 +257,10 @@ export function CoachClientGoalsHabits({ clientId }) {
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center py-8 text-red-500">
-            <p>{error}</p>
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <CardContent className={isMobile ? 'p-2' : 'p-6'}>
+          <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-red-500`}>
+            <p className={isMobile ? 'text-xs break-words' : 'text-sm'}>{error}</p>
           </div>
         </CardContent>
       </Card>
@@ -252,44 +268,44 @@ export function CoachClientGoalsHabits({ clientId }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
       {/* Goals Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+          <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'}`}>
             <div className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              <CardTitle>Life Area Goals</CardTitle>
+              <Target className={isMobile ? 'h-3 w-3' : 'h-5 w-5'} />
+              <CardTitle className={isMobile ? 'text-sm' : ''}>Life Area Goals</CardTitle>
             </div>
-            <Badge variant="outline">
+            <Badge variant="outline" className={isMobile ? 'text-xs' : ''}>
               {goals.filter(g => g.isActive).length} / {goals.length} active
             </Badge>
           </div>
-          <CardDescription>
+          <CardDescription className={isMobile ? 'text-xs hidden' : ''}>
             Manage client's goals for daily tracking
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
+        <CardContent className={isMobile ? 'px-2 pb-2 space-y-2' : 'space-y-4'}>
+          <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
             {goals.map((goal) => (
-              <div key={goal.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="text-2xl">{goal.icon}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium">{goal.name}</h3>
+              <div key={goal.id} className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} ${isMobile ? 'p-2' : 'p-4'} border rounded-lg gap-2`}>
+                <div className={`flex items-center ${isMobile ? 'w-full' : 'gap-4'} flex-1 min-w-0`}>
+                  <div className={isMobile ? 'text-lg' : 'text-2xl'}>{goal.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'gap-2'} mb-1`}>
+                      <h3 className={`${isMobile ? 'text-xs' : ''} font-medium break-words flex-1 min-w-0`}>{goal.name}</h3>
                       {goal.isCustom && (
-                        <Badge variant="secondary" className="text-xs">Custom</Badge>
+                        <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>Custom</Badge>
                       )}
                       {goal.isDefault && (
-                        <Badge variant="outline" className="text-xs">Default</Badge>
+                        <Badge variant="outline" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>Default</Badge>
                       )}
                     </div>
                     {goal.isActive && (
-                      <div className="mt-2">
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                          <span>Current: {goal.currentScore}/5</span>
-                          <div className="bg-secondary rounded-full w-16 h-1">
+                      <div className={isMobile ? 'mt-1' : 'mt-2'}>
+                        <div className={`flex items-center gap-2 text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                          <span className="whitespace-nowrap">Current: {goal.currentScore}/5</span>
+                          <div className={`bg-secondary rounded-full ${isMobile ? 'w-12' : 'w-16'} h-1 flex-1`}>
                             <div 
                               className="rounded-full h-1 transition-all"
                               style={{ 
@@ -303,15 +319,15 @@ export function CoachClientGoalsHabits({ clientId }) {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isMobile ? 'w-full justify-end' : ''}`}>
                   {goal.isCustom && (
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size={isMobile ? "sm" : "icon"}
                       onClick={() => handleDeleteGoal(goal.id, goal.name)}
-                      className="text-destructive hover:text-destructive h-8 w-8"
+                      className={`text-destructive hover:text-destructive ${isMobile ? 'h-7 w-7 p-0' : 'h-8 w-8'}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                     </Button>
                   )}
                   <Switch
@@ -328,39 +344,42 @@ export function CoachClientGoalsHabits({ clientId }) {
             <Button 
               variant="outline" 
               onClick={() => setShowAddGoalDialog(true)}
-              className="w-full"
+              className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
+              size={isMobile ? "sm" : "default"}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
               Add Goal
             </Button>
           ) : (
-            <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
-              <div className="space-y-2">
-                <Label>Goal Name</Label>
+            <div className={`space-y-3 ${isMobile ? 'p-2 space-y-2' : 'p-4'} border rounded-lg bg-muted/20`}>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label className={isMobile ? 'text-xs' : ''}>Goal Name</Label>
                 <Input
                   placeholder="e.g., Meditation Practice"
                   value={newGoalName}
                   onChange={(e) => setNewGoalName(e.target.value)}
+                  className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Icon</Label>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label className={isMobile ? 'text-xs' : ''}>Icon</Label>
                 <IconPicker
                   value={newGoalIcon}
                   onChange={setNewGoalIcon}
                   placeholder="🎯"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Color</Label>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label className={isMobile ? 'text-xs' : ''}>Color</Label>
                 <ColorPicker
                   value={newGoalColor}
                   onChange={setNewGoalColor}
                 />
               </div>
-              <div className="flex gap-2">
-                <Button onClick={handleAddGoal} size="sm" disabled={saving}>
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
+                <Button onClick={handleAddGoal} size={isMobile ? "sm" : "sm"} disabled={saving} className={isMobile ? 'w-full text-xs h-8' : ''}>
+                  {saving ? <Loader2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} /> : null}
+                  {saving && !isMobile && <span className="mr-2" />}
                   Add Goal
                 </Button>
                 <Button 
@@ -371,7 +390,8 @@ export function CoachClientGoalsHabits({ clientId }) {
                     setNewGoalIcon("🎯");
                     setNewGoalColor("#3B82F6");
                   }}
-                  size="sm"
+                  size={isMobile ? "sm" : "sm"}
+                  className={isMobile ? 'w-full text-xs h-8' : ''}
                 >
                   Cancel
                 </Button>
@@ -382,42 +402,42 @@ export function CoachClientGoalsHabits({ clientId }) {
       </Card>
 
       {/* Habits Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+          <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'}`}>
             <div className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-destructive" />
-              <CardTitle>Habits to Reduce</CardTitle>
+              <TrendingDown className={isMobile ? 'h-3 w-3' : 'h-5 w-5'} />
+              <CardTitle className={isMobile ? 'text-sm' : ''}>Habits to Reduce</CardTitle>
             </div>
-            <Badge variant="outline">
+            <Badge variant="outline" className={isMobile ? 'text-xs' : ''}>
               {habits.filter(h => h.isActive).length} / {habits.length} active
             </Badge>
           </div>
-          <CardDescription>
+          <CardDescription className={isMobile ? 'text-xs hidden' : ''}>
             Manage client's habits for daily tracking
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
+        <CardContent className={isMobile ? 'px-2 pb-2 space-y-2' : 'space-y-4'}>
+          <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
             {habits.map((habit) => (
-              <div key={habit.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="text-2xl">{habit.icon}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium">{habit.name}</h3>
+              <div key={habit.id} className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} ${isMobile ? 'p-2' : 'p-4'} border rounded-lg gap-2`}>
+                <div className={`flex items-center ${isMobile ? 'w-full' : 'gap-4'} flex-1 min-w-0`}>
+                  <div className={isMobile ? 'text-lg' : 'text-2xl'}>{habit.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'gap-2'} mb-1`}>
+                      <h3 className={`${isMobile ? 'text-xs' : ''} font-medium break-words flex-1 min-w-0`}>{habit.name}</h3>
                       {habit.isCustom && (
-                        <Badge variant="secondary" className="text-xs">Custom</Badge>
+                        <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>Custom</Badge>
                       )}
                       {habit.isDefault && (
-                        <Badge variant="outline" className="text-xs">Default</Badge>
+                        <Badge variant="outline" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>Default</Badge>
                       )}
                     </div>
                     {habit.isActive && (
-                      <div className="mt-2">
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                          <span>Current: {habit.currentScore}/5</span>
-                          <div className="bg-secondary rounded-full w-16 h-1">
+                      <div className={isMobile ? 'mt-1' : 'mt-2'}>
+                        <div className={`flex items-center gap-2 text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                          <span className="whitespace-nowrap">Current: {habit.currentScore}/5</span>
+                          <div className={`bg-secondary rounded-full ${isMobile ? 'w-12' : 'w-16'} h-1 flex-1`}>
                             <div 
                               className="rounded-full h-1 transition-all"
                               style={{ 
@@ -431,15 +451,15 @@ export function CoachClientGoalsHabits({ clientId }) {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isMobile ? 'w-full justify-end' : ''}`}>
                   {habit.isCustom && (
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size={isMobile ? "sm" : "icon"}
                       onClick={() => handleDeleteHabit(habit.id, habit.name)}
-                      className="text-destructive hover:text-destructive h-8 w-8"
+                      className={`text-destructive hover:text-destructive ${isMobile ? 'h-7 w-7 p-0' : 'h-8 w-8'}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                     </Button>
                   )}
                   <Switch
@@ -456,39 +476,42 @@ export function CoachClientGoalsHabits({ clientId }) {
             <Button 
               variant="outline" 
               onClick={() => setShowAddHabitDialog(true)}
-              className="w-full"
+              className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
+              size={isMobile ? "sm" : "default"}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
               Add Habit
             </Button>
           ) : (
-            <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
-              <div className="space-y-2">
-                <Label>Habit Name</Label>
+            <div className={`space-y-3 ${isMobile ? 'p-2 space-y-2' : 'p-4'} border rounded-lg bg-muted/20`}>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label className={isMobile ? 'text-xs' : ''}>Habit Name</Label>
                 <Input
                   placeholder="e.g., Late Night Snacking"
                   value={newHabitName}
                   onChange={(e) => setNewHabitName(e.target.value)}
+                  className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Icon</Label>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label className={isMobile ? 'text-xs' : ''}>Icon</Label>
                 <IconPicker
                   value={newHabitIcon}
                   onChange={setNewHabitIcon}
                   placeholder="📱"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Color</Label>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label className={isMobile ? 'text-xs' : ''}>Color</Label>
                 <ColorPicker
                   value={newHabitColor}
                   onChange={setNewHabitColor}
                 />
               </div>
-              <div className="flex gap-2">
-                <Button onClick={handleAddHabit} size="sm" disabled={saving}>
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
+                <Button onClick={handleAddHabit} size={isMobile ? "sm" : "sm"} disabled={saving} className={isMobile ? 'w-full text-xs h-8' : ''}>
+                  {saving ? <Loader2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} /> : null}
+                  {saving && !isMobile && <span className="mr-2" />}
                   Add Habit
                 </Button>
                 <Button 
@@ -499,7 +522,8 @@ export function CoachClientGoalsHabits({ clientId }) {
                     setNewHabitIcon("📱");
                     setNewHabitColor("#EF4444");
                   }}
-                  size="sm"
+                  size={isMobile ? "sm" : "sm"}
+                  className={isMobile ? 'w-full text-xs h-8' : ''}
                 >
                   Cancel
                 </Button>

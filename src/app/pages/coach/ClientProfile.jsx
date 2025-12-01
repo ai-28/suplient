@@ -988,7 +988,7 @@ export default function ClientProfile() {
     <div className={`max-h-screen bg-gray-50 ${isMobile ? 'p-4 pb-24' : 'p-6'}`}>
       <div className={`max-w-7xl mx-auto ${isMobile ? 'space-y-3' : 'space-y-6'}`}>
         {/* Header */}
-        <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'justify-between'}`}>
+        <div className={`flex items-center ${isMobile ? 'gap-2' : 'justify-between'}`}>
           <div className={`flex items-center ${isMobile ? 'w-full justify-between' : 'gap-4'}`}>
             <Button
               variant="ghost"
@@ -1604,111 +1604,123 @@ export default function ClientProfile() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="progress" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TabsContent value="progress" className={`space-y-6 ${isMobile ? 'px-0 py-0' : 'px-6 py-4'} overflow-x-hidden max-w-full`}>
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'} ${isMobile ? 'gap-2' : 'gap-6'}`}>
               {/* Individual Progress Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
+              <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+                <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+                  <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : ''}`}>
+                    <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-5 w-5'} />
                     {t('clients.individualProgress', 'Individual Progress Tracking')}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className={isMobile ? 'text-xs hidden' : ''}>
                     {t('clients.progressDescription', 'Performance and wellbeing progression over 8 weeks')}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
+                <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
+                  <div className={isMobile ? 'h-[250px]' : 'h-[300px]'}>
                     {progressLoading ? (
                       <div className="flex items-center justify-center h-full">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                        <span className="ml-2">{t('clients.loadingProgress', 'Loading progress data...')}</span>
+                        <Loader2 className={isMobile ? 'h-6 w-6' : 'h-8 w-8'} />
+                        <span className={`ml-2 ${isMobile ? 'text-sm' : ''}`}>{t('clients.loadingProgress', 'Loading progress data...')}</span>
                       </div>
                     ) : progressError ? (
                       <div className="flex items-center justify-center h-full text-red-500">
-                        <AlertCircle className="h-8 w-8" />
+                        <AlertCircle className={isMobile ? 'h-6 w-6' : 'h-8 w-8'} />
                         <div className="text-center">
-                          <p className="font-medium">Error loading progress data</p>
-                          <p className="text-sm text-gray-500 mt-1">{progressError}</p>
+                          <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>Error loading progress data</p>
+                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 mt-1`}>{progressError}</p>
                         </div>
                       </div>
                     ) : !progressData ? (
                       <div className="flex items-center justify-center h-full text-gray-500">
                         <div className="text-center">
-                          <TrendingUp className="h-8 w-8 mx-auto mb-2" />
-                          <p className="font-medium">No progress data available</p>
-                          <p className="text-sm text-gray-400 mt-1">Client needs to start activities to see progress</p>
+                          <TrendingUp className={isMobile ? 'h-6 w-6' : 'h-8 w-8'} />
+                          <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>No progress data available</p>
+                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400 mt-1`}>Client needs to start activities to see progress</p>
                         </div>
                       </div>
                     ) : (
                       <>
                         {/* Debug: Log the weekly data */}
                         {console.log('Weekly data for chart:', clientProgressData.weeklyData)}
-                        <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={clientProgressData.weeklyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="week" 
-                          tick={{ fontSize: 12 }}
-                          interval={0}
-                        />
-                        <YAxis domain={[0, 10]} />
-                        <Tooltip 
-                          content={({ active, payload, label }) => {
-                            if (active && payload && payload.length) {
-                              return (
-                                <div className="bg-white p-3 border rounded-lg shadow-lg">
-                                  <p className="font-medium">{label}</p>
-                                  <p className="text-blue-600">
-                                    Performance: {payload[0]?.value}
-                                  </p>
-                                  <p className="text-green-600">
-                                    Wellbeing: {payload[1]?.value}
-                                  </p>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Legend />
-                        <Line 
-                          type="monotone" 
-                          dataKey="performance" 
-                          stroke="#3b82f6" 
-                          strokeWidth={2}
-                          name="Performance"
-                          dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="wellbeing" 
-                          stroke="#10b981" 
-                          strokeWidth={2}
-                          name="Wellbeing"
-                          dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                    </>
+                        <div className={isMobile ? 'overflow-x-auto' : ''}>
+                          <ResponsiveContainer width="100%" height="100%" minHeight={isMobile ? 250 : 300}>
+                            <LineChart data={clientProgressData.weeklyData} margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 5 } : { top: 5, right: 30, left: 0, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis 
+                                dataKey="week" 
+                                tick={{ fontSize: isMobile ? 10 : 12 }}
+                                interval={isMobile ? "preserveStartEnd" : 0}
+                                angle={isMobile ? -45 : 0}
+                                textAnchor={isMobile ? "end" : "middle"}
+                                height={isMobile ? 60 : 30}
+                              />
+                              <YAxis 
+                                domain={[0, 10]} 
+                                tick={{ fontSize: isMobile ? 10 : 12 }}
+                                width={isMobile ? 30 : 50}
+                              />
+                              <Tooltip 
+                                content={({ active, payload, label }) => {
+                                  if (active && payload && payload.length) {
+                                    return (
+                                      <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
+                                        <p className={`${isMobile ? 'text-xs' : ''} font-medium`}>{label}</p>
+                                        <p className={`${isMobile ? 'text-xs' : ''} text-blue-600`}>
+                                          Performance: {payload[0]?.value}
+                                        </p>
+                                        <p className={`${isMobile ? 'text-xs' : ''} text-green-600`}>
+                                          Wellbeing: {payload[1]?.value}
+                                        </p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                              <Legend 
+                                wrapperStyle={{ fontSize: isMobile ? '10px' : '12px' }}
+                                iconSize={isMobile ? 10 : 12}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="performance" 
+                                stroke="#3b82f6" 
+                                strokeWidth={isMobile ? 2 : 2}
+                                name="Performance"
+                                dot={!isMobile ? { fill: '#3b82f6', strokeWidth: 2, r: 4 } : false}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="wellbeing" 
+                                stroke="#10b981" 
+                                strokeWidth={isMobile ? 2 : 2}
+                                name="Wellbeing"
+                                dot={!isMobile ? { fill: '#10b981', strokeWidth: 2, r: 4 } : false}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </>
                     )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Progress Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Current Metrics</CardTitle>
-                  <CardDescription>Latest performance and wellbeing scores</CardDescription>
+              <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+                <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+                  <CardTitle className={isMobile ? 'text-sm' : ''}>Current Metrics</CardTitle>
+                  <CardDescription className={isMobile ? 'text-xs hidden' : ''}>Latest performance and wellbeing scores</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
+                <CardContent className={`space-y-4 ${isMobile ? 'px-2 pb-2 space-y-2' : ''}`}>
+                  <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-4'}`}>
+                    <div className={`text-center ${isMobile ? 'p-2' : 'p-4'} bg-blue-50 rounded-lg`}>
+                      <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-blue-600`}>
                         {progressData ? clientProgressData.currentMetrics.performance.toFixed(1) : '0.0'}
                       </div>
-                      <div className="text-sm text-gray-600">Performance Score</div>
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Performance Score</div>
                       <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
                         <div 
                           className="h-full bg-blue-500"
@@ -1716,11 +1728,11 @@ export default function ClientProfile() {
                         />
                       </div>
                     </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
+                    <div className={`text-center ${isMobile ? 'p-2' : 'p-4'} bg-green-50 rounded-lg`}>
+                      <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-600`}>
                         {progressData ? clientProgressData.currentMetrics.wellbeing.toFixed(1) : '0.0'}
                       </div>
-                      <div className="text-sm text-gray-600">Wellbeing Score</div>
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Wellbeing Score</div>
                       <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
                         <div 
                           className="h-full bg-green-500"
@@ -1731,18 +1743,18 @@ export default function ClientProfile() {
                   </div>
                   
                   {/* Additional Stats */}
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">
+                  <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-4'} ${isMobile ? 'mt-2' : 'mt-4'}`}>
+                    <div className={`text-center ${isMobile ? 'p-2' : 'p-4'} bg-purple-50 rounded-lg`}>
+                      <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-purple-600`}>
                         {progressData?.stats?.journalCompletionRate || 0}%
                       </div>
-                      <div className="text-sm text-gray-600">Journal Completion</div>
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Journal Completion</div>
                     </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">
+                    <div className={`text-center ${isMobile ? 'p-2' : 'p-4'} bg-orange-50 rounded-lg`}>
+                      <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-orange-600`}>
                         {progressData?.stats?.sessionAttendanceRate || 0}%
                       </div>
-                      <div className="text-sm text-gray-600">Session Attendance</div>
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Session Attendance</div>
                     </div>
                   </div>
                 </CardContent>
@@ -1750,20 +1762,24 @@ export default function ClientProfile() {
             </div>
 
             {/* Goals & Habits Management */}
-            <CoachClientGoalsHabits clientId={id} />
+            <div className={isMobile ? 'px-0' : ''}>
+              <CoachClientGoalsHabits clientId={id} />
+            </div>
 
             {/* Daily Check-in View */}
-            <CoachClientCheckInView clientId={id} />
+            <div className={isMobile ? 'px-0' : ''}>
+              <CoachClientCheckInView clientId={id} />
+            </div>
 
             {/* Recent Activity Timeline */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
+            <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+              <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : ''}`}>
+                  <Activity className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
                   {t('clients.recentActivity', 'Recent Activity')}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
                 {activitiesLoading ? (
                   <div className="flex items-center justify-center p-8">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />

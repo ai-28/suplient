@@ -1,4 +1,6 @@
+"use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -16,6 +18,22 @@ import {
   UserPlus
 } from "lucide-react";
 export function GroupMembersPanel({ members, onMessageMember, onMemberClick, groupId }) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
   
   // Convert pending membership requests to member objects for unified display
   const pendingRequests = groupId ? [] : [];
@@ -60,32 +78,32 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
   };
 
   return (
-    <div className="space-y-4">
+    <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
       {/* Member Statistics Overview */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="h-4 w-4 text-primary" />
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'}>
+          <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'}`}>
+            <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             Member Statistics
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-4 gap-3">
-            <div className="text-center p-2 bg-success/5 rounded-lg border border-success/20">
-              <div className="text-xl font-bold text-success">{activeMembers.length}</div>
-              <div className="text-xs text-muted-foreground">Active</div>
+        <CardContent className={isMobile ? 'px-2 pb-2 pt-0' : 'pt-0'}>
+          <div className={`grid grid-cols-4 ${isMobile ? 'gap-1' : 'gap-3'}`}>
+            <div className={`text-center ${isMobile ? 'p-1' : 'p-2'} bg-success/5 rounded-lg border border-success/20`}>
+              <div className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-success`}>{activeMembers.length}</div>
+              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>Active</div>
             </div>
-            <div className="text-center p-2 bg-muted/5 rounded-lg border border-muted/20">
-              <div className="text-xl font-bold text-muted-foreground">{inactiveMembers.length}</div>
-              <div className="text-xs text-muted-foreground">Inactive</div>
+            <div className={`text-center ${isMobile ? 'p-1' : 'p-2'} bg-muted/5 rounded-lg border border-muted/20`}>
+              <div className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-muted-foreground`}>{inactiveMembers.length}</div>
+              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>Inactive</div>
             </div>
-            <div className="text-center p-2 bg-warning/5 rounded-lg border border-warning/20">
-              <div className="text-xl font-bold text-warning">{onHoldMembers.length}</div>
-              <div className="text-xs text-muted-foreground">On Hold</div>
+            <div className={`text-center ${isMobile ? 'p-1' : 'p-2'} bg-warning/5 rounded-lg border border-warning/20`}>
+              <div className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-warning`}>{onHoldMembers.length}</div>
+              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>On Hold</div>
             </div>
-            <div className="text-center p-2 bg-primary/5 rounded-lg border border-primary/20">
-              <div className="text-xl font-bold text-primary">{allMembers.length}</div>
-              <div className="text-xs text-muted-foreground">Total</div>
+            <div className={`text-center ${isMobile ? 'p-1' : 'p-2'} bg-primary/5 rounded-lg border border-primary/20`}>
+              <div className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-primary`}>{allMembers.length}</div>
+              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>Total</div>
             </div>
           </div>
         </CardContent>
@@ -93,26 +111,26 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
 
 
       {/* Active Members and On Hold side-by-side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-2'} ${isMobile ? 'gap-2' : 'gap-4'}`}>
         {/* Active Members - takes 50% of the space */}
         <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CheckCircle className="h-4 w-4 text-success" />
-                Active Members ({activeMembers.length})
+          <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+            <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+              <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'}`}>
+                <CheckCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                <span className="break-words">Active Members ({activeMembers.length})</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
+              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
                 {activeMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent/5 transition-all cursor-pointer"
+                    className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} ${isMobile ? 'p-2' : 'p-3'} border border-border rounded-lg hover:bg-accent/5 transition-all cursor-pointer gap-2`}
                     onClick={() => onMemberClick?.(member.id.toString(), member.name)}
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 border-2 border-primary/20">
+                    <div className={`flex items-center ${isMobile ? 'w-full' : 'gap-3'} min-w-0`}>
+                      <Avatar className={`${isMobile ? 'h-8 w-8' : 'h-10 w-10'} border-2 border-primary/20`}>
                         {member.avatar && (
                           <AvatarImage 
                             src={member.avatar} 
@@ -120,13 +138,13 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                             className="object-cover"
                           />
                         )}
-                        <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                        <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {member.initials}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="font-medium text-sm">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">Joined {member.joinDate}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>{member.name}</p>
+                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>Joined {member.joinDate}</p>
                       </div>
                     </div>
                   </div>
@@ -139,24 +157,24 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
         {/* On Hold - Pending Approval - takes 50% of the space */}
         {onHoldMembers.length > 0 && (
           <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Clock className="h-4 w-4 text-warning" />
-                  On Hold ({onHoldMembers.length})
+            <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+              <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'}`}>
+                  <Clock className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                  <span className="break-words">On Hold ({onHoldMembers.length})</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-3">
+              <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
+                <ScrollArea className={isMobile ? 'h-[200px]' : 'h-[300px]'}>
+                  <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
                     {onHoldMembers.map((member) => (
                       <div
                         key={member.id}
-                        className="flex flex-col gap-2 p-3 border border-border rounded-lg bg-warning/5 border-warning/20 cursor-pointer hover:bg-warning/10 transition-all"
+                        className={`flex flex-col ${isMobile ? 'gap-1' : 'gap-2'} ${isMobile ? 'p-2' : 'p-3'} border border-border rounded-lg bg-warning/5 border-warning/20 cursor-pointer hover:bg-warning/10 transition-all`}
                         onClick={() => !member.requestId && onMemberClick?.(member.id.toString(), member.name)}
                       >
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8 border-2 border-warning/30">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Avatar className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} border-2 border-warning/30`}>
                             {member.avatar && (
                               <AvatarImage 
                                 src={member.avatar} 
@@ -164,15 +182,15 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                                 className="object-cover"
                               />
                             )}
-                            <AvatarFallback className="bg-warning/10 text-warning text-sm">
+                            <AvatarFallback className={`bg-warning/10 text-warning ${isMobile ? 'text-xs' : 'text-sm'}`}>
                               {member.initials}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
+                            <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>
                               {member.name}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                               {member.requestId ? (
                                 member.requestType === "invitation" ? "Invited" : "Requested"
                               ) : (
@@ -183,29 +201,29 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                         </div>
                         
                         {member.message && (
-                          <p className="text-xs text-muted-foreground italic bg-muted/20 p-2 rounded">
+                          <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground italic bg-muted/20 ${isMobile ? 'p-1' : 'p-2'} rounded break-words`}>
                             "{member.message}"
                           </p>
                         )}
                         
                         {member.requestId && (
-                          <div className="flex flex-col gap-1">
+                          <div className={`flex ${isMobile ? 'flex-col' : 'flex-col'} ${isMobile ? 'gap-1' : 'gap-1'}`}>
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-7 text-xs bg-success/10 border-success/30 text-success hover:bg-success/20"
+                              className={`${isMobile ? 'h-6 text-[10px]' : 'h-7 text-xs'} bg-success/10 border-success/30 text-success hover:bg-success/20 w-full`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleApproveRequest(member.requestId);
                               }}
                             >
-                              <UserCheck className="h-3 w-3 mr-1" />
+                              <UserCheck className={isMobile ? 'h-2.5 w-2.5 mr-0.5' : 'h-3 w-3 mr-1'} />
                               Approve
                             </Button>
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-7 text-xs bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20"
+                              className={`${isMobile ? 'h-6 text-[10px]' : 'h-7 text-xs'} bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20 w-full`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeclineRequest(member.requestId);
@@ -227,24 +245,24 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
 
       {/* Inactive Members */}
       {inactiveMembers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
-              Inactive Members ({inactiveMembers.length})
+        <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+          <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+            <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'}`}>
+              <UserCheck className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+              <span className="break-words">Inactive Members ({inactiveMembers.length})</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[120px]">
-              <div className="space-y-3">
+          <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
+            <ScrollArea className={isMobile ? 'h-[100px]' : 'h-[120px]'}>
+              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
                 {inactiveMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/20 opacity-60"
+                    className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} ${isMobile ? 'p-2' : 'p-3'} border border-border rounded-lg bg-muted/20 opacity-60 gap-2`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className={`flex items-center ${isMobile ? 'w-full' : 'gap-3'} min-w-0`}>
                       <Avatar 
-                        className="h-8 w-8 border-2 border-muted/30 cursor-pointer hover:border-muted/50 transition-colors"
+                        className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} border-2 border-muted/30 cursor-pointer hover:border-muted/50 transition-colors`}
                         onClick={() => onMemberClick?.(member.id.toString(), member.name)}
                       >
                         {member.avatar && (
@@ -254,29 +272,29 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                             className="object-cover"
                           />
                         )}
-                        <AvatarFallback className="bg-muted text-muted-foreground text-sm">
+                        <AvatarFallback className={`bg-muted text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {member.initials}
                         </AvatarFallback>
                       </Avatar>
                       <div 
-                        className="cursor-pointer hover:text-primary transition-colors"
+                        className={`cursor-pointer hover:text-primary transition-colors flex-1 min-w-0 ${isMobile ? 'w-full' : ''}`}
                         onClick={() => onMemberClick?.(member.id.toString(), member.name)}
                       >
-                        <p className="font-medium text-sm text-muted-foreground">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">Joined {member.joinDate}</p>
+                        <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{member.name}</p>
+                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>Joined {member.joinDate}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs border-muted/50 text-muted-foreground bg-muted/10">
+                    <div className={`flex items-center gap-2 ${isMobile ? 'w-full justify-end' : ''}`}>
+                      <Badge variant="outline" className={`${isMobile ? 'text-[10px]' : 'text-xs'} border-muted/50 text-muted-foreground bg-muted/10`}>
                         Inactive
                       </Badge>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-6 w-6"
+                        className={isMobile ? 'h-6 w-6' : 'h-6 w-6'}
                         onClick={() => onMessageMember(member.id)}
                       >
-                        <MessageCircle className="h-3 w-3" />
+                        <MessageCircle className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                       </Button>
                     </div>
                   </div>

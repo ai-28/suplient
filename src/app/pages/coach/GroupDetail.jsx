@@ -396,79 +396,93 @@ console.log(groupProgressData)
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <div className="h-[400px]">
+                    <div className={`${isMobile ? 'h-[300px]' : 'h-[400px]'}`}>
                       {progressLoading ? (
                         <div className="flex items-center justify-center h-full">
                           <div className="text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-gray-600">Loading progress data...</p>
+                            <p className={`${isMobile ? 'text-sm' : ''} text-gray-600`}>Loading progress data...</p>
                           </div>
                         </div>
                       ) : progressError ? (
                         <div className="flex items-center justify-center h-full text-red-500">
                           <div className="text-center">
                             <div className="text-red-500 mb-2">⚠️</div>
-                            <p className="font-medium">Error loading progress data</p>
-                            <p className="text-sm text-gray-500 mt-1">{progressError}</p>
+                            <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>Error loading progress data</p>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 mt-1`}>{progressError}</p>
                           </div>
                         </div>
                       ) : !progressData ? (
                         <div className="flex items-center justify-center h-full text-gray-500">
                           <div className="text-center">
-                            <TrendingUp className="h-8 w-8 mx-auto mb-2" />
-                            <p className="font-medium">No progress data available</p>
-                            <p className="text-sm text-gray-400 mt-1">Group needs activity to see progress</p>
+                            <TrendingUp className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} mx-auto mb-2`} />
+                            <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>No progress data available</p>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400 mt-1`}>Group needs activity to see progress</p>
                           </div>
                         </div>
                       ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={groupProgressData.weeklyAverages}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis 
-                              dataKey="week" 
-                              tick={{ fontSize: 12 }}
-                              interval={0}
-                            />
-                            <YAxis domain={[0, 10]} />
-                            <Tooltip 
-                              content={({ active, payload, label }) => {
-                                if (active && payload && payload.length) {
-                                  const data = payload[0].payload;
-                                  return (
-                                     <div className="bg-white p-3 border rounded-lg shadow-lg">
-                                       <p className="font-medium">{label}</p>
-                                       <p className="text-blue-600">
-                                         {"Performance"}: {data.performance}
-                                       </p>
-                                       <p className="text-green-600">
-                                         {"Wellbeing"}: {data.wellbeing}
-                                       </p>
-                                       <p className="text-sm text-gray-500 mt-1">
-                                         {"Based on members"}: {data.memberCount}
-                                       </p>
-                                     </div>
-                                  );
-                                }
-                                return null;
-                              }}
-                            />
-                            <Legend />
-                            <Line 
-                              type="monotone" 
-                              dataKey="performance" 
-                              stroke="#3b82f6" 
-                              strokeWidth={3}
-                              name={"Group Performance"}
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="wellbeing" 
-                              stroke="#10b981" 
-                              strokeWidth={3}
-                              name={"Group Wellbeing"}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
+                        <div className={`${isMobile ? 'overflow-x-auto' : ''}`}>
+                          <ResponsiveContainer width="100%" height="100%" minHeight={isMobile ? 300 : 400}>
+                            <LineChart data={groupProgressData.weeklyAverages} margin={isMobile ? { top: 5, right: 5, left: -20, bottom: 5 } : { top: 5, right: 30, left: 0, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis 
+                                dataKey="week" 
+                                tick={{ fontSize: isMobile ? 10 : 12 }}
+                                interval={isMobile ? "preserveStartEnd" : 0}
+                                angle={isMobile ? -45 : 0}
+                                textAnchor={isMobile ? "end" : "middle"}
+                                height={isMobile ? 60 : 30}
+                              />
+                              <YAxis 
+                                domain={[0, 10]} 
+                                tick={{ fontSize: isMobile ? 10 : 12 }}
+                                width={isMobile ? 30 : 50}
+                              />
+                              <Tooltip 
+                                content={({ active, payload, label }) => {
+                                  if (active && payload && payload.length) {
+                                    const data = payload[0].payload;
+                                    return (
+                                       <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
+                                         <p className={`${isMobile ? 'text-xs' : ''} font-medium`}>{label}</p>
+                                         <p className={`${isMobile ? 'text-xs' : ''} text-blue-600`}>
+                                           {"Performance"}: {data.performance}
+                                         </p>
+                                         <p className={`${isMobile ? 'text-xs' : ''} text-green-600`}>
+                                           {"Wellbeing"}: {data.wellbeing}
+                                         </p>
+                                         <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 mt-1`}>
+                                           {"Based on members"}: {data.memberCount}
+                                         </p>
+                                       </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                              <Legend 
+                                wrapperStyle={{ fontSize: isMobile ? '10px' : '12px' }}
+                                iconSize={isMobile ? 10 : 12}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="performance" 
+                                stroke="#3b82f6" 
+                                strokeWidth={isMobile ? 2 : 3}
+                                name={"Group Performance"}
+                                dot={!isMobile}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="wellbeing" 
+                                stroke="#10b981" 
+                                strokeWidth={isMobile ? 2 : 3}
+                                name={"Group Wellbeing"}
+                                dot={!isMobile}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
                       )}
                     </div>
                   </CardContent>
@@ -477,83 +491,166 @@ console.log(groupProgressData)
                 {/* Member Summary Table */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>{"Member Progress"}</CardTitle>
+                    <CardTitle className={isMobile ? "text-base" : ""}>{"Member Progress"}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>{"Member"}</TableHead>
-                            <TableHead>{"Status"}</TableHead>
-                            <TableHead>{"Current Performance"}</TableHead>
-                            <TableHead>{"Current Wellbeing"}</TableHead>
-                            <TableHead>{"Actions"}</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {groupProgressData.members.map((member) => (
-                            <TableRow key={member.id}>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-8 w-8">
-                                    {member.avatar && (
-                                      <AvatarImage 
-                                        src={member.avatar} 
-                                        alt={member.name} 
-                                        className="object-cover"
-                                      />
-                                    )}
-                                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                                      {member.initials}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="font-medium">{member.name}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={member.status === "Active" ? "default" : "secondary"}>
-                                  {member.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full bg-blue-500"
-                                      style={{ width: `${member.currentMetrics.performance * 10}%` }}
+                    {!groupProgressData.members || groupProgressData.members.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <Users className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm">No member progress data available</p>
+                      </div>
+                    ) : isMobile ? (
+                      // Mobile: Card-based layout
+                      <div className="space-y-3">
+                        {groupProgressData.members.map((member) => (
+                          <div key={member.id} className="border rounded-lg p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-8 w-8">
+                                  {member.avatar && (
+                                    <AvatarImage 
+                                      src={member.avatar} 
+                                      alt={member.name} 
+                                      className="object-cover"
                                     />
-                                  </div>
-                                  <span className="text-sm font-medium">{member.currentMetrics.performance}</span>
+                                  )}
+                                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                                    {member.initials}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm font-medium">{member.name}</span>
+                              </div>
+                              <Badge variant={member.status === "Active" ? "default" : "secondary"} className="text-xs">
+                                {member.status}
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs text-gray-600">Performance</span>
+                                  <span className="text-xs font-medium">{member.currentMetrics.performance}</span>
                                 </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full bg-green-500"
-                                      style={{ width: `${member.currentMetrics.wellbeing * 10}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-sm font-medium">{member.currentMetrics.wellbeing}</span>
+                                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-blue-500"
+                                    style={{ width: `${member.currentMetrics.performance * 10}%` }}
+                                  />
                                 </div>
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleMemberProgressClick(member.id, member.name)}
-                                  className="flex items-center gap-1"
-                                >
-                                  <Eye className="h-3 w-3" />
-                                  {"View Details"}
-                                </Button>
-                              </TableCell>
+                              </div>
+                              
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs text-gray-600">Wellbeing</span>
+                                  <span className="text-xs font-medium">{member.currentMetrics.wellbeing}</span>
+                                </div>
+                                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-green-500"
+                                    style={{ width: `${member.currentMetrics.wellbeing * 10}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleMemberProgressClick(member.id, member.name)}
+                              className="w-full flex items-center justify-center gap-1 text-xs"
+                            >
+                              <Eye className="h-3 w-3" />
+                              {"View Details"}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      // Desktop: Table layout
+                      <div className="border rounded-lg overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{"Member"}</TableHead>
+                              <TableHead>{"Status"}</TableHead>
+                              <TableHead>{"Current Performance"}</TableHead>
+                              <TableHead>{"Current Wellbeing"}</TableHead>
+                              <TableHead>{"Actions"}</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                          </TableHeader>
+                          <TableBody>
+                            {groupProgressData.members && groupProgressData.members.length > 0 ? (
+                              groupProgressData.members.map((member) => (
+                              <TableRow key={member.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-8 w-8">
+                                      {member.avatar && (
+                                        <AvatarImage 
+                                          src={member.avatar} 
+                                          alt={member.name} 
+                                          className="object-cover"
+                                        />
+                                      )}
+                                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                                        {member.initials}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-medium">{member.name}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={member.status === "Active" ? "default" : "secondary"}>
+                                    {member.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-blue-500"
+                                        style={{ width: `${member.currentMetrics.performance * 10}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-medium">{member.currentMetrics.performance}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-green-500"
+                                        style={{ width: `${member.currentMetrics.wellbeing * 10}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-medium">{member.currentMetrics.wellbeing}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleMemberProgressClick(member.id, member.name)}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                    {"View Details"}
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                              ))
+                            ) : (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                                  <Users className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                                  <p className="text-sm">No member progress data available</p>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -78,6 +78,22 @@ export function CreateTaskDialog({
   memberCount = 0
   }) {
   const [open, setOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
   
   // Fetch real data from database
   const { availableClients, loading: clientsLoading, error: clientsError } = useClients();
@@ -262,17 +278,17 @@ export function CreateTaskDialog({
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-foreground">
+                    <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
                       Task Title
                     </FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="Enter task title..." 
-                        className="bg-background border-border focus:border-primary"
+                        className={`bg-background border-border focus:border-primary ${isMobile ? 'text-xs h-8' : ''}`}
                         {...field} 
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className={isMobile ? 'text-xs' : ''} />
                   </FormItem>
                 )}
               />
@@ -282,17 +298,17 @@ export function CreateTaskDialog({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-foreground">
+                    <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
                       Description
                     </FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Add task description..." 
-                        className="bg-background border-border focus:border-primary min-h-[100px]"
+                        className={`bg-background border-border focus:border-primary ${isMobile ? 'min-h-[60px] text-xs' : 'min-h-[100px]'}`}
                         {...field} 
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className={isMobile ? 'text-xs' : ''} />
                   </FormItem>
                 )}
               />
@@ -301,18 +317,19 @@ export function CreateTaskDialog({
                 control={form.control}
                 name="isRepetitive"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormItem className={`flex flex-row items-start ${isMobile ? 'space-x-2' : 'space-x-3'} space-y-0`}>
                     <FormControl>
                       <Checkbox
                         checked={field.value}
                         onCheckedChange={field.onChange}
+                        className={isMobile ? 'h-4 w-4' : ''}
                       />
                     </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm font-medium text-foreground">
+                    <div className={`${isMobile ? 'space-y-0.5' : 'space-y-1'} leading-none flex-1 min-w-0`}>
+                      <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>
                         Repetitive Task
                       </FormLabel>
-                      <p className="text-xs text-muted-foreground">
+                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                         Automatically create future tasks when this one is completed or becomes overdue
                       </p>
                     </div>
@@ -321,18 +338,18 @@ export function CreateTaskDialog({
               />
 
               {watchIsRepetitive && (
-                <div className="space-y-4 pl-6 border-l-2 border-muted">
+                <div className={`${isMobile ? 'space-y-2 pl-3' : 'space-y-4 pl-6'} border-l-2 border-muted`}>
                   <FormField
                     control={form.control}
                     name="repetitiveFrequency"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-foreground">
+                        <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
                           Frequency
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger className="bg-background border-border">
+                            <SelectTrigger className={`bg-background border-border ${isMobile ? 'text-xs h-8' : ''}`}>
                               <SelectValue placeholder="Select frequency" />
                             </SelectTrigger>
                           </FormControl>
@@ -342,7 +359,7 @@ export function CreateTaskDialog({
                             <SelectItem value="monthly">Monthly</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className={isMobile ? 'text-xs' : ''} />
                       </FormItem>
                     )}
                   />
@@ -352,7 +369,7 @@ export function CreateTaskDialog({
                     name="repetitiveCount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-foreground">
+                        <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
                           Number of Repetitions
                         </FormLabel>
                         <FormControl>
@@ -361,22 +378,22 @@ export function CreateTaskDialog({
                             min="1"
                             max="50"
                             placeholder="Enter number of repetitions..." 
-                            className="bg-background border-border focus:border-primary"
+                            className={`bg-background border-border focus:border-primary ${isMobile ? 'text-xs h-8' : ''}`}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                           />
                         </FormControl>
-                        <p className="text-xs text-muted-foreground">
+                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                           How many times should this task be repeated? (1-50)
                         </p>
-                        <FormMessage />
+                        <FormMessage className={isMobile ? 'text-xs' : ''} />
                       </FormItem>
                     )}
                   />
 
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <p className="text-sm text-foreground font-medium">Next Due Date</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className={`bg-muted/50 ${isMobile ? 'p-2' : 'p-3'} rounded-lg`}>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>Next Due Date</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>
                       {format(getNextDueDate(), "PPP")}
                     </p>
                   </div>
@@ -389,7 +406,7 @@ export function CreateTaskDialog({
                   name="dueDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-sm font-medium text-foreground">
+                      <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
                         Due Date
                       </FormLabel>
                       <Popover>
@@ -398,20 +415,21 @@ export function CreateTaskDialog({
                             <Button
                               variant="outline"
                               className={cn(
-                                "pl-3 text-left font-normal bg-background border-border hover:bg-muted",
+                                `${isMobile ? 'pl-2 text-xs h-8' : 'pl-3'} text-left font-normal bg-background border-border hover:bg-muted`,
                                 !field.value && "text-muted-foreground"
                               )}
+                              size={isMobile ? "sm" : "default"}
                             >
                               {field.value ? (
                                 format(field.value, "PPP")
                               ) : (
                                 <span>Pick a date</span>
                               )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              <CalendarIcon className={`ml-auto ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} opacity-50`} />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent className={`w-auto p-0 ${isMobile ? 'mx-2' : ''}`} align="start">
                           <Calendar
                             mode="single"
                             selected={field.value}
@@ -422,7 +440,7 @@ export function CreateTaskDialog({
                           />
                         </PopoverContent>
                       </Popover>
-                      <FormMessage />
+                      <FormMessage className={isMobile ? 'text-xs' : ''} />
                     </FormItem>
                   )}
                 />
@@ -434,53 +452,57 @@ export function CreateTaskDialog({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           {children || (
-            <Button className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all"
+            <Button className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all ${isMobile ? 'text-xs h-8' : ''}`}
             variant="outline"
+            size={isMobile ? "sm" : "default"}
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
               Create Task
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-foreground">
+        <DialogContent className={`${isMobile ? 'max-w-full mx-2' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
+          <DialogHeader className={isMobile ? 'pb-2' : ''}>
+            <DialogTitle className={`${isMobile ? 'text-base' : 'text-xl'} font-semibold text-foreground break-words`}>
             Create New Task
             </DialogTitle>
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className={isMobile ? 'space-y-3' : 'space-y-6'}>
             {/* Task Type Selection - hide when in client context or group mode */}
             {!hideGroupTasks && mode !== "group" && (
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-foreground">Task Type</label>
-                <div className="grid grid-cols-3 gap-3">
+              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
+                <label className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>Task Type</label>
+                <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-3 gap-3'}`}>
                   <Button
                     type="button"
                     variant={taskType === "personal" ? "default" : "outline"}
                     onClick={() => setTaskType("personal")}
-                    className="justify-start"
+                    className={`justify-start ${isMobile ? 'text-xs h-8' : ''}`}
+                    size={isMobile ? "sm" : "default"}
                   >
-                    <User className="h-4 w-4 mr-2" />
+                    <User className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                     My Tasks
                   </Button>
                   <Button 
                     type="button" 
                     variant={taskType === "client" ? "default" : "outline"}
                     onClick={() => setTaskType("client")}
-                    className="justify-start"
+                    className={`justify-start ${isMobile ? 'text-xs h-8' : ''}`}
+                    size={isMobile ? "sm" : "default"}
                   >
-                    <Users className="h-4 w-4 mr-2" />
+                    <Users className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                     Client Task
                   </Button>
                   <Button 
                     type="button"
                     variant={taskType === "group" ? "default" : "outline"}
                     onClick={() => setTaskType("group")}
-                    className="justify-start"
+                    className={`justify-start ${isMobile ? 'text-xs h-8' : ''}`}
+                    size={isMobile ? "sm" : "default"}
                   >
-                    <Users className="h-4 w-4 mr-2" />
+                    <Users className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                     Group Task
                   </Button>
                 </div>
@@ -494,21 +516,21 @@ export function CreateTaskDialog({
                   name="selectedClients"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
+                      <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
                         Assign to Clients
                       </FormLabel>
-                      <div className="space-y-2">
+                      <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                         {selectedClients.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
+                          <div className={`flex flex-wrap ${isMobile ? 'gap-1' : 'gap-2'}`}>
                             {selectedClients.map((clientId) => (
                               <Badge 
                                 key={clientId} 
                                 variant="secondary" 
-                                className="flex items-center gap-1"
+                                className={`flex items-center gap-1 ${isMobile ? 'text-xs px-1.5 py-0.5' : ''}`}
                               >
-                                {getClientName(clientId)}
+                                <span className="break-words">{getClientName(clientId)}</span>
                                 <X 
-                                  className="h-3 w-3 cursor-pointer" 
+                                  className={isMobile ? 'h-2.5 w-2.5 cursor-pointer' : 'h-3 w-3 cursor-pointer'} 
                                   onClick={() => handleClientRemove(clientId)}
                                 />
                               </Badge>
@@ -525,20 +547,23 @@ export function CreateTaskDialog({
                               variant="outline" 
                               role="combobox"
                               aria-expanded={clientSearchOpen}
-                              className="w-full justify-between bg-background border-border hover:bg-muted"
+                              className={`w-full justify-between bg-background border-border hover:bg-muted ${isMobile ? 'text-xs h-8' : ''}`}
+                              size={isMobile ? "sm" : "default"}
                             >
-                              <div className="flex items-center gap-2">
-                                <Search className="h-4 w-4" />
-                                {selectedClients.length === 0 
-                                  ? "Search and select clients..." 
-                                  : `${selectedClients.length} client${selectedClients.length > 1 ? 's' : ''} selected`
-                                }
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Search className={isMobile ? 'h-3 w-3 flex-shrink-0' : 'h-4 w-4 flex-shrink-0'} />
+                                <span className="truncate">
+                                  {selectedClients.length === 0 
+                                    ? "Search and select clients..." 
+                                    : `${selectedClients.length} client${selectedClients.length > 1 ? 's' : ''} selected`
+                                  }
+                                </span>
                               </div>
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent 
                             ref={popoverContentRef}
-                            className="w-[400px] p-0 z-[60] pointer-events-auto"
+                            className={`${isMobile ? 'w-[calc(100vw-1rem)] mx-2' : 'w-[400px]'} p-0 z-[60] pointer-events-auto`}
                             onOpenAutoFocus={(e) => e.preventDefault()}
                             onPointerDownOutside={(e) => {
                               // Check if the click is actually inside our popover content
@@ -560,36 +585,36 @@ export function CreateTaskDialog({
                               setClientSearchOpen(false);
                             }}
                           >
-                            <div className="p-3 space-y-2">
+                            <div className={`${isMobile ? 'p-2 space-y-1.5' : 'p-3 space-y-2'}`}>
                               <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
                                 <Input
                                   placeholder="Search clients..."
                                   value={clientSearchQuery}
                                   onChange={(e) => {
                                     setClientSearchQuery(e.target.value);
                                   }}
-                                  className="pl-9"
+                                  className={`pl-9 ${isMobile ? 'text-xs h-8' : ''}`}
                                 />
                               </div>
-                              <div className="max-h-[200px] overflow-y-auto space-y-1">
+                              <div className={`max-h-[200px] overflow-y-auto ${isMobile ? 'space-y-1' : 'space-y-1'}`}>
                                 {clientsLoading ? (
-                                  <div className="text-sm text-muted-foreground p-2 text-center">
+                                  <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'p-1.5' : 'p-2'} text-center`}>
                                     Loading clients...
                                   </div>
                                 ) : clientsError ? (
-                                  <div className="text-sm text-destructive p-2 text-center">
+                                  <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive ${isMobile ? 'p-1.5' : 'p-2'} text-center break-words`}>
                                     Error loading clients: {clientsError}
                                   </div>
                                 ) : filteredClients.length === 0 ? (
-                                  <div className="text-sm text-muted-foreground p-2 text-center">
+                                  <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'p-1.5' : 'p-2'} text-center`}>
                                     No clients found
                                   </div>
                                 ) : (
                                   filteredClients.map((client) => (
                                     <div
                                       key={client.id}
-                                      className="w-full text-left cursor-pointer hover:bg-muted rounded-md p-2 transition-colors flex items-center gap-3 select-none"
+                                      className={`w-full text-left cursor-pointer hover:bg-muted rounded-md ${isMobile ? 'p-1.5' : 'p-2'} transition-colors flex items-center gap-3 select-none`}
                                       style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
                                       onPointerDown={(e) => {
                                         console.log('📌 PointerDown event fired for:', client.id, client.name, e);
@@ -610,10 +635,10 @@ export function CreateTaskDialog({
                                         handleClientSelect(client.id);
                                       }}
                                     >
-                                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary flex-shrink-0">
+                                      <div className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} rounded-full bg-primary/10 flex items-center justify-center ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-primary flex-shrink-0`}>
                                         {client.initials}
                                       </div>
-                                      <span className="flex-1">{client.name}</span>
+                                      <span className="flex-1 min-w-0 break-words">{client.name}</span>
                                     </div>
                                   ))
                                 )}
@@ -622,10 +647,10 @@ export function CreateTaskDialog({
                           </PopoverContent>
                         </Popover>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                         You can select multiple clients for the same task
                       </p>
-                      <FormMessage />
+                      <FormMessage className={isMobile ? 'text-xs' : ''} />
                     </FormItem>
                   )}
                 />
@@ -633,15 +658,15 @@ export function CreateTaskDialog({
 
             {/* Show selected client when in client context */}
             {hideGroupTasks && clientId && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                <label className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>
                   Assign to Client
                 </label>
-                <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                <div className={`flex items-center gap-2 ${isMobile ? 'p-2' : 'p-3'} border rounded-lg bg-muted/50`}>
+                  <div className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} rounded-full bg-primary/10 flex items-center justify-center ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-primary flex-shrink-0`}>
                     {clientName ? clientName.split(' ').map(n => n[0]).join('').toUpperCase() : 'C'}
                   </div>
-                  <span className="font-medium">{clientName || 'Selected Client'}</span>
+                  <span className={`font-medium ${isMobile ? 'text-xs' : ''} break-words flex-1 min-w-0`}>{clientName || 'Selected Client'}</span>
                 </div>
               </div>
             )}
@@ -653,22 +678,22 @@ export function CreateTaskDialog({
                 name="selectedGroup"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-foreground">
+                      <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>
                       {mode === "group" ? "Selected Group" : "Select Group"}
                       </FormLabel>
-                    <div className="space-y-2">
+                    <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                       {selectedGroup && (
-                        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                        <div className={`flex items-center gap-2 ${isMobile ? 'p-2' : 'p-3'} bg-muted/50 rounded-lg`}>
+                          <div className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} rounded-full bg-primary/10 flex items-center justify-center ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-primary flex-shrink-0`}>
                             {selectedGroup.avatar || 'G'}
                       </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-foreground">{selectedGroup.name}</p>
-                            <p className="text-xs text-muted-foreground">{selectedGroup.memberCount} members</p>
+                          <div className="flex-1 min-w-0">
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>{selectedGroup.name}</p>
+                            <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{selectedGroup.memberCount} members</p>
                           </div>
                           {mode !== "group" && (
                             <X 
-                              className="h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
+                              className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} cursor-pointer text-muted-foreground hover:text-foreground flex-shrink-0`} 
                               onClick={handleGroupRemove}
                             />
                           )}
@@ -685,19 +710,22 @@ export function CreateTaskDialog({
                                 variant="outline"
                             role="combobox"
                             aria-expanded={groupSearchOpen}
-                            className="w-full justify-between bg-background border-border hover:bg-muted"
+                            className={`w-full justify-between bg-background border-border hover:bg-muted ${isMobile ? 'text-xs h-8' : ''}`}
+                            size={isMobile ? "sm" : "default"}
                           >
-                            <div className="flex items-center gap-2">
-                              <Search className="h-4 w-4" />
-                              {!selectedGroup 
-                                ? "Search and select a group..." 
-                                : selectedGroup.name
-                              }
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Search className={isMobile ? 'h-3 w-3 flex-shrink-0' : 'h-4 w-4 flex-shrink-0'} />
+                              <span className="truncate">
+                                {!selectedGroup 
+                                  ? "Search and select a group..." 
+                                  : selectedGroup.name
+                                }
+                              </span>
                             </div>
                               </Button>
                           </PopoverTrigger>
                         <PopoverContent 
-                          className="w-[400px] p-0 z-[60] pointer-events-auto"
+                          className={`${isMobile ? 'w-[calc(100vw-1rem)] mx-2' : 'w-[400px]'} p-0 z-[60] pointer-events-auto`}
                           onOpenAutoFocus={(e) => e.preventDefault()}
                           onPointerDownOutside={(e) => {
                             // Check if the click is actually inside our popover content
@@ -713,34 +741,34 @@ export function CreateTaskDialog({
                             setGroupSearchOpen(false);
                           }}
                         >
-                          <div className="p-3 space-y-2">
+                          <div className={`${isMobile ? 'p-2 space-y-1.5' : 'p-3 space-y-2'}`}>
                             <div className="relative">
-                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
                         <Input 
                                 placeholder="Search groups..."
                                 value={groupSearchQuery}
                                 onChange={(e) => setGroupSearchQuery(e.target.value)}
-                                className="pl-9"
+                                className={`pl-9 ${isMobile ? 'text-xs h-8' : ''}`}
                               />
                       </div>
-                            <div className="max-h-[200px] overflow-y-auto space-y-1">
+                            <div className={`max-h-[200px] overflow-y-auto ${isMobile ? 'space-y-1' : 'space-y-1'}`}>
                               {groupsLoading ? (
-                                <div className="text-sm text-muted-foreground p-2 text-center">
+                                <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'p-1.5' : 'p-2'} text-center`}>
                                   Loading groups...
                                 </div>
                               ) : groupsError ? (
-                                <div className="text-sm text-destructive p-2 text-center">
+                                <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive ${isMobile ? 'p-1.5' : 'p-2'} text-center break-words`}>
                                   Error loading groups: {groupsError}
                                 </div>
                               ) : filteredGroups.length === 0 ? (
-                                <div className="text-sm text-muted-foreground p-2 text-center">
+                                <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'p-1.5' : 'p-2'} text-center`}>
                                   No groups found
                                 </div>
                               ) : (
                                 filteredGroups.map((group) => (
                                   <div
                                     key={group.id}
-                                    className="w-full text-left cursor-pointer hover:bg-muted rounded-md p-3 transition-colors flex items-center gap-3 select-none"
+                                    className={`w-full text-left cursor-pointer hover:bg-muted rounded-md ${isMobile ? 'p-1.5' : 'p-3'} transition-colors flex items-center gap-3 select-none`}
                                     style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
                                     onPointerDown={(e) => {
                                       e.stopPropagation();
@@ -758,12 +786,12 @@ export function CreateTaskDialog({
                                       handleGroupSelect(group.id);
                                     }}
                                   >
-                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary flex-shrink-0">
+                                    <div className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} rounded-full bg-primary/10 flex items-center justify-center ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-primary flex-shrink-0`}>
                                       {group.avatar}
                                     </div>
-                                    <div className="flex-1">
-                                      <p className="font-medium text-sm">{group.name}</p>
-                                      <p className="text-xs text-muted-foreground">{group.memberCount} members</p>
+                                    <div className="flex-1 min-w-0">
+                                      <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>{group.name}</p>
+                                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{group.memberCount} members</p>
                                     </div>
                                   </div>
                                 ))
@@ -774,13 +802,13 @@ export function CreateTaskDialog({
                         </Popover>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                       {mode === "group" 
                         ? "This task will be assigned to all group members" 
                         : "Select a group to assign this task to all group members"
                       }
                     </p>
-                        <FormMessage />
+                        <FormMessage className={isMobile ? 'text-xs' : ''} />
                       </FormItem>
                     )}
                   />
@@ -789,18 +817,20 @@ export function CreateTaskDialog({
             {/* Common form fields */}
             {renderFormFields()}
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-border">
+              <div className={`flex ${isMobile ? 'flex-col gap-2' : 'justify-end gap-3'} ${isMobile ? 'pt-2' : 'pt-4'} border-t border-border`}>
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setOpen(false)}
-                  className="border-border hover:bg-muted"
+                  className={`border-border hover:bg-muted ${isMobile ? 'w-full text-xs h-8' : ''}`}
+                  size={isMobile ? "sm" : "default"}
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit"
-                  className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all"
+                  className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all ${isMobile ? 'w-full text-xs h-8' : ''}`}
+                  size={isMobile ? "sm" : "default"}
                 >
                   Create Task
                 </Button>

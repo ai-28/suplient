@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -23,7 +23,23 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
   });
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const t = useTranslation();
+  
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
   
   // Fetch real clients from database
   const { availableClients, loading: clientsLoading, error: clientsError } = useClients();
@@ -108,35 +124,36 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl">
-            <Users className="h-6 w-6 text-primary" />
-            {t('groups.createGroup')}
+      <DialogContent className={`${isMobile ? 'max-w-full mx-2' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
+        <DialogHeader className={isMobile ? 'pb-2' : ''}>
+          <DialogTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-2xl'} break-words`}>
+            <Users className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
+            <span className="break-words min-w-0 flex-1">{t('groups.createGroup')}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className={isMobile ? 'space-y-3' : 'space-y-6'}>
           {/* Basic Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">{t('common.labels.description')}</h3>
+          <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('common.labels.description')}</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('groups.createGroup')} *</Label>
+            <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} ${isMobile ? 'gap-2' : 'gap-4'}`}>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label htmlFor="name" className={isMobile ? 'text-xs' : ''}>{t('groups.createGroup')} *</Label>
                 <Input
                   id="name"
                   placeholder={t('groups.createGroup')}
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                   required
+                  className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="focusArea">{t('common.labels.status')} *</Label>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label htmlFor="focusArea" className={isMobile ? 'text-xs' : ''}>{t('common.labels.status')} *</Label>
                 <Select onValueChange={(value) => handleInputChange("focusArea", value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder={t('common.labels.select')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -153,27 +170,28 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">{t('common.labels.description')}</Label>
+            <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+              <Label htmlFor="description" className={isMobile ? 'text-xs' : ''}>{t('common.labels.description')}</Label>
               <Textarea
                 id="description"
                 placeholder={t('common.labels.description')}
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
-                rows={3}
+                rows={isMobile ? 2 : 3}
+                className={isMobile ? 'text-xs' : ''}
               />
             </div>
           </div>
 
           {/* Group Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">{t('settings.title')}</h3>
+          <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('settings.title')}</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="capacity">{t('groups.groupMembers')}</Label>
+            <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-3'} ${isMobile ? 'gap-2' : 'gap-4'}`}>
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label htmlFor="capacity" className={isMobile ? 'text-xs' : ''}>{t('groups.groupMembers')}</Label>
                 <Select onValueChange={(value) => handleInputChange("capacity", value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder={t('common.labels.select')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -188,26 +206,26 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
           </div>
 
           {/* Member Selection */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">{t('groups.addMember')}</h3>
+          <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('groups.addMember')}</h3>
             
-            <div className="space-y-2">
-              <Label>{t('clients.title')}</Label>
+            <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+              <Label className={isMobile ? 'text-xs' : ''}>{t('clients.title')}</Label>
               {clientsLoading ? (
-                <div className="flex items-center justify-center p-4">
-                  <div className="text-muted-foreground">{t('common.messages.loading')}</div>
+                <div className={`flex items-center justify-center ${isMobile ? 'p-2' : 'p-4'}`}>
+                  <div className={`${isMobile ? 'text-xs' : ''} text-muted-foreground`}>{t('common.messages.loading')}</div>
                 </div>
               ) : clientsError ? (
-                <div className="flex items-center justify-center p-4">
-                  <div className="text-destructive">{t('common.messages.error')}: {clientsError}</div>
+                <div className={`flex items-center justify-center ${isMobile ? 'p-2' : 'p-4'}`}>
+                  <div className={`${isMobile ? 'text-xs' : ''} text-destructive break-words`}>{t('common.messages.error')}: {clientsError}</div>
                 </div>
               ) : availableClients.length === 0 ? (
-                <div className="flex items-center justify-center p-4">
-                  <div className="text-muted-foreground">{t('clients.noClients')}</div>
+                <div className={`flex items-center justify-center ${isMobile ? 'p-2' : 'p-4'}`}>
+                  <div className={`${isMobile ? 'text-xs' : ''} text-muted-foreground break-words`}>{t('clients.noClients')}</div>
                 </div>
               ) : (
                 <Select onValueChange={addMember}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder={t('groups.addMember')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -224,27 +242,27 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
             </div>
 
             {selectedMembers.length > 0 && (
-              <div className="space-y-2">
-                <Label>{t('groups.groupMembers')} ({selectedMembers.length})</Label>
-                <div className="flex flex-wrap gap-2">
+              <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
+                <Label className={isMobile ? 'text-xs' : ''}>{t('groups.groupMembers')} ({selectedMembers.length})</Label>
+                <div className={`flex flex-wrap ${isMobile ? 'gap-1' : 'gap-2'}`}>
                   {selectedMembers.map((member) => (
                     <Badge
                       key={member.id}
                       variant="secondary"
-                      className="flex items-center gap-2 px-3 py-2"
+                      className={`flex items-center gap-2 ${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-2'}`}
                     >
-                      <Avatar className="h-5 w-5">
-                        <AvatarFallback className="text-xs">
+                      <Avatar className={isMobile ? 'h-4 w-4' : 'h-5 w-5'}>
+                        <AvatarFallback className={isMobile ? 'text-[10px]' : 'text-xs'}>
                           {member.initials}
                         </AvatarFallback>
                       </Avatar>
-                      <span>{member.name}</span>
+                      <span className="break-words">{member.name}</span>
                       <button
                         type="button"
                         onClick={() => removeMember(member.id)}
                         className="hover:text-destructive"
                       >
-                        <X className="h-3 w-3" />
+                        <X className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                       </button>
                     </Badge>
                   ))}
@@ -254,13 +272,14 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className={`flex ${isMobile ? 'flex-col gap-2' : 'justify-end gap-3'} ${isMobile ? 'pt-2' : 'pt-4'} border-t`}>
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`disabled:opacity-50 disabled:cursor-not-allowed ${isMobile ? 'w-full text-xs h-8' : ''}`}
+              size={isMobile ? "sm" : "default"}
             >
               {t('common.buttons.cancel')}
             </Button>
@@ -268,16 +287,17 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
               type="submit"
               variant="outline"
               disabled={isLoading}
-              className="disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`disabled:opacity-50 disabled:cursor-not-allowed ${isMobile ? 'w-full text-xs h-8' : ''}`}
+              size={isMobile ? "sm" : "default"}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                   {t('common.messages.loading')}
                 </>
               ) : (
                 <>
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                   {t('groups.createGroup')}
                 </>
               )}

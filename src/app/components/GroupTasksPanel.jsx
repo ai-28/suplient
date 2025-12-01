@@ -16,6 +16,22 @@ export function GroupTasksPanel({ groupId, memberCount }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
 
   // Fetch group tasks
   const fetchGroupTasks = async () => {
@@ -60,10 +76,10 @@ export function GroupTasksPanel({ groupId, memberCount }) {
 
   return (
     <>
-      <Card className="shadow-soft border-border bg-card h-full flex flex-col">
-        <CardHeader className="pb-3 flex-shrink-0">
+      <Card className={`${isMobile ? 'p-0 shadow-none border-0' : 'shadow-soft border-border'} bg-card h-full flex flex-col`}>
+        <CardHeader className={`${isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'} flex-shrink-0`}>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground text-sm">Group Tasks</CardTitle>
+            <CardTitle className={`text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Group Tasks</CardTitle>
             <CreateTaskDialog 
               mode="group" 
               groupId={groupId}
@@ -71,67 +87,67 @@ export function GroupTasksPanel({ groupId, memberCount }) {
               onTaskCreated={handleTaskCreated}
             >
               <Button 
-                size="sm" 
+                size={isMobile ? "sm" : "sm"} 
                 variant="ghost"
-                className="h-6 w-6 p-0"
+                className={isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'}
               >
-                <Plus className="h-3 w-3" />
+                <Plus className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
               </Button>
             </CreateTaskDialog>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col">
+        <CardContent className={`flex-1 flex flex-col ${isMobile ? 'px-2 pb-2' : ''}`}>
           <ScrollArea className="flex-1">
             {loading ? (
-              <div className="flex items-center justify-center h-32">
+              <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Loading tasks...</p>
+                  <Loader2 className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
+                  <p className={`${isMobile ? 'text-xs mt-1' : 'text-sm mt-2'} text-muted-foreground`}>Loading tasks...</p>
                 </div>
               </div>
             ) : error ? (
-              <div className="flex items-center justify-center h-32">
+              <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <p className="text-sm text-destructive mb-2">Error: {error}</p>
-                  <Button size="sm" variant="outline" onClick={fetchGroupTasks}>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive ${isMobile ? 'mb-1' : 'mb-2'} break-words`}>Error: {error}</p>
+                  <Button size={isMobile ? "sm" : "sm"} variant="outline" onClick={fetchGroupTasks} className={isMobile ? 'text-xs h-7 mt-1' : ''}>
                     Try Again
                   </Button>
                 </div>
               </div>
             ) : tasks.length === 0 ? (
-              <div className="flex items-center justify-center h-32">
+              <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">No tasks assigned yet</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>No tasks assigned yet</p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
                 {tasks.map((task) => (
                 <div 
                   key={task.id}
                   onClick={() => handleTaskClick(task)}
-                  className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  className={`${isMobile ? 'p-2' : 'p-3'} bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer`}
                 >
-                  <div className="space-y-2">
+                  <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="text-sm text-foreground font-medium">{task.title}</h4>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{task.title}</h4>
                       </div>
                     </div>
                     
-                    <p className="text-xs text-muted-foreground">
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                       {task.description}
                     </p>
                     
-                    <div className="flex items-center justify-between text-xs">
+                    <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">{task.dueDate}</span>
+                        <Calendar className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                        <span className="text-muted-foreground break-words">{task.dueDate}</span>
                       </div>
                       
                       <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">
+                        <Users className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                        <span className="text-muted-foreground break-words">
                           {task.completedCount}/{task.assignedCount}
                         </span>
                       </div>
