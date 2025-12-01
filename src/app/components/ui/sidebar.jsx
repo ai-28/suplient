@@ -60,8 +60,10 @@ const SidebarProvider = React.forwardRef(({
           _setOpen(openState)
         }
 
-        // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        // This sets the cookie to keep the sidebar state (only on client side).
+        if (typeof document !== 'undefined') {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        }
       },
       [setOpenProp, open]
     )
@@ -73,6 +75,8 @@ const SidebarProvider = React.forwardRef(({
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
+      if (typeof window === 'undefined') return
+      
       const handleKeyDown = (event) => {
         if (
           event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
@@ -157,23 +161,31 @@ const Sidebar = React.forwardRef((
     }
 
   
+    const [mounted, setMounted] = React.useState(false)
+
+    React.useEffect(() => {
+      setMounted(true)
+    }, [])
+
     return (
       <>
-        {/* Mobile Sheet */}
-        <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-          <SheetContent
-            side={side}
-            className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground sm:w-[--sidebar-width]"
-            style={{ "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE }}
-          >
-            <div
-              data-sidebar="sidebar"
-              className="flex h-full w-full flex-col bg-sidebar"
+        {/* Mobile Sheet - Only render on client side */}
+        {mounted && (
+          <Sheet open={openMobile} onOpenChange={setOpenMobile}>
+            <SheetContent
+              side={side}
+              className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground sm:w-[--sidebar-width]"
+              style={{ "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE }}
             >
-              {children}
-            </div>
-          </SheetContent>
-        </Sheet>
+              <div
+                data-sidebar="sidebar"
+                className="flex h-full w-full flex-col bg-sidebar"
+              >
+                {children}
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
 
         {/* Desktop Sidebar */}
         <div
@@ -228,6 +240,9 @@ const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) 
   const [isMobile, setIsMobile] = React.useState(false)
 
   React.useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return
+    
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
@@ -239,7 +254,8 @@ const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) 
   const handleClick = (event) => {
     onClick?.(event)
     // On mobile, toggle the mobile sheet; on desktop, toggle the sidebar
-    if (isMobile) {
+    // Check window size directly in click handler as fallback
+    if (typeof window !== 'undefined' && (isMobile || window.innerWidth < 768)) {
       setOpenMobile(!openMobile)
     } else {
       toggleSidebar()

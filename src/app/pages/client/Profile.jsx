@@ -44,7 +44,6 @@ import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useGroups } from "@/app/hooks/useGroups";
 import { toast } from "sonner";
-import heic2any from "heic2any";
 
 // Demo data for goals and habits
 const demoGoals = [
@@ -440,13 +439,17 @@ export default function ClientProfile() {
           // Load notification preference from database
           if (data.user.notificationsEnabled !== undefined) {
             setNotificationsEnabled(data.user.notificationsEnabled !== false);
-            // Also sync to localStorage for backward compatibility
-            localStorage.setItem('notificationsEnabled', (data.user.notificationsEnabled !== false).toString());
+            // Also sync to localStorage for backward compatibility (only on client)
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('notificationsEnabled', (data.user.notificationsEnabled !== false).toString());
+            }
           } else {
-            // Fallback to localStorage if database doesn't have it yet
-            const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
-            if (savedNotificationPreference !== null) {
-              setNotificationsEnabled(savedNotificationPreference === 'true');
+            // Fallback to localStorage if database doesn't have it yet (only on client)
+            if (typeof window !== 'undefined') {
+              const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
+              if (savedNotificationPreference !== null) {
+                setNotificationsEnabled(savedNotificationPreference === 'true');
+              }
             }
           }
         } else {
@@ -484,6 +487,9 @@ export default function ClientProfile() {
   const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
     const checkScreenSize = () => {
       const width = window.innerWidth;
       setIsMobile(width < 640); // sm breakpoint
@@ -648,6 +654,13 @@ export default function ClientProfile() {
       // Convert HEIC to JPEG if needed
       if (isHeic) {
         try {
+          // Dynamically import heic2any only on client side
+          if (typeof window === 'undefined') {
+            toast.error('HEIC conversion is not available on server side');
+            return;
+          }
+          
+          const heic2any = (await import('heic2any')).default;
           toast.info('Converting HEIC image to JPEG...', { duration: 2000 });
           const convertedBlob = await heic2any({
             blob: file,
@@ -799,8 +812,10 @@ export default function ClientProfile() {
         // Clear selected file
         setSelectedFile(null);
         // Clear file input
-        const fileInput = document.getElementById('avatar-upload-client');
-        if (fileInput) fileInput.value = '';
+        if (typeof document !== 'undefined') {
+          const fileInput = document.getElementById('avatar-upload-client');
+          if (fileInput) fileInput.value = '';
+        }
         // Update user data with new avatar
         setUserData(prev => ({
           ...prev,
@@ -1177,7 +1192,11 @@ export default function ClientProfile() {
                       variant="outline" 
                       size={isMobile ? "sm" : "sm"} 
                       className="w-full"
-                      onClick={() => document.getElementById('avatar-upload-client')?.click()}
+                      onClick={() => {
+                        if (typeof document !== 'undefined') {
+                          document.getElementById('avatar-upload-client')?.click();
+                        }
+                      }}
                       disabled={uploadingAvatar}
                     >
                       <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
@@ -1207,8 +1226,10 @@ export default function ClientProfile() {
                           onClick={() => {
                             setAvatarPreview(userData?.avatar || null);
                             setSelectedFile(null);
-                            const fileInput = document.getElementById('avatar-upload-client');
-                            if (fileInput) fileInput.value = '';
+                            if (typeof document !== 'undefined') {
+                              const fileInput = document.getElementById('avatar-upload-client');
+                              if (fileInput) fileInput.value = '';
+                            }
                           }}
                           disabled={uploadingAvatar}
                         >
