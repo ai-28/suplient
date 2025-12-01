@@ -55,6 +55,22 @@ export default function Dashboard() {
   const [activities, setActivities] = useState([]);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640); // sm breakpoint
+      setIsTablet(width >= 640 && width < 1024); // md breakpoint
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
 
   // Fetch activities
   const fetchActivities = async () => {
@@ -183,7 +199,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="page-container">
+    <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
       <PageHeader 
         title={t('dashboard.coach.title')} 
@@ -191,16 +207,16 @@ export default function Dashboard() {
       />
 
       {/* First Row - My Tasks and Client Overview */}
-      <div className="grid-dashboard">
+      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2'}`}>
         {/* My Tasks */}
-        <Card className="card-standard">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-primary" />
+        <Card className={`card-standard ${isMobile ? 'p-3' : ''}`}>
+          <CardHeader className={`pb-4 ${isMobile ? 'pb-3 px-0' : ''}`}>
+            <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
+              <CheckCircle className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
               {t('tasks.myTasks')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className={`space-y-3 ${isMobile ? 'space-y-2 px-0' : ''}`}>
             {tasksLoading ? (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -213,29 +229,30 @@ export default function Dashboard() {
               </div>
             ) : (
               tasks.map((task) => (
-                <div key={task.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div key={task.id} className={`flex items-center ${isMobile ? 'space-x-2 p-2' : 'space-x-3 p-3'} rounded-lg bg-muted/50 hover:bg-muted transition-colors`}>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <div className="flex items-center space-x-3 flex-1 cursor-pointer">
+                      <div className={`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'} flex-1 cursor-pointer`}>
                         <Checkbox 
                           id={`task-${task.id}`} 
                           checked={task.completed}
                           disabled={taskUpdating === task.id}
+                          className={isMobile ? 'h-4 w-4' : ''}
                         />
                         <label 
                           htmlFor={`task-${task.id}`} 
-                          className={`text-sm flex-1 cursor-pointer ${
+                          className={`${isMobile ? 'text-xs' : 'text-sm'} flex-1 cursor-pointer ${
                             task.completed ? 'line-through text-muted-foreground' : 'text-foreground'
                           }`}
                         >
                           {task.text}
                         </label>
                         {taskUpdating === task.id && (
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-spin text-muted-foreground`} />
                         )}
                       </div>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className={isMobile ? 'mx-4' : ''}>
                       <AlertDialogHeader>
                         <AlertDialogTitle>
                           {task.completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
@@ -261,23 +278,24 @@ export default function Dashboard() {
                 </div>
               ))
             )}
-            <div className="pt-2">
-              <div className="flex items-center justify-between text-sm">
+            <div className={`pt-2 ${isMobile ? 'pt-1' : ''}`}>
+              <div className={`flex items-center justify-between ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 <span className="text-foreground">• {t('dashboard.coach.todaysTasks')}</span>
-                <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                <Badge variant="secondary" className={`bg-primary text-primary-foreground ${isMobile ? 'text-xs px-1.5 py-0' : ''}`}>
                   {tasksLoading ? "..." : tasks.length}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between text-sm mt-1">
+              <div className={`flex items-center justify-between ${isMobile ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>
                 <span className="text-foreground">• {t('common.status.completed')}</span>
-                <Badge variant="secondary" className="bg-green-500 text-white">
+                <Badge variant="secondary" className={`bg-green-500 text-white ${isMobile ? 'text-xs px-1.5 py-0' : ''}`}>
                   {tasksLoading ? "..." : tasks.filter(task => task.completed).length}
                 </Badge>
               </div>
               <Button 
                 variant="outline" 
-                className="w-full mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                className={`w-full ${isMobile ? 'mt-2 h-9 text-sm' : 'mt-4'} border-primary text-primary hover:bg-primary hover:text-primary-foreground`}
                 onClick={handleViewAllTasks}
+                size={isMobile ? "sm" : "default"}
               >
                 {t('dashboard.coach.viewAllTasks')}
               </Button>
@@ -286,14 +304,14 @@ export default function Dashboard() {
         </Card>
 
         {/* Client Overview */}
-        <Card className="card-standard">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <Users className="h-5 w-5 text-secondary" />
+        <Card className={`card-standard ${isMobile ? 'p-3' : ''}`}>
+          <CardHeader className={`pb-4 ${isMobile ? 'pb-3 px-0' : ''}`}>
+            <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
+              <Users className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-secondary`} />
               {t('dashboard.coach.stats.totalClients')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={`space-y-4 ${isMobile ? 'space-y-2 px-0' : ''}`}>
             {clientStatsLoading ? (
               <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -301,27 +319,27 @@ export default function Dashboard() {
               </div>
             ) : (
               <>
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-foreground font-medium">{t('dashboard.coach.stats.activeClients')}</span>
-                  <Badge className="bg-primary text-primary-foreground text-lg px-3 py-1">
+                <div className={`flex justify-between items-center ${isMobile ? 'p-2' : 'p-3'} bg-muted/50 rounded-lg`}>
+                  <span className={`text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{t('dashboard.coach.stats.activeClients')}</span>
+                  <Badge className={`bg-primary text-primary-foreground ${isMobile ? 'text-sm px-2 py-0.5' : 'text-lg px-3 py-1'}`}>
                     {clientStats.activeClients}
                   </Badge>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-foreground font-medium">{t('dashboard.coach.stats.newThisMonth')}</span>
-                  <Badge className="bg-accent text-accent-foreground text-lg px-3 py-1">
+                <div className={`flex justify-between items-center ${isMobile ? 'p-2' : 'p-3'} bg-muted/50 rounded-lg`}>
+                  <span className={`text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{t('dashboard.coach.stats.newThisMonth')}</span>
+                  <Badge className={`bg-accent text-accent-foreground ${isMobile ? 'text-sm px-2 py-0.5' : 'text-lg px-3 py-1'}`}>
                     {clientStats.newClientsThisMonth}
                   </Badge>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-foreground font-medium">{t('dashboard.coach.stats.churnedThisMonth')}</span>
-                  <Badge className="bg-secondary text-secondary-foreground text-lg px-3 py-1">
+                <div className={`flex justify-between items-center ${isMobile ? 'p-2' : 'p-3'} bg-muted/50 rounded-lg`}>
+                  <span className={`text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{t('dashboard.coach.stats.churnedThisMonth')}</span>
+                  <Badge className={`bg-secondary text-secondary-foreground ${isMobile ? 'text-sm px-2 py-0.5' : 'text-lg px-3 py-1'}`}>
                     {clientStats.churnedClientsThisMonth}
                   </Badge>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-foreground font-medium">{t('dashboard.coach.stats.totalClients')}</span>
-                  <Badge className="bg-muted text-muted-foreground text-lg px-3 py-1">
+                <div className={`flex justify-between items-center ${isMobile ? 'p-2' : 'p-3'} bg-muted/50 rounded-lg`}>
+                  <span className={`text-foreground font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{t('dashboard.coach.stats.totalClients')}</span>
+                  <Badge className={`bg-muted text-muted-foreground ${isMobile ? 'text-sm px-2 py-0.5' : 'text-lg px-3 py-1'}`}>
                     {clientStats.totalClients}
                   </Badge>
                 </div>
@@ -333,17 +351,17 @@ export default function Dashboard() {
 
 
       {/* Second Row - Earnings Overview and Latest Activity */}
-      <div className="grid-dashboard">
+      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2'}`}>
         {/* Earnings Overview */}
-        <Card className="card-standard">
-          <CardHeader>
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-accent" />
+        <Card className={`card-standard ${isMobile ? 'p-3' : ''}`}>
+          <CardHeader className={isMobile ? 'px-0 pb-3' : ''}>
+            <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
+              <BarChart3 className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-accent`} />
               {t('dashboard.coach.earnings')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className={isMobile ? 'px-0' : ''}>
+            <div className={isMobile ? 'h-48' : 'h-64'}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={earningsData}>
                   <defs>
@@ -388,14 +406,14 @@ export default function Dashboard() {
         </Card>
 
         {/* Latest Activity */}
-        <Card className="card-standard">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-foreground flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-teal" />
+        <Card className={`card-standard ${isMobile ? 'p-3' : ''}`}>
+          <CardHeader className={`pb-4 ${isMobile ? 'pb-3 px-0' : ''}`}>
+            <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
+              <TrendingUp className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-blue-teal`} />
                 {t('dashboard.coach.recentActivity')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={`space-y-4 ${isMobile ? 'space-y-2 px-0' : ''}`}>
             {activitiesLoading ? (
               <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -409,31 +427,31 @@ export default function Dashboard() {
               </div>
             ) : (
               activities.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                  <div className="p-2 rounded-full bg-primary/10 text-primary">
-                    {activity.type === 'signup' && <Users className="h-4 w-4" />}
-                    {activity.type === 'task_completed' && <CheckCircle className="h-4 w-4" />}
-                    {activity.type === 'daily_checkin' && <TrendingUp className="h-4 w-4" />}
-                    {activity.type === 'session_attended' && <BarChart3 className="h-4 w-4" />}
-                    {!['signup', 'task_completed', 'daily_checkin', 'session_attended'].includes(activity.type) && <TrendingUp className="h-4 w-4" />}
+                <div key={activity.id} className={`flex items-start ${isMobile ? 'space-x-2 p-2' : 'space-x-3 p-3'} rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors`}>
+                  <div className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-full bg-primary/10 text-primary`}>
+                    {activity.type === 'signup' && <Users className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                    {activity.type === 'task_completed' && <CheckCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                    {activity.type === 'daily_checkin' && <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                    {activity.type === 'session_attended' && <BarChart3 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                    {!['signup', 'task_completed', 'daily_checkin', 'session_attended'].includes(activity.type) && <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-foreground truncate">
+                      <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground truncate`}>
                         {activity.title}
                       </h4>
                       {activity.pointsEarned > 0 && (
-                        <Badge variant="secondary" className="ml-2">
+                        <Badge variant="secondary" className={`${isMobile ? 'ml-1 text-xs px-1 py-0' : 'ml-2'}`}>
                           +{activity.pointsEarned} pts
                         </Badge>
                       )}
                     </div>
                     {activity.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1 line-clamp-2`}>
                         {activity.description}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1`}>
                       {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
                     </p>
                   </div>

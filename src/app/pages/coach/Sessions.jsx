@@ -47,6 +47,22 @@ export default function Sessions() {
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('asc');
 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   // Set current dates after hydration to avoid hydration mismatch
   useEffect(() => {
     setCurrentMonth(new Date());
@@ -378,22 +394,22 @@ export default function Sessions() {
     switch (calendarView) {
       case 'month':
         return (
-          <div className="bg-muted/30 rounded-lg p-4">
-            <div className="grid grid-cols-7 gap-2 text-center text-sm font-medium text-muted-foreground mb-4">
-              <div>Mon</div>
-              <div>Tue</div>
-              <div>Wed</div>
-              <div>Thu</div>
-              <div>Fri</div>
-              <div>Sat</div>
-              <div>Sun</div>
+          <div className={`bg-muted/30 rounded-lg ${isMobile ? 'p-2' : 'p-4'}`}>
+            <div className={`grid grid-cols-7 ${isMobile ? 'gap-1' : 'gap-2'} text-center ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-muted-foreground ${isMobile ? 'mb-2' : 'mb-4'}`}>
+              <div>{isMobile ? 'M' : 'Mon'}</div>
+              <div>{isMobile ? 'T' : 'Tue'}</div>
+              <div>{isMobile ? 'W' : 'Wed'}</div>
+              <div>{isMobile ? 'T' : 'Thu'}</div>
+              <div>{isMobile ? 'F' : 'Fri'}</div>
+              <div>{isMobile ? 'S' : 'Sat'}</div>
+              <div>{isMobile ? 'S' : 'Sun'}</div>
             </div>
-            <div className="grid grid-cols-7 gap-2">
+            <div className={`grid grid-cols-7 ${isMobile ? 'gap-1' : 'gap-2'}`}>
               {calendarDays.map((dayObj, index) => (
                 <button
                   key={index}
                   className={`
-                    h-20 w-full text-sm rounded-lg transition-all relative p-2 flex flex-col
+                    ${isMobile ? 'h-12' : 'h-20'} w-full ${isMobile ? 'text-xs' : 'text-sm'} rounded-lg transition-all relative ${isMobile ? 'p-1' : 'p-2'} flex flex-col
                     ${dayObj.isEmpty 
                       ? 'invisible' 
                       : dayObj.hasSession
@@ -406,12 +422,12 @@ export default function Sessions() {
                 >
                   {!dayObj.isEmpty && (
                     <>
-                      <div className="text-left font-semibold text-base mb-1">
+                      <div className={`text-left font-semibold ${isMobile ? 'text-xs mb-0.5' : 'text-base mb-1'}`}>
                         {dayObj.day}
                       </div>
                       {dayObj.hasSession && (
                         <div className="flex-1 flex items-center justify-center">
-                          <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                          <div className={`bg-primary text-primary-foreground rounded-full ${isMobile ? 'w-4 h-4 text-[10px]' : 'w-6 h-6 text-xs'} flex items-center justify-center font-bold`}>
                             {dayObj.sessions?.length || 0}
                           </div>
                         </div>
@@ -516,73 +532,74 @@ export default function Sessions() {
   };
 
   return (
-    <div className="page-container">
+    <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
       <PageHeader 
         title={t('navigation.sessions')} 
         subtitle={"Manage your sessions"}
       >
         <Button 
-          className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all"
+          className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all ${isMobile ? 'text-xs px-2 h-8' : ''}`}
           onClick={() => setIsScheduleDialogOpen(true)}
+          size={isMobile ? "sm" : "default"}
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Session
+          <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+          {isMobile ? 'Schedule' : 'Schedule Session'}
         </Button>
       </PageHeader>
 
       {/* Main Sessions Card */}
-      <Card className="card-standard">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-                <CardTitle className="text-foreground flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
+      <Card className={`card-standard ${isMobile ? 'p-3' : ''}`}>
+        <CardHeader className={isMobile ? 'pb-3 px-0' : ''}>
+          <div className={`flex items-center ${isMobile ? 'flex-col gap-3' : 'justify-between'}`}>
+                <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+                  <Calendar className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
                   Sessions
                 </CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center bg-muted rounded-lg p-1">
+            <div className={`flex items-center ${isMobile ? 'w-full justify-center flex-wrap gap-2' : 'gap-2'}`}>
+              <div className={`flex items-center bg-muted rounded-lg ${isMobile ? 'p-0.5' : 'p-1'}`}>
                 <Button
-                  size="sm"
+                  size={isMobile ? "sm" : "sm"}
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   onClick={() => setViewMode('list')}
-                  className="h-8 px-3"
+                  className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                 >
-                  <List className="h-4 w-4 mr-1" />
-                  List
+                  <List className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? '' : 'mr-1'}`} />
+                  {!isMobile && "List"}
                 </Button>
                 <Button
-                  size="sm"
+                  size={isMobile ? "sm" : "sm"}
                   variant={viewMode === 'calendar' ? 'default' : 'ghost'}
                   onClick={() => setViewMode('calendar')}
-                  className="h-8 px-3"
+                  className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                 >
-                  <CalendarDays className="h-4 w-4 mr-1" />
-                  Calendar
+                  <CalendarDays className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? '' : 'mr-1'}`} />
+                  {!isMobile && "Calendar"}
                 </Button>
               </div>
               {viewMode === 'calendar' && (
-                <div className="flex items-center bg-muted rounded-lg p-1">
+                <div className={`flex items-center bg-muted rounded-lg ${isMobile ? 'p-0.5' : 'p-1'}`}>
                   <Button
-                    size="sm"
+                    size={isMobile ? "sm" : "sm"}
                     variant={calendarView === 'month' ? 'default' : 'ghost'}
                     onClick={() => setCalendarView('month')}
-                    className="h-8 px-3"
+                    className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
                     Month
                   </Button>
                   <Button
-                    size="sm"
+                    size={isMobile ? "sm" : "sm"}
                     variant={calendarView === 'week' ? 'default' : 'ghost'}
                     onClick={() => setCalendarView('week')}
-                    className="h-8 px-3"
+                    className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
                     Week
                   </Button>
                   <Button
-                    size="sm"
+                    size={isMobile ? "sm" : "sm"}
                     variant={calendarView === 'day' ? 'default' : 'ghost'}
                     onClick={() => setCalendarView('day')}
-                    className="h-8 px-3"
+                    className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
                     Day
                   </Button>
@@ -591,33 +608,33 @@ export default function Sessions() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
+        <CardContent className={isMobile ? 'px-0' : ''}>
+          <div className={`space-y-6 ${isMobile ? 'space-y-3' : ''}`}>
             {viewMode === 'list' ? (
-              <div className="space-y-4">
+              <div className={`space-y-4 ${isMobile ? 'space-y-2' : ''}`}>
                 {/* Sort Controls */}
-                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-                  <span className="text-sm font-medium text-muted-foreground">Sort By:</span>
+                <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1 p-2' : 'gap-2 p-3'} bg-muted/30 rounded-lg`}>
+                  <span className={`${isMobile ? 'text-xs w-full mb-1' : 'text-sm'} font-medium text-muted-foreground`}>Sort By:</span>
                   <Button
-                    size="sm"
+                    size={isMobile ? "sm" : "sm"}
                     variant={sortBy === 'date' ? 'default' : 'ghost'}
                     onClick={() => handleSort('date')}
-                    className="h-8 px-3"
+                    className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
                     Date
                     {sortBy === 'date' && (
-                      sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />
+                      sortOrder === 'asc' ? <ArrowUp className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'ml-0.5' : 'ml-1'}`} /> : <ArrowDown className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'ml-0.5' : 'ml-1'}`} />
                     )}
                   </Button>
                   <Button
-                    size="sm"
+                    size={isMobile ? "sm" : "sm"}
                     variant={sortBy === 'client' ? 'default' : 'ghost'}
                     onClick={() => handleSort('client')}
-                    className="h-8 px-3"
+                    className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
-                    Client/Group
+                    {isMobile ? 'Client' : 'Client/Group'}
                     {sortBy === 'client' && (
-                      sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />
+                      sortOrder === 'asc' ? <ArrowUp className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'ml-0.5' : 'ml-1'}`} /> : <ArrowDown className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'ml-0.5' : 'ml-1'}`} />
                     )}
                   </Button>
                   <Button

@@ -87,6 +87,22 @@ export default function GroupDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+  
   // Get real group progress data
   const { progressData, loading: progressLoading, error: progressError } = useGroupProgress(id);
   
@@ -280,32 +296,32 @@ console.log(groupProgressData)
   };
 
   return (
-    <div className="flex flex-col bg-background">
+    <div className={`flex flex-col bg-background ${isMobile ? 'pb-24' : ''}`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b bg-background">
-        <div className="flex items-center gap-4">
+      <div className={`flex items-center ${isMobile ? 'flex-col gap-3' : 'justify-between'} ${isMobile ? 'p-4' : 'p-6'} border-b bg-background`}>
+        <div className={`flex items-center ${isMobile ? 'w-full justify-between' : 'gap-4'}`}>
           <Button
             variant="ghost"
-            size="sm"
+            size={isMobile ? "sm" : "sm"}
             onClick={() => router.push("/coach/groups")}
-            className="flex items-center gap-2"
+            className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`}
           >
-            <ArrowLeft className="h-4 w-4" />
-            {t('groups.backToGroups', 'Back to Groups')}
+            <ArrowLeft className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+            {!isMobile && t('groups.backToGroups', 'Back to Groups')}
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{group.name}</h1>
-            <p className="text-muted-foreground">{group.description}</p>
+          <div className={isMobile ? 'flex-1 text-center' : ''}>
+            <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{group.name}</h1>
+            <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>{group.description}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleAddMember} size="sm">
-            <UserPlus className="h-4 w-4 mr-2" />
-            {t('groups.addMember', 'Add Member')}
+        <div className={`flex items-center ${isMobile ? 'w-full gap-2 justify-center flex-wrap' : 'gap-2'}`}>
+          <Button onClick={handleAddMember} size={isMobile ? "sm" : "sm"} className={isMobile ? 'text-xs px-2 h-8 flex-1' : ''}>
+            <UserPlus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+            {isMobile ? 'Add' : t('groups.addMember', 'Add Member')}
           </Button>
-          <Button onClick={handleGroupSettings} variant="outline" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
-            {t('groups.groupSettings', 'Group Settings')}
+          <Button onClick={handleGroupSettings} variant="outline" size={isMobile ? "sm" : "sm"} className={isMobile ? 'text-xs px-2 h-8 flex-1' : ''}>
+            <Settings className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+            {isMobile ? 'Settings' : t('groups.groupSettings', 'Group Settings')}
           </Button>
         </div>
       </div>
@@ -313,16 +329,16 @@ console.log(groupProgressData)
       {/* Content */}
       <div className="flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
-          <div className="px-6 pt-4">
-            <TabsList className="w-full">
-              <TabsTrigger value="overview" className="flex-1">{t('common.labels.overview', 'Overview')}</TabsTrigger>
-              <TabsTrigger value="members" className="flex-1">{t('groups.members', 'Members')}</TabsTrigger>
-              <TabsTrigger value="analytics" className="flex-1">{t('groups.progressActivity', 'Progress Activity')}</TabsTrigger>
+          <div className={`${isMobile ? 'px-4 pt-3' : 'px-6 pt-4'}`}>
+            <TabsList className={`w-full ${isMobile ? 'grid grid-cols-3 gap-1 h-auto p-1' : ''}`}>
+              <TabsTrigger value="overview" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{t('common.labels.overview', 'Overview')}</TabsTrigger>
+              <TabsTrigger value="members" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{t('groups.members', 'Members')}</TabsTrigger>
+              <TabsTrigger value="analytics" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{isMobile ? 'Progress' : t('groups.progressActivity', 'Progress Activity')}</TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="overview" className="px-6 py-4 flex-1">
-            <div className="grid grid-cols-1 lg:grid-cols-[3fr_4fr_3fr] gap-6 h-full min-h-[calc(100vh-200px)]">
+          <TabsContent value="overview" className={`${isMobile ? 'px-4 py-3' : 'px-6 py-4'} flex-1`}>
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 lg:grid-cols-[3fr_4fr_3fr] gap-6'} ${isMobile ? '' : 'h-full min-h-[calc(100vh-200px)]'}`}>
               {/* Left Column */}
               <div className="flex flex-col space-y-6">
                 <GroupInfoPanel 
@@ -355,7 +371,7 @@ console.log(groupProgressData)
             </div>
           </TabsContent>
 
-          <TabsContent value="members" className="px-6 py-4">
+          <TabsContent value="members" className={`${isMobile ? 'px-4 py-3' : 'px-6 py-4'}`}>
             <GroupMembersPanel 
               members={group.detailedMembers}
               groupId={group.id}
@@ -367,7 +383,7 @@ console.log(groupProgressData)
             />
           </TabsContent>
         
-          <TabsContent value="analytics" className="px-6 py-4">
+          <TabsContent value="analytics" className={`${isMobile ? 'px-4 py-3' : 'px-6 py-4'}`}>
             <div className="space-y-6 pb-6">
                 <Card>
                   <CardHeader>

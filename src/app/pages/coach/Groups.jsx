@@ -69,6 +69,22 @@ export default function Groups() {
   const [groupPipelineStages, setGroupPipelineStages] = useState([]);
   const [visibleStages, setVisibleStages] = useState({});
 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   // Fetch pipeline stages from database
   useEffect(() => {
     const fetchPipelineStages = async () => {
@@ -179,23 +195,23 @@ export default function Groups() {
     return (
       <Card 
         key={group.id} 
-        className="group card-hover cursor-pointer bg-background h-[140px] flex flex-col"
+        className={`group card-hover cursor-pointer bg-background ${isMobile ? 'h-auto min-h-[120px]' : 'h-[140px]'} flex flex-col ${isMobile ? 'p-2' : ''}`}
         onClick={() => handleGroupClick(group.id)}
       >
-        <CardContent className="p-3 flex-1 min-h-0">
-          <div className="flex items-start justify-between mb-2">
+        <CardContent className={`${isMobile ? 'p-2' : 'p-3'} flex-1 min-h-0`}>
+          <div className={`flex items-start justify-between ${isMobile ? 'mb-1.5' : 'mb-2'}`}>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-sm text-foreground pr-2 line-clamp-2 leading-tight">{group.name}</h3>
+              <div className={`flex items-center justify-between ${isMobile ? 'mb-1.5' : 'mb-2'}`}>
+                <h3 className={`font-semibold ${isMobile ? 'text-xs' : 'text-sm'} text-foreground pr-2 line-clamp-2 leading-tight`}>{group.name}</h3>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       size="sm" 
                       variant="ghost" 
-                      className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 shrink-0"
+                      className={`opacity-0 group-hover:opacity-100 transition-opacity ${isMobile ? 'h-5 w-5' : 'h-6 w-6'} p-0 shrink-0`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <MoreVertical className="h-3 w-3" />
+                      <MoreVertical className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
@@ -232,21 +248,21 @@ export default function Groups() {
             </div>
           </div>
 
-          <div className="flex gap-1 items-center mb-3">
+          <div className={`flex gap-1 items-center ${isMobile ? 'mb-2' : 'mb-3'}`}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
                   size="sm" 
                   variant="ghost" 
-                  className="h-7 w-7 p-0 hover:bg-primary hover:text-primary-foreground relative"
+                  className={`${isMobile ? 'h-6 w-6' : 'h-7 w-7'} p-0 hover:bg-primary hover:text-primary-foreground relative`}
                   onClick={(e) => {
                     e.stopPropagation();
                     router.push(`/coach/group/${group.id}`);
                   }}
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <MessageCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                   {group.unreadMessages > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    <span className={`absolute -top-1 -right-1 bg-red-500 text-white ${isMobile ? 'text-[10px] h-3 w-3' : 'text-xs rounded-full h-4 w-4'} flex items-center justify-center`}>
                       {group.unreadMessages}
                     </span>
                   )}
@@ -270,13 +286,13 @@ export default function Groups() {
                 <Button 
                   size="sm" 
                   variant="ghost" 
-                  className="h-7 w-7 p-0 hover:bg-accent hover:text-accent-foreground"
+                  className={`${isMobile ? 'h-6 w-6' : 'h-7 w-7'} p-0 hover:bg-accent hover:text-accent-foreground`}
                   onClick={(e) => {
                     e.stopPropagation();
                     router.push(`/coach/group/${group.id}`);
                   }}
                 >
-                  <StickyNote className="h-4 w-4" />
+                  <StickyNote className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -292,14 +308,14 @@ export default function Groups() {
                 </p>
               </TooltipContent>
             </Tooltip>
-            <div className="flex items-center gap-1 ml-2">
-              <Users2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{group.members}</span>
+            <div className={`flex items-center gap-1 ${isMobile ? 'ml-1' : 'ml-2'}`}>
+              <Users2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
+              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{group.members}</span>
             </div>
           </div>
           <div className="mt-auto">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Calendar className="h-4 w-4" />
+            <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
+              <Calendar className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
               <span>{group.nextSession}</span>
             </div>
           </div>
@@ -309,40 +325,41 @@ export default function Groups() {
   };
 
   return (
-    <div className="page-container">
+    <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
       <PageHeader 
         title={t('navigation.groups')} 
         subtitle={t('groups.title')}
       >
         {/* View Toggle */}
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
+        <div className={`flex items-center ${isMobile ? 'gap-0.5' : 'gap-1'} rounded-lg border border-border bg-background ${isMobile ? 'p-0.5' : 'p-1'}`}>
           <Button
             variant={viewMode === 'list' ? 'default' : 'ghost'}
-            size="sm"
+            size={isMobile ? "sm" : "sm"}
             onClick={() => setViewMode('list')}
-            className="h-8 px-3"
+            className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
           >
-            <List className="h-4 w-4 mr-1" />
-            List
+            <List className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? '' : 'mr-1'}`} />
+            {!isMobile && "List"}
           </Button>
           <Button
             variant={viewMode === 'cards' ? 'default' : 'ghost'}
-            size="sm"
+            size={isMobile ? "sm" : "sm"}
             onClick={() => setViewMode('cards')}
-            className="h-8 px-3"
+            className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
           >
-            <LayoutGrid className="h-4 w-4 mr-1" />
-            Cards
+            <LayoutGrid className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? '' : 'mr-1'}`} />
+            {!isMobile && "Cards"}
           </Button>
         </div>
         
         <Button 
-          className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all"
+          className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all ${isMobile ? 'text-xs px-2 h-8' : ''}`}
           onClick={() => setCreateGroupOpen(true)}
+          size={isMobile ? "sm" : "default"}
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Create New Group
+          <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+          {isMobile ? "New" : "Create New Group"}
         </Button>
       </PageHeader>
 
@@ -387,14 +404,14 @@ export default function Groups() {
       {!loading && !error && groups.length > 0 && (
         <>
           {/* Controls */}
-      <div className="flex items-center gap-3 pt-4 border-t border-border">
+      <div className={`flex items-center ${isMobile ? 'flex-wrap gap-2 pt-3' : 'gap-3 pt-4'} border-t border-border`}>
         {/* Filter & Columns Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Filter and Columns
-              <ChevronDown className="h-4 w-4" />
+            <Button variant="outline" className={`${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+              <Filter className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+              {isMobile ? "Filter" : "Filter and Columns"}
+              <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
@@ -443,10 +460,10 @@ export default function Groups() {
         {/* Sorting Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <ArrowUpDown className="h-4 w-4" />
+            <Button variant="outline" className={`${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+              <ArrowUpDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
               Sort By
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
@@ -480,7 +497,7 @@ export default function Groups() {
 
       {/* Groups Display */}
       {viewMode === 'cards' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}`}>
           {groupPipelineStages
             .filter(stage => visibleStages[stage.id])
             .map((stage) => {
@@ -489,25 +506,25 @@ export default function Groups() {
               const StageIcon = stage.icon;
 
               return (
-                <Card key={stage.id} className="shadow-soft border-border bg-card flex flex-col h-[600px]">
-                  <CardHeader className="pb-4 flex-shrink-0">
+                <Card key={stage.id} className={`shadow-soft border-border bg-card flex flex-col ${isMobile ? 'h-auto min-h-[400px] mb-4' : 'h-[600px]'} ${isMobile ? 'p-3' : ''}`}>
+                  <CardHeader className={`pb-4 flex-shrink-0 ${isMobile ? 'pb-3 px-0' : ''}`}>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <StageIcon className="h-5 w-5 text-muted-foreground" />
-                        <CardTitle className="text-lg font-bold text-foreground">{stage.id}</CardTitle>
+                      <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'}`}>
+                        <StageIcon className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-muted-foreground`} />
+                        <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-foreground`}>{stage.id}</CardTitle>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className={`${isMobile ? 'text-[10px] px-1 py-0' : 'text-xs'}`}>
                         {stats.count}
                       </Badge>
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="flex-1 pt-0 pb-4">
-                    <ScrollArea className="h-full">
-                      <div className="space-y-3">
+                  <CardContent className={`flex-1 pt-0 ${isMobile ? 'pb-3 px-0' : 'pb-4'}`}>
+                    <ScrollArea className={`h-full ${isMobile ? 'max-h-96' : ''}`}>
+                      <div className={`space-y-3 ${isMobile ? 'space-y-2' : ''}`}>
                         {stageGroups.map((group) => renderGroupCard(group))}
                         {stageGroups.length === 0 && (
-                          <div className="text-center py-12 text-muted-foreground text-sm">
+                          <div className={`text-center py-12 text-muted-foreground ${isMobile ? 'text-xs py-8' : 'text-sm'}`}>
                             No Groups In Stage
                           </div>
                         )}
@@ -519,62 +536,163 @@ export default function Groups() {
             })}
         </div>
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Group</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead>Members</TableHead>
-                <TableHead>Next Session</TableHead>
-                <TableHead className="w-[200px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <Card className={isMobile ? 'p-3' : ''}>
+          {isMobile ? (
+            <div className="space-y-3">
               {filteredAndSortedGroups.map((group) => {
                 const stage = groupPipelineStages.find(s => s.id === group.stage);
                 const StageIcon = stage?.icon || Clock;
 
                 return (
-                  <TableRow 
-                    key={group.id} 
-                    className="cursor-pointer hover:bg-muted/50"
+                  <div
+                    key={group.id}
+                    className="p-3 border rounded-lg cursor-pointer hover:bg-muted/50"
                     onClick={() => handleGroupClick(group.id)}
                   >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-semibold`}>{group.name}</h3>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className={`${isMobile ? 'h-5 w-5' : 'h-6 w-6'} p-0`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuLabel className={isMobile ? 'text-xs' : ''}>Move To Stage</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {groupPipelineStages.map((stageOption) => (
+                            <DropdownMenuItem
+                              key={stageOption.id}
+                              className={isMobile ? 'text-xs' : ''}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStageMove(group.id, stageOption.id);
+                              }}
+                              disabled={stageOption.id === group.stage}
+                            >
+                              <stageOption.icon className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
+                              {stageOption.id}
+                            </DropdownMenuItem>
+                          ))}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className={isMobile ? 'text-xs' : ''}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSettingsClick(group);
+                            }}
+                          >
+                            <Settings className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
+                            Settings
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div>
+                        <span className="font-medium">Stage: </span>
+                        <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1 py-0' : ''}>
+                          {group.stage}
+                        </Badge>
+                      </div>
+                      <div>
+                        <span className="font-medium">Members: </span>
+                        <span>{group.members}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="font-medium">Next Session: </span>
+                        <span>{group.nextSession}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2 justify-end">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={isMobile ? 'h-7 w-7 p-0' : ''}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleScheduleClick(group);
+                        }}
+                      >
+                        <Calendar className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={isMobile ? 'h-7 w-7 p-0' : ''}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/coach/group/${group.id}`);
+                        }}
+                      >
+                        <MessageCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Group</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead>Members</TableHead>
+                  <TableHead>Next Session</TableHead>
+                  <TableHead className="w-[200px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAndSortedGroups.map((group) => {
+                  const stage = groupPipelineStages.find(s => s.id === group.stage);
+                  const StageIcon = stage?.icon || Clock;
+
+                  return (
+                    <TableRow 
+                      key={group.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleGroupClick(group.id)}
+                  >
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Users2 className="h-4 w-4 text-muted-foreground" />
+                      <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                        <Users2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
                         <div>
-                          <div className="font-medium text-sm">{group.name}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">{group.description}</div>
+                          <div className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{group.name}</div>
+                          <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground line-clamp-1`}>{group.description}</div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={`${stage?.color} text-white border-none text-xs`}>
-                        <StageIcon className="h-3 w-3 mr-1" />
+                      <Badge variant="outline" className={`${stage?.color} text-white border-none ${isMobile ? 'text-[10px] px-1 py-0' : 'text-xs'}`}>
+                        <StageIcon className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'mr-0.5' : 'mr-1'}`} />
                           {stage?.id}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
                         <div className="flex -space-x-1">
                           {group.avatars.slice(0, 3).map((initial, index) => (
-                            <Avatar key={index} className="h-5 w-5 border border-background">
-                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                            <Avatar key={index} className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} border border-background`}>
+                              <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                                 {initial}
                               </AvatarFallback>
                             </Avatar>
                           ))}
                           {group.members > 3 && (
-                            <div className="h-5 w-5 rounded-full bg-muted border border-background flex items-center justify-center">
-                              <span className="text-xs text-muted-foreground">
+                            <div className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} rounded-full bg-muted border border-background flex items-center justify-center`}>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
                                 +{group.members - 3}
                               </span>
                             </div>
                           )}
                         </div>
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1 py-0' : 'text-xs'}>
                           {group.members}
                         </Badge>
                       </div>
@@ -652,6 +770,7 @@ export default function Groups() {
               })}
             </TableBody>
           </Table>
+          )}
         </Card>
       )}
 

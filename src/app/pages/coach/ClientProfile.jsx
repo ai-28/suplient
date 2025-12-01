@@ -105,6 +105,22 @@ export default function ClientProfile() {
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
   
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+  
   // State for real client data
   const [clientData, setClientData] = useState(null);
   const [clientTasks, setClientTasks] = useState([]);
@@ -670,11 +686,11 @@ export default function ClientProfile() {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'p-4' : 'p-6'}`}>
+        <div className={`max-w-7xl mx-auto flex items-center justify-center ${isMobile ? 'h-64' : 'h-96'}`}>
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">{t('clients.loadingClientData', 'Loading client data...')}</p>
+            <Loader2 className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} animate-spin mx-auto mb-4`} />
+            <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>{t('clients.loadingClientData', 'Loading client data...')}</p>
           </div>
         </div>
       </div>
@@ -684,12 +700,12 @@ export default function ClientProfile() {
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'p-4' : 'p-6'}`}>
+        <div className={`max-w-7xl mx-auto flex items-center justify-center ${isMobile ? 'h-64' : 'h-96'}`}>
           <div className="text-center">
-            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 mb-4">Error loading client data: {error}</p>
-            <Button onClick={() => window.location.reload()}>
+            <AlertCircle className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} text-red-500 mx-auto mb-4`} />
+            <p className={`text-red-600 mb-4 ${isMobile ? 'text-sm' : ''}`}>Error loading client data: {error}</p>
+            <Button onClick={() => window.location.reload()} size={isMobile ? "sm" : "default"}>
               Try Again
             </Button>
           </div>
@@ -701,12 +717,12 @@ export default function ClientProfile() {
   // Show not found state
   if (!clientData) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'p-4' : 'p-6'}`}>
+        <div className={`max-w-7xl mx-auto flex items-center justify-center ${isMobile ? 'h-64' : 'h-96'}`}>
           <div className="text-center">
-            <User className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">{t('clients.clientNotFound', 'Client not found')}</p>
-            <Button onClick={() => router.push('/coach/clients')}>
+            <User className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} text-gray-400 mx-auto mb-4`} />
+            <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>{t('clients.clientNotFound', 'Client not found')}</p>
+            <Button onClick={() => router.push('/coach/clients')} size={isMobile ? "sm" : "default"}>
               {t('clients.backToClients', 'Back to Clients')}
             </Button>
           </div>
@@ -969,43 +985,43 @@ export default function ClientProfile() {
   };
 
   return (
-    <div className="max-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className={`max-h-screen bg-gray-50 ${isMobile ? 'p-4 pb-24' : 'p-6'}`}>
+      <div className={`max-w-7xl mx-auto ${isMobile ? 'space-y-3' : 'space-y-6'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'justify-between'}`}>
+          <div className={`flex items-center ${isMobile ? 'w-full justify-between' : 'gap-4'}`}>
             <Button
               variant="ghost"
-              size="sm"
+              size={isMobile ? "sm" : "sm"}
               onClick={handleBack}
-              className="flex items-center gap-2"
+              className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`}
             >
-              <ArrowLeft className="h-4 w-4" />
-              {t('clients.backToClients', 'Back to Clients')}
+              <ArrowLeft className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+              {!isMobile && t('clients.backToClients', 'Back to Clients')}
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">{clientName}</h1>
-              <p className="text-gray-600">{t('clients.personalCoachingClient', 'Personal coaching client')}</p>
+              <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold`}>{clientName}</h1>
+              <p className={`text-gray-600 ${isMobile ? 'text-xs' : ''}`}>{t('clients.personalCoachingClient', 'Personal coaching client')}</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => setIsScheduleDialogOpen(true)}>
-              <Calendar className="h-4 w-4 mr-2" />
-              {t('sessions.scheduleSession', 'Schedule Session')}
+          <div className={`flex gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
+            <Button size={isMobile ? "sm" : "sm"} onClick={() => setIsScheduleDialogOpen(true)} className={isMobile ? 'text-xs px-2 h-8' : ''}>
+              <Calendar className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+              {isMobile ? 'Schedule' : t('sessions.scheduleSession', 'Schedule Session')}
             </Button>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="w-full">
-            <TabsTrigger value="overview" className="flex-1">{t('common.labels.overview', 'Overview')}</TabsTrigger>
-            <TabsTrigger value="programs" className="flex-1">{t('navigation.programs')}</TabsTrigger>
-            <TabsTrigger value="groups" className="flex-1">{t('navigation.groups')}</TabsTrigger>
-            <TabsTrigger value="progress" className="flex-1">{t('clients.progressActivity', 'Progress & Activity')}</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className={`space-y-6 ${isMobile ? 'space-y-3' : ''}`}>
+          <TabsList className={`w-full ${isMobile ? 'grid grid-cols-2 gap-1 h-auto p-1' : ''}`}>
+            <TabsTrigger value="overview" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{t('common.labels.overview', 'Overview')}</TabsTrigger>
+            <TabsTrigger value="programs" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{t('navigation.programs')}</TabsTrigger>
+            <TabsTrigger value="groups" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{t('navigation.groups')}</TabsTrigger>
+            <TabsTrigger value="progress" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{isMobile ? 'Progress' : t('clients.progressActivity', 'Progress & Activity')}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6 flex-1">
-            <div className="grid grid-cols-1 lg:grid-cols-[3fr_4fr_3fr] gap-6 h-full min-h-[calc(100vh-300px)]">
+          <TabsContent value="overview" className={`space-y-6 flex-1 ${isMobile ? 'space-y-3' : ''}`}>
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 lg:grid-cols-[3fr_4fr_3fr] gap-6'} ${isMobile ? '' : 'h-full min-h-[calc(100vh-300px)]'}`}>
               {/* Left Column - Client Details + Tasks */}
               <div className="flex flex-col space-y-6">
                 {/* Client Details */}

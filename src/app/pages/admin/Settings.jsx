@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import { toast } from "sonner";
+import heic2any from "heic2any";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -209,6 +210,7 @@ export default function AdminSettings() {
   });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // Fetch admin data on component mount
@@ -272,34 +274,105 @@ export default function AdminSettings() {
   };
 
   // Handle avatar file selection
-  const handleAvatarFileSelect = (event) => {
+  const handleAvatarFileSelect = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error(t('settings.profile.selectValidImage', 'Please select a valid image file'));
-      return;
-    }
+    try {
+      // Check if file is HEIC/HEIF
+      const isHeic = file.type === 'image/heic' || 
+                     file.type === 'image/heif' || 
+                     file.name.toLowerCase().endsWith('.heic') || 
+                     file.name.toLowerCase().endsWith('.heif');
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error(t('settings.profile.imageSizeTooLarge', 'Image size must be less than 5MB'));
-      return;
-    }
+      let fileToUse = file;
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+      // Convert HEIC to JPEG if needed
+      if (isHeic) {
+        try {
+          toast.info('Converting HEIC image to JPEG...', { duration: 2000 });
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.9
+          });
+          
+          // heic2any returns an array, get the first item
+          const convertedFile = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+          
+          // Create a File object from the blob
+          fileToUse = new File([convertedFile], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          
+          toast.success('HEIC image converted successfully', { duration: 2000 });
+        } catch (conversionError) {
+          const errorDetails = {
+            message: conversionError.message,
+            name: conversionError.name,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type
+          };
+          console.error('Error converting HEIC:', errorDetails);
+          toast.error('Failed to convert HEIC image', {
+            description: conversionError.message || 'Please try converting it to JPEG first, or use a different image format.'
+          });
+          return;
+        }
+      }
+
+      // Validate file type (after conversion)
+      if (!fileToUse.type.startsWith('image/')) {
+        const fileSizeMB = (fileToUse.size / (1024 * 1024)).toFixed(2);
+        const errorDetails = `File type: ${fileToUse.type || 'unknown'}, Size: ${fileSizeMB}MB, Name: ${fileToUse.name}`;
+        console.error('Invalid file type:', errorDetails);
+        toast.error(`Invalid file type (${fileToUse.type || 'unknown'}). Please select a JPG, PNG, WebP, GIF, or HEIC image.`, {
+          description: `File: ${fileToUse.name} (${fileSizeMB}MB)`
+        });
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (fileToUse.size > 5 * 1024 * 1024) {
+        const fileSizeMB = (fileToUse.size / (1024 * 1024)).toFixed(2);
+        const errorDetails = `File: ${fileToUse.name}, Type: ${fileToUse.type}, Size: ${fileSizeMB}MB (max: 5MB)`;
+        console.error('File too large:', errorDetails);
+        toast.error(`Image too large (${fileSizeMB}MB). Maximum size is 5MB.`, {
+          description: `Please compress or resize your image. File: ${fileToUse.name}`
+        });
+        return;
+      }
+
+      // Store the file for upload
+      setSelectedFile(fileToUse);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(fileToUse);
+    } catch (error) {
+      const errorDetails = {
+        message: error.message,
+        name: error.name,
+        fileName: file?.name,
+        fileType: file?.type,
+        fileSize: file?.size
+      };
+      console.error('Error processing image:', errorDetails, error);
+      toast.error('Failed to process image', {
+        description: error.message || 'An unexpected error occurred. Please try again or use a different image.'
+      });
+    }
   };
 
   // Handle avatar upload
   const handleAvatarUpload = async () => {
-    const fileInput = document.getElementById('avatar-upload-admin');
-    const file = fileInput?.files?.[0];
+    // Use the selected file (which may have been converted from HEIC)
+    const file = selectedFile;
     
     if (!file) {
       toast.error(t('settings.profile.selectImageFile', 'Please select an image file'));
@@ -320,13 +393,43 @@ export default function AdminSettings() {
       // Check if response is ok before parsing JSON
       if (!response.ok) {
         let errorMessage = t('settings.profile.avatarUploadFailed', 'Failed to upload avatar');
+        let errorDetails = null;
+        
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
+          errorDetails = errorData.details || null;
         } catch (e) {
-          errorMessage = `${t('settings.profile.avatarUploadFailed', 'Failed to upload avatar')} (${response.status})`;
+          // Try to get error text if JSON parsing fails
+          try {
+            const errorText = await response.text();
+            if (errorText) {
+              errorMessage = errorText;
+            } else {
+              errorMessage = `${t('settings.profile.avatarUploadFailed', 'Failed to upload avatar')} (${response.status} ${response.statusText})`;
+            }
+          } catch (textError) {
+            errorMessage = `${t('settings.profile.avatarUploadFailed', 'Failed to upload avatar')} (${response.status} ${response.statusText})`;
+          }
         }
-        toast.error(errorMessage);
+        
+        // Log detailed error information
+        const errorInfo = {
+          status: response.status,
+          statusText: response.statusText,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
+          errorMessage: errorMessage,
+          errorDetails: errorDetails
+        };
+        console.error('Avatar upload failed:', errorInfo);
+        
+        // Show detailed error to user
+        toast.error(errorMessage, {
+          description: errorDetails || `Status: ${response.status} ${response.statusText}. File: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`
+        });
         return;
       }
 
@@ -334,6 +437,11 @@ export default function AdminSettings() {
 
       if (data.success) {
         toast.success(t('settings.profile.avatarUploaded', 'Avatar uploaded successfully!'));
+        // Clear selected file
+        setSelectedFile(null);
+        // Clear file input
+        const fileInput = document.getElementById('avatar-upload-admin');
+        if (fileInput) fileInput.value = '';
         // Update admin data with new avatar
         setAdminData(prev => ({
           ...prev,
@@ -344,11 +452,51 @@ export default function AdminSettings() {
           window.location.reload();
         }
       } else {
-        toast.error(data.error || t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'));
+        const errorInfo = {
+          success: data.success,
+          error: data.error,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size
+        };
+        console.error('Avatar upload failed (success: false):', errorInfo);
+        toast.error(data.error || t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'), {
+          description: `File: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`
+        });
       }
     } catch (error) {
-      console.error('Error uploading avatar:', error);
-      toast.error(error.message || t('settings.profile.avatarUploadFailed', 'Failed to upload avatar'));
+      // Log comprehensive error information
+      const errorInfo = {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        fileName: file?.name,
+        fileType: file?.type,
+        fileSize: file?.size,
+        fileSizeMB: file ? (file.size / (1024 * 1024)).toFixed(2) : 'unknown'
+      };
+      console.error('Error uploading avatar:', errorInfo, error);
+      
+      let errorMessage = t('settings.profile.avatarUploadFailed', 'Failed to upload avatar');
+      let errorDescription = null;
+      
+      // Provide more specific error messages based on error type
+      if (error.name === 'NetworkError' || error.message?.includes('fetch')) {
+        errorMessage = 'Network error';
+        errorDescription = 'Please check your internet connection and try again.';
+      } else if (error.message?.includes('Failed to fetch')) {
+        errorMessage = 'Connection failed';
+        errorDescription = 'Unable to connect to server. Please check your connection and try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+        errorDescription = `File: ${file?.name || 'unknown'} (${errorInfo.fileSizeMB}MB)`;
+      } else {
+        errorDescription = `File: ${file?.name || 'unknown'} (${errorInfo.fileSizeMB}MB). Please try again.`;
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription
+      });
     } finally {
       setUploadingAvatar(false);
     }
@@ -533,7 +681,7 @@ export default function AdminSettings() {
                       <input
                         type="file"
                         id="avatar-upload-admin"
-                        accept="image/*"
+                        accept="image/*,.heic,.heif"
                         className="hidden"
                         onChange={handleAvatarFileSelect}
                         disabled={uploadingAvatar}
@@ -567,6 +715,7 @@ export default function AdminSettings() {
                             size="sm"
                             onClick={() => {
                               setAvatarPreview(adminData?.avatar || null);
+                              setSelectedFile(null);
                               const fileInput = document.getElementById('avatar-upload-admin');
                               if (fileInput) fileInput.value = '';
                             }}
@@ -588,7 +737,7 @@ export default function AdminSettings() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {t('settings.profile.avatarFormat', 'JPG, PNG or WebP. Max 5MB.')}
+                      {t('settings.profile.avatarFormat', 'JPG, PNG, WebP, GIF, or HEIC. Max 5MB. HEIC files will be automatically converted to JPEG.')}
                     </p>
                   </div>
                 </div>

@@ -21,6 +21,22 @@ export default function ProgramEditor() {
   const router = useRouter();
   const t = useTranslation();
   
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+  
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -102,11 +118,11 @@ export default function ProgramEditor() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center py-12">
+      <div className={`container mx-auto ${isMobile ? 'px-4 py-4' : 'py-8'}`}>
+        <div className={`flex items-center justify-center ${isMobile ? 'py-8' : 'py-12'}`}>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">{t('programs.loadingProgram', 'Loading program...')}</p>
+            <div className={`animate-spin rounded-full ${isMobile ? 'h-6 w-6' : 'h-8 w-8'} border-b-2 border-primary mx-auto mb-4`}></div>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>{t('programs.loadingProgram', 'Loading program...')}</p>
           </div>
         </div>
       </div>
@@ -115,13 +131,13 @@ export default function ProgramEditor() {
 
   if (error) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center py-12">
+      <div className={`container mx-auto ${isMobile ? 'px-4 py-4' : 'py-8'}`}>
+        <div className={`flex items-center justify-center ${isMobile ? 'py-8' : 'py-12'}`}>
           <div className="text-center">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">{t('programs.errorLoadingProgram', 'Error Loading Program')}</h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchProgram} variant="outline">
+            <AlertTriangle className={`${isMobile ? 'h-8 w-8' : 'h-12 w-12'} text-red-500 mx-auto mb-4`} />
+            <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold mb-2`}>{t('programs.errorLoadingProgram', 'Error Loading Program')}</h3>
+            <p className={`text-muted-foreground mb-4 ${isMobile ? 'text-sm' : ''}`}>{error}</p>
+            <Button onClick={fetchProgram} variant="outline" size={isMobile ? "sm" : "default"}>
               {t('common.buttons.tryAgain', 'Try Again')}
             </Button>
           </div>
@@ -132,10 +148,10 @@ export default function ProgramEditor() {
 
   if (!program) {
     return (
-      <div className="container mx-auto py-8">
+      <div className={`container mx-auto ${isMobile ? 'px-4 py-4' : 'py-8'}`}>
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">{t('programs.programNotFound', 'Program Not Found')}</h1>
-          <Button onClick={() => router.push('/coach/programs')}>
+          <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-foreground mb-4`}>{t('programs.programNotFound', 'Program Not Found')}</h1>
+          <Button onClick={() => router.push('/coach/programs')} size={isMobile ? "sm" : "default"}>
             {t('programs.backToPrograms', 'Back to Programs')}
           </Button>
         </div>
@@ -231,43 +247,43 @@ export default function ProgramEditor() {
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className={`container mx-auto ${isMobile ? 'px-4 py-4 pb-24' : 'py-8'} space-y-8 ${isMobile ? 'space-y-4' : ''}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/coach/programs')}>
-            <ArrowLeft className="h-4 w-4" />
-            {t('common.buttons.back', 'Back')}
+      <div className={`flex items-center ${isMobile ? 'flex-col gap-3' : 'justify-between'}`}>
+        <div className={`flex items-center ${isMobile ? 'w-full justify-between' : 'gap-4'}`}>
+          <Button variant="ghost" size={isMobile ? "sm" : "sm"} onClick={() => router.push('/coach/programs')} className={isMobile ? 'text-xs px-2 h-8' : ''}>
+            <ArrowLeft className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+            {!isMobile && t('common.buttons.back', 'Back')}
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
+          <div className={isMobile ? 'flex-1 text-center' : ''}>
+            <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-foreground`}>
               {isProgram ? t('programs.viewProgram', 'View Program') : t('programs.editProgramTemplate', 'Edit Program Template')}
             </h1>
-            <p className="text-muted-foreground">{formData.name}</p>
+            <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>{formData.name}</p>
             {isProgram && (
-              <Badge variant="secondary" className="mt-2">
+              <Badge variant="secondary" className={`mt-2 ${isMobile ? 'text-xs px-1.5 py-0' : ''}`}>
                 {t('programs.activeProgramInstance', 'Active Program Instance')}
               </Badge>
             )}
           </div>
         </div>
         
-        <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2">
+        <Button onClick={handleSave} disabled={saving} className={`flex items-center ${isMobile ? 'gap-1 w-full text-xs h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
           {saving && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <div className={`animate-spin rounded-full ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} border-b-2 border-white`}></div>
           )}
           {saving ? t('common.messages.loading') : (isProgram ? t('programs.updateProgram', 'Update Program') : t('programs.saveTemplate', 'Save Template'))}
         </Button>
       </div>
 
       {/* Program Setup - Horizontal Layout */}
-      <Card className="border-2 border-border/60 shadow-md bg-card/95">
-        <CardHeader>
-          <CardTitle className="text-lg">{t('programs.programSetup')}</CardTitle>
-          <CardDescription>{t('programs.basicInfo')}</CardDescription>
+      <Card className={`border-2 border-border/60 shadow-md bg-card/95 ${isMobile ? 'p-3' : ''}`}>
+        <CardHeader className={isMobile ? 'pb-3 px-0' : ''}>
+          <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{t('programs.programSetup')}</CardTitle>
+          <CardDescription className={isMobile ? 'text-xs' : ''}>{t('programs.basicInfo')}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className={isMobile ? 'px-0' : ''}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-4'}`}>
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">{t('programs.programName')} *</Label>
               <Input

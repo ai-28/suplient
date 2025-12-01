@@ -30,7 +30,7 @@ import {
   Search,
   Shield
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { CreateTaskDialog } from "@/app/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/app/components/EditTaskDialog";
@@ -91,6 +91,22 @@ export default function Tasks() {
   const [editingTask, setEditingTask] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
   
   // Use real data from database
   const { 
@@ -340,7 +356,7 @@ export default function Tasks() {
   }, [adminAssignedTasks, adminTaskFilter, searchTerm]);
 
   return (
-    <div className="page-container">
+    <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
       <PageHeader 
         title={"Tasks"} 
@@ -350,7 +366,7 @@ export default function Tasks() {
       </PageHeader>
 
       {/* Simplified KPI Statistics - Only 3 Essential Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-6'}`}>
         <StatsCard
           title={"Total Tasks"}
           value={kpiStats.totalTasks}
@@ -387,26 +403,26 @@ export default function Tasks() {
       </div>
 
       {/* Main Content Row - Task Management Focus */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 lg:grid-cols-3 gap-6'}`}>
         {/* Enhanced Task Management - Takes 2/3 of space */}
-        <Card className="card-standard lg:col-span-2">
+        <Card className={`card-standard ${isMobile ? 'p-3' : ''} ${isMobile ? '' : 'lg:col-span-2'}`}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between mb-4">
-                <TabsList className="grid w-full grid-cols-4 bg-muted">
-                  <TabsTrigger value="my-tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    My Tasks
+            <CardHeader className={`pb-4 ${isMobile ? 'pb-3 px-0' : ''}`}>
+              <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-4'}`}>
+                <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2 gap-1 h-auto p-1' : 'grid-cols-4 bg-muted'}`}>
+                  <TabsTrigger value="my-tasks" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-1 py-1.5' : ''}`}>
+                    {isMobile ? "My" : "My Tasks"}
                   </TabsTrigger>
-                  <TabsTrigger value="client-tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    Client Tasks
+                  <TabsTrigger value="client-tasks" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-1 py-1.5' : ''}`}>
+                    {isMobile ? "Client" : "Client Tasks"}
                   </TabsTrigger>
-                  <TabsTrigger value="group-tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    Group Tasks
+                  <TabsTrigger value="group-tasks" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-1 py-1.5' : ''}`}>
+                    {isMobile ? "Group" : "Group Tasks"}
                   </TabsTrigger>
-                  <TabsTrigger value="admin-tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                    Admin Tasks
+                  <TabsTrigger value="admin-tasks" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-1 py-1.5' : ''}`}>
+                    {isMobile ? "Admin" : "Admin Tasks"}
                     {adminAssignedTasks.length > 0 && (
-                      <Badge variant="default" className="ml-2 h-5 px-1.5">
+                      <Badge variant="default" className={`ml-2 ${isMobile ? 'h-4 px-1 text-[10px]' : 'h-5 px-1.5'}`}>
                         {adminAssignedTasks.filter(t => t.status !== 'completed').length}
                       </Badge>
                     )}
@@ -416,25 +432,25 @@ export default function Tasks() {
               
               {/* Enhanced Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
                 <Input
                   placeholder="Search tasks..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className={`${isMobile ? 'pl-8 h-9 text-sm' : 'pl-10'}`}
                 />
               </div>
             </CardHeader>
 
-            <TabsContent value="client-tasks" className="px-6 pb-6">
-              <div className="space-y-4">
+            <TabsContent value="client-tasks" className={`${isMobile ? 'px-0 pb-3' : 'px-6 pb-6'}`}>
+              <div className={`space-y-4 ${isMobile ? 'space-y-2' : ''}`}>
                 {/* Filter Buttons */}
-                <div className="flex gap-2 flex-wrap">
+                <div className={`flex gap-2 flex-wrap ${isMobile ? 'gap-1' : ''}`}>
                   <Button
-                    size="sm"
+                    size={isMobile ? "sm" : "sm"}
                     variant={clientFilter === "all" ? "default" : "outline"}
                     onClick={() => setClientFilter("all")}
-                    className="h-8 hover-scale"
+                    className={`${isMobile ? 'h-7 text-xs px-2' : 'h-8'} hover-scale`}
                   >
                     All
                   </Button>
@@ -498,36 +514,36 @@ export default function Tasks() {
                       return (
                         <div 
                           key={task.id} 
-                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
+                          className={`flex items-center ${isMobile ? 'gap-2 p-2' : 'gap-3 p-4'} rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in`}
                         >
                           <Checkbox 
                             id={`client-task-${task.id}`} 
                             checked={task.status === 'completed'}
                             onCheckedChange={() => handleTaskStatusChange(task.id, task.status)}
-                            className="transition-transform hover:scale-110"
+                            className={`transition-transform hover:scale-110 ${isMobile ? 'h-4 w-4' : ''}`}
                           />
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                          <Avatar className={isMobile ? 'h-7 w-7' : 'h-9 w-9'}>
+                            <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                               {task.clientId ? task.clientId.slice(0, 2).toUpperCase() : 'CL'}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className={`flex items-center ${isMobile ? 'gap-1 mb-0.5' : 'gap-2 mb-1'}`}>
                               <label 
                                 htmlFor={`client-task-${task.id}`} 
-                                className={`text-sm font-medium cursor-pointer transition-all ${
+                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all ${
                                   task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
                                 }`}
                               >
                                 Client Task
                               </label>
                             </div>
-                            <p className={`text-sm truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
                               {task.title}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-muted-foreground">{formatTaskDueDate(task.dueDate)}</span>
-                              <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                            <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5' : 'gap-2 mt-1'}`}>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatTaskDueDate(task.dueDate)}</span>
+                              <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                                 {status.label}
                               </Badge>
                             </div>
@@ -548,7 +564,7 @@ export default function Tasks() {
               </div>
             </TabsContent>
 
-            <TabsContent value="my-tasks" className="px-6 pb-6">
+            <TabsContent value="my-tasks" className={`${isMobile ? 'px-0 pb-3' : 'px-6 pb-6'}`}>
               <div className="space-y-4">
                 {/* Filter Buttons */}
                 <div className="flex gap-2 flex-wrap">
@@ -620,28 +636,28 @@ export default function Tasks() {
                       return (
                         <div 
                           key={task.id} 
-                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
+                          className={`flex items-center ${isMobile ? 'gap-2 p-2' : 'gap-3 p-4'} rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in`}
                         >
                           <Checkbox 
                             id={`my-task-${task.id}`} 
                             checked={task.status === 'completed'}
                             onCheckedChange={() => handleTaskStatusChange(task.id, task.status)}
-                            className="transition-transform hover:scale-110"
+                            className={`transition-transform hover:scale-110 ${isMobile ? 'h-4 w-4' : ''}`}
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className={`flex items-center ${isMobile ? 'gap-1 mb-0.5' : 'gap-2 mb-1'}`}>
                               <label 
                                 htmlFor={`my-task-${task.id}`} 
-                                className={`text-sm font-medium cursor-pointer transition-all ${
+                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all ${
                                   task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
                                 }`}
                               >
                                 {task.title}
                               </label>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</span>
-                              <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                            <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatDate(task.dueDate)}</span>
+                              <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                                 {status.label}
                               </Badge>
                             </div>
@@ -649,10 +665,10 @@ export default function Tasks() {
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="h-8 w-8 p-0 hover-scale"
+                            className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} p-0 hover-scale`}
                             onClick={() => handleEditTask(task)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                           </Button>
                         </div>
                       );
@@ -662,7 +678,7 @@ export default function Tasks() {
               </div>
             </TabsContent>
 
-            <TabsContent value="group-tasks" className="px-6 pb-6">
+            <TabsContent value="group-tasks" className={`${isMobile ? 'px-0 pb-3' : 'px-6 pb-6'}`}>
               <div className="space-y-4">
                 {/* Filter Buttons */}
                 <div className="flex gap-2 flex-wrap">
@@ -734,34 +750,34 @@ export default function Tasks() {
                       return (
                         <div 
                           key={task.id} 
-                          className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in"
+                          className={`flex items-center ${isMobile ? 'gap-2 p-2' : 'gap-3 p-4'} rounded-lg bg-muted/30 hover:bg-muted/50 transition-all hover:shadow-sm animate-fade-in`}
                         >
                           <Checkbox 
                             id={`group-task-${task.id}`} 
                             checked={task.status === 'completed'}
                             onCheckedChange={() => handleTaskStatusChange(task.id, task.status)}
-                            className="transition-transform hover:scale-110"
+                            className={`transition-transform hover:scale-110 ${isMobile ? 'h-4 w-4' : ''}`}
                           />
-                          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
-                            <UsersRound className="h-4 w-4 text-secondary-foreground" />
+                          <div className={`${isMobile ? 'h-7 w-7' : 'h-9 w-9'} rounded-full bg-secondary flex items-center justify-center`}>
+                            <UsersRound className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-secondary-foreground`} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className={`flex items-center ${isMobile ? 'gap-1 mb-0.5' : 'gap-2 mb-1'}`}>
                               <label 
                                 htmlFor={`group-task-${task.id}`} 
-                                className={`text-sm font-medium cursor-pointer transition-all ${
+                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all ${
                                   task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
                                 }`}
                               >
                                 Group Task
                               </label>
                             </div>
-                            <p className={`text-sm truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
                               {task.title}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-muted-foreground">{formatDate(task.dueDate)}</span>
-                              <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                            <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5' : 'gap-2 mt-1'}`}>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatDate(task.dueDate)}</span>
+                              <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                                 {status.label}
                               </Badge>
                             </div>
@@ -769,10 +785,10 @@ export default function Tasks() {
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="h-8 w-8 p-0 hover-scale"
+                            className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} p-0 hover-scale`}
                             onClick={() => handleEditTask(task)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                           </Button>
                         </div>
                       );
@@ -782,7 +798,7 @@ export default function Tasks() {
               </div>
             </TabsContent>
 
-            <TabsContent value="admin-tasks" className="px-6 pb-6">
+            <TabsContent value="admin-tasks" className={`${isMobile ? 'px-0 pb-3' : 'px-6 pb-6'}`}>
               <div className="space-y-4">
                 {/* Filter Buttons */}
                 <div className="flex gap-2 flex-wrap">
@@ -865,36 +881,36 @@ export default function Tasks() {
                             <Shield className="h-4 w-4 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className={`flex items-center ${isMobile ? 'gap-1 mb-0.5' : 'gap-2 mb-1'}`}>
                               <label 
                                 htmlFor={`admin-task-${task.id}`} 
-                                className={`text-sm font-medium cursor-pointer transition-all ${
+                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all ${
                                   task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
                                 }`}
                               >
                                 Admin Task
                               </label>
                             </div>
-                            <p className={`text-sm truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
                               {task.title}
                             </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-muted-foreground">{formatTaskDueDate(task.dueDate)}</span>
-                              <Badge variant={status.variant} className="text-xs h-4 px-1.5">
+                            <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5 flex-wrap' : 'gap-2 mt-1'}`}>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatTaskDueDate(task.dueDate)}</span>
+                              <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                                 {status.label}
                               </Badge>
                               {task.assignedByName && (
-                                <span className="text-xs text-muted-foreground">by {task.assignedByName}</span>
+                                <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>by {task.assignedByName}</span>
                               )}
                             </div>
                           </div>
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="h-8 w-8 p-0 hover-scale"
+                            className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} p-0 hover-scale`}
                             onClick={() => handleEditTask(task)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                           </Button>
                         </div>
                       );
@@ -907,18 +923,18 @@ export default function Tasks() {
         </Card>
 
         {/* Simplified Analytics Panel - Takes 1/3 of space */}
-        <div className="space-y-6">
+        <div className={`space-y-6 ${isMobile ? 'space-y-3 mt-3' : ''}`}>
           {/* Task Trends Chart - Only Essential Analytics */}
-          <Card className="shadow-soft border-border bg-card">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center gap-2 text-lg">
-                <BarChart3 className="h-5 w-5 text-secondary" />
+          <Card className={`shadow-soft border-border bg-card ${isMobile ? 'p-3' : ''}`}>
+            <CardHeader className={isMobile ? 'px-0 pb-3' : ''}>
+              <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+                <BarChart3 className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-secondary`} />
                 {getChartTitle()}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">{getChartSubtitle()}</p>
+              <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>{getChartSubtitle()}</p>
             </CardHeader>
-            <CardContent>
-              <div className="h-48">
+            <CardContent className={isMobile ? 'px-0' : ''}>
+              <div className={isMobile ? 'h-36' : 'h-48'}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={getChartData()}>
                     <XAxis 

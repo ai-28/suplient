@@ -71,6 +71,22 @@ export default function LibraryCategory() {
   const [previewType, setPreviewType] = useState(null);
   const [downloadingItemId, setDownloadingItemId] = useState(null);
 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   // Fetch items from API
   useEffect(() => {
     const fetchItems = async () => {
@@ -263,25 +279,25 @@ export default function LibraryCategory() {
   const IconComponent = categoryInfo.icon;
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className={`flex items-center ${isMobile ? 'flex-col gap-3' : 'justify-between'}`}>
+        <div className={`flex items-center ${isMobile ? 'w-full' : 'gap-4'}`}>
           <Button 
             variant="ghost" 
-            size="sm"
+            size={isMobile ? "sm" : "sm"}
             onClick={() => router.push('/coach/library')}
-            className="p-2"
+            className={isMobile ? 'p-1.5 h-8 w-8' : 'p-2'}
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
           </Button>
-          <div className="flex items-center gap-3">
-            <div className={`${categoryInfo.color} rounded-lg p-2`}>
-              <IconComponent className="h-6 w-6 text-white" />
+          <div className={`flex items-center ${isMobile ? 'gap-2 flex-1' : 'gap-3'}`}>
+            <div className={`${categoryInfo.color} rounded-lg ${isMobile ? 'p-1.5' : 'p-2'}`}>
+              <IconComponent className={`${isMobile ? 'h-4 w-4' : 'h-6 w-6'} text-white`} />
             </div>
-            <div>
-              <h2 className="text-3xl font-bold text-foreground">{categoryInfo.title}</h2>
-              <p className="text-muted-foreground">
+            <div className="flex-1 min-w-0">
+              <h2 className={`${isMobile ? 'text-lg' : 'text-3xl'} font-bold text-foreground`}>{categoryInfo.title}</h2>
+              <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>
                 {loading ? t('common.messages.loading') : t('library.itemsAvailable', '{count} items available', { count: items.length })}
                 {selectedFiles.length > 0 && ` • ${t('library.selectedCount', '{count} selected', { count: selectedFiles.length })}`}
               </p>
@@ -289,13 +305,13 @@ export default function LibraryCategory() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center ${isMobile ? 'w-full gap-1 flex-wrap' : 'gap-2'}`}>
           <FileUploadDialog
             category={category || ""}
             onUploadComplete={handleFileUpload}
           >
-            <Button variant="outline" className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
+            <Button variant="outline" className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+              <Upload className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
               {t('library.uploadFile', 'Upload')}
             </Button>
           </FileUploadDialog>
@@ -304,30 +320,31 @@ export default function LibraryCategory() {
             type="single"
             value={viewMode}
             onValueChange={(value) => value && setViewMode(value)}
-            className="border rounded-lg"
+            className={`border rounded-lg ${isMobile ? 'p-0.5' : ''}`}
           >
-            <ToggleGroupItem value="grid" aria-label={t('library.gridView')}>
-              <Grid3X3 className="h-4 w-4" />
+            <ToggleGroupItem value="grid" aria-label={t('library.gridView')} className={isMobile ? 'h-8 w-8 p-0' : ''}>
+              <Grid3X3 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </ToggleGroupItem>
-            <ToggleGroupItem value="list" aria-label={t('library.listView')}>
-              <List className="h-4 w-4" />
+            <ToggleGroupItem value="list" aria-label={t('library.listView')} className={isMobile ? 'h-8 w-8 p-0' : ''}>
+              <List className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </ToggleGroupItem>
           </ToggleGroup>
           
           <Button 
             variant="outline" 
             onClick={handleSelectAll}
-            className="flex items-center gap-2"
+            className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`}
+            size={isMobile ? "sm" : "default"}
           >
             {selectedFiles.length === items.length ? (
               <>
-                <CheckSquare className="h-4 w-4" />
-                {t('library.deselectAll', 'Deselect All')}
+                <CheckSquare className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                {!isMobile && t('library.deselectAll', 'Deselect All')}
               </>
             ) : (
               <>
-                <Square className="h-4 w-4" />
-                {t('library.selectAll', 'Select All')}
+                <Square className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                {!isMobile && t('library.selectAll', 'Select All')}
               </>
             )}
           </Button>
@@ -337,9 +354,9 @@ export default function LibraryCategory() {
               files={getSelectedFiles()}
               onShare={handleShareSelected}
             >
-              <Button className="flex items-center gap-2">
-                <Share2 className="h-4 w-4" />
-                {t('library.shareSelected', 'Share Selected')} ({selectedFiles.length})
+              <Button className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+                <Share2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                {isMobile ? `Share (${selectedFiles.length})` : `${t('library.shareSelected', 'Share Selected')} (${selectedFiles.length})`}
               </Button>
             </ShareFileDialog>
           )}
@@ -360,28 +377,28 @@ export default function LibraryCategory() {
       {!loading && (
         <>
         {viewMode === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
               {items.map((item, index) => (
             <Card 
               key={item.id || `item-${index}`}
               className={`shadow-soft border-border bg-card hover:shadow-medium transition-all group flex flex-col cursor-pointer ${
                 selectedFiles.includes(item.id) ? 'ring-2 ring-primary' : ''
-              }`}
+              } ${isMobile ? 'p-3' : ''}`}
               onClick={() => handleFileToggle(item.id)}
             >
-              <CardHeader className="pb-4">
-                <CardTitle className="text-foreground flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
+              <CardHeader className={`pb-4 ${isMobile ? 'pb-3 px-0' : ''}`}>
+                <CardTitle className={`text-foreground flex items-start justify-between gap-2 ${isMobile ? 'text-sm' : ''}`}>
+                  <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'} min-w-0 flex-1`}>
                     <Checkbox
                       checked={selectedFiles.includes(item.id)}
                       onCheckedChange={() => handleFileToggle(item.id)}
                       onClick={(e) => e.stopPropagation()}
-                      className="mt-1 shrink-0"
+                      className={`mt-1 shrink-0 ${isMobile ? 'h-4 w-4' : ''}`}
                     />
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="truncate text-sm font-medium cursor-help">{item.title}</span>
+                          <span className={`truncate ${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-help`}>{item.title}</span>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>{item.title}</p>
@@ -395,10 +412,10 @@ export default function LibraryCategory() {
                 </CardTitle>
               </CardHeader>
               
-              <CardContent className="flex-1 flex flex-col">
+              <CardContent className={`flex-1 flex flex-col ${isMobile ? 'px-0' : ''}`}>
                 {/* Top content */}
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground line-clamp-2 ${isMobile ? 'mb-2' : 'mb-4'}`}>
                     {item.description}
                   </p>
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { AppSidebar } from "@/app/components/AppSidebar";
-import { SidebarProvider } from "@/app/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/app/components/ui/sidebar";
 import { NotificationBell } from "@/app/components/NotificationBell";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { usePathname, useRouter } from "next/navigation";
@@ -78,21 +78,25 @@ const Layout = ({ children }) => {
             
             {/* Header - show for all routes except client (client has its own navigation) */}
             {!isClientRoute && (
-              <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 shadow-soft">
-                <div className="flex items-center">
-                  <div className="ml-4">
-                    <h1 className="text-xl font-semibold text-foreground">
+              <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 md:px-6 shadow-soft">
+                <div className="flex items-center gap-2 md:gap-4">
+                  {/* Sidebar Trigger - visible on mobile */}
+                  {shouldShowSidebar && (
+                    <SidebarTrigger className="md:hidden" />
+                  )}
+                  <div className={shouldShowSidebar ? "md:ml-4" : "ml-4"}>
+                    <h1 className="text-lg md:text-xl font-semibold text-foreground">
                       {user?.name ? `${t('common.greeting', 'Hi')} ${user.name}` : platformName}
                     </h1>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-4">
                     <NotificationBell userRole={pathname.startsWith('/admin') ? 'admin' : 'coach'} />
                   <ThemeToggle />
                   <Button
                     variant="ghost"
-                    className="relative h-12 w-12 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all duration-200 p-0 cursor-pointer"
+                    className="relative h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all duration-200 p-0 cursor-pointer"
                     onClick={() => {
                       // Navigate to Settings based on role
                       if (user?.role === 'admin') {
@@ -102,7 +106,7 @@ const Layout = ({ children }) => {
                       }
                     }}
                   >
-                    <Avatar className="h-12 w-12 rounded-lg border-2 border-gray-200">
+                    <Avatar className="h-10 w-10 md:h-12 md:w-12 rounded-lg border-2 border-gray-200">
                       {user?.avatar && (
                         <AvatarImage 
                           src={user.avatar} 
@@ -110,7 +114,7 @@ const Layout = ({ children }) => {
                           className="object-cover"
                         />
                       )}
-                      <AvatarFallback className="flex justify-center items-center h-full w-full text-3xl text-gray-700 font-bold bg-gray-100">
+                      <AvatarFallback className="flex justify-center items-center h-full w-full text-xl md:text-3xl text-gray-700 font-bold bg-gray-100">
                         {user?.name ? user.name.slice(0, 2).toUpperCase() : "U"}
                       </AvatarFallback>
                     </Avatar>

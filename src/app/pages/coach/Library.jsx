@@ -54,6 +54,22 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const [imageErrors, setImageErrors] = useState(new Set());
 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   const handleCategoryClick = (categoryKey) => {
     router.push(`/coach/library/${categoryKey.toLowerCase()}`);
   };
@@ -154,11 +170,11 @@ export default function Library() {
 
   if (loading) {
     return (
-      <div className="page-container">
-        <div className="flex items-center justify-center h-64">
+      <div className={`page-container ${isMobile ? 'px-4' : ''}`}>
+        <div className={`flex items-center justify-center ${isMobile ? 'h-48' : 'h-64'}`}>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">{t('common.messages.loading')}</p>
+            <div className={`animate-spin rounded-full ${isMobile ? 'h-6 w-6' : 'h-8 w-8'} border-b-2 border-primary mx-auto mb-4`}></div>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>{t('common.messages.loading')}</p>
           </div>
         </div>
       </div>
@@ -166,23 +182,23 @@ export default function Library() {
   }
 
   return (
-    <div className="page-container">
+    <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className={`flex items-start ${isMobile ? 'flex-col gap-3 mb-4' : 'justify-between mb-8'}`}>
         <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">{t('navigation.library')}</h1>
-          <p className="text-muted-foreground">{t('library.title')}</p>
+            <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-foreground ${isMobile ? 'mb-1' : 'mb-2'}`}>{t('navigation.library')}</h1>
+          <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>{t('library.title')}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-4 text-sm bg-muted/50 rounded-md px-4 py-2.5 h-10">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Files className="h-3.5 w-3.5" />
+        <div className={`flex items-center ${isMobile ? 'w-full justify-between flex-wrap gap-2' : 'gap-3'}`}>
+          <div className={`flex items-center ${isMobile ? 'gap-2 text-xs' : 'gap-4 text-sm'} bg-muted/50 rounded-md ${isMobile ? 'px-2 py-1.5 h-8' : 'px-4 py-2.5 h-10'}`}>
+            <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-1.5'} text-muted-foreground`}>
+              <Files className={isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
               <span className="font-medium text-foreground">{libraryItems.reduce((sum, item) => sum + item.count, 0)}</span>
-              <span>resources</span>
+              {!isMobile && <span>resources</span>}
             </div>
-            <div className="w-px h-4 bg-border"></div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <HardDrive className="h-3.5 w-3.5" />
+            <div className={`w-px ${isMobile ? 'h-3' : 'h-4'} bg-border`}></div>
+            <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-1.5'} text-muted-foreground`}>
+              <HardDrive className={isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
               <span className="font-medium text-foreground">{formatFileSize(
                 libraryItems.reduce((sum, item) => {
                   // Parse the formatted size back to bytes for calculation
@@ -196,46 +212,46 @@ export default function Library() {
               )}</span>
             </div>
           </div>
-            <Button onClick={() => router.push('/coach/library/upload')} className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center gap-2">
-            <Plus className="h-4 w-4 text-[#1A2D4D]" />
-            Upload Files
+            <Button onClick={() => router.push('/coach/library/upload')} className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+            <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-[#1A2D4D]`} />
+            {isMobile ? 'Upload' : 'Upload Files'}
           </Button>
         </div>
       </div>
 
       {/* Library Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}`}>
         {libraryItems.map((item) => (
           <Card 
             key={item.category} 
-            className="card-hover group overflow-hidden"
+            className={`card-hover group overflow-hidden ${isMobile ? 'p-3' : ''}`}
           >
-            <CardHeader className="pb-3">
-              <CardTitle className="text-foreground flex items-center justify-between text-lg">
-                <span className="flex items-center gap-2">
-                  <div className={`${item.color} rounded-lg p-1.5`}>
-                    <item.icon className="h-4 w-4 text-white" />
+            <CardHeader className={`pb-3 ${isMobile ? 'px-0 pb-2' : ''}`}>
+              <CardTitle className={`text-foreground flex items-center justify-between ${isMobile ? 'text-base' : 'text-lg'}`}>
+                <span className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'}`}>
+                  <div className={`${item.color} rounded-lg ${isMobile ? 'p-1' : 'p-1.5'}`}>
+                    <item.icon className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-white`} />
                   </div>
                   {item.category}
                 </span>
-                <Badge className="bg-muted text-muted-foreground text-sm px-2 py-1">
+                <Badge className={`bg-muted text-muted-foreground ${isMobile ? 'text-xs px-1.5 py-0.5' : 'text-sm px-2 py-1'}`}>
                   {item.count}
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-xs text-muted-foreground">
+            <CardContent className={`space-y-3 ${isMobile ? 'px-0 space-y-2' : ''}`}>
+              <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
                 {item.description}
               </p>
               
               {/* Content Preview */}
               <div 
-                className="bg-muted/30 rounded-lg p-3 min-h-[80px] flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
+                className={`bg-muted/30 rounded-lg ${isMobile ? 'p-2 min-h-[60px]' : 'p-3 min-h-[80px]'} flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors`}
                 onClick={() => handleCategoryClick(item.categoryKey)}
               >
                 {imageErrors.has(item.categoryKey) ? (
-                  <div className={`${item.color} rounded-lg p-4 flex items-center justify-center`}>
-                    <item.icon className="h-12 w-12 text-white" />
+                  <div className={`${item.color} rounded-lg ${isMobile ? 'p-2' : 'p-4'} flex items-center justify-center`}>
+                    <item.icon className={`${isMobile ? 'h-8 w-8' : 'h-12 w-12'} text-white`} />
                   </div>
                 ) : (
                   <img 
@@ -249,17 +265,17 @@ export default function Library() {
               </div>
 
               {/* Quick Actions */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'justify-between'}`}>
+                <div className={`flex items-center gap-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
                   <span>{item.count} files • {item.totalSize}</span>
                 </div>
                 <Button 
                   variant="outline" 
-                  size="sm" 
+                  size={isMobile ? "sm" : "sm"} 
                   onClick={() => handleCategoryClick(item.categoryKey)}
-                  className="text-xs h-7"
+                  className={`${isMobile ? 'text-[10px] h-6 w-full' : 'text-xs h-7'}`}
                 >
-                  <Eye className="h-3 w-3 mr-1" />
+                  <Eye className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'mr-0.5' : 'mr-1'}`} />
                   Browse
                 </Button>
               </div>

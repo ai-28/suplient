@@ -26,6 +26,22 @@ export default function Programs() {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [editingProgramId, setEditingProgramId] = useState(null);
   
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+  
   // Data fetching states
   const [programs, setPrograms] = useState([]);
   const [stats, setStats] = useState({
@@ -201,20 +217,20 @@ export default function Programs() {
   };
 
   return (
-    <div className="page-container">
+    <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
       <PageHeader 
         title={t('navigation.programs')} 
         subtitle={t('programs.managePrograms', 'Manage your programs')}
       >
-        <Button onClick={() => router.push('/coach/programs/create')} className="bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center gap-2">
-          <Plus className="h-4 w-4 text-[#1A2D4D]"/>
-          {t('programs.createProgram')}
+        <Button onClick={() => router.push('/coach/programs/create')} className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+          <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-[#1A2D4D]`}/>
+          {isMobile ? 'Create' : t('programs.createProgram')}
         </Button>
       </PageHeader>
 
       {/* KPI Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className={`grid ${isMobile ? 'grid-cols-1 gap-3 mb-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6'}`}>
         <StatsCard
           title={t('programs.totalPrograms', 'Total Programs')}
           value={stats.totalPrograms}
@@ -272,69 +288,69 @@ export default function Programs() {
           </div>
         </div>
       ) : (
-        <div className="grid-responsive">
+        <div className={`grid-responsive ${isMobile ? 'grid grid-cols-1 gap-3' : ''}`}>
           {programs.map((program) => {
           const enrolledClients = getEnrolledClients(program.id);
           const clientCount = enrolledClients.length;
           
           return (
-            <Card key={program.id} className="card-hover">
-              <CardHeader>
-                <div className="flex items-start justify-between">
+            <Card key={program.id} className={`card-hover ${isMobile ? 'p-3' : ''}`}>
+              <CardHeader className={isMobile ? 'pb-3 px-0' : ''}>
+                <div className={`flex items-start ${isMobile ? 'flex-col gap-2' : 'justify-between'}`}>
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{program.name}</CardTitle>
+                      <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{program.name}</CardTitle>
                     </div>
                   </div>
                 </div>
               </CardHeader>
               
-              <CardContent className="space-y-4">
-                <CardDescription className="text-sm line-clamp-2">
+              <CardContent className={`space-y-4 ${isMobile ? 'px-0 space-y-3' : ''}`}>
+                <CardDescription className={`${isMobile ? 'text-xs' : 'text-sm'} line-clamp-2`}>
                   {program.description}
                 </CardDescription>
                 
-                <div className="grid grid-cols-3 gap-4 text-center py-3 bg-muted/50 rounded-lg">
+                <div className={`grid grid-cols-3 ${isMobile ? 'gap-2 py-2' : 'gap-4 py-3'} text-center bg-muted/50 rounded-lg`}>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t('programs.duration')}</p>
-                    <p className="text-sm font-semibold">{program.duration} {t('programs.weeks')}</p>
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{t('programs.duration')}</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold`}>{program.duration} {t('programs.weeks')}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t('programs.elements')}</p>
-                    <p className="text-sm font-semibold">{program.elementCount || 0}</p>
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{t('programs.elements')}</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold`}>{program.elementCount || 0}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t('programs.enrolled')}</p>
-                    <p className="text-sm font-semibold">
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{t('programs.enrolled')}</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold`}>
                       {loadingClients[program.id] ? '...' : clientCount}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2 flex-wrap">
+                <div className={`flex gap-2 pt-2 flex-wrap ${isMobile ? 'flex-col' : ''}`}>
                   <Button
-                    size="sm"
+                    size={isMobile ? "sm" : "sm"}
                     onClick={() => handleEditProgram(program.id)}
                     disabled={editingProgramId === program.id}
-                    className="flex-1 flex items-center gap-2"
+                    className={`${isMobile ? 'w-full text-xs h-8' : 'flex-1'} flex items-center gap-2`}
                   >
                     {editingProgramId === program.id ? (
                       <>
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        <div className={`animate-spin rounded-full ${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} border-b-2 border-white`}></div>
                         {t('programs.opening', 'Opening...')}
                       </>
                     ) : (
                       <>
-                        <Edit className="h-3 w-3" />
-                        {t('programs.editProgram')}
+                        <Edit className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                        {isMobile ? 'Edit' : t('programs.editProgram')}
                       </>
                     )}
                   </Button>
                   
                   <Button
-                    size="sm"
+                    size={isMobile ? "sm" : "sm"}
                     variant="outline"
-                    className="shrink-0"
+                    className={`${isMobile ? 'w-full text-xs h-8' : 'shrink-0'}`}
                     disabled={loadingClients[program.id]}
                     onClick={() => {
                       const enrolledClients = getEnrolledClients(program.id);
@@ -342,23 +358,25 @@ export default function Programs() {
                       setEnrolledMembersDialogOpen(true);
                     }}
                   >
-                    <Users className="h-3 w-3" />
-                    {loadingClients[program.id] && <span className="ml-1">...</span>}
+                    <Users className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                    {loadingClients[program.id] && <span className={isMobile ? 'ml-0.5' : 'ml-1'}>...</span>}
+                    {isMobile && <span className="ml-1">Members</span>}
                   </Button>
                   
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
-                        size="sm"
+                        size={isMobile ? "sm" : "sm"}
                         variant="outline"
-                        className="shrink-0"
+                        className={`${isMobile ? 'w-full text-xs h-8' : 'shrink-0'}`}
                         onClick={() => {
                           setSelectedProgram(program);
                           setNewProgramName(`${program.name} (Copy)`);
                           setDuplicateDialogOpen(true);
                         }}
                       >
-                        <Copy className="h-3 w-3" />
+                        <Copy className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                        {isMobile && <span className="ml-1">Duplicate</span>}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">

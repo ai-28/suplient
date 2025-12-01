@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -28,6 +28,22 @@ import { useTranslation } from "@/app/context/LanguageContext";
 export default function Help() {
   const [searchQuery, setSearchQuery] = useState("");
   const t = useTranslation();
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const faqData = [
     {
@@ -89,30 +105,30 @@ export default function Help() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className={`flex items-center ${isMobile ? 'flex-col gap-3' : 'justify-between'}`}>
         <div>
-          <h2 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <HelpCircle className="h-8 w-8 text-primary" />
+          <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-foreground flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+            <HelpCircle className={`${isMobile ? 'h-5 w-5' : 'h-8 w-8'} text-primary`} />
             {t('navigation.help')}
           </h2>
-          <p className="text-muted-foreground mt-1">{t('navigation.help')}</p>
+          <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-0.5' : 'mt-1'}`}>{t('navigation.help')}</p>
         </div>
-        <Button className="bg-gradient-primary text-white">
-          <MessageCircle className="h-4 w-4 mr-2" />
-          {t('common.buttons.contact', 'Contact Support')}
+        <Button className={`bg-gradient-primary text-white ${isMobile ? 'text-xs px-2 h-8 w-full' : ''}`} size={isMobile ? "sm" : "default"}>
+          <MessageCircle className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+          {isMobile ? 'Contact' : t('common.buttons.contact', 'Contact Support')}
         </Button>
       </div>
 
       {/* Search Bar */}
-      <Card className="shadow-soft border-border bg-card">
-        <CardContent className="pt-6">
+      <Card className={`shadow-soft border-border bg-card ${isMobile ? 'p-3' : ''}`}>
+        <CardContent className={isMobile ? 'pt-3 px-0' : 'pt-6'}>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
             <Input 
               placeholder={t('common.buttons.search')}
-              className="pl-10"
+              className={`${isMobile ? 'pl-8 h-9 text-sm' : 'pl-10'}`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -120,7 +136,7 @@ export default function Help() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="faq" className="space-y-6">
+      <Tabs defaultValue="faq" className={`space-y-6 ${isMobile ? 'space-y-3' : ''}`}>
         <TabsList className="grid w-full grid-cols-4 bg-muted">
           <TabsTrigger value="faq" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               {t('navigation.help', 'FAQ')}

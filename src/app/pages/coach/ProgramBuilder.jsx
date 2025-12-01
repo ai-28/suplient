@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -18,6 +18,22 @@ export default function ProgramBuilder() {
   const router = useRouter();
   const { user } = useAuth();
   const t = useTranslation();
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -107,33 +123,33 @@ export default function ProgramBuilder() {
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className={`container mx-auto ${isMobile ? 'px-4 py-4 pb-24' : 'py-8'} space-y-6 ${isMobile ? 'space-y-4' : ''}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/coach/programs')}>
-            <ArrowLeft className="h-4 w-4" />
-            {t('common.buttons.back', 'Back')}
+      <div className={`flex items-center ${isMobile ? 'flex-col gap-3' : 'justify-between'}`}>
+        <div className={`flex items-center ${isMobile ? 'w-full justify-between' : 'gap-4'}`}>
+          <Button variant="ghost" size={isMobile ? "sm" : "sm"} onClick={() => router.push('/coach/programs')} className={isMobile ? 'text-xs px-2 h-8' : ''}>
+            <ArrowLeft className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+            {!isMobile && t('common.buttons.back', 'Back')}
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">{t('programs.createProgram')}</h1>
-            <p className="text-muted-foreground">{t('programs.createNewProgram', 'Create a new program')}</p>
+          <div className={isMobile ? 'flex-1 text-center' : ''}>
+            <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-foreground`}>{t('programs.createProgram')}</h1>
+            <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>{t('programs.createNewProgram', 'Create a new program')}</p>
           </div>
         </div>
         
-        <Button onClick={handleSave} disabled={isSaving}>
+        <Button onClick={handleSave} disabled={isSaving} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
           {isSaving ? t('common.messages.loading') : t('common.buttons.save')}
         </Button>
       </div>
 
       {/* Program Setup - Horizontal Layout */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{t('programs.programSetup')}</CardTitle>
-          <CardDescription>{t('programs.basicInfo')}</CardDescription>
+      <Card className={isMobile ? 'p-3' : ''}>
+        <CardHeader className={isMobile ? 'pb-3 px-0' : ''}>
+          <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'}`}>{t('programs.programSetup')}</CardTitle>
+          <CardDescription className={isMobile ? 'text-xs' : ''}>{t('programs.basicInfo')}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className={isMobile ? 'px-0' : ''}>
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-4'}`}>
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">{t('programs.programName')} *</Label>
               <Input

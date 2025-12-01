@@ -115,6 +115,22 @@ export default function Clients() {
   const [suspending, setSuspending] = useState(false);
   const router = useRouter();
 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640); // sm breakpoint
+      setIsTablet(width >= 640 && width < 1024); // md breakpoint
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   // Fetch clients data from API
   const fetchClients = async () => {
     try {
@@ -365,11 +381,11 @@ export default function Clients() {
 
   if (loading) {
     return (
-      <div className="page-container">
+      <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading clients...</p>
+            <div className={`animate-spin rounded-full ${isMobile ? 'h-6 w-6' : 'h-8 w-8'} border-b-2 border-primary mx-auto mb-4`}></div>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>Loading clients...</p>
           </div>
         </div>
       </div>
@@ -378,48 +394,48 @@ export default function Clients() {
 
   return (
     <TooltipProvider>
-      <div className="page-container">
+      <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
         {/* Page Header */}
         <PageHeader 
           title={t('navigation.clients')} 
           subtitle={t('clients.title')}
         >
           {/* View Toggle */}
-          <div className="flex rounded-lg border border-border bg-background p-1">
+          <div className={`flex rounded-lg border border-border bg-background ${isMobile ? 'p-0.5' : 'p-1'}`}>
             <Button
               variant={viewMode === "list" ? "default" : "ghost"}
-              size="sm"
+              size={isMobile ? "sm" : "sm"}
               onClick={() => setViewMode("list")}
-              className="gap-2"
+              className={`${isMobile ? 'gap-1 px-2 text-xs' : 'gap-2'}`}
             >
-              <List className="h-4 w-4" />
-              {"List"}
+              <List className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+              {!isMobile && "List"}
             </Button>
             <Button
               variant={viewMode === "funnel" ? "default" : "ghost"}
-              size="sm"
+              size={isMobile ? "sm" : "sm"}
               onClick={() => setViewMode("funnel")}
-              className="gap-2"
+              className={`${isMobile ? 'gap-1 px-2 text-xs' : 'gap-2'}`}
             >
-              <LayoutGrid className="h-4 w-4" />
-              {"Cards"}
+              <LayoutGrid className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+              {!isMobile && "Cards"}
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <ImportClientsDialog onClientsImported={handleClientCreated} />
+          <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
+            {!isMobile && <ImportClientsDialog onClientsImported={handleClientCreated} />}
             <CreateClientDialog onClientCreated={handleClientCreated} />
           </div>
         </PageHeader>
 
       {/* Controls */}
-      <div className="flex items-center gap-3 pt-4 border-t border-border">
+      <div className={`flex items-center ${isMobile ? 'flex-wrap gap-2 pt-3' : 'gap-3 pt-4'} border-t border-border`}>
         {/* Column Visibility and Filter Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
-              {"Filter and Columns"}
-              <ChevronDown className="h-4 w-4" />
+            <Button variant="outline" className={`${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+              <Filter className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+              {isMobile ? "Filter" : "Filter and Columns"}
+              <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
@@ -464,10 +480,10 @@ export default function Clients() {
         {/* Sorting Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <ArrowUpDown className="h-4 w-4" />
+            <Button variant="outline" className={`${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+              <ArrowUpDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
               {"Sort By"}
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
@@ -522,33 +538,33 @@ export default function Clients() {
       {viewMode === "funnel" && (
         <div className="space-y-6">
           {/* Funnel Columns */}
-          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Object.values(visibleColumns).filter(Boolean).length}, 1fr)` }}>
+          <div className={`${isMobile ? 'flex flex-col' : 'grid gap-4'}`} style={!isMobile ? { gridTemplateColumns: `repeat(${Object.values(visibleColumns).filter(Boolean).length}, 1fr)` } : {}}>
             {funnelStages.filter(stage => visibleColumns[stage.id]).map((stage) => {
               const stageClients = getClientsByStage(stage.id);
               return (
-                <Card key={stage.id} className="card-standard flex flex-col h-[600px]">
-                   <CardHeader className="pb-4 flex-shrink-0">
-                     <CardTitle className="text-lg font-bold text-foreground flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                         <div className={`w-4 h-4 rounded-full ${stage.color}`} />
+                <Card key={stage.id} className={`card-standard flex flex-col ${isMobile ? 'h-auto mb-4' : 'h-[600px]'} ${isMobile ? 'p-3' : ''}`}>
+                   <CardHeader className={`pb-4 flex-shrink-0 ${isMobile ? 'pb-3 px-0' : ''}`}>
+                     <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-foreground flex items-center justify-between`}>
+                       <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                         <div className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} rounded-full ${stage.color}`} />
                          <span>{stage.name}</span>
                        </div>
-                       <span className="text-2xl font-bold text-primary">{stageClients.length}</span>
+                       <span className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-primary`}>{stageClients.length}</span>
                      </CardTitle>
                    </CardHeader>
-                  <CardContent className="space-y-3 flex-1 overflow-y-auto">
+                  <CardContent className={`space-y-3 flex-1 ${isMobile ? 'space-y-2 px-0' : ''} ${isMobile ? 'max-h-96' : ''} overflow-y-auto`}>
                      {stageClients.map((client) => (
                        <div
                          key={client.id}
-                         className={`p-4 rounded-lg border cursor-pointer transition-colors h-[140px] flex flex-col ${
+                         className={`${isMobile ? 'p-2 h-auto' : 'p-4 h-[140px]'} rounded-lg border cursor-pointer transition-colors flex flex-col ${
                            client.status === "Inactive" || client.status === "inactive"
                              ? "border-orange-300 bg-orange-50/50 hover:bg-orange-100/50"
                              : "border-border bg-background hover:bg-muted/50"
                          }`}
                          onClick={() => router.push(`/coach/clients/${client.id}`)}
                        >
-                         <div className="flex items-center gap-2 mb-3">
-                           <Avatar className="h-8 w-8">
+                         <div className={`flex items-center ${isMobile ? 'gap-1.5 mb-2' : 'gap-2 mb-3'}`}>
+                           <Avatar className={isMobile ? 'h-6 w-6' : 'h-8 w-8'}>
                              {client.avatar && (
                                <AvatarImage 
                                  src={client.avatar} 
@@ -556,28 +572,28 @@ export default function Clients() {
                                  className="object-cover"
                                />
                              )}
-                             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                             <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
                                {client.name.split(' ').map(n => n[0]).join('')}
                              </AvatarFallback>
                            </Avatar>
-                           <div className="flex items-center gap-2 flex-1">
-                             <span className="font-medium text-sm text-foreground">{client.name}</span>
+                           <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} flex-1`}>
+                             <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} text-foreground`}>{client.name}</span>
                              {(client.status === "Inactive" || client.status === "inactive") && (
-                               <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
+                               <Badge variant="outline" className={`${isMobile ? 'text-[10px] px-1 py-0' : 'text-xs'} bg-orange-100 text-orange-700 border-orange-300`}>
                                  Inactive
                                </Badge>
                              )}
                            </div>
-                           <span className="text-xl ml-auto">{client.mood}</span>
+                           <span className={`${isMobile ? 'text-base' : 'text-xl'} ml-auto`}>{client.mood}</span>
                            <DropdownMenu>
                              <DropdownMenuTrigger asChild>
                                <Button
                                  size="sm"
                                  variant="ghost"
-                                 className="h-6 w-6 p-0"
+                                 className={isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'}
                                  onClick={(e) => e.stopPropagation()}
                                >
-                                 <MoreVertical className="h-4 w-4" />
+                                 <MoreVertical className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                                </Button>
                              </DropdownMenuTrigger>
                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -697,26 +713,28 @@ export default function Clients() {
 
       {/* List View */}
       {viewMode === "list" && (
-        <Card className="shadow-soft border-border bg-card">
-           <CardHeader>
-             <CardTitle className="text-foreground flex items-center gap-2">
-               <Users className="h-5 w-5 text-primary" />
+        <Card className={`shadow-soft border-border bg-card ${isMobile ? 'p-3' : ''}`}>
+           <CardHeader className={isMobile ? 'px-0 pb-3' : ''}>
+             <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
+               <Users className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
                {"Client List"} ({sortedClients.length})
              </CardTitle>
            </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {/* Header Row */}
-              <div className="grid grid-cols-8 gap-4 p-4 text-sm font-medium text-muted-foreground bg-muted/30 rounded-lg">
-                <div>Name</div>
-                <div>Type</div>
-                <div>Status</div>
-                <div>Mood</div>
-                <div>Last Login</div>
-                <div>Created</div>
-                <div>Session</div>
-                <div>Actions</div>
-              </div>
+          <CardContent className={isMobile ? 'px-0' : ''}>
+            <div className={`space-y-1 ${isMobile ? 'space-y-3' : ''}`}>
+              {/* Header Row - Hidden on mobile */}
+              {!isMobile && (
+                <div className="grid grid-cols-8 gap-4 p-4 text-sm font-medium text-muted-foreground bg-muted/30 rounded-lg">
+                  <div>Name</div>
+                  <div>Type</div>
+                  <div>Status</div>
+                  <div>Mood</div>
+                  <div>Last Login</div>
+                  <div>Created</div>
+                  <div>Session</div>
+                  <div>Actions</div>
+                </div>
+              )}
 
               {/* Client Rows */}
               {sortedClients.map((client) => {
@@ -734,13 +752,103 @@ export default function Clients() {
                 return (
                   <div 
                     key={client.id} 
-                    className={`grid grid-cols-8 gap-4 p-4 rounded-lg transition-colors cursor-pointer ${
+                    className={`${isMobile ? 'flex flex-col space-y-3 p-3' : 'grid grid-cols-8 gap-4 p-4'} rounded-lg transition-colors cursor-pointer ${
                       client.status === "Inactive" || client.status === "inactive"
                         ? "border border-orange-300 bg-orange-50/50 hover:bg-orange-100/50"
                         : "border border-transparent hover:bg-muted/50 hover:border-border"
                     }`}
                     onClick={() => router.push(`/coach/clients/${client.id}`)}
                   >
+                    {isMobile ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              {client.avatar && (
+                                <AvatarImage 
+                                  src={client.avatar} 
+                                  alt={client.name} 
+                                  className="object-cover"
+                                />
+                              )}
+                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                                {client.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <span className="text-foreground font-medium text-sm">{client.name}</span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge className={`${getStageColor(client.stage)} border-0 font-medium text-xs`}>
+                                  {getStageDisplayName(client.stage)}
+                                </Badge>
+                                <Badge 
+                                  className={`text-xs ${client.status === 'Active' || client.status === 'active'
+                                    ? 'bg-primary text-primary-foreground' 
+                                    : 'bg-orange-100 text-orange-700 border-orange-300'
+                                  }`}
+                                >
+                                  {client.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-2xl">{client.mood}</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-muted-foreground">Last Login: </span>
+                            <span className="text-foreground">{formatDateLocal(client.lastActive)}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Created: </span>
+                            <span className="text-foreground">{formatDateLocal(client.created)}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">Session: </span>
+                            <span className="text-foreground">{client.scheduledSession || "No Session"}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 items-center justify-end">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className={isMobile ? 'h-7 w-7 p-0' : ''}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/coach/clients/${client.id}/chat`);
+                            }}
+                          >
+                            <MessageCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Message</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className={isMobile ? 'h-7 w-7 p-0' : ''}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/coach/clients/${client.id}`);
+                            }}
+                          >
+                            <Settings className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Settings</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    </>
+                    ) : (
+                      <>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         {client.avatar && (
@@ -783,15 +891,15 @@ export default function Clients() {
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground relative"
+                            className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} p-0 hover:bg-primary hover:text-primary-foreground relative`}
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/coach/clients/${client.id}`);
+                              router.push(`/coach/clients/${client.id}/chat`);
                             }}
                           >
-                            <MessageCircle className="h-4 w-4" />
+                            <MessageCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                             {client.unreadMessages > 0 && (
-                              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                              <span className={`absolute -top-1 -right-1 bg-red-500 text-white ${isMobile ? 'text-[10px] h-3 w-3' : 'text-xs rounded-full h-4 w-4'} flex items-center justify-center`}>
                                 {client.unreadMessages}
                               </span>
                             )}
@@ -809,54 +917,24 @@ export default function Clients() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button 
-                            size="sm" 
                             variant="ghost" 
-                            className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground"
+                            size="sm"
+                            className={isMobile ? 'h-7 w-7 p-0' : ''}
                             onClick={(e) => {
                               e.stopPropagation();
                               router.push(`/coach/clients/${client.id}`);
                             }}
                           >
-                            <StickyNote className="h-4 w-4" />
+                            <Settings className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p className="max-w-xs">
-                            {client.lastNote && client.lastNote !== 'No recent notes' 
-                              ? `${client.lastNote.split(' ').slice(0, 15).join(' ')}${client.lastNote.split(' ').length > 15 ? '...' : ''}`
-                              : 'No recent notes'
-                            }
-                          </p>
+                          <p>Settings</p>
                         </TooltipContent>
                       </Tooltip>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSuspend(client.id, client.status);
-                        }}
-                        disabled={suspending}
-                        className={client.status === "Active" ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
-                      >
-                        {suspending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Ban className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-8 w-8 p-0 hover:bg-secondary hover:text-secondary-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/coach/clients/${client.id}`);
-                        }}
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
                     </div>
+                    </>
+                    )}
                   </div>
                 );
               })}

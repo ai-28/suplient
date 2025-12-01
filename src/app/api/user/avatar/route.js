@@ -50,8 +50,8 @@ export async function POST(request) {
         }
 
         // Check S3 credentials and configuration
-        if (!process.env.DO_SPACES_KEY || 
-            !process.env.DO_SPACES_SECRET || 
+        if (!process.env.DO_SPACES_KEY ||
+            !process.env.DO_SPACES_SECRET ||
             !process.env.DO_SPACES_BUCKET ||
             !process.env.DO_SPACES_REGION ||
             !process.env.DO_SPACES_ENDPOINT) {
@@ -74,23 +74,56 @@ export async function POST(request) {
 
         if (!file) {
             return NextResponse.json(
-                { success: false, error: 'No file provided' },
+                {
+                    success: false,
+                    error: 'No file provided',
+                    details: 'Please select an image file to upload.'
+                },
                 { status: 400 }
             );
         }
 
-        // Validate file type
-        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        // Get file information for error reporting
+        const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const fileInfo = {
+            fileName: file.name,
+            fileType: file.type,
+            fileExtension: fileExtension,
+            fileSize: file.size,
+            fileSizeMB: fileSizeMB
+        };
+
+        // Validate file type - check MIME type first, then fallback to file extension
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        const isValidMimeType = ALLOWED_MIME_TYPES.includes(file.type);
+        const isValidExtension = allowedExtensions.includes(fileExtension);
+
+        if (!isValidMimeType && !isValidExtension) {
+            // Provide more detailed error message
+            const detectedType = file.type || 'unknown';
+            const detectedExtension = fileExtension || 'none';
+            console.error('❌ Invalid file type:', fileInfo);
+
             return NextResponse.json(
-                { success: false, error: 'Invalid file type. Please upload a JPG, PNG, WebP, or GIF image.' },
+                {
+                    success: false,
+                    error: `Invalid file type (${detectedType || 'unknown'}). Please upload a JPG, PNG, WebP, or GIF image.`,
+                    details: `File: ${file.name}, Type: ${detectedType}, Extension: ${detectedExtension}, Size: ${fileSizeMB}MB. HEIC files should be converted to JPEG first.`
+                },
                 { status: 400 }
             );
         }
 
         // Validate file size
         if (file.size > MAX_FILE_SIZE) {
+            console.error('❌ File too large:', fileInfo);
             return NextResponse.json(
-                { success: false, error: 'File size too large. Maximum size is 5MB.' },
+                {
+                    success: false,
+                    error: `File size too large (${fileSizeMB}MB). Maximum size is 5MB.`,
+                    details: `File: ${file.name}, Size: ${fileSizeMB}MB, Max: 5MB. Please compress or resize your image.`
+                },
                 { status: 400 }
             );
         }
@@ -102,9 +135,9 @@ export async function POST(request) {
 
         const oldAvatarUrl = userResult[0]?.avatar;
 
-        // Generate unique filename with proper extension
-        const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-        const fileName = `avatar-${session.user.id}-${uuidv4()}.${fileExtension}`;
+        // Generate unique filename with proper extension (use the already extracted fileExtension)
+        const finalExtension = fileExtension || 'jpg';
+        const fileName = `avatar-${session.user.id}-${uuidv4()}.${finalExtension}`;
         const filePath = `avatars/${fileName}`;
 
         // Convert file to buffer
@@ -112,17 +145,37 @@ export async function POST(request) {
         const fileBuffer = Buffer.from(buffer);
 
         // Upload to DigitalOcean Spaces
-        const command = new PutObjectCommand({
-            Bucket: process.env.DO_SPACES_BUCKET,
-            Key: filePath,
-            Body: fileBuffer,
-            ContentType: file.type,
-            ACL: 'public-read',
-            ContentLength: file.size,
-            CacheControl: 'max-age=31536000', // Cache for 1 year
-        });
+        try {
+            const command = new PutObjectCommand({
+                Bucket: process.env.DO_SPACES_BUCKET,
+                Key: filePath,
+                Body: fileBuffer,
+                ContentType: file.type,
+                ACL: 'public-read',
+                ContentLength: file.size,
+                CacheControl: 'max-age=31536000', // Cache for 1 year
+            });
 
-        await s3Client.send(command);
+            await s3Client.send(command);
+            console.log('✅ File uploaded to S3:', filePath);
+        } catch (s3Error) {
+            console.error('❌ S3 upload error:', {
+                error: s3Error.message,
+                code: s3Error.code,
+                fileName: file.name,
+                filePath: filePath,
+                fileSize: file.size
+            });
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Failed to upload image to storage',
+                    details: `S3 Error: ${s3Error.message || 'Unknown error'}. File: ${file.name} (${fileSizeMB}MB)`
+                },
+                { status: 500 }
+            );
+        }
+
         const avatarUrl = getCdnUrl(filePath);
 
         // Update user record with new avatar URL
@@ -159,15 +212,36 @@ export async function POST(request) {
         });
 
     } catch (error) {
-        console.error('❌ Error uploading avatar:', error);
-        console.error('Error details:', {
+        const errorDetails = {
             message: error.message,
             name: error.name,
             code: error.code,
             stack: error.stack
-        });
+        };
+        console.error('❌ Error uploading avatar:', errorDetails);
+        console.error('Full error object:', error);
+
+        // Provide detailed error information
+        let errorMessage = 'Failed to upload avatar';
+        let errorDescription = null;
+
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            errorMessage = 'Connection error';
+            errorDescription = 'Unable to connect to storage service. Please try again later.';
+        } else if (error.code === 'ETIMEDOUT') {
+            errorMessage = 'Upload timeout';
+            errorDescription = 'The upload took too long. Please try again with a smaller file.';
+        } else if (error.message) {
+            errorMessage = error.message;
+            errorDescription = 'An unexpected error occurred during upload.';
+        }
+
         return NextResponse.json(
-            { success: false, error: error.message || 'Failed to upload avatar' },
+            {
+                success: false,
+                error: errorMessage,
+                details: errorDescription || `Error: ${error.name || 'Unknown error'}`
+            },
             { status: 500 }
         );
     }
