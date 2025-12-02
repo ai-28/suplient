@@ -448,7 +448,7 @@ export default function AdminUsers() {
                   <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
                     <div className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} ${admin.isSuperAdmin ? 'bg-yellow-100' : 'bg-primary/10'} rounded-full flex items-center justify-center flex-shrink-0`}>
                       {admin.isSuperAdmin ? (
-                        <Crown className={isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-yellow-600" />
+                        <Crown className={`${isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-yellow-600`} />
                       ) : (
                         <Shield className={`${isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-primary`} />
                       )}
@@ -649,7 +649,7 @@ export default function AdminUsers() {
                   className={isMobile ? 'h-4 w-4' : ''}
                 />
                 <Label htmlFor="edit-isSuperAdmin" className={`cursor-pointer flex items-center gap-2 ${isMobile ? 'text-xs' : ''} break-words`}>
-                  <Crown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-yellow-600" />
+                  <Crown className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-yellow-600`} />
                   {t('adminUsers.makeSuperAdmin')}
                 </Label>
               </div>
