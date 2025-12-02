@@ -186,6 +186,7 @@ All colors MUST be HSL.
   }
 
   body {
+    padding:5px;
     @apply bg-background text-foreground;
   }
 }
