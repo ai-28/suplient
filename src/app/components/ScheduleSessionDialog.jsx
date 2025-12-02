@@ -35,6 +35,22 @@ export function ScheduleSessionDialog({
   const [fetchedGroupMembers, setFetchedGroupMembers] = useState([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState({});
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
   
   // Fetch real data
   const { availableClients, loading: clientsLoading } = useClients();
@@ -794,38 +810,39 @@ export function ScheduleSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl">
-            <CalendarIcon className="h-6 w-6 text-primary" />
+      <DialogContent className={`${isMobile ? 'max-w-full mx-2' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
+        <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+          <DialogTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-2xl'} break-words`}>
+            <CalendarIcon className={`${isMobile ? 'h-4 w-4' : 'h-6 w-6'} text-primary`} />
             Schedule Session - {groupName}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className={isMobile ? 'space-y-3 px-4' : 'space-y-6'}>
           {/* Session Details */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Session Details</h3>
+          <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Session Details</h3>
             
-            <div className="space-y-2">
-              <Label htmlFor="title">Session Title</Label>
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <Label htmlFor="title" className={isMobile ? 'text-xs' : ''}>Session Title</Label>
               <Input
                 id="title"
                 placeholder={`${groupName} - Group Session`}
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
+                className={isMobile ? 'text-xs h-8' : ''}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="sessionType">Session Type *</Label>
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <Label htmlFor="sessionType" className={isMobile ? 'text-xs' : ''}>Session Type *</Label>
               <Select onValueChange={(value) => {
                 handleInputChange("sessionType", value);
                 setSelectedClient(null);
                 setSelectedGroup(null);
                 setFetchedGroupMembers([]);
               }}>
-                <SelectTrigger>
+                <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                   <SelectValue placeholder="Select session type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -837,14 +854,14 @@ export function ScheduleSessionDialog({
 
             {/* Client Selection for Individual Sessions */}
             {formData.sessionType === 'individual' && (
-              <div className="space-y-2">
-                <Label htmlFor="client">Select Client *</Label>
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                <Label htmlFor="client" className={isMobile ? 'text-xs' : ''}>Select Client *</Label>
                 <Select onValueChange={(value) => {
                   if (value === "loading" || value === "no-clients") return;
                   const client = availableClients.find(c => c.id === value);
                   setSelectedClient(client);
                 }}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder="Select a client" />
                   </SelectTrigger>
                   <SelectContent>
@@ -866,15 +883,15 @@ export function ScheduleSessionDialog({
 
             {/* Group Selection for Group Sessions */}
             {formData.sessionType === 'group' && (
-              <div className="space-y-2">
-                <Label htmlFor="group">Select Group *</Label>
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                <Label htmlFor="group" className={isMobile ? 'text-xs' : ''}>Select Group *</Label>
                 <Select onValueChange={(value) => {
                   if (value === "loading" || value === "no-groups") return;
                   const group = groups.find(g => g.id === value);
                   setSelectedGroup(group);
                   fetchGroupMembers(value);
                 }}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder="Select a group" />
                   </SelectTrigger>
                   <SelectContent>
@@ -896,26 +913,27 @@ export function ScheduleSessionDialog({
           </div>
 
           {/* Date & Time */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Date & Time</h3>
+          <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Date & Time</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Date *</Label>
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                <Label className={isMobile ? 'text-xs' : ''}>Date *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
+                      size={isMobile ? "sm" : "default"}
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        `w-full justify-start text-left font-normal ${isMobile ? 'text-xs h-8' : ''}`,
                         !date && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
                       {date ? format(date, "PPP") : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className={`w-auto p-0 ${isMobile ? 'mx-2' : ''}`} align="start">
                     <Calendar
                       mode="single"
                       selected={date}
@@ -928,10 +946,10 @@ export function ScheduleSessionDialog({
                 </Popover>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="time">Time *</Label>
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                <Label htmlFor="time" className={isMobile ? 'text-xs' : ''}>Time *</Label>
                 <Select onValueChange={(value) => handleInputChange("time", value)} value={formData.time}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder={timesLoading ? 'Loading...' : (date ? 'Select time' : 'Pick a date first')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -955,17 +973,17 @@ export function ScheduleSessionDialog({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="duration" className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                <Label htmlFor="duration" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
+                  <Clock className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                   Duration (minutes)
                 </Label>
                 <Select
                   onValueChange={(value) => handleInputChange("duration", value)}
                   value={formData.duration}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -977,9 +995,9 @@ export function ScheduleSessionDialog({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="maxAttendees" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                <Label htmlFor="maxAttendees" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
+                  <Users className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                   Max Attendees
                 </Label>
                 <Input
@@ -989,22 +1007,23 @@ export function ScheduleSessionDialog({
                   max="20"
                   value={formData.maxAttendees}
                   onChange={(e) => handleInputChange("maxAttendees", e.target.value)}
+                  className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
             </div>
           </div>
 
           {/* Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Settings</h3>
+          <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Settings</h3>
 
-            <div className="space-y-2">
-              <Label htmlFor="reminderTime" className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <Label htmlFor="reminderTime" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
+                <Bell className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                 Email Reminder
               </Label>
               <Select onValueChange={(value) => handleInputChange("reminderTime", value)} defaultValue="24">
-                <SelectTrigger>
+                <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1016,17 +1035,17 @@ export function ScheduleSessionDialog({
                   <SelectItem value="none">No email reminder</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                 Note: A popup reminder will always be sent 10 minutes before the session.
               </p>
             </div>
           </div>
 
           {/* Meeting Type Selection */}
-            <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Meeting Link</h3>
+            <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Meeting Link</h3>
               
-              <div className="space-y-3">
+              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
               {meetingTypes.map((meetingType) => {
                 const Icon = meetingType.icon;
                 const isConnected = connectionStatus[meetingType.id]?.connected;
@@ -1036,54 +1055,54 @@ export function ScheduleSessionDialog({
                   <div 
                     key={meetingType.id}
                     className={cn(
-                      "flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all",
+                      `flex items-center justify-between ${isMobile ? 'p-2' : 'p-3'} border rounded-lg cursor-pointer transition-all`,
                       isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                     )}
                     onClick={() => handleInputChange('meetingType', meetingType.id)}
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon className={cn("h-5 w-5", meetingType.color)} />
-                      <div>
-                        <div className="font-medium">{meetingType.name}</div>
-                        <div className="text-sm text-muted-foreground">{meetingType.description}</div>
+                    <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'} flex-1 min-w-0`}>
+                      <Icon className={cn(`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} flex-shrink-0`, meetingType.color)} />
+                      <div className="flex-1 min-w-0">
+                        <div className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium break-words`}>{meetingType.name}</div>
+                        <div className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-muted-foreground break-words`}>{meetingType.description}</div>
                       </div>
                 </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className={`flex items-center ${isMobile ? 'gap-1 flex-col' : 'gap-2'}`}>
                       {meetingType.id === 'none' ? (
-                        <div className={cn("w-4 h-4 rounded-full border-2", isSelected ? "border-primary bg-primary" : "border-gray-300")} />
+                        <div className={cn(`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} rounded-full border-2 flex-shrink-0`, isSelected ? "border-primary bg-primary" : "border-gray-300")} />
                       ) : (
                         <>
                           {isConnected ? (
-                            <div className="flex items-center gap-1">
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                              <span className="text-xs text-green-600">{connectionStatus[meetingType.id]?.email}</span>
-                              <div className="flex gap-1">
+                            <div className={`flex items-center ${isMobile ? 'gap-1 flex-col' : 'gap-1'}`}>
+                              <CheckCircle className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-green-500 flex-shrink-0`} />
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-green-600 break-words`}>{connectionStatus[meetingType.id]?.email}</span>
+                              <div className={`flex ${isMobile ? 'flex-col gap-1' : 'gap-1'}`}>
                                 <Button
-                                  size="sm"
+                                  size={isMobile ? "sm" : "sm"}
                                   variant="ghost"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleReconnectPlatform(meetingType.id);
                                   }}
                                   disabled={isConnecting}
-                                  className="h-6 px-2 text-xs"
+                                  className={isMobile ? 'h-5 px-1.5 text-[10px]' : 'h-6 px-2 text-xs'}
                                 >
                                   {isConnecting ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin`} />
                                   ) : (
                                     "Reconnect"
                                   )}
                                 </Button>
                                 <Button
-                                  size="sm"
+                                  size={isMobile ? "sm" : "sm"}
                                   variant="ghost"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDisconnectPlatform(meetingType.id);
                                   }}
                                   disabled={isConnecting}
-                                  className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                                  className={isMobile ? 'h-5 px-1.5 text-[10px] text-red-600 hover:text-red-700' : 'h-6 px-2 text-xs text-red-600 hover:text-red-700'}
                                 >
                                   Disconnect
                                 </Button>
@@ -1091,16 +1110,17 @@ export function ScheduleSessionDialog({
                             </div>
                           ) : (
                             <Button
-                              size="sm"
+                              size={isMobile ? "sm" : "sm"}
                               variant="outline"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleConnectPlatform(meetingType.id);
                               }}
                               disabled={isConnecting}
+                              className={isMobile ? 'text-xs h-7 px-2' : ''}
                             >
                               {isConnecting ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin`} />
                               ) : (
                                 "Connect"
                               )}
@@ -1151,48 +1171,52 @@ export function ScheduleSessionDialog({
                   </div>
 
           {/* Additional Notes */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">Additional Information</h3>
+          <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Additional Information</h3>
             
-            <div className="space-y-2">
-              <Label htmlFor="notes">Session Notes</Label>
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <Label htmlFor="notes" className={isMobile ? 'text-xs' : ''}>Session Notes</Label>
               <Textarea
                 id="notes"
                 placeholder="Any special instructions, topics to cover, materials needed, etc."
                 value={formData.notes}
                 onChange={(e) => handleInputChange("notes", e.target.value)}
-                rows={3}
+                rows={isMobile ? 2 : 3}
+                className={isMobile ? 'text-xs min-h-[60px]' : ''}
               />
             </div>
 
-            <div className="flex items-start gap-2 p-3 bg-accent/10 rounded-lg border border-accent/20">
-              <AlertCircle className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-accent">Important Reminders:</p>
-                <ul className="mt-1 text-muted-foreground list-disc list-inside space-y-1">
-                  <li>All group members will be notified about this session</li>
-                  <li>Session materials should be prepared in advance</li>
-                  <li>Check room availability and setup requirements</li>
+            <div className={`flex items-start gap-2 ${isMobile ? 'p-2' : 'p-3'} bg-accent/10 rounded-lg border border-accent/20`}>
+              <AlertCircle className={`${isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-accent mt-0.5 flex-shrink-0`} />
+              <div className={isMobile ? 'text-xs' : 'text-sm'}>
+                <p className={`font-medium text-accent ${isMobile ? 'text-xs' : ''} break-words`}>Important Reminders:</p>
+                <ul className={`${isMobile ? 'mt-0.5 text-[10px]' : 'mt-1 text-sm'} text-muted-foreground list-disc list-inside ${isMobile ? 'space-y-0.5' : 'space-y-1'}`}>
+                  <li className="break-words">All group members will be notified about this session</li>
+                  <li className="break-words">Session materials should be prepared in advance</li>
+                  <li className="break-words">Check room availability and setup requirements</li>
                 </ul>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className={`flex ${isMobile ? 'flex-col-reverse gap-2' : 'justify-end gap-3'} ${isMobile ? 'pt-2' : 'pt-4'} border-t`}>
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              className={isMobile ? 'w-full text-xs h-8' : ''}
+              size={isMobile ? "sm" : "default"}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-gradient-primary text-[#1A2D4D] hover:shadow-medium"
+              className={`bg-gradient-primary text-[#1A2D4D] hover:shadow-medium ${isMobile ? 'w-full text-xs h-8' : ''}`}
+              size={isMobile ? "sm" : "default"}
             >
-              <CalendarIcon className="h-4 w-4 mr-2" />
+              <CalendarIcon className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
               {isLoading ? "Scheduling..." : "Schedule Session"}
             </Button>
           </div>

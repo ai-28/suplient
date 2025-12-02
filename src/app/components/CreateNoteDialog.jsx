@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,6 +32,22 @@ const formSchema = z.object({
 export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -85,29 +101,30 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
+      <DialogContent className={isMobile ? 'max-w-full mx-2' : 'max-w-md'}>
+        <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+          <DialogTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+            <FileText className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
             Create New Note
           </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className={isMobile ? 'space-y-3 px-4' : 'space-y-4'}>
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel className={isMobile ? 'text-xs' : ''}>Title</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="Enter note title" 
+                      className={isMobile ? 'text-xs h-8' : ''}
                       {...field} 
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className={isMobile ? 'text-xs' : ''} />
                 </FormItem>
               )}
             />
@@ -117,40 +134,44 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel className={isMobile ? 'text-xs' : ''}>Description</FormLabel>
                   <FormControl>
                     <Textarea 
                       placeholder="Enter note description (optional)"
-                      className="min-h-[100px]"
+                      className={isMobile ? 'min-h-[60px] text-xs' : 'min-h-[100px]'}
                       {...field} 
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className={isMobile ? 'text-xs' : ''} />
                 </FormItem>
               )}
             />
 
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className={`flex ${isMobile ? 'flex-col-reverse gap-2' : 'justify-end space-x-2'} ${isMobile ? 'pt-2' : 'pt-4'}`}>
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => setIsOpen(false)}
                 disabled={isLoading}
+                className={isMobile ? 'w-full text-xs h-8' : ''}
+                size={isMobile ? "sm" : "default"}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={isLoading}
+                className={isMobile ? 'w-full text-xs h-8' : ''}
+                size={isMobile ? "sm" : "default"}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} animate-spin`} />
                     Creating...
                   </>
                 ) : (
                   <>
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                     Create Note
                   </>
                 )}

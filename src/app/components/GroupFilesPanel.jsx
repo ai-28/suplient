@@ -32,10 +32,26 @@ export function GroupFilesPanel({ groupId }) {
   const [error, setError] = useState(null);
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [fileToRemove, setFileToRemove] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   // Preview states
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewType, setPreviewType] = useState(null);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
 
   const fetchGroupResources = async () => {
     try {
@@ -159,74 +175,76 @@ export function GroupFilesPanel({ groupId }) {
 
   return (
     <>
-      <Card className="shadow-soft border-border bg-card h-full flex flex-col">
-        <CardHeader className="pb-3 flex-shrink-0">
+      <Card className={`shadow-soft border-border bg-card h-full flex flex-col ${isMobile ? 'p-0 shadow-none border-0' : ''}`}>
+        <CardHeader className={`${isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'} flex-shrink-0`}>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground text-sm">Shared Files</CardTitle>
+            <CardTitle className={`text-foreground ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>Shared Files</CardTitle>
             <Button 
               size="sm" 
               variant="ghost"
-              className="h-6 w-6 p-0"
+              className={isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'}
               onClick={() => setLibraryPickerOpen(true)}
             >
-              <Plus className="h-3 w-3" />
+              <Plus className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col">
+        <CardContent className={`flex-1 flex flex-col ${isMobile ? 'px-2 pb-2' : ''}`}>
           <ScrollArea className="flex-1">
             {loading ? (
-              <div className="flex items-center justify-center h-32">
+              <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Loading files...</p>
+                  <Loader2 className={`${isMobile ? 'h-4 w-4' : 'h-6 w-6'} animate-spin mx-auto mb-2`} />
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>Loading files...</p>
                 </div>
               </div>
             ) : error ? (
-              <div className="flex items-center justify-center h-32">
+              <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <p className="text-sm text-destructive mb-2">Error: {error}</p>
-                  <Button size="sm" variant="outline" onClick={fetchGroupResources}>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive mb-2 break-words`}>Error: {error}</p>
+                  <Button size={isMobile ? "sm" : "sm"} variant="outline" onClick={fetchGroupResources} className={isMobile ? 'text-xs h-7' : ''}>
                     Try Again
                   </Button>
                 </div>
               </div>
             ) : files.length === 0 ? (
-              <div className="flex items-center justify-center h-32">
+              <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">No files shared yet</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>No files shared yet</p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                 {files.map((file) => (
-                  <div key={file.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div key={file.id} className={`flex items-center justify-between ${isMobile ? 'p-1.5' : 'p-2'} rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors`}>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {getFileIcon(file.type)}
+                      <div className={isMobile ? 'h-3 w-3' : ''}>
+                        {getFileIcon(file.type)}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{file.name}</p>
-                        <p className="text-xs text-gray-500">{file.type} • {file.size}</p>
-                        <p className="text-xs text-gray-500">Shared {file.sharedDate}</p>
+                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium truncate break-words`}>{file.name}</p>
+                        <p className={`${isMobile ? 'text-[9px]' : 'text-xs'} text-gray-500 break-words`}>{file.type} • {file.size}</p>
+                        <p className={`${isMobile ? 'text-[9px]' : 'text-xs'} text-gray-500 break-words`}>Shared {file.sharedDate}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 ml-2">
+                    <div className={`flex items-center gap-1 ${isMobile ? 'ml-1' : 'ml-2'}`}>
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        className="h-6 w-6 p-0"
+                        className={isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'}
                         onClick={() => handleViewFile(file)}
                         title="Preview file"
                       >
-                        <Eye className="h-3 w-3" />
+                        <Eye className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                       </Button>
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        className="h-6 w-6 p-0 text-red-500 hover:text-red-600"
+                        className={`${isMobile ? 'h-5 w-5 p-0' : 'h-6 w-6 p-0'} text-red-500 hover:text-red-600`}
                         onClick={() => handleRemoveFileClick(file)}
                         title="Remove file"
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                       </Button>
                     </div>
                   </div>
@@ -244,18 +262,18 @@ export function GroupFilesPanel({ groupId }) {
       />
 
       <AlertDialog open={!!fileToRemove} onOpenChange={() => setFileToRemove(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove File</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className={isMobile ? 'max-w-full mx-2' : ''}>
+          <AlertDialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+            <AlertDialogTitle className={isMobile ? 'text-base' : ''}>Remove File</AlertDialogTitle>
+            <AlertDialogDescription className={isMobile ? 'text-xs break-words' : 'break-words'}>
               Are you sure you want to remove "{fileToRemove?.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className={isMobile ? 'flex-col gap-2 px-4 pb-3' : ''}>
+            <AlertDialogCancel className={isMobile ? 'w-full text-xs h-8' : ''}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmRemove}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={`bg-destructive text-destructive-foreground hover:bg-destructive/90 ${isMobile ? 'w-full text-xs h-8' : ''}`}
             >
               Remove File
             </AlertDialogAction>
@@ -265,13 +283,14 @@ export function GroupFilesPanel({ groupId }) {
 
       {/* Preview Modal */}
       {previewUrl && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Preview</h3>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2">
+          <div className={`bg-background rounded-lg ${isMobile ? 'max-w-full' : 'max-w-4xl'} max-h-[90vh] w-full overflow-hidden`}>
+            <div className={`flex items-center justify-between ${isMobile ? 'p-2' : 'p-4'} border-b`}>
+              <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold break-words`}>Preview</h3>
               <Button 
                 variant="ghost" 
-                size="sm"
+                size={isMobile ? "sm" : "sm"}
+                className={isMobile ? 'h-6 w-6 p-0' : ''}
                 onClick={() => {
                   setPreviewUrl(null);
                   setPreviewType(null);
@@ -280,7 +299,7 @@ export function GroupFilesPanel({ groupId }) {
                 ✕
               </Button>
             </div>
-            <div className="p-4">
+            <div className={isMobile ? 'p-2' : 'p-4'}>
               {previewType === 'images' ? (
                 <div>
                   <img 
@@ -364,11 +383,11 @@ export function GroupFilesPanel({ groupId }) {
                 />
               ) : previewType === 'pdf' ? (
                 <div>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">PDF Preview</h4>
+                  <div className={isMobile ? 'mb-2' : 'mb-4'}>
+                    <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium mb-2 break-words`}>PDF Preview</h4>
                     <iframe
                       src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
-                      className="w-full h-[60vh] border rounded"
+                      className={`w-full ${isMobile ? 'h-[50vh]' : 'h-[60vh]'} border rounded`}
                       title="PDF Preview"
                       onLoad={() => {
                         console.log('✅ PDF loaded successfully via API');
@@ -381,7 +400,8 @@ export function GroupFilesPanel({ groupId }) {
                   <div className="text-center">
                     <Button 
                       variant="outline" 
-                      className="w-full"
+                      className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
+                      size={isMobile ? "sm" : "default"}
                       onClick={() => {
                         const apiUrl = `/api/library/preview?path=${encodeURIComponent(previewUrl)}`;
                         window.open(apiUrl, '_blank');
@@ -393,17 +413,18 @@ export function GroupFilesPanel({ groupId }) {
                 </div>
               ) : previewType === 'document' ? (
                 <div>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Document Preview</h4>
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground mb-4">Document preview not available</p>
-                      <p className="text-xs text-muted-foreground mb-4">This file type cannot be previewed inline</p>
+                  <div className={isMobile ? 'mb-2' : 'mb-4'}>
+                    <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium mb-2 break-words`}>Document Preview</h4>
+                    <div className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
+                      <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 break-words`}>Document preview not available</p>
+                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mb-2 break-words`}>This file type cannot be previewed inline</p>
                     </div>
                   </div>
-                  <div className="space-y-3">
+                  <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
                     <Button 
                       variant="outline" 
-                      className="w-full"
+                      className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
+                      size={isMobile ? "sm" : "default"}
                       onClick={() => {
                         const apiUrl = `/api/library/preview?path=${encodeURIComponent(previewUrl)}`;
                         window.open(apiUrl, '_blank');
@@ -413,7 +434,8 @@ export function GroupFilesPanel({ groupId }) {
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="w-full"
+                      className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
+                      size={isMobile ? "sm" : "default"}
                       onClick={() => {
                         window.open(previewUrl, '_blank');
                       }}
@@ -423,10 +445,12 @@ export function GroupFilesPanel({ groupId }) {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">Preview not available for this file type</p>
+                <div className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 break-words`}>Preview not available for this file type</p>
                   <Button 
                     variant="outline" 
+                    className={isMobile ? 'text-xs h-8 w-full' : ''}
+                    size={isMobile ? "sm" : "default"}
                     onClick={() => {
                       window.open(previewUrl, '_blank');
                     }}
