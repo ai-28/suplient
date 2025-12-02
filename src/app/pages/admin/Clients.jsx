@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Input } from "@/app/components/ui/input";
 import { Badge } from "@/app/components/ui/badge";
 import { 
@@ -517,22 +518,24 @@ export default function AdminClients() {
       </div>
 
       <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
-        <div className={isMobile ? 'overflow-x-auto' : ''}>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.name')}</TableHead>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.email')}</TableHead>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.phone')}</TableHead>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('navigation.coaches')}</TableHead>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.status')}</TableHead>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('clients.location')}</TableHead>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.date')}</TableHead>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('navigation.sessions')}</TableHead>
-              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.actions')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <CardContent className={isMobile ? 'p-0' : ''}>
+          <ScrollArea className={isMobile ? 'w-full' : ''}>
+            <div className={isMobile ? 'min-w-[800px]' : ''}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.name')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.email')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.phone')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('navigation.coaches')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.status')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('clients.location')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.date')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('navigation.sessions')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={9} className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
@@ -624,9 +627,11 @@ export default function AdminClients() {
                 </TableRow>
               ))
             )}
-          </TableBody>
-        </Table>
-        </div>
+                </TableBody>
+              </Table>
+            </div>
+          </ScrollArea>
+        </CardContent>
       </Card>
 
       {/* Edit Dialog */}

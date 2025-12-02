@@ -477,7 +477,7 @@ export default function AdminCoaches() {
                 className={`${isMobile ? 'p-2' : 'p-4'} hover:bg-muted/50 cursor-pointer transition-colors`}
                 onClick={() => handleCoachClick(coach)}
               >
-                <div className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'}`}>
+                <div className={`flex ${isMobile ? '' : 'items-center justify-between'}`}>
                   <div className={`flex items-center ${isMobile ? 'flex-col items-start' : 'space-x-4'} flex-1 min-w-0`}>
                      <div className="flex-1 min-w-0 w-full">
                        <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'space-x-2'}`}>
@@ -485,7 +485,7 @@ export default function AdminCoaches() {
                          {getStatusBadge(coach)}
                        </div>
                        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mt-1 break-words`}>{coach.email}</p>
-                       <div className={`flex items-center ${isMobile ? 'flex-col items-start gap-1' : 'space-x-4'} mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
+                       <div className={`flex items-center ${isMobile ? 'justify-start gap-1' : 'space-x-4'} mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
                          <span className="flex items-center break-words">
                            <Users className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
                            {coach.clients} clients

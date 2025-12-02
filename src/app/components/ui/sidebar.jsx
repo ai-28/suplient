@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { Menu } from "lucide-react"
 
 import { cn } from "@/app/lib/utils"
 import { Button } from "@/app/components/ui/button"
@@ -174,7 +174,7 @@ const Sidebar = React.forwardRef((
           <Sheet open={openMobile} onOpenChange={setOpenMobile}>
             <SheetContent
               side={side}
-              className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground sm:w-[--sidebar-width]"
+              className="w-[--sidebar-width-mobile] bg-sidebar p-0 text-sidebar-foreground sm:w-[--sidebar-width] [&>button]:hidden"
               style={{ "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE }}
             >
               <div
@@ -276,7 +276,7 @@ const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) 
       onClick={handleClick}
       {...props}
     >
-      <PanelLeft className="h-5 w-5 text-sidebar-foreground" />
+      <Menu className="h-5 w-5 text-sidebar-foreground" />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
