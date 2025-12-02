@@ -240,7 +240,7 @@ export function CoachClientCheckInView({ clientId }) {
         {/* No Data State */}
         {!loading && !error && !checkInData?.checkIn && (
           <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-muted-foreground`}>
-            <CalendarIcon className={isMobile ? 'h-8 w-8' : 'h-12 w-12'} />
+            <CalendarIcon className={isMobile ? 'h-8 w-8 mx-auto' : 'h-12 w-12 mx-auto'} />
             <p className={isMobile ? 'text-xs' : 'text-sm'}>{t('clients.noCheckInForDate', 'No check-in found for this date')}</p>
             <p className={`${isMobile ? 'text-xs' : 'text-sm'} mt-1 break-words`}>
               {formatDate(selectedDate)}
