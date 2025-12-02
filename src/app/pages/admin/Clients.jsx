@@ -77,6 +77,22 @@ export default function AdminClients() {
   const [updating, setUpdating] = useState(false);
   const [suspending, setSuspending] = useState(false);
   const [impersonating, setImpersonating] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -364,71 +380,75 @@ export default function AdminClients() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className={`space-y-6 ${isMobile ? 'px-2' : ''}`}>
+      <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-center'}`}>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('clients.title')}</h1>
-          <p className="text-muted-foreground">
+          <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold tracking-tight break-words`}>{t('clients.title')}</h1>
+          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>
             {t('clients.title')}
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
+              <Plus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
               {t('clients.addClient')}
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>{t('clients.createClient')}</DialogTitle>
-              <DialogDescription>
+          <DialogContent className={isMobile ? 'max-w-full mx-2' : 'sm:max-w-[500px]'}>
+            <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+              <DialogTitle className={isMobile ? 'text-base' : ''}>{t('clients.createClient')}</DialogTitle>
+              <DialogDescription className={isMobile ? 'text-xs break-words' : 'break-words'}>
                 {t('clients.createClient')}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className={isMobile ? 'space-y-3 px-4' : 'space-y-4'}>
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'}`}>
                 <div>
-                  <Label htmlFor="name">{t('common.labels.name')}</Label>
+                  <Label htmlFor="name" className={isMobile ? 'text-xs' : ''}>{t('common.labels.name')}</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">{t('common.labels.email')}</Label>
+                  <Label htmlFor="email" className={isMobile ? 'text-xs' : ''}>{t('common.labels.email')}</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'}`}>
                 <div>
-                  <Label htmlFor="phone">{t('common.labels.phone')}</Label>
+                  <Label htmlFor="phone" className={isMobile ? 'text-xs' : ''}>{t('common.labels.phone')}</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="location">{t('clients.location')}</Label>
+                  <Label htmlFor="location" className={isMobile ? 'text-xs' : ''}>{t('clients.location')}</Label>
                   <Input
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'}`}>
                 <div>
-                  <Label htmlFor="coach">{t('clients.assignedCoach')}</Label>
+                  <Label htmlFor="coach" className={isMobile ? 'text-xs' : ''}>{t('clients.assignedCoach')}</Label>
                   <Select value={formData.coachId} onValueChange={(value) => setFormData({...formData, coachId: value})}>
-                    <SelectTrigger>
+                    <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                       <SelectValue placeholder={t('common.labels.select')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -442,23 +462,24 @@ export default function AdminClients() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="notes">{t('clients.notes')}</Label>
+                <Label htmlFor="notes" className={isMobile ? 'text-xs' : ''}>{t('clients.notes')}</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes || ""}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   placeholder={t('clients.notes')}
+                  className={isMobile ? 'text-xs min-h-[60px]' : ''}
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+            <DialogFooter className={isMobile ? 'flex-col gap-2 px-4 pb-3' : ''}>
+              <Button variant="outline" onClick={() => setIsCreateOpen(false)} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
                 {t('common.buttons.cancel')}
               </Button>
-              <Button onClick={handleCreate} disabled={!formData.name || !formData.email || !formData.coachId || creating}>
+              <Button onClick={handleCreate} disabled={!formData.name || !formData.email || !formData.coachId || creating} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
                 {creating ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'} animate-spin`} />
                     {t('common.messages.loading')}
                   </>
                 ) : (
@@ -495,101 +516,104 @@ export default function AdminClients() {
         </Select>
       </div>
 
-      <Card>
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <div className={isMobile ? 'overflow-x-auto' : ''}>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('common.labels.name')}</TableHead>
-              <TableHead>{t('common.labels.email')}</TableHead>
-              <TableHead>{t('common.labels.phone')}</TableHead>
-              <TableHead>{t('navigation.coaches')}</TableHead>
-              <TableHead>{t('common.labels.status')}</TableHead>
-              <TableHead>{t('clients.location')}</TableHead>
-              <TableHead>{t('common.labels.date')}</TableHead>
-              <TableHead>{t('navigation.sessions')}</TableHead>
-              <TableHead>{t('common.labels.actions')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.name')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.email')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.phone')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('navigation.coaches')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.status')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('clients.location')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.date')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('navigation.sessions')}</TableHead>
+              <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
-                  <p className="text-muted-foreground">{t('clients.loadingClients')}</p>
+                <TableCell colSpan={9} className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
+                  <p className={`${isMobile ? 'text-xs' : ''} text-muted-foreground break-words`}>{t('clients.loadingClients')}</p>
                 </TableCell>
               </TableRow>
             ) : filteredClients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
-                  <p className="text-muted-foreground">{t('clients.noClients')}</p>
+                <TableCell colSpan={9} className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
+                  <p className={`${isMobile ? 'text-xs' : ''} text-muted-foreground break-words`}>{t('clients.noClients')}</p>
                 </TableCell>
               </TableRow>
             ) : (
               filteredClients.map((client) => (
                 <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.phone}</TableCell>
-                  <TableCell>{client.coachName}</TableCell>
-                  <TableCell>
-                    <Badge variant={client.status === "active" ? "default" : "secondary"}>
+                  <TableCell className={`font-medium ${isMobile ? 'text-xs px-2' : ''} break-words`}>{client.name}</TableCell>
+                  <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>{client.email}</TableCell>
+                  <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>{client.phone}</TableCell>
+                  <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>{client.coachName}</TableCell>
+                  <TableCell className={isMobile ? 'px-2' : ''}>
+                    <Badge variant={client.status === "active" ? "default" : "secondary"} className={isMobile ? 'text-[10px] px-1.5 py-0.5' : ''}>
                       {client.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{client.location}</TableCell>
-                  <TableCell>{new Date(client.joinDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{client.sessionsCount}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
+                  <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>{client.location}</TableCell>
+                  <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>{new Date(client.joinDate).toLocaleDateString()}</TableCell>
+                  <TableCell className={isMobile ? 'text-xs px-2' : ''}>{client.sessionsCount}</TableCell>
+                  <TableCell className={isMobile ? 'px-2' : ''}>
+                    <div className={`flex ${isMobile ? 'flex-col gap-1' : 'gap-2'}`}>
                       <Button
                         variant="outline"
-                        size="sm"
+                        size={isMobile ? "sm" : "sm"}
                         onClick={() => handleLoginAs(client)}
                         disabled={impersonating}
                         title="Login as this client"
+                        className={isMobile ? 'h-6 w-6 p-0' : ''}
                       >
                         {impersonating ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin`} />
                         ) : (
-                          <LogIn className="h-3 w-3" />
+                          <LogIn className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                         )}
                       </Button>
                       <Button
                         variant="outline"
-                        size="sm"
+                        size={isMobile ? "sm" : "sm"}
                         onClick={() => openEditDialog(client)}
+                        className={isMobile ? 'h-6 w-6 p-0' : ''}
                       >
-                        <Edit className="h-3 w-3" />
+                        <Edit className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                       </Button>
                       <Button
                         variant="outline"
-                        size="sm"
+                        size={isMobile ? "sm" : "sm"}
                         onClick={() => handleSuspend(client.id, client.status)}
                         disabled={suspending}
-                        className={client.status === "active" ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"}
+                        className={`${client.status === "active" ? "text-orange-600 hover:text-orange-700" : "text-green-600 hover:text-green-700"} ${isMobile ? 'h-6 w-6 p-0' : ''}`}
                       >
                         {suspending ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin`} />
                         ) : (
-                          <Ban className="h-3 w-3" />
+                          <Ban className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                         )}
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-3 w-3" />
+                          <Button variant="outline" size={isMobile ? "sm" : "sm"} className={`text-destructive hover:text-destructive ${isMobile ? 'h-6 w-6 p-0' : ''}`}>
+                            <Trash2 className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
+                        <AlertDialogContent className={isMobile ? 'max-w-full mx-2' : ''}>
+                          <AlertDialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+                            <AlertDialogTitle className={isMobile ? 'text-base' : ''}>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription className={isMobile ? 'text-xs break-words' : 'break-words'}>
                               This action cannot be undone. This will permanently delete the client
                               and remove their data from the platform.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(client.id)}>
+                          <AlertDialogFooter className={isMobile ? 'flex-col gap-2 px-4 pb-3' : ''}>
+                            <AlertDialogCancel className={isMobile ? 'w-full text-xs h-8' : ''}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(client.id)} className={isMobile ? 'w-full text-xs h-8' : ''}>
                               Delete
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -602,70 +626,76 @@ export default function AdminClients() {
             )}
           </TableBody>
         </Table>
+        </div>
       </Card>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit Client</DialogTitle>
-            <DialogDescription>
+        <DialogContent className={isMobile ? 'max-w-full mx-2' : 'sm:max-w-[500px]'}>
+          <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+            <DialogTitle className={isMobile ? 'text-base' : ''}>Edit Client</DialogTitle>
+            <DialogDescription className={isMobile ? 'text-xs break-words' : 'break-words'}>
               Update client information
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className={isMobile ? 'space-y-3 px-4' : 'space-y-4'}>
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'}`}>
               <div>
-                <Label htmlFor="edit-name">Name</Label>
+                <Label htmlFor="edit-name" className={isMobile ? 'text-xs' : ''}>Name</Label>
                 <Input
                   id="edit-name"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
               <div>
-                <Label htmlFor="edit-email">Email</Label>
+                <Label htmlFor="edit-email" className={isMobile ? 'text-xs' : ''}>Email</Label>
                 <Input
                   id="edit-email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'}`}>
               <div>
-                <Label htmlFor="edit-phone">Phone</Label>
+                <Label htmlFor="edit-phone" className={isMobile ? 'text-xs' : ''}>Phone</Label>
                 <Input
                   id="edit-phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
               <div>
-                <Label htmlFor="edit-location">Location</Label>
+                <Label htmlFor="edit-location" className={isMobile ? 'text-xs' : ''}>Location</Label>
                 <Input
                   id="edit-location"
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-password">New Password</Label>
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <Label htmlFor="edit-password" className={isMobile ? 'text-xs' : ''}>New Password</Label>
               <Input
                 id="edit-password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 placeholder="Leave empty to keep current password"
+                className={isMobile ? 'text-xs h-8' : ''}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'}`}>
               <div>
-                <Label htmlFor="edit-coach">Assigned Coach</Label>
+                <Label htmlFor="edit-coach" className={isMobile ? 'text-xs' : ''}>Assigned Coach</Label>
                 <Select value={formData.coachId} onValueChange={(value) => setFormData({...formData, coachId: value})}>
-                  <SelectTrigger>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder="Select a coach" />
                   </SelectTrigger>
                   <SelectContent>
@@ -679,23 +709,24 @@ export default function AdminClients() {
               </div>
             </div>
             <div>
-              <Label htmlFor="edit-notes">Notes</Label>
+              <Label htmlFor="edit-notes" className={isMobile ? 'text-xs' : ''}>Notes</Label>
               <Textarea
                 id="edit-notes"
                 value={formData.notes || ""}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
                 placeholder="Additional notes..."
+                className={isMobile ? 'text-xs min-h-[60px]' : ''}
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating}>
+          <DialogFooter className={isMobile ? 'flex-col gap-2 px-4 pb-3' : ''}>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={updating} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={!formData.name || !formData.email || !formData.coachId || updating}>
+            <Button onClick={handleEdit} disabled={!formData.name || !formData.email || !formData.coachId || updating} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
               {updating ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'} animate-spin`} />
                   Updating...
                 </>
               ) : (

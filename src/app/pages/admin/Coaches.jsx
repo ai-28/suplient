@@ -54,6 +54,22 @@ export default function AdminCoaches() {
   const [impersonating, setImpersonating] = useState(false);
   const [approvingCoachId, setApprovingCoachId] = useState(null);
   const [denyingCoachId, setDenyingCoachId] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name-asc"); // Default: Name A-Z
@@ -399,35 +415,35 @@ export default function AdminCoaches() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
+    <div className={`space-y-8 ${isMobile ? 'px-2' : ''}`}>
+      <div className={`flex ${isMobile ? 'flex-col gap-3' : 'justify-between items-center'}`}>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('coaches.title')}</h1>
-          <p className="text-muted-foreground">
+          <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold tracking-tight break-words`}>{t('coaches.title')}</h1>
+          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>
             {t('coaches.title')}
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onClick={() => setShowCreateDialog(true)} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
+          <Plus className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
           {t('coaches.addCoach')}
         </Button>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center space-x-4'}`}>
+        <div className={`relative ${isMobile ? 'w-full' : 'flex-1 max-w-sm'}`}>
+          <Search className={`absolute left-2 ${isMobile ? 'top-2 h-3 w-3' : 'top-2.5 h-4 w-4'} text-muted-foreground`} />
           <Input 
             placeholder={t('coaches.searchCoaches')} 
-            className="pl-8"
+            className={`${isMobile ? 'pl-7 text-xs h-8' : 'pl-8'}`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className={isMobile ? 'w-full text-xs h-8' : 'w-[200px]'}>
             <div className="flex items-center">
-              <ArrowUpDown className="mr-2 h-4 w-4 text-muted-foreground" />
+              <ArrowUpDown className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'} text-muted-foreground`} />
               <SelectValue placeholder="Sort by..." />
             </div>
           </SelectTrigger>
@@ -458,69 +474,69 @@ export default function AdminCoaches() {
               {sortedAndFilteredCoaches.map((coach) => (
               <div
                 key={coach.id}
-                className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                className={`${isMobile ? 'p-2' : 'p-4'} hover:bg-muted/50 cursor-pointer transition-colors`}
                 onClick={() => handleCoachClick(coach)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                     <div className="flex-1">
-                       <div className="flex items-center space-x-2">
-                         <h3 className="font-semibold">{coach.name}</h3>
+                <div className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'}`}>
+                  <div className={`flex items-center ${isMobile ? 'flex-col items-start' : 'space-x-4'} flex-1 min-w-0`}>
+                     <div className="flex-1 min-w-0 w-full">
+                       <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'space-x-2'}`}>
+                         <h3 className={`${isMobile ? 'text-sm' : ''} font-semibold break-words`}>{coach.name}</h3>
                          {getStatusBadge(coach)}
                        </div>
-                       <p className="text-sm text-muted-foreground mt-1">{coach.email}</p>
-                       <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                         <span className="flex items-center">
-                           <Users className="h-3 w-3 mr-1" />
+                       <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mt-1 break-words`}>{coach.email}</p>
+                       <div className={`flex items-center ${isMobile ? 'flex-col items-start gap-1' : 'space-x-4'} mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
+                         <span className="flex items-center break-words">
+                           <Users className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
                            {coach.clients} clients
                          </span>
-                         <span className="flex items-center">
-                           <Calendar className="h-3 w-3 mr-1" />
+                         <span className="flex items-center break-words">
+                           <Calendar className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
                            {new Date(coach.joinDate).toLocaleDateString()}
                          </span>
                        </div>
                        {coach.approvalStatus === 'pending' && (
-                         <div className="mt-3 flex items-center gap-2">
+                         <div className={`mt-3 flex items-center ${isMobile ? 'flex-col gap-1.5 w-full' : 'gap-2'}`}>
                            <Button
-                             size="sm"
+                             size={isMobile ? "sm" : "sm"}
                              variant="default"
                              onClick={(e) => {
                                e.stopPropagation();
                                handleApproveCoach(coach);
                              }}
                              disabled={approvingCoachId === coach.id || denyingCoachId === coach.id}
-                             className="h-7"
+                             className={isMobile ? 'w-full text-xs h-7' : 'h-7'}
                            >
                              {approvingCoachId === coach.id ? (
                                <>
-                                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                 <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1 animate-spin`} />
                                  Approving...
                                </>
                              ) : (
                                <>
-                                 <CheckCircle2 className="h-3 w-3 mr-1" />
+                                 <CheckCircle2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
                                  Approve
                                </>
                              )}
                            </Button>
                            <Button
-                             size="sm"
+                             size={isMobile ? "sm" : "sm"}
                              variant="destructive"
                              onClick={(e) => {
                                e.stopPropagation();
                                handleDenyCoach(coach);
                              }}
                              disabled={approvingCoachId === coach.id || denyingCoachId === coach.id}
-                             className="h-7"
+                             className={isMobile ? 'w-full text-xs h-7' : 'h-7'}
                            >
                              {denyingCoachId === coach.id ? (
                                <>
-                                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                 <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1 animate-spin`} />
                                  Denying...
                                </>
                              ) : (
                                <>
-                                 <XCircle className="h-3 w-3 mr-1" />
+                                 <XCircle className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
                                  Deny
                                </>
                              )}
@@ -529,52 +545,52 @@ export default function AdminCoaches() {
                        )}
                      </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className={`flex items-center ${isMobile ? 'justify-end mt-2' : 'space-x-2'}`}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" size={isMobile ? "sm" : "icon"} className={isMobile ? 'h-7 w-7' : ''}>
+                          <MoreHorizontal className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className={isMobile ? 'text-xs' : ''}>
                         <DropdownMenuItem onSelect={() => {
                           handleViewDetails(coach);
-                        }}>
-                          <Eye className="mr-2 h-4 w-4" />
+                        }} className={isMobile ? 'text-xs' : ''}>
+                          <Eye className={`mr-2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
                           View Details
                         </DropdownMenuItem>
                         {coach.approvalStatus !== 'pending' && (
                           <DropdownMenuItem onClick={(e) => { 
                             e.stopPropagation(); 
                             router.push(`/admin/coaches/${coach.id}`); 
-                          }}>
-                            <ExternalLink className="mr-2 h-4 w-4" />
+                          }} className={isMobile ? 'text-xs' : ''}>
+                            <ExternalLink className={`mr-2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
                             Full Profile
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=chat`); }}>
-                          <MessageSquare className="mr-2 h-4 w-4" />
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=chat`); }} className={isMobile ? 'text-xs' : ''}>
+                          <MessageSquare className={`mr-2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
                           Chat
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=notes`); }}>
-                          <FileText className="mr-2 h-4 w-4" />
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=notes`); }} className={isMobile ? 'text-xs' : ''}>
+                          <FileText className={`mr-2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
                           Notes
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=tasks`); }}>
-                          <ClipboardList className="mr-2 h-4 w-4" />
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/admin/coaches/${coach.id}?tab=tasks`); }} className={isMobile ? 'text-xs' : ''}>
+                          <ClipboardList className={`mr-2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
                           Tasks
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleLoginAs(coach); }} disabled={impersonating || coach.approvalStatus === 'pending' || coach.approvalStatus === 'denied'}>
-                          <LogIn className="mr-2 h-4 w-4" />
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleLoginAs(coach); }} disabled={impersonating || coach.approvalStatus === 'pending' || coach.approvalStatus === 'denied'} className={isMobile ? 'text-xs' : ''}>
+                          <LogIn className={`mr-2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
                           {impersonating ? 'Logging in...' : 'Login as Coach'}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={(e) => { e.stopPropagation(); handleDeleteClick(coach); }}
-                          className="text-destructive"
+                          className={`text-destructive ${isMobile ? 'text-xs' : ''}`}
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
+                          <Trash2 className={`mr-2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -604,18 +620,18 @@ export default function AdminCoaches() {
       {/* Coach Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent 
-          className="max-w-3xl max-h-[90vh] overflow-y-auto"
+          className={`${isMobile ? 'max-w-full mx-2' : 'max-w-3xl'} max-h-[90vh] overflow-y-auto`}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>{selectedCoach?.name}</span>
+          <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+            <DialogTitle className={`flex items-center ${isMobile ? 'flex-col items-start gap-2' : 'justify-between'}`}>
+              <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'space-x-2'}`}>
+                <User className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
+                <span className={isMobile ? 'text-base break-words' : 'break-words'}>{selectedCoach?.name}</span>
               </div>
               {selectedCoach && getStatusBadge(selectedCoach)}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className={isMobile ? 'text-xs break-words' : 'break-words'}>
               {selectedCoach?.approvalStatus === 'pending' 
                 ? 'Review the coach application and questionnaire responses below'
                 : selectedCoach?.approvalStatus === 'denied'
@@ -624,60 +640,60 @@ export default function AdminCoaches() {
             </DialogDescription>
           </DialogHeader>
           {selectedCoach && (
-            <div className="space-y-6">
+            <div className={isMobile ? 'space-y-3 px-4' : 'space-y-6'}>
               {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4 border-b pb-4">
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Email:</span>
-                    <span>{selectedCoach.email}</span>
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'} border-b pb-4`}>
+                <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
+                  <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'space-x-2'} ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <Mail className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
+                    <span className="font-medium break-words">Email:</span>
+                    <span className="break-words">{selectedCoach.email}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Phone:</span>
-                    <span>{selectedCoach.phone || 'Not provided'}</span>
+                  <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'space-x-2'} ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <Phone className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
+                    <span className="font-medium break-words">Phone:</span>
+                    <span className="break-words">{selectedCoach.phone || 'Not provided'}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Joined:</span>
-                    <span>{new Date(selectedCoach.joinDate).toLocaleDateString()}</span>
+                  <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'space-x-2'} ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <Calendar className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
+                    <span className="font-medium break-words">Joined:</span>
+                    <span className="break-words">{new Date(selectedCoach.joinDate).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <span className="font-medium">Status:</span>
+                <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
+                  <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'space-x-2'} ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <span className="font-medium break-words">Status:</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Clients:</span>
-                    <span>{selectedCoach.clients} active clients</span>
+                  <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'space-x-2'} ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    <Users className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
+                    <span className="font-medium break-words">Clients:</span>
+                    <span className="break-words">{selectedCoach.clients} active clients</span>
                   </div>
                 </div>
               </div>
 
               {/* Questionnaire Information (show for all coaches if available) */}
               {(selectedCoach.expectedPlatformBestAt || selectedCoach.currentClientsPerMonth !== null || selectedCoach.currentPlatform) && (
-                <div className="space-y-4 border-b pb-4">
-                  <h4 className="font-semibold text-lg">Application Questionnaire</h4>
-                  <div className="space-y-4">
+                <div className={`${isMobile ? 'space-y-3' : 'space-y-4'} border-b pb-4`}>
+                  <h4 className={`font-semibold ${isMobile ? 'text-sm' : 'text-lg'} break-words`}>Application Questionnaire</h4>
+                  <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
                     {selectedCoach.expectedPlatformBestAt && (
-                      <div className="bg-muted/50 p-4 rounded-lg">
-                        <p className="text-sm font-semibold mb-2 text-primary">What do you expect this platform to be the best at?</p>
-                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{selectedCoach.expectedPlatformBestAt}</p>
+                      <div className={`bg-muted/50 ${isMobile ? 'p-2' : 'p-4'} rounded-lg`}>
+                        <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold mb-2 text-primary break-words`}>What do you expect this platform to be the best at?</p>
+                        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground leading-relaxed whitespace-pre-wrap break-words`}>{selectedCoach.expectedPlatformBestAt}</p>
                       </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'}`}>
                       {selectedCoach.currentClientsPerMonth !== null && selectedCoach.currentClientsPerMonth !== undefined && (
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                          <p className="text-sm font-semibold mb-1">Current clients per month</p>
-                          <p className="text-sm text-muted-foreground">{selectedCoach.currentClientsPerMonth}</p>
+                        <div className={`bg-muted/50 ${isMobile ? 'p-2' : 'p-4'} rounded-lg`}>
+                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold mb-1 break-words`}>Current clients per month</p>
+                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{selectedCoach.currentClientsPerMonth}</p>
                         </div>
                       )}
                       {selectedCoach.currentPlatform && (
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                          <p className="text-sm font-semibold mb-1">Current platform</p>
-                          <p className="text-sm text-muted-foreground">{selectedCoach.currentPlatform}</p>
+                        <div className={`bg-muted/50 ${isMobile ? 'p-2' : 'p-4'} rounded-lg`}>
+                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold mb-1 break-words`}>Current platform</p>
+                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{selectedCoach.currentPlatform}</p>
                         </div>
                       )}
                     </div>
@@ -687,17 +703,17 @@ export default function AdminCoaches() {
 
                {/* Bio Information */}
                {selectedCoach.bio && (
-                 <div className="space-y-4 border-t pt-4">
+                 <div className={`${isMobile ? 'space-y-2' : 'space-y-4'} border-t pt-4`}>
                    <div>
-                     <h4 className="font-semibold mb-2">Biography</h4>
-                     <p className="text-sm text-muted-foreground leading-relaxed">{selectedCoach.bio}</p>
+                     <h4 className={`font-semibold ${isMobile ? 'text-sm mb-1' : 'mb-2'} break-words`}>Biography</h4>
+                     <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground leading-relaxed break-words`}>{selectedCoach.bio}</p>
                    </div>
                  </div>
                )}
 
               {/* Approve/Deny Actions for Pending Coaches */}
               {selectedCoach.approvalStatus === 'pending' && (
-                <div className="flex items-center gap-2 border-t pt-4">
+                <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'gap-2'} border-t pt-4`}>
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -705,16 +721,17 @@ export default function AdminCoaches() {
                       handleApproveCoach(selectedCoach);
                     }}
                     disabled={approvingCoachId === selectedCoach.id || denyingCoachId === selectedCoach.id}
-                    className="flex-1"
+                    className={isMobile ? 'w-full text-xs h-8' : 'flex-1'}
+                    size={isMobile ? "sm" : "default"}
                   >
                     {approvingCoachId === selectedCoach.id ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} animate-spin`} />
                         Approving...
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        <CheckCircle2 className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                         Approve Coach
                       </>
                     )}
@@ -727,16 +744,17 @@ export default function AdminCoaches() {
                       handleDenyCoach(selectedCoach);
                     }}
                     disabled={approvingCoachId === selectedCoach.id || denyingCoachId === selectedCoach.id}
-                    className="flex-1"
+                    className={isMobile ? 'w-full text-xs h-8' : 'flex-1'}
+                    size={isMobile ? "sm" : "default"}
                   >
                     {denyingCoachId === selectedCoach.id ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} animate-spin`} />
                         Denying...
                       </>
                     ) : (
                       <>
-                        <XCircle className="h-4 w-4 mr-2" />
+                        <XCircle className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
                         Deny Coach
                       </>
                     )}
@@ -745,13 +763,13 @@ export default function AdminCoaches() {
               )}
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+          <DialogFooter className={isMobile ? 'flex-col gap-2 px-4 pb-3' : ''}>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
               Close
             </Button>
             {selectedCoach?.approvalStatus !== 'pending' && (
-              <Button onClick={() => { setShowDetailDialog(false); handleEditClick(selectedCoach); }}>
-                <Edit className="mr-2 h-4 w-4" />
+              <Button onClick={() => { setShowDetailDialog(false); handleEditClick(selectedCoach); }} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
+                <Edit className={isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'} />
                 Edit Coach
               </Button>
             )}
@@ -760,24 +778,24 @@ export default function AdminCoaches() {
       </Dialog>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Coach</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className={isMobile ? 'max-w-full mx-2' : ''}>
+          <AlertDialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+            <AlertDialogTitle className={isMobile ? 'text-base' : ''}>Delete Coach</AlertDialogTitle>
+            <AlertDialogDescription className={isMobile ? 'text-xs break-words' : 'break-words'}>
               Are you sure you want to delete {selectedCoach?.name}? 
               {selectedCoach?.clients > 0 && (
-                <span className="block mt-2 text-red-600 font-medium">
+                <span className={`block mt-2 text-red-600 font-medium ${isMobile ? 'text-xs' : ''} break-words`}>
                   ⚠️ This will also delete {selectedCoach.clients} associated client{selectedCoach.clients === 1 ? '' : 's'}.
                 </span>
               )}
-              <span className="block mt-2">This action cannot be undone.</span>
+              <span className="block mt-2 break-words">This action cannot be undone.</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className={isMobile ? 'flex-col gap-2 px-4 pb-3' : ''}>
+            <AlertDialogCancel className={isMobile ? 'w-full text-xs h-8' : ''}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedCoach && handleDeleteCoach(selectedCoach.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={`bg-destructive text-destructive-foreground hover:bg-destructive/90 ${isMobile ? 'w-full text-xs h-8' : ''}`}
             >
               Delete Coach{selectedCoach?.clients > 0 ? ' & Clients' : ''}
             </AlertDialogAction>

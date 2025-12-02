@@ -37,6 +37,22 @@ export default function AdminUsers() {
   const [creatingAdmin, setCreatingAdmin] = useState(false);
   const [updatingAdmin, setUpdatingAdmin] = useState(false);
   const [deletingAdmin, setDeletingAdmin] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkScreenSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkScreenSize);
+      return () => window.removeEventListener('resize', checkScreenSize);
+    }
+  }, []);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -302,84 +318,90 @@ export default function AdminUsers() {
         {currentUserIsSuperAdmin && (
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
-                <UserPlus className="h-4 w-4" />
+              <Button className={`gap-2 ${isMobile ? 'w-full text-xs h-8' : ''}`} size={isMobile ? "sm" : "default"}>
+                <UserPlus className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                 {t('adminUsers.addAdmin', 'Add Admin')}
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t('adminUsers.createAdmin', 'Create New Admin')}</DialogTitle>
+            <DialogContent className={isMobile ? 'max-w-full mx-2' : ''}>
+              <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+                <DialogTitle className={isMobile ? 'text-base' : ''}>{t('adminUsers.createAdmin', 'Create New Admin')}</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t('common.labels.name')} *</Label>
+              <div className={isMobile ? 'space-y-3 py-3 px-4' : 'space-y-4 py-4'}>
+                <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                  <Label htmlFor="name" className={isMobile ? 'text-xs' : ''}>{t('common.labels.name')} *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder={t('common.labels.name')}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t('common.labels.email')} *</Label>
+                <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                  <Label htmlFor="email" className={isMobile ? 'text-xs' : ''}>{t('common.labels.email')} *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder={t('common.labels.email')}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">{t('settings.profile.newPassword')} *</Label>
+                <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                  <Label htmlFor="password" className={isMobile ? 'text-xs' : ''}>{t('settings.profile.newPassword')} *</Label>
                   <Input
                     id="password"
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder={t('settings.profile.newPassword')}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">{t('common.labels.phone')} ({t('common.labels.optional', 'Optional')})</Label>
+                <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                  <Label htmlFor="phone" className={isMobile ? 'text-xs' : ''}>{t('common.labels.phone')} ({t('common.labels.optional', 'Optional')})</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder={t('common.labels.phone')}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
                   <Checkbox
                     id="isSuperAdmin"
                     checked={formData.isSuperAdmin}
                     onCheckedChange={(checked) => setFormData({ ...formData, isSuperAdmin: checked })}
+                    className={isMobile ? 'h-4 w-4' : ''}
                   />
-                  <Label htmlFor="isSuperAdmin" className="cursor-pointer flex items-center gap-2">
-                    <Crown className="h-4 w-4 text-yellow-600" />
+                  <Label htmlFor="isSuperAdmin" className={`cursor-pointer flex items-center gap-2 ${isMobile ? 'text-xs' : ''} break-words`}>
+                    <Crown className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-yellow-600`} />
                     {t('adminUsers.makeSuperAdmin', 'Make Super Admin')}
                   </Label>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
                   <Checkbox
                     id="isActive"
                     checked={formData.isActive}
                     onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                    className={isMobile ? 'h-4 w-4' : ''}
                   />
-                  <Label htmlFor="isActive" className="cursor-pointer">
+                  <Label htmlFor="isActive" className={`cursor-pointer ${isMobile ? 'text-xs' : ''} break-words`}>
                     {t('adminUsers.activeAccount', 'Active Account')}
                   </Label>
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={creatingAdmin}>
+              <div className={`flex ${isMobile ? 'flex-col-reverse gap-2' : 'justify-end gap-2'} ${isMobile ? 'px-4 pb-3' : ''}`}>
+                <Button variant="outline" onClick={() => setShowCreateDialog(false)} disabled={creatingAdmin} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
                   {t('common.buttons.cancel')}
                 </Button>
-                <Button onClick={handleCreateAdmin} disabled={creatingAdmin}>
+                <Button onClick={handleCreateAdmin} disabled={creatingAdmin} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
                   {creatingAdmin ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'} animate-spin`} />
                       {t('common.messages.loading')}
                     </>
                   ) : (
@@ -392,93 +414,116 @@ export default function AdminUsers() {
         )}
       </PageHeader>
 
-      <Card className="card-standard mt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCog className="h-5 w-5 text-primary" />
+      <Card className={`card-standard ${isMobile ? 'mt-2 p-0 shadow-none border-0' : 'mt-4'}`}>
+        <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+          <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : ''}`}>
+            <UserCog className={`${isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-primary`} />
             {t('adminUsers.administrators', 'Administrators')} ({admins.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-1">
-            {/* Header Row */}
-            <div className="grid grid-cols-5 gap-4 p-4 text-sm font-medium text-muted-foreground bg-muted/30 rounded-lg">
-              <div>{t('common.labels.name')}</div>
-              <div>{t('common.labels.email')}</div>
-              <div>{t('common.labels.role', 'Role')}</div>
-              <div>{t('common.labels.status')}</div>
-              <div>{t('common.labels.actions')}</div>
-            </div>
+        <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
+          <div className={isMobile ? 'space-y-1.5' : 'space-y-1'}>
+            {/* Header Row - Hidden on mobile */}
+            {!isMobile && (
+              <div className="grid grid-cols-5 gap-4 p-4 text-sm font-medium text-muted-foreground bg-muted/30 rounded-lg">
+                <div>{t('common.labels.name')}</div>
+                <div>{t('common.labels.email')}</div>
+                <div>{t('common.labels.role', 'Role')}</div>
+                <div>{t('common.labels.status')}</div>
+                <div>{t('common.labels.actions')}</div>
+              </div>
+            )}
 
             {/* Admin Rows */}
             {admins.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} ${isMobile ? 'text-xs' : ''} text-muted-foreground break-words`}>
                 {t('adminUsers.noAdminUsers')}
               </div>
             ) : (
               admins.map((admin) => (
                 <div 
                   key={admin.id} 
-                  className="grid grid-cols-5 gap-4 p-4 hover:bg-muted/50 rounded-lg transition-colors border border-transparent hover:border-border"
+                  className={`${isMobile ? 'flex flex-col gap-2 p-2' : 'grid grid-cols-5 gap-4 p-4'} hover:bg-muted/50 rounded-lg transition-colors border border-transparent hover:border-border`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 ${admin.isSuperAdmin ? 'bg-yellow-100' : 'bg-primary/10'} rounded-full flex items-center justify-center`}>
+                  <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+                    <div className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} ${admin.isSuperAdmin ? 'bg-yellow-100' : 'bg-primary/10'} rounded-full flex items-center justify-center flex-shrink-0`}>
                       {admin.isSuperAdmin ? (
-                        <Crown className="h-5 w-5 text-yellow-600" />
+                        <Crown className={isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-yellow-600" />
                       ) : (
-                        <Shield className="h-5 w-5 text-primary" />
+                        <Shield className={`${isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-primary`} />
                       )}
                     </div>
-                    <div>
-                      <div className="font-medium">{admin.name}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`${isMobile ? 'text-xs' : ''} font-medium break-words`}>{admin.name}</div>
                       {admin.id === session?.user?.id && (
-                        <div className="text-xs text-muted-foreground">{t('adminUsers.you')}</div>
+                        <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('adminUsers.you')}</div>
+                      )}
+                      {isMobile && (
+                        <div className={`flex items-center gap-1.5 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1 break-words`}>
+                          <Mail className={isMobile ? 'h-2.5 w-2.5' : 'h-4 w-4'} />
+                          {admin.email}
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      {admin.email}
+                  {!isMobile && (
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        {admin.email}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center">
+                  )}
+                  <div className={`flex items-center ${isMobile ? 'gap-2' : ''}`}>
                     <Badge 
                       className={`${admin.isSuperAdmin 
                         ? 'bg-yellow-100 text-yellow-800 border-yellow-300' 
                         : 'bg-blue-100 text-blue-800 border-blue-300'
-                      }`}
+                      } ${isMobile ? 'text-[10px] px-1.5 py-0.5' : ''}`}
                     >
                       {admin.isSuperAdmin ? t('adminUsers.superAdmin') : t('adminUsers.admin')}
                     </Badge>
+                    {isMobile && (
+                      <Badge 
+                        className={`${admin.isActive 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-muted-foreground'
+                        } text-[10px] px-1.5 py-0.5`}
+                      >
+                        {admin.isActive ? t('common.status.active') : t('common.status.inactive')}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex items-center">
-                    <Badge 
-                      className={`${admin.isActive 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {admin.isActive ? t('common.status.active') : t('common.status.inactive')}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
+                  {!isMobile && (
+                    <div className="flex items-center">
+                      <Badge 
+                        className={`${admin.isActive 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {admin.isActive ? t('common.status.active') : t('common.status.inactive')}
+                      </Badge>
+                    </div>
+                  )}
+                  <div className={`flex items-center ${isMobile ? 'gap-1.5 justify-end' : 'gap-2'}`}>
                     <Button 
-                      size="sm" 
+                      size={isMobile ? "sm" : "sm"} 
                       variant="outline"
                       onClick={() => openEditDialog(admin)}
                       disabled={!canEditAdmin(admin)}
+                      className={isMobile ? 'h-6 w-6 p-0' : ''}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className={isMobile ? 'h-2.5 w-2.5' : 'h-4 w-4'} />
                     </Button>
                     <Button 
-                      size="sm" 
+                      size={isMobile ? "sm" : "sm"} 
                       variant="outline"
                       onClick={() => openDeleteDialog(admin)}
                       disabled={!canDeleteAdmin(admin)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className={`text-red-600 hover:text-red-700 hover:bg-red-50 ${isMobile ? 'h-6 w-6 p-0' : ''}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className={isMobile ? 'h-2.5 w-2.5' : 'h-4 w-4'} />
                     </Button>
                   </div>
                 </div>
@@ -490,63 +535,67 @@ export default function AdminUsers() {
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Admin</DialogTitle>
+        <DialogContent className={isMobile ? 'max-w-full mx-2' : ''}>
+          <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+            <DialogTitle className={isMobile ? 'text-base' : ''}>Edit Admin</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
+          <div className={isMobile ? 'space-y-3 py-3 px-4' : 'space-y-4 py-4'}>
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <Label htmlFor="edit-name" className={isMobile ? 'text-xs' : ''}>Name</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className={isMobile ? 'text-xs h-8' : ''}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <Label htmlFor="edit-email" className={isMobile ? 'text-xs' : ''}>Email</Label>
               <Input
                 id="edit-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className={isMobile ? 'text-xs h-8' : ''}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone</Label>
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <Label htmlFor="edit-phone" className={isMobile ? 'text-xs' : ''}>Phone</Label>
               <Input
                 id="edit-phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className={isMobile ? 'text-xs h-8' : ''}
               />
             </div>
             
             {/* Password Update Section */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Password</Label>
+            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <div className={`flex items-center ${isMobile ? 'flex-col items-start gap-1.5' : 'justify-between'}`}>
+                <Label className={isMobile ? 'text-xs' : ''}>Password</Label>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
+                  size={isMobile ? "sm" : "sm"}
                   onClick={() => {
                     setShowPasswordEdit(!showPasswordEdit);
                     if (showPasswordEdit) {
                       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
                     }
                   }}
+                  className={isMobile ? 'text-xs h-7 px-2' : ''}
                 >
                   {showPasswordEdit ? 'Cancel' : 'Change Password'}
                 </Button>
               </div>
                {showPasswordEdit && (
-                 <div className="space-y-3">
+                 <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
                    {/* Always show current password field for security */}
-                   <div className="space-y-2">
-                     <Label htmlFor="current-password">
+                   <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                     <Label htmlFor="current-password" className={isMobile ? 'text-xs break-words' : 'break-words'}>
                        Your Current Password * 
                        {selectedAdmin?.id !== session?.user?.id && (
-                         <span className="text-muted-foreground font-normal"> (for verification)</span>
+                         <span className={`text-muted-foreground font-normal ${isMobile ? 'text-[10px]' : ''} break-words`}> (for verification)</span>
                        )}
                      </Label>
                      <Input
@@ -555,10 +604,11 @@ export default function AdminUsers() {
                        placeholder="Enter your current password"
                        value={passwordData.currentPassword}
                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                       className={isMobile ? 'text-xs h-8' : ''}
                      />
                    </div>
-                   <div className="space-y-2">
-                     <Label htmlFor="new-password">
+                   <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                     <Label htmlFor="new-password" className={isMobile ? 'text-xs break-words' : 'break-words'}>
                        New Password {selectedAdmin?.id !== session?.user?.id && `for ${selectedAdmin?.name}`} *
                      </Label>
                      <Input
@@ -567,19 +617,21 @@ export default function AdminUsers() {
                        placeholder="Enter new password (min. 8 characters)"
                        value={passwordData.newPassword}
                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                       className={isMobile ? 'text-xs h-8' : ''}
                      />
                    </div>
-                   <div className="space-y-2">
-                     <Label htmlFor="confirm-password">Confirm New Password *</Label>
+                   <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                     <Label htmlFor="confirm-password" className={isMobile ? 'text-xs' : ''}>Confirm New Password *</Label>
                      <Input
                        id="confirm-password"
                        type="password"
                        placeholder="Confirm new password"
                        value={passwordData.confirmPassword}
                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                       className={isMobile ? 'text-xs h-8' : ''}
                      />
                    </div>
-                   <p className="text-xs text-muted-foreground">
+                   <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                      {selectedAdmin?.id === session?.user?.id 
                        ? '🔒 Enter your current password to change your password.'
                        : `🔒 Enter YOUR current password to reset ${selectedAdmin?.name}'s password.`}
@@ -589,37 +641,39 @@ export default function AdminUsers() {
             </div>
             
             {currentUserIsSuperAdmin && (
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
                 <Checkbox
                   id="edit-isSuperAdmin"
                   checked={formData.isSuperAdmin}
                   onCheckedChange={(checked) => setFormData({ ...formData, isSuperAdmin: checked })}
+                  className={isMobile ? 'h-4 w-4' : ''}
                 />
-                <Label htmlFor="edit-isSuperAdmin" className="cursor-pointer flex items-center gap-2">
-                  <Crown className="h-4 w-4 text-yellow-600" />
+                <Label htmlFor="edit-isSuperAdmin" className={`cursor-pointer flex items-center gap-2 ${isMobile ? 'text-xs' : ''} break-words`}>
+                  <Crown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-yellow-600" />
                   {t('adminUsers.makeSuperAdmin')}
                 </Label>
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
               <Checkbox
                 id="edit-isActive"
                 checked={formData.isActive}
                 onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                className={isMobile ? 'h-4 w-4' : ''}
               />
-              <Label htmlFor="edit-isActive" className="cursor-pointer">
+              <Label htmlFor="edit-isActive" className={`cursor-pointer ${isMobile ? 'text-xs' : ''} break-words`}>
                 {t('adminUsers.activeAccount')}
               </Label>
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={updatingAdmin}>
+          <div className={`flex ${isMobile ? 'flex-col-reverse gap-2' : 'justify-end gap-2'} ${isMobile ? 'px-4 pb-3' : ''}`}>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={updatingAdmin} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
               {t('common.buttons.cancel')}
             </Button>
-            <Button onClick={handleUpdateAdmin} disabled={updatingAdmin}>
+            <Button onClick={handleUpdateAdmin} disabled={updatingAdmin} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
               {updatingAdmin ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'} animate-spin`} />
                   {t('common.messages.loading')}
                 </>
               ) : (
@@ -632,24 +686,24 @@ export default function AdminUsers() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('common.buttons.delete')} {t('adminUsers.admin')}</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className={isMobile ? 'max-w-full mx-2' : ''}>
+          <AlertDialogHeader className={isMobile ? 'px-4 py-3' : ''}>
+            <AlertDialogTitle className={isMobile ? 'text-base' : ''}>{t('common.buttons.delete')} {t('adminUsers.admin')}</AlertDialogTitle>
+            <AlertDialogDescription className={isMobile ? 'text-xs break-words' : 'break-words'}>
               {t('common.messages.confirmDelete', 'Are you sure you want to delete')} <strong>{selectedAdmin?.name}</strong>? 
               {t('common.messages.cannotUndo', 'This action cannot be undone.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingAdmin}>{t('common.buttons.cancel')}</AlertDialogCancel>
+          <AlertDialogFooter className={isMobile ? 'flex-col gap-2 px-4 pb-3' : ''}>
+            <AlertDialogCancel disabled={deletingAdmin} className={isMobile ? 'w-full text-xs h-8' : ''}>{t('common.buttons.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteAdmin} 
               disabled={deletingAdmin}
-              className="bg-red-600 hover:bg-red-700"
+              className={`bg-red-600 hover:bg-red-700 ${isMobile ? 'w-full text-xs h-8' : ''}`}
             >
               {deletingAdmin ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'} animate-spin`} />
                   {t('common.messages.loading')}
                 </>
               ) : (

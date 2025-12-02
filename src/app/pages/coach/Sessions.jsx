@@ -551,7 +551,7 @@ export default function Sessions() {
       {/* Main Sessions Card */}
       <Card className={`card-standard ${isMobile ? 'p-3' : ''}`}>
         <CardHeader className={isMobile ? 'pb-3 px-0' : ''}>
-          <div className={`flex items-center ${isMobile ? 'flex-col gap-3' : 'justify-between'}`}>
+          <div className={`flex items-center justify-between`}>
                 <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
                   <Calendar className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
                   Sessions

@@ -1,7 +1,7 @@
 export function PageHeader({ title, subtitle, children }) {
   return (
     <div className="page-header">
-      <div>
+      <div className= "pl-10">
         <h2 className="page-title">{title}</h2>
         {subtitle && <p className="page-subtitle">{subtitle}</p>}
       </div>

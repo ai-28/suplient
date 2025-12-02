@@ -32,12 +32,25 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
   const t = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [settings, setSettings] = useState({
     platformName: 'Mental Coach Platform',
     supportEmail: 'support@mentalcoach.com',
     maxClientsPerCoach: 20,
     language: 'en'
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   useEffect(() => {
     fetchPlatformSettings();
@@ -91,41 +104,43 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className={`animate-spin text-muted-foreground ${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6">
+    <div className={`grid ${isMobile ? 'gap-3' : 'gap-6'}`}>
       {/* General Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('settings.general.title')}</CardTitle>
-          <CardDescription>{t('settings.general.description')}</CardDescription>
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+          <CardTitle className={isMobile ? 'text-sm' : ''}>{t('settings.general.title')}</CardTitle>
+          <CardDescription className={isMobile ? 'text-xs' : ''}>{t('settings.general.description')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="platform-name">{t('settings.general.platformName')}</Label>
+        <CardContent className={isMobile ? 'space-y-3 px-2 pb-2' : 'space-y-4'}>
+          <div className={isMobile ? 'space-y-1.5' : 'grid gap-2'}>
+            <Label htmlFor="platform-name" className={isMobile ? 'text-xs' : ''}>{t('settings.general.platformName')}</Label>
             <Input 
               id="platform-name" 
               value={settings.platformName}
               onChange={(e) => setSettings({...settings, platformName: e.target.value})}
               disabled={saving}
+              className={isMobile ? 'text-xs h-8' : ''}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="support-email">{t('settings.general.supportEmail')}</Label>
+          <div className={isMobile ? 'space-y-1.5' : 'grid gap-2'}>
+            <Label htmlFor="support-email" className={isMobile ? 'text-xs' : ''}>{t('settings.general.supportEmail')}</Label>
             <Input 
               id="support-email" 
               type="email" 
               value={settings.supportEmail}
               onChange={(e) => setSettings({...settings, supportEmail: e.target.value})}
               disabled={saving}
+              className={isMobile ? 'text-xs h-8' : ''}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="max-clients">{t('settings.general.maxClients')}</Label>
+          <div className={isMobile ? 'space-y-1.5' : 'grid gap-2'}>
+            <Label htmlFor="max-clients" className={isMobile ? 'text-xs' : ''}>{t('settings.general.maxClients')}</Label>
             <Input 
               id="max-clients" 
               type="number" 
@@ -133,39 +148,40 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
               value={settings.maxClientsPerCoach}
               onChange={(e) => setSettings({...settings, maxClientsPerCoach: parseInt(e.target.value) || 1})}
               disabled={saving}
+              className={isMobile ? 'text-xs h-8' : ''}
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Language Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-primary" />
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+          <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : ''}`}>
+            <Globe className={`text-primary ${isMobile ? 'h-3 w-3' : 'h-5 w-5'}`} />
             {t('settings.language.title', 'Language')}
           </CardTitle>
-          <CardDescription>{t('settings.language.description', 'Choose your preferred language')}</CardDescription>
+          <CardDescription className={isMobile ? 'text-xs' : ''}>{t('settings.language.description', 'Choose your preferred language')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
           <LanguageSelector />
         </CardContent>
       </Card>
 
       {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-primary" />
+      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+          <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : ''}`}>
+            <Bell className={`text-primary ${isMobile ? 'h-3 w-3' : 'h-5 w-5'}`} />
             {t('settings.notifications.title', 'Notification Settings')}
           </CardTitle>
-          <CardDescription>{t('settings.notifications.description', 'Choose what notifications you receive')}</CardDescription>
+          <CardDescription className={isMobile ? 'text-xs' : ''}>{t('settings.notifications.description', 'Choose what notifications you receive')}</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
-              <p className="text-sm text-muted-foreground">
+        <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
+          <div className={`flex items-center ${isMobile ? 'flex-col items-start gap-2' : 'justify-between'}`}>
+            <div className={isMobile ? 'space-y-0.5 flex-1' : 'space-y-0.5'}>
+              <Label className={isMobile ? 'text-xs' : ''}>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
+              <p className={`text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-sm'} break-words`}>
                 {t('settings.notifications.description', 'Receive notifications for messages, tasks, sessions, and updates')}
               </p>
             </div>
@@ -173,19 +189,20 @@ function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle })
               checked={notificationsEnabled} 
               onCheckedChange={handleNotificationToggle}
               disabled={saving}
+              className={isMobile ? 'mt-1' : ''}
             />
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex justify-end space-x-4">
-        <Button variant="outline" onClick={fetchPlatformSettings} disabled={saving}>
+      <div className={`flex ${isMobile ? 'flex-col-reverse gap-2' : 'justify-end space-x-4'}`}>
+        <Button variant="outline" onClick={fetchPlatformSettings} disabled={saving} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
           {t('common.buttons.cancel')}
         </Button>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
           {saving ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className={`animate-spin ${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
               {t('common.messages.loading')}
             </>
             ) : (
@@ -212,6 +229,19 @@ export default function AdminSettings() {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Fetch admin data on component mount
   useEffect(() => {
@@ -243,12 +273,16 @@ export default function AdminSettings() {
           if (data.user.notificationsEnabled !== undefined) {
             setNotificationsEnabled(data.user.notificationsEnabled !== false);
             // Also sync to localStorage for backward compatibility
-            localStorage.setItem('notificationsEnabled', (data.user.notificationsEnabled !== false).toString());
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('notificationsEnabled', (data.user.notificationsEnabled !== false).toString());
+            }
           } else {
             // Fallback to localStorage if database doesn't have it yet
-            const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
-            if (savedNotificationPreference !== null) {
-              setNotificationsEnabled(savedNotificationPreference === 'true');
+            if (typeof window !== 'undefined') {
+              const savedNotificationPreference = localStorage.getItem('notificationsEnabled');
+              if (savedNotificationPreference !== null) {
+                setNotificationsEnabled(savedNotificationPreference === 'true');
+              }
             }
           }
         } else {
@@ -559,7 +593,9 @@ export default function AdminSettings() {
 
       if (data.success) {
         // Also save to localStorage for backward compatibility
-        localStorage.setItem('notificationsEnabled', enabled.toString());
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('notificationsEnabled', enabled.toString());
+        }
         
         toast.success(
           enabled ? t('settings.notifications.enabled', 'Notifications enabled') : t('settings.notifications.disabled', 'Notifications disabled'),
@@ -625,45 +661,45 @@ export default function AdminSettings() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className={`space-y-8 ${isMobile ? 'px-4 pb-24' : ''}`}>
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('navigation.settings')}</h1>
-        <p className="text-muted-foreground">
+        <h1 className={`font-bold tracking-tight ${isMobile ? 'text-xl' : 'text-3xl'}`}>{t('navigation.settings')}</h1>
+        <p className={`text-muted-foreground ${isMobile ? 'text-xs mt-1' : 'mt-2'}`}>
           {t('settings.title')}
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 bg-muted">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+      <Tabs defaultValue="profile" className={isMobile ? 'space-y-4' : 'space-y-6'}>
+        <TabsList className={`grid w-full grid-cols-2 bg-muted ${isMobile ? 'h-auto p-1' : ''}`}>
+          <TabsTrigger value="profile" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}>
             {t('profile.title')}
           </TabsTrigger>
-          <TabsTrigger value="platform" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="platform" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}>
             {t('settings.general.title')}
           </TabsTrigger>
         </TabsList>
 
         {/* Profile Settings */}
-        <TabsContent value="profile">
-          <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-            <Card className="card-standard">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-primary" />
+        <TabsContent value="profile" className={isMobile ? 'px-0' : ''}>
+          <div className={`grid grid-cols-1 lg:grid-cols-1 ${isMobile ? 'gap-3' : 'gap-6'}`}>
+            <Card className={`card-standard ${isMobile ? 'p-0 shadow-none border-0' : ''}`}>
+              <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
+                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : ''}`}>
+                  <User className={`text-primary ${isMobile ? 'h-3 w-3' : 'h-5 w-5'}`} />
                   {t('profile.personalInfo')}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-4 mb-6">
+              <CardContent className={isMobile ? 'space-y-3 px-2 pb-2' : 'space-y-4'}>
+                <div className={`flex items-center ${isMobile ? 'flex-col gap-3 mb-4' : 'gap-4 mb-6'}`}>
                   <div className="relative">
-                    <Avatar className="h-20 w-20">
+                    <Avatar className={isMobile ? 'h-16 w-16' : 'h-20 w-20'}>
                       {avatarPreview || adminData?.avatar ? (
                         <AvatarImage 
                           src={avatarPreview || adminData?.avatar} 
                           alt={adminData?.name || 'Profile'} 
                         />
                       ) : null}
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                      <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-base' : 'text-xl'}`}>
                         {adminData?.name ? 
                           adminData.name.split(' ').map(n => n[0]).join('').toUpperCase() : 
                           'AD'
@@ -672,12 +708,12 @@ export default function AdminSettings() {
                     </Avatar>
                     {uploadingAvatar && (
                       <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-full">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <Loader2 className={`animate-spin text-primary ${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
                       </div>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                  <div className={`flex-1 ${isMobile ? 'w-full' : ''}`}>
+                    <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
                       <input
                         type="file"
                         id="avatar-upload-admin"
@@ -688,10 +724,16 @@ export default function AdminSettings() {
                       />
                       <Button 
                         variant="outline" 
-                        onClick={() => document.getElementById('avatar-upload-admin')?.click()}
+                        onClick={() => {
+                          if (typeof document !== 'undefined') {
+                            document.getElementById('avatar-upload-admin')?.click();
+                          }
+                        }}
                         disabled={uploadingAvatar}
+                        className={isMobile ? 'text-xs h-8 px-2' : ''}
+                        size={isMobile ? "sm" : "default"}
                       >
-                        <Camera className="h-4 w-4 mr-2" />
+                        <Camera className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'}`} />
                         {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
                       </Button>
                       {avatarPreview && (
@@ -700,10 +742,12 @@ export default function AdminSettings() {
                             variant="outline"
                             onClick={handleAvatarUpload}
                             disabled={uploadingAvatar}
+                            className={isMobile ? 'text-xs h-8 px-2' : ''}
+                            size={isMobile ? "sm" : "default"}
                           >
                             {uploadingAvatar ? (
                               <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                <Loader2 className={`animate-spin ${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'}`} />
                                 {t('common.messages.loading')}
                               </>
                             ) : (
@@ -712,49 +756,54 @@ export default function AdminSettings() {
                           </Button>
                           <Button 
                             variant="ghost"
-                            size="sm"
+                            size={isMobile ? "sm" : "sm"}
                             onClick={() => {
                               setAvatarPreview(adminData?.avatar || null);
                               setSelectedFile(null);
-                              const fileInput = document.getElementById('avatar-upload-admin');
-                              if (fileInput) fileInput.value = '';
+                              if (typeof document !== 'undefined') {
+                                const fileInput = document.getElementById('avatar-upload-admin');
+                                if (fileInput) fileInput.value = '';
+                              }
                             }}
                             disabled={uploadingAvatar}
+                            className={isMobile ? 'h-8 w-8 p-0' : ''}
                           >
-                            <X className="h-4 w-4" />
+                            <X className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                           </Button>
                         </>
                       )}
                       {adminData?.avatar && !avatarPreview && (
                         <Button 
                           variant="ghost"
-                          size="sm"
+                          size={isMobile ? "sm" : "sm"}
                           onClick={handleAvatarRemove}
                           disabled={uploadingAvatar}
+                          className={isMobile ? 'text-xs h-8 px-2' : ''}
                         >
                           {t('common.buttons.remove')}
                         </Button>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-[10px]' : 'text-xs'} break-words`}>
                       {t('settings.profile.avatarFormat', 'JPG, PNG, WebP, GIF, or HEIC. Max 5MB. HEIC files will be automatically converted to JPEG.')}
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="fullName">{t('common.labels.name')}</Label>
+                  <Label htmlFor="fullName" className={isMobile ? 'text-xs' : ''}>{t('common.labels.name')}</Label>
                   <Input 
                     id="fullName" 
                     value={formData.fullName}
                     onChange={(e) => handleInputChange('fullName', e.target.value)}
                     disabled={loading}
                     placeholder={t('common.labels.name')}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="email">{t('common.labels.email')}</Label>
+                  <Label htmlFor="email" className={isMobile ? 'text-xs' : ''}>{t('common.labels.email')}</Label>
                   <Input 
                     id="email" 
                     type="email" 
@@ -762,11 +811,12 @@ export default function AdminSettings() {
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     disabled={loading}
                     placeholder={t('common.labels.email')}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="phone">{t('common.labels.phone')}</Label>
+                  <Label htmlFor="phone" className={isMobile ? 'text-xs' : ''}>{t('common.labels.phone')}</Label>
                   <Input 
                     id="phone" 
                     type="tel" 
@@ -774,13 +824,15 @@ export default function AdminSettings() {
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     disabled={loading}
                     placeholder={t('common.labels.phone')}
+                    className={isMobile ? 'text-xs h-8' : ''}
                   />
                 </div>
 
                 <Button 
-                  className="w-full" 
+                  className={`w-full ${isMobile ? 'text-xs h-8' : ''}`} 
                   onClick={handleSaveChanges}
                   disabled={loading || saving}
+                  size={isMobile ? "sm" : "default"}
                 >
                   {saving ? t('common.messages.loading') : t('common.buttons.saveChanges')}
                 </Button>
@@ -803,22 +855,23 @@ export default function AdminSettings() {
       </Tabs>
 
       {/* Logout Section */}
-      <div className="mt-8 pt-6 border-t border-border">
-        <Card className="card-standard">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">{t('settings.logout.title', 'Log Out')}</h3>
-                <p className="text-sm text-muted-foreground mt-1">
+      <div className={`${isMobile ? 'mt-4 pt-4' : 'mt-8 pt-6'} border-t border-border`}>
+        <Card className={`card-standard ${isMobile ? 'p-0 shadow-none border-0' : ''}`}>
+          <CardContent className={isMobile ? 'pt-4 px-2 pb-2' : 'pt-6'}>
+            <div className={`flex items-center ${isMobile ? 'flex-col items-start gap-3' : 'justify-between'}`}>
+              <div className={isMobile ? 'flex-1' : ''}>
+                <h3 className={`font-semibold ${isMobile ? 'text-sm' : 'text-lg'}`}>{t('settings.logout.title', 'Log Out')}</h3>
+                <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>
                   {t('settings.logout.description', 'Sign out of your account')}
                 </p>
               </div>
               <Button
                 variant="destructive"
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="gap-2"
+                className={`gap-2 ${isMobile ? 'w-full text-xs h-8' : ''}`}
+                size={isMobile ? "sm" : "default"}
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                 {t('settings.logout.button', 'Log Out')}
               </Button>
             </div>

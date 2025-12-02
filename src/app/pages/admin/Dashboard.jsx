@@ -52,6 +52,8 @@ export default function AdminDashboard() {
   const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const checkScreenSize = () => {
       const width = window.innerWidth;
       setIsMobile(width < 640); // sm breakpoint

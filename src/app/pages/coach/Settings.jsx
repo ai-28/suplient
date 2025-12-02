@@ -96,6 +96,20 @@ export default function Settings() {
   const [newStageDescription, setNewStageDescription] = useState('');
   const [savingClientPipeline, setSavingClientPipeline] = useState(false);
   const [savingGroupPipeline, setSavingGroupPipeline] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Billing/Stripe state
   const [billingLoading, setBillingLoading] = useState(false);
@@ -1068,21 +1082,36 @@ export default function Settings() {
         subtitle={t('settings.subtitle', 'Manage your settings')}
       />
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 bg-muted">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+      <Tabs defaultValue="profile" className={isMobile ? 'space-y-4' : 'space-y-6'}>
+        <TabsList className={`${isMobile ? 'grid grid-cols-3' : 'grid w-full grid-cols-5'} bg-muted ${isMobile ? 'h-auto p-1' : ''}`}>
+          <TabsTrigger 
+            value="profile" 
+            className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
+          >
             {t('profile.title')}
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger 
+            value="notifications" 
+            className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
+          >
             {t('settings.notifications.title', 'Notifications')}
           </TabsTrigger>
-          <TabsTrigger value="security" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger 
+            value="security" 
+            className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
+          >
             {t('settings.security.title', 'Security')}
           </TabsTrigger>
-          <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger 
+            value="pipeline" 
+            className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
+          >
             {t('settings.pipeline.title', 'Pipeline')}
           </TabsTrigger>
-          <TabsTrigger value="billing" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsTrigger 
+            value="billing" 
+            className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
+          >
             {t('settings.billing.title', 'Billing')}
           </TabsTrigger>
         </TabsList>
