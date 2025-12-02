@@ -335,24 +335,30 @@ export default function Clients() {
   const sortedClients = [...filteredClients].sort((a, b) => {
     switch (sortBy) {
       case "name":
-        return a.name.localeCompare(b.name);
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
       case "created":
-        return new Date(b.created).getTime() - new Date(a.created).getTime();
+        return new Date(b.created || 0).getTime() - new Date(a.created || 0).getTime();
       case "unread":
-        return b.unreadMessages - a.unreadMessages;
+        return (b.unreadMessages || 0) - (a.unreadMessages || 0);
       case "session":
         if (!a.scheduledSession && !b.scheduledSession) return 0;
         if (!a.scheduledSession) return 1;
         if (!b.scheduledSession) return -1;
         return new Date(a.scheduledSession).getTime() - new Date(b.scheduledSession).getTime();
       case "oldest":
-        return a.lastActive.localeCompare(b.lastActive);
+        const lastActiveA = (a.lastActive || '').toLowerCase();
+        const lastActiveB = (b.lastActive || '').toLowerCase();
+        return lastActiveA.localeCompare(lastActiveB);
       case "type":
         const typeOrder = { 'Personal': 0, 'Group': 1 };
         return (typeOrder[a.type] ?? 2) - (typeOrder[b.type] ?? 2);
       case "activity":
       default:
-        return b.lastActive.localeCompare(a.lastActive);
+        const lastActiveA2 = (a.lastActive || '').toLowerCase();
+        const lastActiveB2 = (b.lastActive || '').toLowerCase();
+        return lastActiveB2.localeCompare(lastActiveA2);
     }
   });
 

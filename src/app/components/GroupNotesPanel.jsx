@@ -97,7 +97,7 @@ export function GroupNotesPanel({ groupId }) {
               </div>
             </div>
           ) : (
-            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+            <div className={`${isMobile ? 'space-y-1.5 pr-2' : 'space-y-2 pr-4'}`}>
               {notes.map((note) => (
                 <div key={note.id} className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer`}>
                   <h4 className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium text-foreground break-words`}>{note.title}</h4>

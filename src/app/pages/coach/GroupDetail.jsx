@@ -501,8 +501,9 @@ console.log(groupProgressData)
                       </div>
                     ) : isMobile ? (
                       // Mobile: Card-based layout
-                      <div className="space-y-3">
-                        {groupProgressData.members.map((member) => (
+                      <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
+                        <div className={`space-y-3 ${isMobile ? 'pr-2' : 'pr-4'}`}>
+                          {groupProgressData.members.map((member) => (
                           <div key={member.id} className="border rounded-lg p-3 space-y-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -564,11 +565,13 @@ console.log(groupProgressData)
                             </Button>
                           </div>
                         ))}
-                      </div>
+                        </div>
+                      </ScrollArea>
                     ) : (
                       // Desktop: Table layout
-                      <div className="border rounded-lg overflow-x-auto">
-                        <Table>
+                      <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[400px]'}`}>
+                        <div className="border rounded-lg overflow-x-auto">
+                          <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>{"Member"}</TableHead>
@@ -649,7 +652,8 @@ console.log(groupProgressData)
                             )}
                           </TableBody>
                         </Table>
-                      </div>
+                        </div>
+                      </ScrollArea>
                     )}
                   </CardContent>
                 </Card>

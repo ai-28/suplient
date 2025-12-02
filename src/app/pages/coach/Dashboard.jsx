@@ -5,6 +5,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { PageHeader } from "@/app/components/PageHeader";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
@@ -413,7 +414,7 @@ export default function Dashboard() {
                 {t('dashboard.coach.recentActivity')}
             </CardTitle>
           </CardHeader>
-          <CardContent className={`space-y-4 ${isMobile ? 'space-y-2 px-0' : ''}`}>
+          <CardContent className={isMobile ? 'px-0' : ''}>
             {activitiesLoading ? (
               <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -426,37 +427,41 @@ export default function Dashboard() {
                 <p className="text-sm">{t('dashboard.coach.recentActivity')}</p>
               </div>
             ) : (
-              activities.map((activity) => (
-                <div key={activity.id} className={`flex items-start ${isMobile ? 'space-x-2 p-2' : 'space-x-3 p-3'} rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors`}>
-                  <div className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-full bg-primary/10 text-primary`}>
-                    {activity.type === 'signup' && <Users className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
-                    {activity.type === 'task_completed' && <CheckCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
-                    {activity.type === 'daily_checkin' && <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
-                    {activity.type === 'session_attended' && <BarChart3 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
-                    {!['signup', 'task_completed', 'daily_checkin', 'session_attended'].includes(activity.type) && <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground truncate`}>
-                        {activity.title}
-                      </h4>
-                      {activity.pointsEarned > 0 && (
-                        <Badge variant="secondary" className={`${isMobile ? 'ml-1 text-xs px-1 py-0' : 'ml-2'}`}>
-                          +{activity.pointsEarned} pts
-                        </Badge>
-                      )}
+              <ScrollArea className={`${isMobile ? 'h-[300px]' : 'h-[400px]'}`}>
+                <div className={`space-y-4 ${isMobile ? 'space-y-2 pr-2' : 'pr-4'}`}>
+                  {activities.map((activity) => (
+                    <div key={activity.id} className={`flex items-start ${isMobile ? 'space-x-2 p-2' : 'space-x-3 p-3'} rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors`}>
+                      <div className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-full bg-primary/10 text-primary`}>
+                        {activity.type === 'signup' && <Users className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                        {activity.type === 'task_completed' && <CheckCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                        {activity.type === 'daily_checkin' && <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                        {activity.type === 'session_attended' && <BarChart3 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                        {!['signup', 'task_completed', 'daily_checkin', 'session_attended'].includes(activity.type) && <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground truncate`}>
+                            {activity.title}
+                          </h4>
+                          {activity.pointsEarned > 0 && (
+                            <Badge variant="secondary" className={`${isMobile ? 'ml-1 text-xs px-1 py-0' : 'ml-2'}`}>
+                              +{activity.pointsEarned} pts
+                            </Badge>
+                          )}
+                        </div>
+                        {activity.description && (
+                          <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1 line-clamp-2`}>
+                            {activity.description}
+                          </p>
+                        )}
+                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1`}>
+                          {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
+                        </p>
+                      </div>
                     </div>
-                    {activity.description && (
-                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1 line-clamp-2`}>
-                        {activity.description}
-                      </p>
-                    )}
-                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1`}>
-                      {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
-                    </p>
-                  </div>
+                  ))}
                 </div>
-              ))
+              </ScrollArea>
             )}
           </CardContent>
         </Card>

@@ -1101,8 +1101,8 @@ export default function ClientProfile() {
                       </CreateTaskDialog>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col">
-                      <ScrollArea className="flex-1">
-                        <div className="space-y-3">
+                      <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
+                        <div className={`space-y-3 ${isMobile ? 'pr-2' : 'pr-4'}`}>
                           {clientTasks.length > 0 ? (
                             clientTasks.map((task) => (
                               <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
@@ -1181,8 +1181,8 @@ export default function ClientProfile() {
                     </CreateNoteDialog>
                   </CardHeader>
                   <CardContent>
-                    <ScrollArea className="h-[250px]">
-                      <div className="space-y-2">
+                    <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
+                      <div className={`space-y-2 ${isMobile ? 'pr-2' : 'pr-4'}`}>
                         {clientNotes.length > 0 ? (
                           clientNotes.map((note) => (
                             <div key={note.id} className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
@@ -1244,8 +1244,8 @@ export default function ClientProfile() {
                       </Button>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col">
-                      <ScrollArea className="flex-1">
-                        <div className="space-y-2">
+                      <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
+                        <div className={`space-y-2 ${isMobile ? 'pr-2' : 'pr-4'}`}>
                           {clientFiles.map((file) => (
                             <div key={file.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                               <div className="flex items-center gap-2 flex-1 min-w-0">

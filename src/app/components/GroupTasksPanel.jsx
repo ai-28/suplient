@@ -97,7 +97,7 @@ export function GroupTasksPanel({ groupId, memberCount }) {
           </div>
         </CardHeader>
         <CardContent className={`flex-1 flex flex-col ${isMobile ? 'px-2 pb-2' : ''}`}>
-          <ScrollArea className="flex-1">
+          <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
             {loading ? (
               <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
@@ -121,7 +121,7 @@ export function GroupTasksPanel({ groupId, memberCount }) {
                 </div>
               </div>
             ) : (
-              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
+              <div className={`${isMobile ? 'space-y-2 pr-2' : 'space-y-3 pr-4'}`}>
                 {tasks.map((task) => (
                 <div 
                   key={task.id}

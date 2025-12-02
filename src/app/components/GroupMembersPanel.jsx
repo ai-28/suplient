@@ -122,8 +122,9 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
               </CardTitle>
             </CardHeader>
             <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
-              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
-                {activeMembers.map((member) => (
+              <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
+                <div className={`${isMobile ? 'space-y-2 pr-2' : 'space-y-3 pr-4'}`}>
+                  {activeMembers.map((member) => (
                   <div
                     key={member.id}
                     className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} ${isMobile ? 'p-2' : 'p-3'} border border-border rounded-lg hover:bg-accent/5 transition-all cursor-pointer gap-2`}
@@ -149,7 +150,8 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>
@@ -253,8 +255,8 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
             </CardTitle>
           </CardHeader>
           <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
-            <ScrollArea className={isMobile ? 'h-[100px]' : 'h-[120px]'}>
-              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
+            <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
+              <div className={`${isMobile ? 'space-y-2 pr-2' : 'space-y-3 pr-4'}`}>
                 {inactiveMembers.map((member) => (
                   <div
                     key={member.id}

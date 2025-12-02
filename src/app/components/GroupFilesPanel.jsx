@@ -190,7 +190,7 @@ export function GroupFilesPanel({ groupId }) {
           </div>
         </CardHeader>
         <CardContent className={`flex-1 flex flex-col ${isMobile ? 'px-2 pb-2' : ''}`}>
-          <ScrollArea className="flex-1">
+          <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
             {loading ? (
               <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
@@ -214,7 +214,7 @@ export function GroupFilesPanel({ groupId }) {
                 </div>
               </div>
             ) : (
-              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+              <div className={`${isMobile ? 'space-y-1.5 pr-2' : 'space-y-2 pr-4'}`}>
                 {files.map((file) => (
                   <div key={file.id} className={`flex items-center justify-between ${isMobile ? 'p-1.5' : 'p-2'} rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors`}>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
