@@ -517,10 +517,9 @@ export default function AdminClients() {
         </Select>
       </div>
 
-      <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
-        <CardContent className={isMobile ? 'p-0' : ''}>
-          <ScrollArea className={isMobile ? 'w-full' : ''}>
-            <div className={isMobile ? 'min-w-[800px]' : ''}>
+      <div className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+        <div className={isMobile ? 'p-0 w-[340px] h-[500px] overflow-scroll' : 'overflow-y-scroll h-[700px]'}>
+            <div>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -564,7 +563,7 @@ export default function AdminClients() {
                   <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>{new Date(client.joinDate).toLocaleDateString()}</TableCell>
                   <TableCell className={isMobile ? 'text-xs px-2' : ''}>{client.sessionsCount}</TableCell>
                   <TableCell className={isMobile ? 'px-2' : ''}>
-                    <div className={`flex ${isMobile ? 'flex-col gap-1' : 'gap-2'}`}>
+                    <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size={isMobile ? "sm" : "sm"}
@@ -630,9 +629,8 @@ export default function AdminClients() {
                 </TableBody>
               </Table>
             </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
