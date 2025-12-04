@@ -314,6 +314,70 @@ export class GoogleCalendarService {
         };
     }
 
+    async getEventsForDate(date, timeZone = 'UTC') {
+        try {
+            await this.ensureValidToken();
+            
+            // Handle date parameter - can be Date object or date string (YYYY-MM-DD)
+            let dateObj;
+            if (typeof date === 'string') {
+                dateObj = new Date(date + 'T00:00:00');
+            } else {
+                dateObj = new Date(date);
+            }
+            
+            // Get start and end of the day in the specified timezone
+            const startOfDay = new Date(dateObj);
+            startOfDay.setHours(0, 0, 0, 0);
+            
+            const endOfDay = new Date(dateObj);
+            endOfDay.setHours(23, 59, 59, 999);
+            
+            // Format for Google Calendar API
+            const timeMin = startOfDay.toISOString();
+            const timeMax = endOfDay.toISOString();
+            
+            const response = await fetch(
+                `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+                `timeMin=${encodeURIComponent(timeMin)}&` +
+                `timeMax=${encodeURIComponent(timeMax)}&` +
+                `singleEvents=true&` +
+                `orderBy=startTime`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('❌ Failed to fetch calendar events:', errorData);
+                return { success: false, events: [], error: errorData };
+            }
+            
+            const data = await response.json();
+            const events = (data.items || []).map(event => {
+                const start = event.start?.dateTime || event.start?.date;
+                const end = event.end?.dateTime || event.end?.date;
+                
+                return {
+                    id: event.id,
+                    title: event.summary || 'Untitled Event',
+                    start: start,
+                    end: end,
+                    allDay: !event.start?.dateTime, // All-day events don't have dateTime
+                };
+            });
+            
+            return { success: true, events };
+        } catch (error) {
+            console.error('❌ Error fetching calendar events:', error);
+            return { success: false, events: [], error: error.message };
+        }
+    }
+
     async updateEvent(eventId, eventData) {
         try {
             await this.ensureValidToken();

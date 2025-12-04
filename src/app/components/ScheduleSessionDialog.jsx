@@ -71,6 +71,8 @@ export function ScheduleSessionDialog({
   const [coachSessions, setCoachSessions] = useState([]);
   const [availableTimes, setAvailableTimes] = useState([]);
   const [timesLoading, setTimesLoading] = useState(false);
+  const [googleCalendarEvents, setGoogleCalendarEvents] = useState([]);
+  const [calendarConnected, setCalendarConnected] = useState(false);
 
   // Meeting type options
   const meetingTypes = [
@@ -124,6 +126,39 @@ export function ScheduleSessionDialog({
     }
   }, [open]);
 
+  // Fetch Google Calendar events when date changes
+  useEffect(() => {
+    const fetchGoogleCalendarEvents = async () => {
+      if (!date) {
+        setGoogleCalendarEvents([]);
+        setCalendarConnected(false);
+        return;
+      }
+      
+      try {
+        const dateStr = date.toISOString().split('T')[0];
+        const response = await fetch(
+          `/api/integrations/calendar/availability?date=${dateStr}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setGoogleCalendarEvents(data.events || []);
+          setCalendarConnected(data.connected || false);
+        } else {
+          setGoogleCalendarEvents([]);
+          setCalendarConnected(false);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Google Calendar events:', error);
+        setGoogleCalendarEvents([]);
+        setCalendarConnected(false);
+      }
+    };
+    
+    fetchGoogleCalendarEvents();
+  }, [date]);
+
   // Recompute available times whenever date, duration or session list changes
   useEffect(() => {
     const computeAvailable = () => {
@@ -157,6 +192,42 @@ export function ScheduleSessionDialog({
           })
           .filter(s => s._localDate === dateStr);
 
+        // Convert Google Calendar events to time slots
+        const calendarBusySlots = googleCalendarEvents
+          .filter(event => {
+            if (event.allDay) return true; // Block all-day events
+            
+            try {
+              const eventStart = new Date(event.start);
+              const eventEnd = new Date(event.end);
+              const eventDate = eventStart.toISOString().split('T')[0];
+              
+              return eventDate === dateStr;
+            } catch {
+              return false;
+            }
+          })
+          .map(event => {
+            if (event.allDay) {
+              // All-day event blocks entire day
+              return { start: 0, end: 24 * 60 };
+            }
+            
+            try {
+              const eventStart = new Date(event.start);
+              const eventEnd = new Date(event.end);
+              
+              // Convert to local time in minutes
+              const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
+              const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
+              
+              return { start: startMinutes, end: endMinutes };
+            } catch {
+              return null;
+            }
+          })
+          .filter(slot => slot !== null);
+
         const toMinutes = (hhmm) => {
           if (!hhmm) return 0;
           const [h,m] = hhmm.substring(0,5).split(':').map(Number);
@@ -165,11 +236,22 @@ export function ScheduleSessionDialog({
 
         const overlaps = (start, dur) => {
           const end = start + dur;
-          return daySessions.some(s => {
+          
+          // Check database sessions
+          const dbOverlap = daySessions.some(s => {
             const sStart = toMinutes((s._localTime||'').substring(0,5));
             const sEnd = sStart + (s.duration || 60);
             return (start < sEnd) && (end > sStart);
           });
+          
+          if (dbOverlap) return true;
+          
+          // Check Google Calendar events
+          const calendarOverlap = calendarBusySlots.some(slot => {
+            return (start < slot.end) && (end > slot.start);
+          });
+          
+          return calendarOverlap;
         };
 
         const dur = parseInt(formData.duration || '60', 10);
@@ -190,7 +272,7 @@ export function ScheduleSessionDialog({
 
     computeAvailable();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, formData.duration, coachSessions]);
+  }, [date, formData.duration, coachSessions, googleCalendarEvents]);
 
   // Fetch group members when group is selected
   const fetchGroupMembers = async (groupId) => {
@@ -947,7 +1029,15 @@ export function ScheduleSessionDialog({
               </div>
 
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                <Label htmlFor="time" className={isMobile ? 'text-xs' : ''}>Time *</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="time" className={isMobile ? 'text-xs' : ''}>Time *</Label>
+                  {calendarConnected && date && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                      <span className={isMobile ? 'text-[10px]' : ''}>Synced with Google Calendar</span>
+                    </div>
+                  )}
+                </div>
                 <Select onValueChange={(value) => handleInputChange("time", value)} value={formData.time}>
                   <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder={timesLoading ? 'Loading...' : (date ? 'Select time' : 'Pick a date first')} />
