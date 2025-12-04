@@ -199,16 +199,21 @@ export function ScheduleSessionDialog({
           })
           .filter(s => s._localDate === dateStr);
 
-        // Convert Google Calendar events to time slots
+        // Convert Google Calendar events to time slots (with proper timezone conversion)
         const calendarBusySlots = googleCalendarEvents
           .filter(event => {
             if (event.allDay) return true; // Block all-day events
             
             try {
+              // Convert event start to selected timezone for date comparison
               const eventStart = new Date(event.start);
-              const eventEnd = new Date(event.end);
-              const eventDate = eventStart.toISOString().split('T')[0];
-              
+              const fmt = new Intl.DateTimeFormat('en-CA', {
+                timeZone: viewerTZ,
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', hour12: false
+              });
+              const parts = Object.fromEntries(fmt.formatToParts(eventStart).map(p => [p.type, p.value]));
+              const eventDate = `${parts.year}-${parts.month}-${parts.day}`;
               return eventDate === dateStr;
             } catch {
               return false;
@@ -224,9 +229,21 @@ export function ScheduleSessionDialog({
               const eventStart = new Date(event.start);
               const eventEnd = new Date(event.end);
               
-              // Convert to local time in minutes
-              const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
-              const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
+              // Convert to selected timezone for hour/minute extraction
+              const startFmt = new Intl.DateTimeFormat('en-US', {
+                timeZone: viewerTZ,
+                hour: '2-digit', minute: '2-digit', hour12: false
+              });
+              const endFmt = new Intl.DateTimeFormat('en-US', {
+                timeZone: viewerTZ,
+                hour: '2-digit', minute: '2-digit', hour12: false
+              });
+              
+              const startParts = Object.fromEntries(startFmt.formatToParts(eventStart).map(p => [p.type, p.value]));
+              const endParts = Object.fromEntries(endFmt.formatToParts(eventEnd).map(p => [p.type, p.value]));
+              
+              const startMinutes = parseInt(startParts.hour) * 60 + parseInt(startParts.minute);
+              const endMinutes = parseInt(endParts.hour) * 60 + parseInt(endParts.minute);
               
               return { start: startMinutes, end: endMinutes };
             } catch {
