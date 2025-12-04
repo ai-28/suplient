@@ -38,7 +38,11 @@ export async function POST(request) {
                 let meetingResult;
 
                 if (platform === 'google_calendar') {
-                    meetingResult = await integrationService.createEvent(sessionData);
+                    // Pass platform to createEvent so it knows to create Google Meet link
+                    meetingResult = await integrationService.createEvent({
+                        ...sessionData,
+                        platform: 'google_calendar'
+                    });
                 } else {
                     meetingResult = await integrationService.createMeeting(sessionData);
                 }

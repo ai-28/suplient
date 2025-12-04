@@ -124,9 +124,16 @@ export class GoogleCalendarService {
             const reminderTimeMinutes = reminderMap[reminderTimeValue] ?? 24 * 60;
 
 
+            // Build description with meeting link if provided
+            let description = eventData.description || '';
+            if (eventData.meetingLink && eventData.platform !== 'google_calendar') {
+                // For Zoom/Teams, add meeting link to description
+                description = description ? `${description}\n\nMeeting Link: ${eventData.meetingLink}` : `Meeting Link: ${eventData.meetingLink}`;
+            }
+
             const googleEvent = {
                 summary: eventData.title || 'Session',
-                description: eventData.description || '',
+                description: description,
                 start: {
                     dateTime: startLocal,
                     timeZone: tz,
@@ -143,10 +150,6 @@ export class GoogleCalendarService {
                         }
                     }
                 } : undefined,
-                // Add external meeting link if it's from another platform
-                ...(eventData.meetingLink && eventData.platform !== 'google_calendar' && {
-                    description: `${eventData.description || ''}\n\nMeeting Link: ${eventData.meetingLink}`.trim()
-                }),
                 attendees: (eventData.attendees || []).map(email => ({
                     email: email,
                     responseStatus: 'needsAction'
@@ -205,6 +208,43 @@ export class GoogleCalendarService {
 
                     const retryResult = await retryResponse.json();
 
+                    // For Google Calendar events, update the description to include the meeting link
+                    if (eventData.platform === 'google_calendar' && retryResult.conferenceData?.entryPoints?.[0]?.uri) {
+                        const meetingLink = retryResult.conferenceData.entryPoints[0].uri;
+
+                        // Check if description already contains the meeting link to avoid duplicates
+                        const hasMeetingLink = description && description.includes(meetingLink);
+
+                        if (!hasMeetingLink) {
+                            const updatedDescription = description
+                                ? `${description}\n\nMeeting Link: ${meetingLink}`
+                                : `Meeting Link: ${meetingLink}`;
+
+                            // Update the event with the meeting link in description
+                            try {
+                                const updateResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${retryResult.id}?sendUpdates=all`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                        'Authorization': `Bearer ${this.accessToken}`,
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        description: updatedDescription
+                                    }),
+                                });
+
+                                if (updateResponse.ok) {
+                                    const updatedResult = await updateResponse.json();
+                                    return this.formatEventResponse(updatedResult);
+                                } else {
+                                    console.warn('⚠️ Failed to update event description with meeting link, but event was created');
+                                }
+                            } catch (updateError) {
+                                console.warn('⚠️ Error updating event description with meeting link:', updateError);
+                            }
+                        }
+                    }
+
                     return this.formatEventResponse(retryResult);
                 }
 
@@ -215,6 +255,43 @@ export class GoogleCalendarService {
             }
 
             const result = await response.json();
+
+            // For Google Calendar events, update the description to include the meeting link
+            if (eventData.platform === 'google_calendar' && result.conferenceData?.entryPoints?.[0]?.uri) {
+                const meetingLink = result.conferenceData.entryPoints[0].uri;
+
+                // Check if description already contains the meeting link to avoid duplicates
+                const hasMeetingLink = description && description.includes(meetingLink);
+
+                if (!hasMeetingLink) {
+                    const updatedDescription = description
+                        ? `${description}\n\nMeeting Link: ${meetingLink}`
+                        : `Meeting Link: ${meetingLink}`;
+
+                    // Update the event with the meeting link in description
+                    try {
+                        const updateResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${result.id}?sendUpdates=all`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Authorization': `Bearer ${this.accessToken}`,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                description: updatedDescription
+                            }),
+                        });
+
+                        if (updateResponse.ok) {
+                            const updatedResult = await updateResponse.json();
+                            return this.formatEventResponse(updatedResult);
+                        } else {
+                            console.warn('⚠️ Failed to update event description with meeting link, but event was created');
+                        }
+                    } catch (updateError) {
+                        console.warn('⚠️ Error updating event description with meeting link:', updateError);
+                    }
+                }
+            }
 
             return this.formatEventResponse(result);
         } catch (error) {
@@ -244,9 +321,17 @@ export class GoogleCalendarService {
             const startDateTime = new Date(`${eventData.sessionDate}T${eventData.sessionTime}:00`);
             const endDateTime = new Date(startDateTime.getTime() + (eventData.duration || 60) * 60 * 1000);
 
+            // Build description with meeting link if provided
+            let description = eventData.description || '';
+            if (eventData.meetingLink) {
+                description = description
+                    ? `${description}\n\nMeeting Link: ${eventData.meetingLink}`
+                    : `Meeting Link: ${eventData.meetingLink}`;
+            }
+
             const googleEvent = {
                 summary: eventData.title || 'Session',
-                description: eventData.description || '',
+                description: description,
                 start: {
                     dateTime: startDateTime.toISOString(),
                     timeZone: 'UTC',

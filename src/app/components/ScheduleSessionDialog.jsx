@@ -418,7 +418,7 @@ export function ScheduleSessionDialog({
       if (result.success) {
         toast.success(`${platform} integration disconnected successfully`);
         // Refresh the connection status
-        await checkConnections();
+        await checkExistingConnections();
       } else {
         toast.error('Failed to disconnect integration');
       }
