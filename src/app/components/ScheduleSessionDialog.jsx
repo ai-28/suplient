@@ -18,6 +18,7 @@ import { cn } from "@/app/lib/utils";
 import { toast } from 'sonner';
 import { useClients } from "@/app/hooks/useClients";
 import { useGroups } from "@/app/hooks/useGroups";
+import { timezones, getTimezoneOffset } from "@/app/lib/timezones";
 
 
 export function ScheduleSessionDialog({ 
@@ -73,6 +74,12 @@ export function ScheduleSessionDialog({
   const [timesLoading, setTimesLoading] = useState(false);
   const [googleCalendarEvents, setGoogleCalendarEvents] = useState([]);
   const [calendarConnected, setCalendarConnected] = useState(false);
+  const [selectedTimezone, setSelectedTimezone] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    }
+    return 'UTC';
+  });
 
   // Meeting type options
   const meetingTypes = [
@@ -168,7 +175,7 @@ export function ScheduleSessionDialog({
         const dateStr = date.toISOString().split('T')[0];
 
         // Convert stored UTC date/time to local date/time for comparison and overlap checks
-        const viewerTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const viewerTZ = selectedTimezone || 'UTC';
         const utcToLocalParts = (dateStrUTC, timeHHMMUTC) => {
           try {
             const iso = `${String(dateStrUTC).slice(0,10)}T${(timeHHMMUTC||'').substring(0,5)}:00Z`;
@@ -272,7 +279,7 @@ export function ScheduleSessionDialog({
 
     computeAvailable();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, formData.duration, coachSessions, googleCalendarEvents]);
+  }, [date, formData.duration, coachSessions, googleCalendarEvents, selectedTimezone]);
 
   // Fetch group members when group is selected
   const fetchGroupMembers = async (groupId) => {
@@ -542,7 +549,7 @@ export function ScheduleSessionDialog({
         description: formData.notes || null,
         sessionDate: date.toISOString().split('T')[0], // YYYY-MM-DD format
         sessionTime: formData.time,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        timeZone: selectedTimezone || 'UTC',
         duration: parseInt(formData.duration),
         sessionType: formData.sessionType,
         clientId: formData.sessionType === 'individual' ? selectedClient.id : null,
@@ -884,11 +891,21 @@ export function ScheduleSessionDialog({
       }
   };
 
-  const timeSlots = [
-    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
-    "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30"
-  ];
+  // Generate time slots from 01:00 to 23:30 (30-minute intervals)
+  const generateTimeSlots = () => {
+    const slots = [];
+    // Hours 1-22: each has :00 and :30
+    for (let hour = 1; hour < 23; hour++) {
+      slots.push(`${hour.toString().padStart(2, '0')}:00`);
+      slots.push(`${hour.toString().padStart(2, '0')}:30`);
+    }
+    // Hour 23: has :00 and :30
+    slots.push('23:00');
+    slots.push('23:30');
+    return slots;
+  };
+
+  const timeSlots = generateTimeSlots();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1085,6 +1102,29 @@ export function ScheduleSessionDialog({
                 </Select>
               </div>
 
+              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                <Label htmlFor="timezone" className={isMobile ? 'text-xs' : ''}>Timezone</Label>
+                <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
+                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
+                    <SelectValue>
+                      {timezones.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone} ({getTimezoneOffset(selectedTimezone)})
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {timezones.map(tz => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label} ({tz.offset})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Times shown in {getTimezoneOffset(selectedTimezone)}
+                </p>
+              </div>
+            </div>
+
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                 <Label htmlFor="maxAttendees" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
                   <Users className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />

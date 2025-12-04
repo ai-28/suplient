@@ -32,6 +32,23 @@ export async function GET(request) {
             AND u.role = 'client'
             LIMIT 1
         `;
+        
+        // Get coach's timezone from Google Calendar integration if available
+        let coachTimezone = 'UTC';
+        if (result.length > 0) {
+            try {
+                const { integrationRepo } = await import('@/app/lib/db/integrationSchema');
+                const googleIntegration = await integrationRepo.getCoachIntegration(result[0].coachUserId, 'google_calendar');
+                if (googleIntegration?.settings?.timeZone) {
+                    coachTimezone = googleIntegration.settings.timeZone;
+                } else {
+                    // Fallback to browser timezone detection (we'll use UTC as default)
+                    coachTimezone = 'UTC';
+                }
+            } catch (error) {
+                console.warn('Failed to get coach timezone from integration:', error);
+            }
+        }
 
         if (result.length === 0) {
 
@@ -69,7 +86,8 @@ export async function GET(request) {
             name: clientCoachData.coachName,
             email: clientCoachData.coachEmail,
             phone: clientCoachData.coachPhone,
-            avatar: clientCoachData.coachAvatar
+            avatar: clientCoachData.coachAvatar,
+            timezone: coachTimezone
         };
 
         return NextResponse.json({

@@ -7,72 +7,333 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Calendar } from "@/app/components/ui/calendar";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Checkbox } from "@/app/components/ui/checkbox";
-import { ArrowLeft, Clock, User, CheckCircle, Video } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { ArrowLeft, Clock, User, CheckCircle, Video, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { useClientCoach } from "@/app/hooks/useClientCoach";
+import { useSession } from "next-auth/react";
+import { toast } from 'sonner';
+import { format } from "date-fns";
+import { timezones, getTimezoneOffset } from "@/app/lib/timezones";
+
+// Time slots available (same as coach side)
+// Generate time slots from 01:00 to 23:30 (30-minute intervals)
 const generateTimeSlots = () => {
   const slots = [];
-  for (let i = 9; i <= 17; i++) {
-    if (i === 12 || i === 13) continue; // Skip lunch hours
-    const hour = i.toString().padStart(2, '0');
-    slots.push(`${hour}:00`);
-    if (i < 17) {
-      slots.push(`${hour}:30`);
-    }
+  // Hours 1-22: each has :00 and :30
+  for (let hour = 1; hour < 23; hour++) {
+    slots.push(`${hour.toString().padStart(2, '0')}:00`);
+    slots.push(`${hour.toString().padStart(2, '0')}:30`);
   }
+  // Hour 23: has :00 and :30
+  slots.push('23:00');
+  slots.push('23:30');
   return slots;
 };
-const availableSlots = generateTimeSlots();
-const coaches = [{
-  id: 1,
-  name: "Coach Clausen",
-  specialization: "Personal Coaching & Therapy",
-  avatar: "CC",
-  available: true
-}, {
-  id: 2,
-  name: "Dr. Michael Chen",
-  specialization: "Trauma Therapy",
-  avatar: "MC",
-  available: true
-}];
+
+const timeSlots = generateTimeSlots();
+
+// Meeting type options
+const meetingTypes = [
+  { 
+    id: "none", 
+    name: "No Meeting Link", 
+    description: "Schedule without creating a meeting link",
+    icon: CalendarIcon,
+    color: "text-gray-500"
+  },
+  { 
+    id: "google_meet", 
+    name: "Google Meet", 
+    description: "Create Google Calendar event with Meet link",
+    icon: Video,
+    color: "text-blue-500"
+  },
+  { 
+    id: "zoom", 
+    name: "Zoom Meeting", 
+    description: "Create Zoom meeting with join link",
+    icon: Video,
+    color: "text-blue-600"
+  },
+  { 
+    id: "teams", 
+    name: "Microsoft Teams", 
+    description: "Create Teams meeting with join link",
+    icon: Video,
+    color: "text-purple-500"
+  }
+];
+
 export default function BookSession() {
   const router = useRouter();
   const t = useTranslation();
-  const [selectedDate, setSelectedDate] = useState(() => new Date(2024, 0, 1));
+  const { data: session } = useSession();
+  const { coach, loading: coachLoading, error: coachError } = useClientCoach();
+  
+  const [selectedDate, setSelectedDate] = useState();
   const [selectedTime, setSelectedTime] = useState("");
-  const [selectedCoach, setSelectedCoach] = useState(1);
   const [sessionTopic, setSessionTopic] = useState("");
   const [acceptedConditions, setAcceptedConditions] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
+  const [meetingType, setMeetingType] = useState("none");
+  const [duration, setDuration] = useState("60");
+  const [selectedTimezone, setSelectedTimezone] = useState("UTC");
+  
+  // Availability state
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [timesLoading, setTimesLoading] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [coachSessions, setCoachSessions] = useState([]);
+  const [googleCalendarEvents, setGoogleCalendarEvents] = useState([]);
 
-  // Set current date after hydration to avoid hydration mismatch
+  // Set current date after hydration
   useEffect(() => {
     setSelectedDate(new Date());
   }, []);
 
-  const handleBookSession = async () => {
-    if (!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions) {
+  // Set default timezone to coach's timezone when coach loads
+  useEffect(() => {
+    if (coach?.timezone) {
+      setSelectedTimezone(coach.timezone);
+    } else {
+      // Fallback to browser timezone
+      setSelectedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
+    }
+  }, [coach?.timezone]);
+
+  // Fetch coach's available times when date changes
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!selectedDate || !coach?.id) {
+        setAvailableTimes([]);
+        return;
+      }
+
+      setTimesLoading(true);
+      try {
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        const response = await fetch(
+          `/api/integrations/calendar/availability/coach?date=${dateStr}&coachId=${coach.id}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setCoachSessions(data.coachSessions || []);
+          setGoogleCalendarEvents(data.googleCalendarEvents || []);
+          setCalendarConnected(data.calendarConnected || false);
+          
+          // Compute available times
+          computeAvailableTimes(data.coachSessions || [], data.googleCalendarEvents || []);
+        } else {
+          setAvailableTimes([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch availability:', error);
+        setAvailableTimes([]);
+      } finally {
+        setTimesLoading(false);
+      }
+    };
+
+    fetchAvailability();
+  }, [selectedDate, coach?.id, duration, selectedTimezone]);
+
+  const computeAvailableTimes = (dbSessions, calendarEvents) => {
+    if (!selectedDate || !selectedTimezone) {
+      setAvailableTimes([]);
       return;
     }
+
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    const viewerTZ = selectedTimezone; // Use selected timezone instead of browser timezone
+
+    // Convert UTC to local for database sessions
+    const utcToLocalParts = (dateStrUTC, timeHHMMUTC) => {
+      try {
+        const iso = `${String(dateStrUTC).slice(0,10)}T${(timeHHMMUTC||'').substring(0,5)}:00Z`;
+        const d = new Date(iso);
+        const fmt = new Intl.DateTimeFormat('en-CA', {
+          timeZone: viewerTZ,
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        });
+        const parts = Object.fromEntries(fmt.formatToParts(d).map(p => [p.type, p.value]));
+        return { localDate: `${parts.year}-${parts.month}-${parts.day}`, localTime: `${parts.hour}:${parts.minute}` };
+      } catch {
+        return { localDate: String(dateStrUTC).slice(0,10), localTime: (timeHHMMUTC||'').substring(0,5) };
+      }
+    };
+
+    const daySessions = dbSessions
+      .map(s => {
+        const { localDate, localTime } = utcToLocalParts(s.sessionDate, s.sessionTime);
+        return { ...s, _localDate: localDate, _localTime: localTime };
+      })
+      .filter(s => s._localDate === dateStr);
+
+    // Convert Google Calendar events to time slots
+    const calendarBusySlots = calendarEvents
+      .filter(event => {
+        if (event.allDay) return true;
+        try {
+          const eventStart = new Date(event.start);
+          const eventDate = eventStart.toISOString().split('T')[0];
+          return eventDate === dateStr;
+        } catch {
+          return false;
+        }
+      })
+      .map(event => {
+        if (event.allDay) {
+          return { start: 0, end: 24 * 60 };
+        }
+        try {
+          const eventStart = new Date(event.start);
+          const eventEnd = new Date(event.end);
+          const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
+          const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
+          return { start: startMinutes, end: endMinutes };
+        } catch {
+          return null;
+        }
+      })
+      .filter(slot => slot !== null);
+
+    const toMinutes = (hhmm) => {
+      if (!hhmm) return 0;
+      const [h, m] = hhmm.substring(0, 5).split(':').map(Number);
+      return (h * 60) + (m || 0);
+    };
+
+    const overlaps = (start, dur) => {
+      const end = start + dur;
+      
+      // Check database sessions
+      const dbOverlap = daySessions.some(s => {
+        const sStart = toMinutes((s._localTime||'').substring(0,5));
+        const sEnd = sStart + (s.duration || 60);
+        return (start < sEnd) && (end > sStart);
+      });
+      
+      if (dbOverlap) return true;
+      
+      // Check Google Calendar events
+      const calendarOverlap = calendarBusySlots.some(slot => {
+        return (start < slot.end) && (end > slot.start);
+      });
+      
+      return calendarOverlap;
+    };
+
+    const dur = parseInt(duration || '60', 10);
+    const slots = timeSlots.filter(t => {
+      const start = toMinutes(t);
+      return !overlaps(start, dur);
+    });
+
+    setAvailableTimes(slots);
+
+    // Clear selected time if it's no longer available
+    if (selectedTime && !slots.includes(selectedTime)) {
+      setSelectedTime("");
+    }
+  };
+
+  const handleBookSession = async () => {
+    if (!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions) {
+      toast.error("Please fill in all required fields and accept the conditions.");
+      return;
+    }
+
+    if (!coach?.id) {
+      toast.error("Coach information not available. Please try again.");
+      return;
+    }
+
     setIsBooking(true);
 
-    // Simulate booking process
-    setTimeout(() => {
-      setIsBooking(false);
-      setIsBooked(true);
+    try {
+      const sessionData = {
+        title: sessionTopic || `Session with ${coach.name}`,
+        description: sessionTopic,
+        sessionDate: selectedDate.toISOString().split('T')[0],
+        sessionTime: selectedTime,
+        duration: parseInt(duration),
+        meetingType: meetingType,
+        notes: sessionTopic,
+        timeZone: selectedTimezone
+      };
 
-      // Navigate back after showing success
-      setTimeout(() => {
-        router.push('/client');
-      }, 2000);
-    }, 1500);
+      const response = await fetch('/api/sessions/client', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sessionData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to book session');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setIsBooking(false);
+        setIsBooked(true);
+        toast.success("Session booked successfully!");
+
+        // Navigate back after showing success
+        setTimeout(() => {
+          router.push('/client');
+        }, 3000);
+      } else {
+        throw new Error('Failed to book session');
+      }
+    } catch (error) {
+      console.error('Error booking session:', error);
+      toast.error(error.message || 'Failed to book session. Please try again.');
+      setIsBooking(false);
+    }
   };
+
+  // Loading state
+  if (coachLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (coachError || !coach) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Coach Assigned</h2>
+            <p className="text-muted-foreground mb-4">
+              {coachError || "You don't have a coach assigned. Please contact support."}
+            </p>
+            <Button onClick={() => router.push('/client')}>Go Back</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Success state
   if (isBooked) {
-    return <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
           <CardContent className="pt-6">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
@@ -80,16 +341,19 @@ export default function BookSession() {
             <p className="text-muted-foreground mb-4">
               {t('sessions.bookedSuccess', "Your session has been scheduled successfully. You'll receive a confirmation email shortly.")}
             </p>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground space-y-1">
               <p><strong>{t('common.labels.date', 'Date')}:</strong> {selectedDate?.toLocaleDateString()}</p>
               <p><strong>{t('common.labels.time', 'Time')}:</strong> {selectedTime}</p>
-              <p><strong>{t('navigation.coaches', 'Coach')}:</strong> {coaches.find(c => c.id === selectedCoach)?.name}</p>
+              <p><strong>{t('navigation.coaches', 'Coach')}:</strong> {coach.name}</p>
             </div>
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-background">
+
+  return (
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="flex items-center p-4 border-b border-border bg-card">
         <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
@@ -102,6 +366,25 @@ export default function BookSession() {
       </div>
 
       <div className="p-4 space-y-6">
+        {/* Coach Info */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Coach</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={coach.avatar} />
+                <AvatarFallback>{coach.name?.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold">{coach.name}</p>
+                <p className="text-sm text-muted-foreground">{coach.email}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Select Date */}
         <Card>
           <CardHeader>
@@ -109,28 +392,167 @@ export default function BookSession() {
             <CardDescription>{t('sessions.chooseDate', 'Choose your preferred date')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} disabled={date => date < new Date() || date.getDay() === 0 || date.getDay() === 6} className="rounded-md border" />
+            <Calendar 
+              mode="single" 
+              selected={selectedDate} 
+              onSelect={setSelectedDate} 
+              disabled={date => date < new Date()} 
+              className="rounded-md border" 
+            />
+          </CardContent>
+        </Card>
+
+        {/* Timezone Selector */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Timezone</CardTitle>
+            <CardDescription>Select timezone for scheduling (defaults to coach's timezone)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
+              <SelectTrigger>
+                <SelectValue>
+                  {timezones.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone} ({getTimezoneOffset(selectedTimezone)})
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {timezones.map(tz => (
+                  <SelectItem key={tz.value} value={tz.value}>
+                    {tz.label} ({tz.offset})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {coach?.timezone && selectedTimezone === coach.timezone && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Using coach's timezone: {coach.timezone}
+              </p>
+            )}
           </CardContent>
         </Card>
 
         {/* Select Time */}
         <Card>
           <CardHeader>
-            <CardTitle>{t('sessions.selectTime', 'Select Time')}</CardTitle>
-            <CardDescription>{t('sessions.chooseTime', 'Choose your preferred time slot')}</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>{t('sessions.selectTime', 'Select Time')}</CardTitle>
+                <CardDescription>{t('sessions.chooseTime', 'Choose your preferred time slot')}</CardDescription>
+              </div>
+              {calendarConnected && selectedDate && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span>Synced with Coach's Calendar</span>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              {availableSlots.map(slot => <Button key={slot} variant={selectedTime === slot ? "default" : "outline"} size="sm" onClick={() => setSelectedTime(slot)} className={`justify-center h-12 transition-all duration-200 ${selectedTime === slot ? "shadow-lg scale-105 bg-primary hover:bg-primary/90" : "hover:bg-muted hover:scale-102 hover:shadow-md"}`}>
-                  <Clock className="h-4 w-4 mr-2" />
-                  <span className="font-medium">{slot}</span>
-                </Button>)}
-            </div>
+            {!selectedDate ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Please select a date first
+              </p>
+            ) : timesLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading available times...</span>
+              </div>
+            ) : availableTimes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No available times for this date. Please select another date.
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  {availableTimes.map(slot => (
+                    <Button 
+                      key={slot} 
+                      variant={selectedTime === slot ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={() => setSelectedTime(slot)} 
+                      className={`justify-center h-12 transition-all duration-200 ${
+                        selectedTime === slot 
+                          ? "shadow-lg scale-105 bg-primary hover:bg-primary/90" 
+                          : "hover:bg-muted hover:scale-102 hover:shadow-md"
+                      }`}
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      <span className="font-medium">{slot}</span>
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  Times shown in {timezones.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone} ({getTimezoneOffset(selectedTimezone)})
+                </p>
+              </>
+            )}
             <div className="mt-4 p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground text-center">
                 {t('sessions.durationNotice', '💡 Sessions are 50 minutes long. Please be ready at your scheduled time.')}
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Duration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Session Duration</CardTitle>
+            <CardDescription>How long should this session be?</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={duration} onValueChange={setDuration}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="60">60 minutes</SelectItem>
+                <SelectItem value="90">90 minutes</SelectItem>
+                <SelectItem value="120">120 minutes</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Meeting Type */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Meeting Link</CardTitle>
+            <CardDescription>Choose how you'd like to meet (optional)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {meetingTypes.map((type) => {
+                const Icon = type.icon;
+                const isSelected = meetingType === type.id;
+                
+                return (
+                  <div 
+                    key={type.id}
+                    className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
+                      isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => setMeetingType(type.id)}
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <Icon className={`h-5 w-5 ${type.color}`} />
+                      <div>
+                        <div className="text-sm font-medium">{type.name}</div>
+                        <div className="text-xs text-muted-foreground">{type.description}</div>
+                      </div>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                      isSelected ? "border-primary bg-primary" : "border-gray-300"
+                    }`} />
+                  </div>
+                );
+              })}
+            </div>
+            {meetingType !== 'none' && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Note: Meeting link will be created using your coach's calendar integration.
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -141,7 +563,12 @@ export default function BookSession() {
             <CardDescription>{t('sessions.topicDescription', 'Brief topic to help me prepare for our session')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Input placeholder={t('sessions.topicPlaceholder', 'e.g., Work anxiety and coping strategies')} value={sessionTopic} onChange={e => setSessionTopic(e.target.value)} className="w-full" />
+            <Textarea 
+              placeholder={t('sessions.topicPlaceholder', 'e.g., Work anxiety and coping strategies')} 
+              value={sessionTopic} 
+              onChange={e => setSessionTopic(e.target.value)} 
+              className="w-full min-h-[100px]"
+            />
           </CardContent>
         </Card>
 
@@ -156,16 +583,22 @@ export default function BookSession() {
               <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm font-medium mb-2">{t('sessions.details', 'Session Details')}:</p>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• {t('sessions.duration', 'Duration')}: {t('sessions.durationValue', '50 minutes')}</li>
+                  <li>• {t('sessions.duration', 'Duration')}: {duration} minutes</li>
                   <li>• {t('sessions.price', 'Price')}: {t('sessions.priceValue', '1,000 DKK')}</li>
-                  
                   <li>• {t('sessions.cancellation', 'Cancellation')}: {t('sessions.cancellationNotice', '24 hours notice required')}</li>
                 </ul>
               </div>
               
               <div className="flex items-center space-x-2">
-                <Checkbox id="conditions" checked={acceptedConditions} onCheckedChange={checked => setAcceptedConditions(checked)} />
-                <Label htmlFor="conditions" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <Checkbox 
+                  id="conditions" 
+                  checked={acceptedConditions} 
+                  onCheckedChange={checked => setAcceptedConditions(checked)} 
+                />
+                <Label 
+                  htmlFor="conditions" 
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
                   {t('sessions.acceptConditions', "I accept the conditions for the paid 1-1 session (1,000 DKK)")}
                 </Label>
               </div>
@@ -174,11 +607,24 @@ export default function BookSession() {
         </Card>
 
         {/* Book Button */}
-        <div className="pb-6">
-          <Button className="w-full" size="lg" onClick={handleBookSession} disabled={!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions || isBooking}>
-            {isBooking ? t('sessions.booking', 'Booking...') : t('sessions.bookVideoCall', 'Book Video Call')}
+        <div style = {{marginBottom: '100px'}}>
+          <Button 
+            className="w-full" 
+            size="lg" 
+            onClick={handleBookSession} 
+            disabled={!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions || isBooking}
+          >
+            {isBooking ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {t('sessions.booking', 'Booking...')}
+              </>
+            ) : (
+              t('sessions.bookVideoCall', 'Book Video Call')
+            )}
           </Button>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 }
