@@ -64,7 +64,6 @@ export function ScheduleSessionDialog({
     sessionType: "",
     notes: "",
     reminderTime: "24",
-    maxAttendees: groupMembers?.toString() || "8",
     meetingType: "none",
   });
 
@@ -366,26 +365,13 @@ export function ScheduleSessionDialog({
 
   const checkExistingConnections = async () => {
     try {
-      
-      // First check localStorage for cached connections
-      const cachedConnections = localStorage.getItem('integrationConnections');
-      let cachedStatus = {};
-      if (cachedConnections) {
-        try {
-          cachedStatus = JSON.parse(cachedConnections);
-          setConnectionStatus(cachedStatus);
-        } catch (e) {
-          console.warn('Failed to parse cached connections:', e);
-        }
-      }
-
-      // Then fetch from server to get latest data
+      // Fetch from server to get latest data (only active integrations are returned)
       const response = await fetch('/api/integrations');
       if (response.ok) {
         const data = await response.json();
         const integrations = data.integrations || [];
         
-        // Set connection status for each platform
+        // Set connection status for each platform (only active ones are returned)
         const status = {};
         integrations.forEach(integration => {
           // Map google_calendar to google_meet for UI consistency
@@ -397,15 +383,24 @@ export function ScheduleSessionDialog({
           };
         });
         
-        // Merge with cached status (server data takes precedence)
-        const finalStatus = { ...cachedStatus, ...status };
-        setConnectionStatus(finalStatus);
+        // Use server data as the source of truth (don't merge with stale cache)
+        // This ensures disconnected platforms are removed
+        setConnectionStatus(status);
         
         // Update localStorage with latest data
-        localStorage.setItem('integrationConnections', JSON.stringify(finalStatus));
+        localStorage.setItem('integrationConnections', JSON.stringify(status));
       } else {
         console.error('Failed to fetch integrations:', response.status);
-        // If server fails, keep using cached data
+        // If server fails, try to use cached data
+        const cachedConnections = localStorage.getItem('integrationConnections');
+        if (cachedConnections) {
+          try {
+            const cachedStatus = JSON.parse(cachedConnections);
+            setConnectionStatus(cachedStatus);
+          } catch (e) {
+            console.warn('Failed to parse cached connections:', e);
+          }
+        }
       }
     } catch (error) {
       console.error('Error checking connections:', error);
@@ -853,7 +848,6 @@ export function ScheduleSessionDialog({
         sessionType: "",
         notes: "",
         reminderTime: "24",
-        maxAttendees: groupMembers?.toString() || "8",
         meetingType: "none",
       });
       
@@ -1141,23 +1135,6 @@ export function ScheduleSessionDialog({
               </div>
             </div>
 
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
-              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                <Label htmlFor="maxAttendees" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
-                  <Users className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                  Max Attendees
-                </Label>
-                <Input
-                  id="maxAttendees"
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={formData.maxAttendees}
-                  onChange={(e) => handleInputChange("maxAttendees", e.target.value)}
-                  className={isMobile ? 'text-xs h-8' : ''}
-                />
-              </div>
-            </div>
           </div>
 
           {/* Settings */}

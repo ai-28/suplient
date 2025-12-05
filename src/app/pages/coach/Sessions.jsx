@@ -98,6 +98,16 @@ export default function Sessions() {
     }
   };
 
+  // Helper: get local date string in YYYY-MM-DD format (consistent with toLocalFromUTC)
+  const getLocalDateString = (date) => {
+    try {
+      const viewerTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      return date.toLocaleDateString('en-CA', { timeZone: viewerTZ });
+    } catch {
+      return date.toISOString().split('T')[0];
+    }
+  };
+
   // Generate calendar data from real sessions
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
@@ -121,7 +131,7 @@ export default function Sessions() {
       
       const day = currentDate.getDate();
       const isCurrentMonth = currentDate.getMonth() === month;
-      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dateStr = getLocalDateString(currentDate); // YYYY-MM-DD in local timezone
       
       // Check if there are sessions on this date
       const daySessions = sessions.filter(session => {
@@ -154,7 +164,7 @@ export default function Sessions() {
       currentDate.setDate(currentWeekStart.getDate() + i);
       
       const day = currentDate.getDate();
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(currentDate); // YYYY-MM-DD in local timezone
       const formattedDate = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       
       // Check if there are sessions on this date
@@ -178,12 +188,12 @@ export default function Sessions() {
 
   const generateDayHours = () => {
     const selectedDateObj = new Date(selectedDate);
-    const dateStr = selectedDateObj.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(selectedDateObj); // YYYY-MM-DD in local timezone
     
     // Get sessions for the selected date
     const daySessions = sessions.filter(session => {
-      const sessionDate = new Date(session.sessionDate);
-      return sessionDate.toISOString().split('T')[0] === dateStr;
+      const local = toLocalFromUTC(session.sessionDate, session.sessionTime);
+      return local.date === dateStr;
     });
     
     // Generate hourly slots from 8 AM to 8 PM
