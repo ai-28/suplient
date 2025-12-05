@@ -706,12 +706,12 @@ export default function ClientProfile() {
         return;
       }
 
-      // Validate file size (5MB max)
-      if (fileToUse.size > 5 * 1024 * 1024) {
+      // Validate file size (10MB max)
+      if (fileToUse.size > 10 * 1024 * 1024) {
         const fileSizeMB = (fileToUse.size / (1024 * 1024)).toFixed(2);
-        const errorDetails = `File: ${fileToUse.name}, Type: ${fileToUse.type}, Size: ${fileSizeMB}MB (max: 5MB)`;
+        const errorDetails = `File: ${fileToUse.name}, Type: ${fileToUse.type}, Size: ${fileSizeMB}MB (max: 10MB)`;
         console.error('File too large:', errorDetails);
-        toast.error(`Image too large (${fileSizeMB}MB). Maximum size is 5MB.`, {
+        toast.error(`Image too large (${fileSizeMB}MB). Maximum size is 10MB.`, {
           description: `Please compress or resize your image. File: ${fileToUse.name}`
         });
         return;
@@ -741,6 +741,51 @@ export default function ClientProfile() {
     }
   };
 
+  // Upload file using presigned URL (bypasses Next.js body size limit)
+  const uploadWithPresignedUrl = async (presignedUrl, file, onProgress) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percentComplete = (e.loaded / e.total) * 100;
+          onProgress(percentComplete);
+        }
+      });
+
+      // Handle completion
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
+        }
+      });
+
+      // Handle errors
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error during upload'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload cancelled'));
+      });
+
+      xhr.addEventListener('timeout', () => {
+        reject(new Error('Upload timeout'));
+      });
+
+      // Set timeout (5 minutes for avatar uploads)
+      xhr.timeout = 5 * 60 * 1000;
+
+      // Start upload
+      xhr.open('PUT', presignedUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.send(file);
+    });
+  };
+
   // Handle avatar upload
   const handleAvatarUpload = async () => {
     // Use the selected file (which may have been converted from HEIC)
@@ -754,63 +799,86 @@ export default function ClientProfile() {
     try {
       setUploadingAvatar(true);
 
-      const formDataUpload = new FormData();
-      formDataUpload.append('avatar', file);
-
-      const response = await fetch('/api/user/avatar', {
+      // Step 1: Get presigned URL
+      const initiateResponse = await fetch('/api/user/avatar/initiate', {
         method: 'POST',
-        body: formDataUpload,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+        }),
       });
 
-      // Check if response is ok before parsing JSON
-      if (!response.ok) {
-        let errorMessage = 'Failed to upload avatar';
+      if (!initiateResponse.ok) {
+        let errorMessage = 'Failed to initiate avatar upload';
         let errorDetails = null;
         
         try {
-          const errorData = await response.json();
+          const errorData = await initiateResponse.json();
           errorMessage = errorData.error || errorMessage;
           errorDetails = errorData.details || null;
         } catch (e) {
-          // Try to get error text if JSON parsing fails
-          try {
-            const errorText = await response.text();
-            if (errorText) {
-              errorMessage = errorText;
-            } else {
-              errorMessage = `Failed to upload avatar (${response.status} ${response.statusText})`;
-            }
-          } catch (textError) {
-            errorMessage = `Failed to upload avatar (${response.status} ${response.statusText})`;
-          }
+          errorMessage = `Failed to initiate upload (${initiateResponse.status} ${initiateResponse.statusText})`;
         }
         
-        // Log detailed error information
-        const errorInfo = {
-          status: response.status,
-          statusText: response.statusText,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-          fileSizeMB: (file.size / (1024 * 1024)).toFixed(2),
-          errorMessage: errorMessage,
-          errorDetails: errorDetails
-        };
-        console.error('Avatar upload failed:', errorInfo);
-        
-        // Show detailed error to user
         toast.error(errorMessage, {
-          description: errorDetails || `Status: ${response.status} ${response.statusText}. File: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`
+          description: errorDetails || `File: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`
         });
         return;
       }
 
-      const data = await response.json();
+      const initiateResult = await initiateResponse.json();
+      
+      if (!initiateResult.success) {
+        toast.error(initiateResult.error || 'Failed to initiate upload', {
+          description: initiateResult.details || `File: ${file.name}`
+        });
+        return;
+      }
 
-      if (data.success) {
+      // Step 2: Upload file directly to S3 using presigned URL
+      await uploadWithPresignedUrl(
+        initiateResult.presignedUrl,
+        file,
+        (progress) => {
+          // Optional: Update progress if needed
+          console.log(`Upload progress: ${progress.toFixed(0)}%`);
+        }
+      );
+
+      // Step 3: Complete upload (update user record)
+      const completeResponse = await fetch('/api/user/avatar/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filePath: initiateResult.filePath,
+        }),
+      });
+
+      if (!completeResponse.ok) {
+        let errorMessage = 'Failed to complete avatar upload';
+        try {
+          const errorData = await completeResponse.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = `Failed to complete upload (${completeResponse.status})`;
+        }
+        toast.error(errorMessage);
+        return;
+      }
+
+      const completeResult = await completeResponse.json();
+
+      if (completeResult.success) {
         toast.success('Avatar uploaded successfully!');
-        // Clear selected file
+        // Clear selected file and preview
         setSelectedFile(null);
+        setAvatarPreview(null);
         // Clear file input
         if (typeof document !== 'undefined') {
           const fileInput = document.getElementById('avatar-upload-client');
@@ -819,42 +887,24 @@ export default function ClientProfile() {
         // Update user data with new avatar
         setUserData(prev => ({
           ...prev,
-          avatar: data.avatarUrl
+          avatar: completeResult.avatarUrl
         }));
         // Refresh session to get updated avatar
         if (typeof window !== 'undefined') {
-          window.location.reload();
+          // Small delay to ensure state is updated before reload
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
         }
       } else {
-        const errorInfo = {
-          success: data.success,
-          error: data.error,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size
-        };
-        console.error('Avatar upload failed (success: false):', errorInfo);
-        toast.error(data.error || 'Failed to upload avatar', {
-          description: `File: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`
-        });
+        toast.error(completeResult.error || 'Failed to complete avatar upload');
       }
     } catch (error) {
-      // Log comprehensive error information
-      const errorInfo = {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
-        fileName: file?.name,
-        fileType: file?.type,
-        fileSize: file?.size,
-        fileSizeMB: file ? (file.size / (1024 * 1024)).toFixed(2) : 'unknown'
-      };
-      console.error('Error uploading avatar:', errorInfo, error);
+      console.error('Error uploading avatar:', error);
       
       let errorMessage = 'Failed to upload avatar';
       let errorDescription = null;
       
-      // Provide more specific error messages based on error type
       if (error.name === 'NetworkError' || error.message?.includes('fetch')) {
         errorMessage = 'Network error';
         errorDescription = 'Please check your internet connection and try again.';
@@ -863,9 +913,9 @@ export default function ClientProfile() {
         errorDescription = 'Unable to connect to server. Please check your connection and try again later.';
       } else if (error.message) {
         errorMessage = error.message;
-        errorDescription = `File: ${file?.name || 'unknown'} (${errorInfo.fileSizeMB}MB)`;
+        errorDescription = `File: ${file?.name || 'unknown'}`;
       } else {
-        errorDescription = `File: ${file?.name || 'unknown'} (${errorInfo.fileSizeMB}MB). Please try again.`;
+        errorDescription = `File: ${file?.name || 'unknown'}. Please try again.`;
       }
       
       toast.error(errorMessage, {
@@ -1163,6 +1213,7 @@ export default function ClientProfile() {
                       <AvatarImage 
                         src={avatarPreview || userData?.avatar} 
                         alt={userData?.name || 'Profile'} 
+                        key={userData?.avatar || 'no-avatar'} 
                       />
                     ) : null}
                     <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
@@ -1250,7 +1301,7 @@ export default function ClientProfile() {
                     )}
                   </div>
                   <p className={`text-xs text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>
-                    JPG, PNG, WebP, GIF, or HEIC. Max 5MB. HEIC files will be automatically converted to JPEG.
+                    JPG, PNG, WebP, GIF, or HEIC. Max 10MB. HEIC files will be automatically converted to JPEG.
                   </p>
                 </div>
               </CardContent>
