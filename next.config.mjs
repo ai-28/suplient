@@ -12,12 +12,8 @@ const nextConfig = {
         NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     },
     staticPageGenerationTimeout: 1000,
-    swcMinify: true, // Use SWC minification
-    workboxOptions: {
-        disableDevLogs: true, // Disable dev logs in production
-        cleanupOutdatedCaches: true, // Clean up old caches
-        clientsClaim: true, // Take control of all clients immediately
-    },
+    // swcMinify removed - SWC minification is always enabled in Next.js 15
+    // workboxOptions removed - not a valid Next.js config option
     // Disable PWA-related warnings in development
     webpack: (config, { dev, isServer }) => {
         if (dev && !isServer) {
