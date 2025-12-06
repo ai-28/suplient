@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import { toast } from "sonner";
-import heic2any from "heic2any";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -782,6 +781,13 @@ export default function Settings() {
       // Convert HEIC to JPEG if needed
       if (isHeic) {
         try {
+          // Dynamically import heic2any only on client side
+          if (typeof window === 'undefined') {
+            toast.error('HEIC conversion is not available on server side');
+            return;
+          }
+          
+          const heic2any = (await import('heic2any')).default;
           toast.info('Converting HEIC image to JPEG...', { duration: 2000 });
           const convertedBlob = await heic2any({
             blob: file,
