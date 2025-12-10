@@ -124,7 +124,7 @@ const Layout = ({ children }) => {
             )}
             
             {/* Main Content */}
-            <main className={`flex-1 ${isClientRoute ? 'p-0' : 'p-0'} bg-background`}>
+            <main className={`flex-1 ${isClientRoute ? 'p-0' : 'p-0'} bg-background md:px-[30px]`}>
               {children}
             </main>
           </div>

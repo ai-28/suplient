@@ -678,27 +678,27 @@ export default function Sessions() {
                     sortedSessions.map((session) => (
                   <div 
                     key={session.id} 
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all border border-transparent hover:border-border hover:shadow-sm"
+                    className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'} p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all border border-transparent hover:border-border hover:shadow-sm`}
                   >
-                    <div className="flex items-center gap-4">
-                    <div className="text-center min-w-[120px]">
-                      <p className="text-sm font-medium text-foreground">
+                    <div className={`flex items-center ${isMobile ? 'flex-wrap gap-2' : 'gap-4'}`}>
+                    <div className={`text-center ${isMobile ? 'min-w-[80px]' : 'min-w-[120px]'}`}>
+                      <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
                         {toLocalFromUTC(session.sessionDate, session.sessionTime).date}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
                         {(() => { const t = toLocalFromUTC(session.sessionDate, session.sessionTime).time; return `${t}${session.duration ? `–${getEndTime(t, session.duration)}` : ''}`; })()}
                       </p>
                     </div>
                       
-                      <div className="flex items-center gap-3">
+                      <div className={`flex items-center ${isMobile ? 'flex-wrap gap-2' : 'gap-3'}`}>
                         {session.group ? (
                           <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-medium text-foreground">{session.group}</span>
+                            <Users className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-primary`} />
+                            <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>{session.group}</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
+                            <Avatar className={isMobile ? 'h-6 w-6' : 'h-8 w-8'}>
                               {session.clientAvatar ? (
                                 <AvatarImage 
                                   src={session.clientAvatar} 
@@ -710,7 +710,7 @@ export default function Sessions() {
                                   }}
                                 />
                               ) : null}
-                              <AvatarFallback className="bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                              <AvatarFallback className={`bg-primary text-primary-foreground ${isMobile ? 'text-[10px]' : 'text-xs'} flex items-center justify-center`}>
                                 {session.client && session.client.trim() 
                                   ? session.client.split(' ').map((n) => n && n[0] ? n[0] : '').filter(Boolean).join('').toUpperCase().slice(0, 2) || 'U'
                                   : 'U'
@@ -718,55 +718,55 @@ export default function Sessions() {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <span className="text-sm font-medium text-foreground block">{session.client || 'Unknown Client'}</span>
-                              <span className="text-xs text-muted-foreground">Individual Session</span>
+                              <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground block`}>{session.client || 'Unknown Client'}</span>
+                              {!isMobile && <span className="text-xs text-muted-foreground">Individual Session</span>}
                             </div>
                           </div>
                         )}
                         
                         <Badge 
                           variant="outline" 
-                          className={session.type === 'Group' 
+                          className={`${session.type === 'Group' 
                             ? 'border-primary text-primary bg-primary/10' 
                             : 'border-accent text-accent bg-accent/10'
-                          }
+                          } ${isMobile ? 'text-[10px] px-1.5 py-0.5' : ''}`}
                         >
                           {session.type}
                         </Badge>
                         
                         <div className="flex items-center gap-1">
-                          <span className="text-lg">{session.moodEmoji}</span>
-                          <Badge variant="secondary" className="text-xs">
+                          <span className={isMobile ? 'text-sm' : 'text-lg'}>{session.moodEmoji}</span>
+                          <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-xs'}>
                             {session?.duration ? `${session.duration} min` : (session.type === 'Group' ? '45 min' : '60 min')}
                           </Badge>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className={`flex gap-2 ${isMobile ? 'w-full justify-end' : ''}`}>
                       <Button 
-                        size="sm"
-                        className="bg-gradient-primary text-[#1A2D4D] hover:shadow-md transition-all"
+                        size={isMobile ? "sm" : "sm"}
+                        className={`bg-gradient-primary text-[#1A2D4D] hover:shadow-md transition-all ${isMobile ? 'text-xs px-2 h-7' : ''}`}
                         onClick={() => handleJoinSession(session)}
                       >
-                        <Video className="h-4 w-4 mr-2" />
-                          Join
+                        <Video className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+                          {isMobile ? 'Join' : 'Join'}
                       </Button>
                       <Button 
-                        size="sm" 
+                        size={isMobile ? "sm" : "sm"} 
                         variant="outline" 
-                        className="hover:bg-accent hover:text-accent-foreground"
+                        className={`hover:bg-accent hover:text-accent-foreground ${isMobile ? 'h-7 w-7 p-0' : ''}`}
                         onClick={() => handleEditSession(session)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                       </Button>
                       <Button 
-                        size="sm" 
+                        size={isMobile ? "sm" : "sm"} 
                         variant="outline" 
-                        className="hover:bg-secondary hover:text-secondary-foreground"
+                        className={`hover:bg-secondary hover:text-secondary-foreground ${isMobile ? 'h-7 w-7 p-0' : ''}`}
                         onClick={() => handleMessageSession(session)}
                       >
-                        <MessageCircle className="h-4 w-4" />
+                        <MessageCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                       </Button>
                     </div>
                   </div>

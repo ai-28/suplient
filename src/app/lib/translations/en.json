@@ -33,6 +33,7 @@
             "date": "Date",
             "time": "Time",
             "status": "Status",
+            "lastLogin": "Last login",
             "actions": "Actions",
             "active": "Active",
             "inactive": "Inactive",

@@ -529,7 +529,7 @@ export default function AdminClients() {
                     <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('navigation.coaches')}</TableHead>
                     <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.status')}</TableHead>
                     <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('clients.location')}</TableHead>
-                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.date')}</TableHead>
+                    <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.lastLogin')}</TableHead>
                     <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('navigation.sessions')}</TableHead>
                     <TableHead className={isMobile ? 'text-xs px-2' : ''}>{t('common.labels.actions')}</TableHead>
                   </TableRow>
