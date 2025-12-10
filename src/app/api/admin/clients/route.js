@@ -166,6 +166,7 @@ export async function GET(request) {
                 u."updatedAt",
                 c.id as client_id,
                 c.status as client_status,
+                c."lastActive",
                 coach.name as coach_name
             FROM "User" u
             LEFT JOIN "Client" c ON u.id = c."userId"
@@ -187,6 +188,7 @@ export async function GET(request) {
             notes: client.notes,
             status: client.client_status || (client.isActive ? 'active' : 'inactive'),
             joinDate: client.createdAt,
+            lastLoginDate: client.lastActive,
             sessionsCount: 0 // TODO: Calculate actual session count from sessions table
         }));
         return NextResponse.json({

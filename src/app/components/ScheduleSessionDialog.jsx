@@ -924,7 +924,7 @@ export function ScheduleSessionDialog({
         <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
           <DialogTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-2xl'} break-words`}>
             <CalendarIcon className={`${isMobile ? 'h-4 w-4' : 'h-6 w-6'} text-primary`} />
-            Schedule Session - {groupName}
+            Schedule Session
           </DialogTitle>
         </DialogHeader>
 

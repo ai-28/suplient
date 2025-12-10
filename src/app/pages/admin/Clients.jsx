@@ -560,7 +560,11 @@ export default function AdminClients() {
                     </Badge>
                   </TableCell>
                   <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>{client.location}</TableCell>
-                  <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>{new Date(client.joinDate).toLocaleDateString()}</TableCell>
+                  <TableCell className={isMobile ? 'text-xs px-2 break-words' : 'break-words'}>
+                    {client.lastLoginDate 
+                      ? new Date(client.lastLoginDate).toLocaleDateString() 
+                      : 'Never'}
+                  </TableCell>
                   <TableCell className={isMobile ? 'text-xs px-2' : ''}>{client.sessionsCount}</TableCell>
                   <TableCell className={isMobile ? 'px-2' : ''}>
                     <div className="flex gap-2">
