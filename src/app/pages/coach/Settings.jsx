@@ -114,6 +114,14 @@ export default function Settings() {
   const [billingLoading, setBillingLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [connectingStripe, setConnectingStripe] = useState(false);
+  const [connectStatus, setConnectStatus] = useState(null);
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [updatingPrice, setUpdatingPrice] = useState(null);
+  const [customPaymentAmount, setCustomPaymentAmount] = useState('');
+  const [customPaymentDescription, setCustomPaymentDescription] = useState('');
+  const [creatingCustomPayment, setCreatingCustomPayment] = useState(false);
 
   // Pipeline stage handlers
   const colorOptions = [
@@ -547,6 +555,8 @@ export default function Settings() {
     };
 
     fetchSubscriptionStatus();
+    fetchConnectStatus();
+    fetchProducts();
   }, [session?.user?.id]);
 
   // Handle URL params for billing tab (success/error messages)
@@ -564,6 +574,10 @@ export default function Settings() {
           toast.success(t('settings.billing.subscriptionCreated', 'Subscription created successfully!'));
         } else if (success === 'already_subscribed') {
           toast.info(t('settings.billing.alreadySubscribed', 'You already have an active subscription.'));
+        } else if (success === 'onboarding_complete') {
+          toast.success('Payment account set up successfully!');
+          fetchConnectStatus();
+          fetchProducts();
         }
         // Refresh subscription status
         setTimeout(() => {
@@ -605,6 +619,133 @@ export default function Settings() {
       toast.error(error.message || t('settings.billing.connectFailed', 'Failed to start checkout'));
     } finally {
       setConnectingStripe(false);
+    }
+  };
+
+  // Fetch Connect account status
+  const fetchConnectStatus = async () => {
+    try {
+      setConnectLoading(true);
+      const response = await fetch('/api/stripe/connect/status');
+      if (response.ok) {
+        const data = await response.json();
+        setConnectStatus(data);
+      }
+    } catch (error) {
+      console.error('Error fetching Connect status:', error);
+    } finally {
+      setConnectLoading(false);
+    }
+  };
+
+  // Fetch coach products
+  const fetchProducts = async () => {
+    try {
+      setProductsLoading(true);
+      const response = await fetch('/api/coach/products');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data.products || []);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  // Handle Connect account creation
+  const handleCreateConnectAccount = async () => {
+    try {
+      setConnectLoading(true);
+      const response = await fetch('/api/stripe/connect/create-account', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create Connect account');
+      }
+
+      const data = await response.json();
+      
+      if (data.onboardingUrl) {
+        window.location.href = data.onboardingUrl;
+      } else if (data.onboardingComplete) {
+        toast.success('Payment account is already set up!');
+        fetchConnectStatus();
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error creating Connect account:', error);
+      toast.error(error.message || 'Failed to create Connect account');
+    } finally {
+      setConnectLoading(false);
+    }
+  };
+
+  // Handle product price update
+  const handleUpdateProductPrice = async (productType, newAmount) => {
+    try {
+      setUpdatingPrice(productType);
+      const response = await fetch('/api/coach/products/update-price', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productType,
+          amount: Math.round(newAmount * 100), // Convert to øre
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update price');
+      }
+
+      toast.success('Price updated successfully');
+      fetchProducts();
+    } catch (error) {
+      console.error('Error updating price:', error);
+      toast.error(error.message || 'Failed to update price');
+    } finally {
+      setUpdatingPrice(null);
+    }
+  };
+
+  // Handle custom payment link creation
+  const handleCreateCustomPayment = async () => {
+    if (!customPaymentAmount || parseFloat(customPaymentAmount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    try {
+      setCreatingCustomPayment(true);
+      const response = await fetch('/api/payments/create-custom-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Math.round(parseFloat(customPaymentAmount) * 100), // Convert to øre
+          description: customPaymentDescription || 'Custom payment',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create payment');
+      }
+
+      const data = await response.json();
+      
+      // For now, just show success - in future can integrate Stripe Elements for payment
+      toast.success(`Payment intent created. Payment Intent ID: ${data.paymentIntentId?.substring(0, 20)}...`);
+      setCustomPaymentAmount('');
+      setCustomPaymentDescription('');
+    } catch (error) {
+      console.error('Error creating custom payment:', error);
+      toast.error(error.message || 'Failed to create payment');
+    } finally {
+      setCreatingCustomPayment(false);
     }
   };
 
@@ -1843,6 +1984,174 @@ export default function Settings() {
                     </p>
                   </div>
                 )}
+
+                {/* Stripe Connect Account Section */}
+                <div className="mt-8 pt-8 border-t">
+                  <h3 className="text-lg font-semibold mb-4">
+                    {t('settings.billing.connectAccount', 'Payment Account (Receive Payments)')}
+                  </h3>
+                  
+                  {connectLoading ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      <span className="text-sm text-muted-foreground">Loading...</span>
+                    </div>
+                  ) : connectStatus?.connected && connectStatus?.onboardingComplete ? (
+                    <div className="p-4 rounded-lg border bg-green-50 dark:bg-green-900/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        <span className="font-semibold text-green-800 dark:text-green-200">
+                          Connect Account Active
+                        </span>
+                      </div>
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        You can now receive payments from clients. Payouts are processed daily.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-lg border bg-muted/30">
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Set up your payment account to receive payments from clients for sessions, programs, and group memberships.
+                      </p>
+                      <Button
+                        onClick={handleCreateConnectAccount}
+                        disabled={connectLoading}
+                        variant="outline"
+                      >
+                        {connectLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Setting up...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Set Up Payment Account
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Product Management Section */}
+                  {connectStatus?.onboardingComplete && (
+                    <div className="mt-8 pt-8 border-t">
+                      <h3 className="text-lg font-semibold mb-4">
+                        {t('settings.billing.productPrices', 'Product Prices')}
+                      </h3>
+                      
+                      {productsLoading ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          <span className="text-sm text-muted-foreground">Loading products...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {products.map((product) => (
+                            <div key={product.id} className="p-4 rounded-lg border bg-muted/30">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <h4 className="font-semibold">
+                                    {product.productType === 'one_to_one' && '1-to-1 Session'}
+                                    {product.productType === 'program' && 'Program Subscription'}
+                                    {product.productType === 'group' && 'Group Membership'}
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    {product.productType === 'one_to_one' ? 'One-time payment per session' : 'Monthly subscription'}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-semibold">
+                                    {(product.amount / 100).toFixed(0)} DKK
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 mt-3">
+                                <Input
+                                  type="number"
+                                  placeholder="New price (DKK)"
+                                  className="w-32"
+                                  data-product={product.productType}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const newAmount = parseFloat(e.target.value);
+                                      if (newAmount > 0) {
+                                        handleUpdateProductPrice(product.productType, newAmount);
+                                        e.target.value = '';
+                                      }
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    const input = document.querySelector(`input[data-product="${product.productType}"]`);
+                                    const newAmount = parseFloat(input?.value);
+                                    if (newAmount > 0) {
+                                      handleUpdateProductPrice(product.productType, newAmount);
+                                      input.value = '';
+                                    }
+                                  }}
+                                  disabled={updatingPrice === product.productType}
+                                >
+                                  {updatingPrice === product.productType ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    'Update'
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Custom Payment Link Section */}
+                  {connectStatus?.onboardingComplete && (
+                    <div className="mt-8 pt-8 border-t">
+                      <h3 className="text-lg font-semibold mb-4">
+                        {t('settings.billing.customPayment', 'Custom Payment Link')}
+                      </h3>
+                      <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
+                        <div>
+                          <Label htmlFor="customAmount">Amount (DKK)</Label>
+                          <Input
+                            id="customAmount"
+                            type="number"
+                            placeholder="Enter amount"
+                            value={customPaymentAmount}
+                            onChange={(e) => setCustomPaymentAmount(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="customDescription">Description (Optional)</Label>
+                          <Input
+                            id="customDescription"
+                            placeholder="Payment description"
+                            value={customPaymentDescription}
+                            onChange={(e) => setCustomPaymentDescription(e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          onClick={handleCreateCustomPayment}
+                          disabled={creatingCustomPayment || !customPaymentAmount}
+                          className="w-full"
+                        >
+                          {creatingCustomPayment ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Creating...
+                            </>
+                          ) : (
+                            'Create Payment Link'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>

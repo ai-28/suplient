@@ -12,6 +12,7 @@ import { Switch } from "@/app/components/ui/switch";
 import { Separator } from "@/app/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
+import { Badge } from "@/app/components/ui/badge";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { 
   User, 
@@ -21,11 +22,153 @@ import {
   Loader2,
   Bell,
   Globe,
-  LogOut
+  LogOut,
+  CreditCard,
+  CheckCircle,
+  TrendingUp
 } from "lucide-react";
 
 import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
+
+function AdminBillingTab() {
+  const t = useTranslation();
+  const [loading, setLoading] = useState(true);
+  const [coachSubscriptions, setCoachSubscriptions] = useState([]);
+  const [revenue, setRevenue] = useState({ total: 0, thisMonth: 0, activeSubscriptions: 0 });
+
+  useEffect(() => {
+    fetchCoachSubscriptions();
+  }, []);
+
+  const fetchCoachSubscriptions = async () => {
+    try {
+      setLoading(true);
+      // Fetch all coach subscriptions
+      const response = await fetch('/api/admin/coaches/subscriptions');
+      if (response.ok) {
+        const data = await response.json();
+        setCoachSubscriptions(data.subscriptions || []);
+        
+        // Calculate revenue
+        const total = data.subscriptions?.reduce((sum, sub) => sum + (sub.amount || 0), 0) || 0;
+        const thisMonth = data.subscriptions?.filter(sub => {
+          const periodEnd = new Date(sub.currentPeriodEnd);
+          const now = new Date();
+          return periodEnd >= now && periodEnd <= new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        }).reduce((sum, sub) => sum + (sub.amount || 0), 0) || 0;
+        const active = data.subscriptions?.filter(sub => sub.status === 'active').length || 0;
+        
+        setRevenue({ total, thisMonth, activeSubscriptions: active });
+      }
+    } catch (error) {
+      console.error('Error fetching coach subscriptions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Revenue Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-bold">{revenue.total.toFixed(2)} DKK</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">This Month</p>
+                <p className="text-2xl font-bold">{revenue.thisMonth.toFixed(2)} DKK</p>
+              </div>
+              <CreditCard className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active Subscriptions</p>
+                <p className="text-2xl font-bold">{revenue.activeSubscriptions}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Coach Subscriptions Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Coach Subscriptions</CardTitle>
+          <CardDescription>View all coach subscriptions to the platform</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span className="text-sm text-muted-foreground">Loading subscriptions...</span>
+            </div>
+          ) : coachSubscriptions.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No coach subscriptions found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Coach Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Next Billing</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {coachSubscriptions.map((subscription) => (
+                    <TableRow key={subscription.id}>
+                      <TableCell className="font-medium">{subscription.coachName}</TableCell>
+                      <TableCell>{subscription.coachEmail}</TableCell>
+                      <TableCell>
+                        <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
+                          {subscription.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{subscription.amount?.toFixed(2) || '0.00'} DKK</TableCell>
+                      <TableCell>
+                        {subscription.currentPeriodEnd 
+                          ? new Date(subscription.currentPeriodEnd).toLocaleDateString()
+                          : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {subscription.createdAt 
+                          ? new Date(subscription.createdAt).toLocaleDateString()
+                          : 'N/A'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function PlatformSettingsTab({ notificationsEnabled, handleNotificationToggle }) {
   const t = useTranslation();
@@ -726,12 +869,15 @@ export default function AdminSettings() {
       </div>
 
       <Tabs defaultValue="profile" className={isMobile ? 'space-y-4' : 'space-y-6'}>
-        <TabsList className={`grid w-full grid-cols-2 bg-muted ${isMobile ? 'h-auto p-1' : ''}`}>
+        <TabsList className={`grid w-full grid-cols-3 bg-muted ${isMobile ? 'h-auto p-1' : ''}`}>
           <TabsTrigger value="profile" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}>
             {t('profile.title')}
           </TabsTrigger>
           <TabsTrigger value="platform" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}>
             {t('settings.general.title')}
+          </TabsTrigger>
+          <TabsTrigger value="billing" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}>
+            {t('settings.billing.title', 'Billing')}
           </TabsTrigger>
         </TabsList>
 
@@ -908,6 +1054,11 @@ export default function AdminSettings() {
             notificationsEnabled={notificationsEnabled}
             handleNotificationToggle={handleNotificationToggle}
           />
+        </TabsContent>
+
+        {/* Billing Settings */}
+        <TabsContent value="billing">
+          <AdminBillingTab />
         </TabsContent>
       </Tabs>
 

@@ -36,7 +36,10 @@ import {
   X,
   Loader2,
   LogOut,
-  UserX
+  UserX,
+  CreditCard,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -343,6 +346,181 @@ const useGoalTracking = () => {
   };
 };
 
+function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, onCancelSubscription, onRefresh, isMobile }) {
+  const { data: session } = useSession();
+  const [creatingSubscription, setCreatingSubscription] = useState(null);
+
+  const handleCreateSubscription = async (coachId, productType) => {
+    try {
+      setCreatingSubscription(`${coachId}-${productType}`);
+      const response = await fetch('/api/payments/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coachId, productType }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create subscription');
+      }
+
+      const data = await response.json();
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      }
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      toast.error(error.message || 'Failed to create subscription');
+    } finally {
+      setCreatingSubscription(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        <span className="text-sm text-muted-foreground">Loading billing information...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Active Subscriptions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Active Subscriptions
+          </CardTitle>
+          <CardDescription>Your active subscriptions to coach services</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {subscriptions.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No active subscriptions</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {subscriptions.map((sub) => (
+                <div key={sub.id} className="p-4 rounded-lg border bg-muted/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="font-semibold">
+                        {sub.productType === 'program' && 'Program Subscription'}
+                        {sub.productType === 'group' && 'Group Membership'}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">Coach: {sub.coachName}</p>
+                    </div>
+                    <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
+                      {sub.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between mt-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Amount</p>
+                      <p className="font-semibold">{(sub.amount / 100).toFixed(0)} DKK/month</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Next billing</p>
+                      <p className="text-sm">
+                        {sub.currentPeriodEnd 
+                          ? new Date(sub.currentPeriodEnd).toLocaleDateString()
+                          : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  {sub.status === 'active' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full"
+                      onClick={() => onCancelSubscription(sub.stripeSubscriptionId)}
+                    >
+                      Cancel Subscription
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment History</CardTitle>
+          <CardDescription>Your recent payments</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {payments.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No payment history</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {payments.map((payment) => (
+                <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <p className="font-medium">{payment.description || 'Payment'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(payment.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{(payment.amount / 100).toFixed(0)} DKK</p>
+                    <Badge variant={payment.status === 'succeeded' ? 'default' : 'secondary'} className="text-xs">
+                      {payment.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Methods */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Methods</CardTitle>
+          <CardDescription>Your saved payment methods</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {paymentMethods.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No payment methods saved</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {paymentMethods.map((method) => (
+                <div key={method.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">
+                        {method.brand?.toUpperCase()} •••• {method.last4}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Expires {method.expMonth}/{method.expYear}
+                      </p>
+                    </div>
+                  </div>
+                  {method.isDefault && (
+                    <Badge variant="outline">Default</Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ClientProfile() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -393,6 +571,66 @@ export default function ClientProfile() {
 
   // Deactivate profile state
   const [deactivating, setDeactivating] = useState(false);
+
+  // Billing state
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+
+  // Fetch billing data
+  const fetchBillingData = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      setBillingLoading(true);
+      
+      // Fetch subscriptions
+      const subsResponse = await fetch('/api/client/subscriptions');
+      if (subsResponse.ok) {
+        const subsData = await subsResponse.json();
+        setSubscriptions(subsData.subscriptions || []);
+      }
+
+      // Fetch payments
+      const paymentsResponse = await fetch('/api/client/payments');
+      if (paymentsResponse.ok) {
+        const paymentsData = await paymentsResponse.json();
+        setPayments(paymentsData.payments || []);
+      }
+
+      // Fetch payment methods
+      const methodsResponse = await fetch('/api/client/payment-methods');
+      if (methodsResponse.ok) {
+        const methodsData = await methodsResponse.json();
+        setPaymentMethods(methodsData.paymentMethods || []);
+      }
+    } catch (error) {
+      console.error('Error fetching billing data:', error);
+    } finally {
+      setBillingLoading(false);
+    }
+  };
+
+  // Handle subscription cancellation
+  const handleCancelSubscription = async (subscriptionId) => {
+    try {
+      const response = await fetch(`/api/client/subscriptions/${subscriptionId}/cancel`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to cancel subscription');
+      }
+
+      toast.success('Subscription will be canceled at the end of the billing period');
+      fetchBillingData();
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+      toast.error(error.message || 'Failed to cancel subscription');
+    }
+  };
 
   // Fetch user data on component mount
   useEffect(() => {
@@ -1154,7 +1392,7 @@ export default function ClientProfile() {
         </div>
 
       <Tabs defaultValue="personal" className="space-y-4">
-        <TabsList className={`w-full ${isMobile ? 'grid grid-cols-2 gap-1 h-auto p-1' : isTablet ? 'grid grid-cols-4 gap-1 h-auto p-2' : 'grid grid-cols-4'}`}>
+        <TabsList className={`w-full ${isMobile ? 'grid grid-cols-2 gap-1 h-auto p-1' : isTablet ? 'grid grid-cols-5 gap-1 h-auto p-2' : 'grid grid-cols-5'}`}>
           <TabsTrigger 
             value="personal" 
             className={`${isMobile ? 'h-14 text-xs px-1 py-2' : isTablet ? 'h-12 text-sm px-2 py-2' : 'flex-1'}`}
@@ -1195,6 +1433,15 @@ export default function ClientProfile() {
             <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
               <Shield className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
               <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Settings</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="billing" 
+            className={`${isMobile ? 'h-14 text-xs px-1 py-2' : isTablet ? 'h-12 text-sm px-2 py-2' : 'flex-1'}`}
+          >
+            <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
+              <CreditCard className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Billing</span>
             </div>
           </TabsTrigger>
         </TabsList>
@@ -2001,6 +2248,19 @@ export default function ClientProfile() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Billing Tab */}
+        <TabsContent value="billing" className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
+          <ClientBillingTab 
+            loading={billingLoading}
+            subscriptions={subscriptions}
+            payments={payments}
+            paymentMethods={paymentMethods}
+            onCancelSubscription={handleCancelSubscription}
+            onRefresh={fetchBillingData}
+            isMobile={isMobile}
+          />
         </TabsContent>
       </Tabs>
 

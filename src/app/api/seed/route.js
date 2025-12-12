@@ -688,6 +688,10 @@ export async function GET() {
     await createResourceCompletionTable(); // Create resource completion table
     await createIntegrationTables(); // Create integration tables
     await createStripeAccountTable(); // Create StripeAccount table
+    await createCoachProductTable(); // Create CoachProduct table
+    await createClientSubscriptionTable(); // Create ClientSubscription table
+    await createClientPaymentTable(); // Create ClientPayment table
+    await createClientPaymentMethodTable(); // Create ClientPaymentMethod table
     await createPlatformSettingsTable(); // Create platform settings table
     console.log('Database seeded successfully');
 
@@ -729,6 +733,9 @@ async function createStripeAccountTable() {
         "chargesEnabled" BOOLEAN DEFAULT false,
         "payoutsEnabled" BOOLEAN DEFAULT false,
         "detailsSubmitted" BOOLEAN DEFAULT false,
+        "stripeConnectAccountId" VARCHAR(255),
+        "stripeConnectOnboardingComplete" BOOLEAN DEFAULT false,
+        "stripeConnectOnboardingUrl" TEXT,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         
@@ -737,15 +744,143 @@ async function createStripeAccountTable() {
       );
     `;
 
+    // Add new columns if they don't exist (for existing databases)
+    try {
+      await sql`ALTER TABLE "StripeAccount" ADD COLUMN IF NOT EXISTS "stripeConnectAccountId" VARCHAR(255)`;
+      await sql`ALTER TABLE "StripeAccount" ADD COLUMN IF NOT EXISTS "stripeConnectOnboardingComplete" BOOLEAN DEFAULT false`;
+      await sql`ALTER TABLE "StripeAccount" ADD COLUMN IF NOT EXISTS "stripeConnectOnboardingUrl" TEXT`;
+    } catch (error) {
+      // Columns might already exist, ignore
+      console.log('Note: Some columns may already exist in StripeAccount table');
+    }
+
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_stripe_account_user ON "StripeAccount"("userId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_stripe_account_status ON "StripeAccount"("stripeSubscriptionStatus")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_stripe_account_customer ON "StripeAccount"("stripeCustomerId")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_stripe_account_onboarding ON "StripeAccount"("onboardingComplete")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_stripe_connect_account ON "StripeAccount"("stripeConnectAccountId")`;
 
     console.log('✅ StripeAccount table created successfully');
   } catch (error) {
     console.error('Error creating StripeAccount table:', error);
+    throw error;
+  }
+}
+
+async function createCoachProductTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS "CoachProduct" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "productType" VARCHAR(50) NOT NULL CHECK ("productType" IN ('one_to_one', 'program', 'group')),
+        "stripeProductId" VARCHAR(255) NOT NULL,
+        "stripePriceId" VARCHAR(255) NOT NULL,
+        "amount" INTEGER NOT NULL,
+        "currency" VARCHAR(10) DEFAULT 'dkk',
+        "isActive" BOOLEAN DEFAULT true,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uk_coach_product_type UNIQUE("coachId", "productType")
+      );
+    `;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_coach_product_coach ON "CoachProduct"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_coach_product_type ON "CoachProduct"("productType")`;
+
+    console.log('✅ CoachProduct table created successfully');
+  } catch (error) {
+    console.error('Error creating CoachProduct table:', error);
+    throw error;
+  }
+}
+
+async function createClientSubscriptionTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ClientSubscription" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "clientId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "productType" VARCHAR(50) NOT NULL CHECK ("productType" IN ('program', 'group')),
+        "stripeSubscriptionId" VARCHAR(255) NOT NULL UNIQUE,
+        "status" VARCHAR(50) NOT NULL,
+        "currentPeriodStart" TIMESTAMP,
+        "currentPeriodEnd" TIMESTAMP,
+        "cancelAtPeriodEnd" BOOLEAN DEFAULT false,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_subscription_client ON "ClientSubscription"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_subscription_coach ON "ClientSubscription"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_subscription_status ON "ClientSubscription"("status")`;
+
+    console.log('✅ ClientSubscription table created successfully');
+  } catch (error) {
+    console.error('Error creating ClientSubscription table:', error);
+    throw error;
+  }
+}
+
+async function createClientPaymentTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ClientPayment" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "clientId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "productType" VARCHAR(50) NOT NULL CHECK ("productType" IN ('one_to_one', 'custom')),
+        "stripePaymentIntentId" VARCHAR(255) NOT NULL UNIQUE,
+        "amount" INTEGER NOT NULL,
+        "currency" VARCHAR(10) DEFAULT 'dkk',
+        "status" VARCHAR(50) NOT NULL,
+        "sessionId" UUID REFERENCES "Session"(id),
+        "description" TEXT,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_payment_client ON "ClientPayment"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_payment_coach ON "ClientPayment"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_payment_status ON "ClientPayment"("status")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_payment_session ON "ClientPayment"("sessionId")`;
+
+    console.log('✅ ClientPayment table created successfully');
+  } catch (error) {
+    console.error('Error creating ClientPayment table:', error);
+    throw error;
+  }
+}
+
+async function createClientPaymentMethodTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ClientPaymentMethod" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "clientId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "stripePaymentMethodId" VARCHAR(255) NOT NULL UNIQUE,
+        "stripeCustomerId" VARCHAR(255),
+        "type" VARCHAR(50) NOT NULL DEFAULT 'card',
+        "last4" VARCHAR(4),
+        "brand" VARCHAR(50),
+        "expMonth" INTEGER,
+        "expYear" INTEGER,
+        "isDefault" BOOLEAN DEFAULT false,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_payment_method_client ON "ClientPaymentMethod"("clientId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_payment_method_customer ON "ClientPaymentMethod"("stripeCustomerId")`;
+
+    console.log('✅ ClientPaymentMethod table created successfully');
+  } catch (error) {
+    console.error('Error creating ClientPaymentMethod table:', error);
     throw error;
   }
 }
