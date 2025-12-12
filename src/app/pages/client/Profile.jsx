@@ -346,9 +346,31 @@ const useGoalTracking = () => {
   };
 };
 
-function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, onCancelSubscription, onRefresh, isMobile }) {
+function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, onCancelSubscription, onRefresh, isMobile, userData }) {
   const { data: session } = useSession();
   const [creatingSubscription, setCreatingSubscription] = useState(null);
+  const [coachProducts, setCoachProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+
+  // Fetch coach's products
+  useEffect(() => {
+    const fetchCoachProducts = async () => {
+      try {
+        setProductsLoading(true);
+        const response = await fetch('/api/client/coach/products');
+        if (response.ok) {
+          const data = await response.json();
+          setCoachProducts(data.products || []);
+        }
+      } catch (error) {
+        console.error('Error fetching coach products:', error);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchCoachProducts();
+  }, []);
 
   const handleCreateSubscription = async (coachId, productType) => {
     try {
@@ -376,6 +398,22 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
     }
   };
 
+  // Check if client has active subscription for a product type
+  const hasActiveSubscription = (productType) => {
+    return subscriptions.some(
+      sub => sub.productType === productType && 
+      (sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due')
+    );
+  };
+
+  // Get coach ID
+  const coachId = userData?.coachId || session?.user?.coachId;
+
+  // Get product by type
+  const getProduct = (productType) => {
+    return coachProducts.find(p => p.productType === productType);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -387,6 +425,103 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
 
   return (
     <div className="space-y-6">
+      {/* Available Subscriptions */}
+      {coachId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Subscribe to Services
+            </CardTitle>
+            <CardDescription>Subscribe to your coach's programs or groups</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {productsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Loading products...</span>
+              </div>
+            ) : coachProducts.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground text-sm">
+                  Your coach hasn't set up subscription products yet.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Program Subscription */}
+                {getProduct('program') && (
+                  <div className={`p-4 rounded-lg border ${isMobile ? 'p-3' : ''}`}>
+                    <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+                      <div className="flex-1">
+                        <h4 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>Program Subscription</h4>
+                        <p className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          Access to your coach's program
+                        </p>
+                        <p className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
+                          {(getProduct('program').amount / 100).toFixed(0)} {getProduct('program').currency?.toUpperCase() || 'DKK'}/month
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => handleCreateSubscription(coachId, 'program')}
+                        disabled={creatingSubscription?.includes('program') || hasActiveSubscription('program')}
+                        className={isMobile ? 'w-full mt-2' : 'ml-4'}
+                        size={isMobile ? 'sm' : 'default'}
+                      >
+                        {creatingSubscription?.includes('program') ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : hasActiveSubscription('program') ? (
+                          'Already Subscribed'
+                        ) : (
+                          'Subscribe'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Group Subscription */}
+                {getProduct('group') && (
+                  <div className={`p-4 rounded-lg border ${isMobile ? 'p-3' : ''}`}>
+                    <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
+                      <div className="flex-1">
+                        <h4 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>Group Membership</h4>
+                        <p className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          Join your coach's group sessions
+                        </p>
+                        <p className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
+                          {(getProduct('group').amount / 100).toFixed(0)} {getProduct('group').currency?.toUpperCase() || 'DKK'}/month
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => handleCreateSubscription(coachId, 'group')}
+                        disabled={creatingSubscription?.includes('group') || hasActiveSubscription('group')}
+                        className={isMobile ? 'w-full mt-2' : 'ml-4'}
+                        size={isMobile ? 'sm' : 'default'}
+                      >
+                        {creatingSubscription?.includes('group') ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : hasActiveSubscription('group') ? (
+                          'Already Subscribed'
+                        ) : (
+                          'Subscribe'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Active Subscriptions */}
       <Card>
         <CardHeader>
@@ -2260,6 +2395,7 @@ export default function ClientProfile() {
             onCancelSubscription={handleCancelSubscription}
             onRefresh={fetchBillingData}
             isMobile={isMobile}
+            userData={userData}
           />
         </TabsContent>
       </Tabs>
