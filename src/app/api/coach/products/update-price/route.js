@@ -76,11 +76,93 @@ export async function PUT(request) {
             AND "productType" = ${productType}
         `;
 
+        // If this is a recurring product (program or group), update all existing subscriptions
+        const updateResults = {
+            success: 0,
+            failed: 0,
+            errors: []
+        };
+
+        if (isRecurring) {
+            // Find ALL subscriptions for this product type (not just active ones)
+            // This ensures that if inactive subscribers reactivate, they'll use the updated price
+            // Note: Fully cancelled subscriptions can't be updated in Stripe, but new subscriptions
+            // will automatically use the updated price from the database
+            const allSubscriptions = await sql`
+                SELECT "stripeSubscriptionId", "status"
+                FROM "ClientSubscription"
+                WHERE "coachId" = ${coachId}
+                AND "productType" = ${productType}
+            `;
+
+            // Update each subscription to use the new price (applies from next billing cycle)
+            for (const sub of allSubscriptions) {
+                try {
+                    // Retrieve the subscription from Stripe
+                    const subscription = await stripe.subscriptions.retrieve(
+                        sub.stripeSubscriptionId,
+                        { stripeAccount: stripeConnectAccountId }
+                    );
+
+                    // Skip if subscription is fully cancelled and ended (can't be updated)
+                    // But try to update if it's cancelled but still in current period
+                    if (subscription.status === 'canceled' && !subscription.cancel_at_period_end) {
+                        console.log(`⏭️ Skipping fully cancelled subscription ${sub.stripeSubscriptionId} (will use new price if reactivated)`);
+                        continue;
+                    }
+
+                    // Get the subscription item (there should be only one for this product)
+                    const subscriptionItem = subscription.items.data[0];
+
+                    if (subscriptionItem) {
+                        // Update the subscription to use the new price
+                        // proration_behavior: 'none' means new price applies from next billing cycle
+                        await stripe.subscriptions.update(
+                            sub.stripeSubscriptionId,
+                            {
+                                items: [{
+                                    id: subscriptionItem.id,
+                                    price: newPrice.id, // Use the new price
+                                }],
+                                proration_behavior: 'none', // Apply new price from next billing cycle
+                            },
+                            { stripeAccount: stripeConnectAccountId }
+                        );
+
+                        updateResults.success++;
+                        console.log(`✅ Updated subscription ${sub.stripeSubscriptionId} (status: ${subscription.status}) to new price ${newPrice.id}`);
+                    }
+                } catch (error) {
+                    // Handle different error types gracefully
+                    if (error.code === 'resource_missing' || error.message?.includes('No such subscription')) {
+                        // Subscription doesn't exist in Stripe anymore (fully deleted)
+                        console.log(`⏭️ Subscription ${sub.stripeSubscriptionId} no longer exists in Stripe (will use new price if reactivated)`);
+                        continue;
+                    } else if (error.code === 'resource_already_exists' || error.message?.includes('already canceled')) {
+                        // Subscription is already cancelled and can't be updated
+                        console.log(`⏭️ Subscription ${sub.stripeSubscriptionId} is already cancelled (will use new price if reactivated)`);
+                        continue;
+                    } else {
+                        // Other errors - log and count
+                        console.error(`❌ Error updating subscription ${sub.stripeSubscriptionId}:`, error);
+                        updateResults.failed++;
+                        updateResults.errors.push({
+                            subscriptionId: sub.stripeSubscriptionId,
+                            error: error.message
+                        });
+                    }
+                }
+            }
+        }
+
         return NextResponse.json({
             success: true,
             productType,
             newPriceId: newPrice.id,
-            amount
+            amount,
+            subscriptionsUpdated: updateResults.success,
+            subscriptionsFailed: updateResults.failed,
+            errors: updateResults.errors.length > 0 ? updateResults.errors : undefined
         });
 
     } catch (error) {

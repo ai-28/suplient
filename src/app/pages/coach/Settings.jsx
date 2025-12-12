@@ -703,7 +703,29 @@ export default function Settings() {
         throw new Error(error.error || 'Failed to update price');
       }
 
-      toast.success('Price updated successfully');
+      const data = await response.json();
+      
+      // Show success message with subscription update info
+      if (data.subscriptionsUpdated !== undefined) {
+        if (data.subscriptionsUpdated > 0) {
+          toast.success(
+            `Price updated successfully! ${data.subscriptionsUpdated} subscription(s) will use the new price from their next billing cycle.`,
+            { duration: 5000 }
+          );
+        } else {
+          toast.success('Price updated successfully! New price will apply to future subscriptions.');
+        }
+        
+        if (data.subscriptionsFailed > 0) {
+          toast.warning(
+            `Price updated, but ${data.subscriptionsFailed} subscription(s) could not be updated. Please check manually.`,
+            { duration: 6000 }
+          );
+        }
+      } else {
+        toast.success('Price updated successfully');
+      }
+      
       fetchProducts();
     } catch (error) {
       console.error('Error updating price:', error);
