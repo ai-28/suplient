@@ -58,36 +58,57 @@ export async function createCoachProducts(coachId, connectAccountId) {
                 stripeAccount: connectAccountId,
             });
 
-            // Save to database
-            await sql`
-                INSERT INTO "CoachProduct" (
-                    "coachId",
-                    "productType",
-                    "stripeProductId",
-                    "stripePriceId",
-                    "amount",
-                    "currency",
-                    "isActive",
-                    "createdAt",
-                    "updatedAt"
-                )
-                VALUES (
-                    ${coachId},
-                    ${product.type},
-                    ${stripeProduct.id},
-                    ${stripePrice.id},
-                    ${product.amount},
-                    'dkk',
-                    true,
-                    CURRENT_TIMESTAMP,
-                    CURRENT_TIMESTAMP
-                )
-                ON CONFLICT ("coachId", "productType") DO UPDATE SET
-                    "stripeProductId" = ${stripeProduct.id},
-                    "stripePriceId" = ${stripePrice.id},
-                    "amount" = ${product.amount},
-                    "updatedAt" = CURRENT_TIMESTAMP
+            // Check if product already exists before inserting (additional safety)
+            const existingProduct = await sql`
+                SELECT id FROM "CoachProduct"
+                WHERE "coachId" = ${coachId} AND "productType" = ${product.type}
+                LIMIT 1
             `;
+
+            if (existingProduct.length > 0) {
+                // Product already exists, update it instead
+                await sql`
+                    UPDATE "CoachProduct"
+                    SET 
+                        "stripeProductId" = ${stripeProduct.id},
+                        "stripePriceId" = ${stripePrice.id},
+                        "amount" = ${product.amount},
+                        "updatedAt" = CURRENT_TIMESTAMP
+                    WHERE "coachId" = ${coachId} AND "productType" = ${product.type}
+                `;
+                console.log(`Product ${product.type} already exists, updated instead of creating duplicate`);
+            } else {
+                // Save to database (ON CONFLICT will prevent duplicates even in race conditions)
+                await sql`
+                    INSERT INTO "CoachProduct" (
+                        "coachId",
+                        "productType",
+                        "stripeProductId",
+                        "stripePriceId",
+                        "amount",
+                        "currency",
+                        "isActive",
+                        "createdAt",
+                        "updatedAt"
+                    )
+                    VALUES (
+                        ${coachId},
+                        ${product.type},
+                        ${stripeProduct.id},
+                        ${stripePrice.id},
+                        ${product.amount},
+                        'dkk',
+                        true,
+                        CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP
+                    )
+                    ON CONFLICT ("coachId", "productType") DO UPDATE SET
+                        "stripeProductId" = ${stripeProduct.id},
+                        "stripePriceId" = ${stripePrice.id},
+                        "amount" = ${product.amount},
+                        "updatedAt" = CURRENT_TIMESTAMP
+                `;
+            }
 
             createdProducts.push({
                 type: product.type,

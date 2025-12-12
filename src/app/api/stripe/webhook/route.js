@@ -295,9 +295,20 @@ async function handleAccountUpdated(account) {
             `;
 
             if (existingProducts[0].count === 0) {
-                // Auto-create products
-                await createCoachProducts(userId, account.id);
-                console.log(`✅ Auto-created products for coach ${userId}`);
+                // Double-check to prevent race conditions (if webhook fires multiple times)
+                const doubleCheck = await sql`
+                    SELECT COUNT(*) as count
+                    FROM "CoachProduct"
+                    WHERE "coachId" = ${userId}
+                `;
+
+                if (doubleCheck[0].count === 0) {
+                    // Auto-create products (database constraint will prevent duplicates)
+                    await createCoachProducts(userId, account.id);
+                    console.log(`✅ Auto-created products for coach ${userId}`);
+                } else {
+                    console.log(`⚠️ Products were already created for coach ${userId} (race condition prevented)`);
+                }
             }
         }
     } catch (error) {

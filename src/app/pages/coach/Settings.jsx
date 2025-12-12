@@ -122,6 +122,7 @@ export default function Settings() {
   const [customPaymentAmount, setCustomPaymentAmount] = useState('');
   const [customPaymentDescription, setCustomPaymentDescription] = useState('');
   const [creatingCustomPayment, setCreatingCustomPayment] = useState(false);
+  const [creatingProducts, setCreatingProducts] = useState(false);
 
   // Pipeline stage handlers
   const colorOptions = [
@@ -709,6 +710,44 @@ export default function Settings() {
       toast.error(error.message || 'Failed to update price');
     } finally {
       setUpdatingPrice(null);
+    }
+  };
+
+  // Handle manual product creation
+  const handleCreateProducts = async () => {
+    // Prevent multiple simultaneous requests
+    if (creatingProducts || productsLoading) {
+      return;
+    }
+
+    try {
+      setCreatingProducts(true);
+      setProductsLoading(true);
+      const response = await fetch('/api/coach/products/create', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create products');
+      }
+
+      const data = await response.json();
+      
+      // Check if products were already created
+      if (data.message && data.message.includes('already exist')) {
+        toast.info(data.message || 'Products already exist');
+      } else {
+        toast.success(data.message || 'Products created successfully!');
+      }
+      
+      fetchProducts(); // Refresh the products list
+    } catch (error) {
+      console.error('Error creating products:', error);
+      toast.error(error.message || 'Failed to create products');
+    } finally {
+      setCreatingProducts(false);
+      setProductsLoading(false);
     }
   };
 
@@ -2044,6 +2083,29 @@ export default function Settings() {
                         <div className="flex items-center justify-center p-4">
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
                           <span className="text-sm text-muted-foreground">Loading products...</span>
+                        </div>
+                      ) : products.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4">
+                            No products found. Create default products?
+                          </p>
+                          <Button 
+                            onClick={handleCreateProducts}
+                            disabled={productsLoading || creatingProducts || products.length > 0}
+                            variant="outline"
+                          >
+                            {productsLoading || creatingProducts ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Creating...
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Products
+                              </>
+                            )}
+                          </Button>
                         </div>
                       ) : (
                         <div className="space-y-4">
