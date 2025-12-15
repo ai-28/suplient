@@ -21,7 +21,8 @@ export async function POST(request) {
         let event;
         const platformSecret = STRIPE_CONFIG.webhookSecret || process.env.STRIPE_WEBHOOK_SECRET;
         const connectSecret = process.env.STRIPE_WEBHOOK_SECRET_CONNECT;
-        
+        let secretUsed = 'platform';
+
         // Try platform account webhook secret first
         try {
             event = stripe.webhooks.constructEvent(
@@ -38,6 +39,7 @@ export async function POST(request) {
                         signature,
                         connectSecret
                     );
+                    secretUsed = 'connect';
                 } catch (connectErr) {
                     console.error('Webhook signature verification failed for both secrets:', {
                         platform: err.message,
@@ -56,6 +58,13 @@ export async function POST(request) {
                 );
             }
         }
+
+        // Log webhook event received
+        console.log(`✅ Webhook received [${secretUsed}]: ${event.type}`, {
+            eventId: event.id,
+            account: event.account || 'platform',
+            metadata: event.data.object.metadata || {}
+        });
 
         // Handle different event types
         switch (event.type) {
@@ -466,7 +475,19 @@ async function handleClientSubscriptionCheckout(session) {
         const coachId = session.metadata?.coachId;
         const productType = session.metadata?.productType;
 
-        if (!clientId || !coachId || !productType) return;
+        console.log('🔍 handleClientSubscriptionCheckout:', {
+            sessionId: session.id,
+            subscriptionId: session.subscription,
+            metadata: session.metadata,
+            hasClientId: !!clientId,
+            hasCoachId: !!coachId,
+            hasProductType: !!productType
+        });
+
+        if (!clientId || !coachId || !productType) {
+            console.warn('⚠️ Missing metadata in checkout session:', { clientId, coachId, productType });
+            return;
+        }
 
         const subscriptionId = session.subscription;
         if (!subscriptionId) return;
@@ -480,6 +501,7 @@ async function handleClientSubscriptionCheckout(session) {
         `;
 
         if (accountData.length === 0 || !accountData[0].stripeConnectAccountId) {
+            console.warn('⚠️ Connect account not found for coach:', coachId);
             return;
         }
 
@@ -523,7 +545,12 @@ async function handleClientSubscriptionCheckout(session) {
 
         console.log(`✅ Client subscription created: ${subscription.id} for client ${clientId} to coach ${coachId}`);
     } catch (error) {
-        console.error('Error handling client subscription checkout:', error);
+        console.error('❌ Error handling client subscription checkout:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            sessionId: session?.id
+        });
     }
 }
 
@@ -534,7 +561,18 @@ async function handleClientSubscriptionCreated(subscription) {
         const coachId = subscription.metadata?.coachId;
         const productType = subscription.metadata?.productType;
 
-        if (!clientId || !coachId || !productType) return;
+        console.log('🔍 handleClientSubscriptionCreated:', {
+            subscriptionId: subscription.id,
+            metadata: subscription.metadata,
+            hasClientId: !!clientId,
+            hasCoachId: !!coachId,
+            hasProductType: !!productType
+        });
+
+        if (!clientId || !coachId || !productType) {
+            console.warn('⚠️ Missing metadata in subscription:', { clientId, coachId, productType });
+            return;
+        }
 
         await sql`
             INSERT INTO "ClientSubscription" (
@@ -568,8 +606,15 @@ async function handleClientSubscriptionCreated(subscription) {
                 "cancelAtPeriodEnd" = ${subscription.cancel_at_period_end || false},
                 "updatedAt" = CURRENT_TIMESTAMP
         `;
+
+        console.log(`✅ Client subscription saved to database: ${subscription.id}`);
     } catch (error) {
-        console.error('Error handling client subscription.created:', error);
+        console.error('❌ Error handling client subscription.created:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            subscriptionId: subscription?.id
+        });
     }
 }
 
