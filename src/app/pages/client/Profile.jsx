@@ -740,6 +740,7 @@ export default function ClientProfile() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [payments, setPayments] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [activeTab, setActiveTab] = useState('personal');
 
   // Fetch billing data
   const fetchBillingData = async () => {
@@ -774,6 +775,24 @@ export default function ClientProfile() {
       setBillingLoading(false);
     }
   };
+
+  // Handle URL params for billing tab
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      if (tab === 'billing') {
+        setActiveTab('billing');
+      }
+    }
+  }, []);
+
+  // Fetch billing data when billing tab is accessed or on mount
+  useEffect(() => {
+    if (session?.user?.id && activeTab === 'billing') {
+      fetchBillingData();
+    }
+  }, [activeTab, session?.user?.id]);
 
   // Handle subscription cancellation
   const handleCancelSubscription = async (subscriptionId) => {
@@ -1554,7 +1573,7 @@ export default function ClientProfile() {
           </div>
         </div>
 
-      <Tabs defaultValue="personal" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="personal" className="space-y-4">
         <TabsList className={`w-full ${isMobile ? 'grid grid-cols-2 gap-1 h-auto p-1' : isTablet ? 'grid grid-cols-5 gap-1 h-auto p-2' : 'grid grid-cols-5'}`}>
           <TabsTrigger 
             value="personal" 

@@ -124,6 +124,8 @@ export default function Settings() {
   const [creatingProducts, setCreatingProducts] = useState(false);
   const [clientSubscriptions, setClientSubscriptions] = useState([]);
   const [clientSubscriptionsLoading, setClientSubscriptionsLoading] = useState(false);
+  const [payments, setPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
   // Pipeline stage handlers
   const colorOptions = [
     { value: 'bg-blue-500', label: 'Blue' },
@@ -559,6 +561,7 @@ export default function Settings() {
     fetchConnectStatus();
     fetchProducts();
     fetchClientSubscriptions();
+    fetchPayments();
   }, [session?.user?.id]);
 
   // Handle URL params for billing tab (success/error messages)
@@ -671,6 +674,24 @@ export default function Settings() {
       console.error('Error fetching client subscriptions:', error);
     } finally {
       setClientSubscriptionsLoading(false);
+    }
+  };
+
+  // Fetch payments received
+  const fetchPayments = async () => {
+    if (!session?.user?.id || session.user.role !== 'coach') return;
+    
+    try {
+      setPaymentsLoading(true);
+      const response = await fetch('/api/coach/payments');
+      if (response.ok) {
+        const data = await response.json();
+        setPayments(data.payments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    } finally {
+      setPaymentsLoading(false);
     }
   };
 
@@ -2237,6 +2258,46 @@ export default function Settings() {
                                       : 'N/A'}
                                   </p>
                                 </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Payment History Section */}
+                  {connectStatus?.onboardingComplete && (
+                    <div className="mt-8 pt-8 border-t">
+                      <h3 className="text-lg font-semibold mb-4">
+                        Payment History
+                      </h3>
+                      {paymentsLoading ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          <span className="text-sm text-muted-foreground">Loading payments...</span>
+                        </div>
+                      ) : payments.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground text-sm">
+                            No payment history yet.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {payments.map((payment) => (
+                            <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                              <div>
+                                <p className="font-medium">{payment.description || `${payment.productType === 'one_to_one' ? 'Session Payment' : 'Custom Payment'}`}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {payment.clientName || payment.clientEmail} • {new Date(payment.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold">{(payment.amount / 100).toFixed(0)} DKK</p>
+                                <Badge variant={payment.status === 'succeeded' ? 'default' : 'secondary'} className="text-xs">
+                                  {payment.status}
+                                </Badge>
                               </div>
                             </div>
                           ))}
