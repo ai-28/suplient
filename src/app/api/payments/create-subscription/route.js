@@ -9,7 +9,7 @@ import { stripe } from '@/app/lib/stripe';
 export async function POST(request) {
     try {
         const session = await getServerSession(authOptions);
-        
+
         if (!session?.user?.id || session.user.role !== 'client') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -101,22 +101,14 @@ export async function POST(request) {
 
             customerId = customer.id;
 
+            // Update any existing payment method records for this client with the customer ID
+            // The customer ID will be properly saved when a payment method is added via webhook
             await sql`
-                INSERT INTO "ClientPaymentMethod" (
-                    "clientId",
-                    "stripeCustomerId",
-                    "createdAt",
-                    "updatedAt"
-                )
-                VALUES (
-                    ${clientId},
-                    ${customerId},
-                    CURRENT_TIMESTAMP,
-                    CURRENT_TIMESTAMP
-                )
-                ON CONFLICT ("stripeCustomerId") DO UPDATE SET
-                    "clientId" = ${clientId},
+                UPDATE "ClientPaymentMethod"
+                SET "stripeCustomerId" = ${customerId},
                     "updatedAt" = CURRENT_TIMESTAMP
+                WHERE "clientId" = ${clientId}
+                AND ("stripeCustomerId" IS NULL OR "stripeCustomerId" != ${customerId})
             `;
         }
 
@@ -137,9 +129,6 @@ export async function POST(request) {
                 clientId: clientId,
                 coachId: coachId,
                 productType: productType,
-            },
-            payment_intent_data: {
-                application_fee_amount: 0,
             },
             subscription_data: {
                 metadata: {

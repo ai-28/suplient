@@ -40,7 +40,8 @@ import {
   CreditCard,
   CheckCircle,
   AlertCircle,
-  LogOut
+  LogOut,
+  Copy
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
@@ -119,9 +120,7 @@ export default function Settings() {
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [updatingPrice, setUpdatingPrice] = useState(null);
-  const [customPaymentAmount, setCustomPaymentAmount] = useState('');
-  const [customPaymentDescription, setCustomPaymentDescription] = useState('');
-  const [creatingCustomPayment, setCreatingCustomPayment] = useState(false);
+  const [customPaymentLink, setCustomPaymentLink] = useState('');
   const [creatingProducts, setCreatingProducts] = useState(false);
 
   // Pipeline stage handlers
@@ -773,40 +772,18 @@ export default function Settings() {
     }
   };
 
-  // Handle custom payment link creation
-  const handleCreateCustomPayment = async () => {
-    if (!customPaymentAmount || parseFloat(customPaymentAmount) <= 0) {
-      toast.error('Please enter a valid amount');
-      return;
+  // Generate custom payment link
+  useEffect(() => {
+    if (session?.user?.id) {
+      const link = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/client/custom-payment`;
+      setCustomPaymentLink(link);
     }
+  }, [session]);
 
-    try {
-      setCreatingCustomPayment(true);
-      const response = await fetch('/api/payments/create-custom-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: Math.round(parseFloat(customPaymentAmount) * 100), // Convert to øre
-          description: customPaymentDescription || 'Custom payment',
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create payment');
-      }
-
-      const data = await response.json();
-      
-      // For now, just show success - in future can integrate Stripe Elements for payment
-      toast.success(`Payment intent created. Payment Intent ID: ${data.paymentIntentId?.substring(0, 20)}...`);
-      setCustomPaymentAmount('');
-      setCustomPaymentDescription('');
-    } catch (error) {
-      console.error('Error creating custom payment:', error);
-      toast.error(error.message || 'Failed to create payment');
-    } finally {
-      setCreatingCustomPayment(false);
+  const handleCopyPaymentLink = () => {
+    if (customPaymentLink) {
+      navigator.clipboard.writeText(customPaymentLink);
+      toast.success('Payment link copied to clipboard!');
     }
   };
 
@@ -2200,38 +2177,27 @@ export default function Settings() {
                       </h3>
                       <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
                         <div>
-                          <Label htmlFor="customAmount">Amount (DKK)</Label>
-                          <Input
-                            id="customAmount"
-                            type="number"
-                            placeholder="Enter amount"
-                            value={customPaymentAmount}
-                            onChange={(e) => setCustomPaymentAmount(e.target.value)}
-                          />
+                          <Label htmlFor="customPaymentLink">Share this link with your clients</Label>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Clients can use this link to make custom payments. Each client can enter their own amount.
+                          </p>
+                          <div className="flex gap-2">
+                            <Input
+                              id="customPaymentLink"
+                              readOnly
+                              value={customPaymentLink}
+                              className="flex-1"
+                            />
+                            <Button
+                              onClick={handleCopyPaymentLink}
+                              variant="outline"
+                              size="icon"
+                              title="Copy link"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="customDescription">Description (Optional)</Label>
-                          <Input
-                            id="customDescription"
-                            placeholder="Payment description"
-                            value={customPaymentDescription}
-                            onChange={(e) => setCustomPaymentDescription(e.target.value)}
-                          />
-                        </div>
-                        <Button
-                          onClick={handleCreateCustomPayment}
-                          disabled={creatingCustomPayment || !customPaymentAmount}
-                          className="w-full"
-                        >
-                          {creatingCustomPayment ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Creating...
-                            </>
-                          ) : (
-                            'Create Payment Link'
-                          )}
-                        </Button>
                       </div>
                     </div>
                   )}

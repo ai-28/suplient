@@ -617,6 +617,34 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
         </CardContent>
       </Card>
 
+      {/* Custom Payment */}
+      {coachId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Custom Payment
+            </CardTitle>
+            <CardDescription>Make a custom payment to your coach</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 rounded-lg border bg-muted/30">
+              <p className="text-sm text-muted-foreground mb-4">
+                Need to make a custom payment? Enter any amount you'd like to pay to your coach.
+              </p>
+              <Button
+                onClick={() => window.location.href = '/client/custom-payment'}
+                className="w-full"
+                variant="outline"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Make Custom Payment
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Payment Methods */}
       <Card>
         <CardHeader>

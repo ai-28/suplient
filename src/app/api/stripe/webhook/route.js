@@ -325,14 +325,51 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
 
         if (!clientId || !coachId) return;
 
-        // Update payment status
-        await sql`
+        // Update or create payment record
+        const updateResult = await sql`
             UPDATE "ClientPayment"
             SET 
                 "status" = 'succeeded',
+                "amount" = ${paymentIntent.amount},
+                "description" = ${paymentIntent.metadata?.description || null},
                 "updatedAt" = CURRENT_TIMESTAMP
             WHERE "stripePaymentIntentId" = ${paymentIntent.id}
         `;
+
+        // If no record was updated, create a new one (for custom payments via checkout)
+        if (updateResult.count === 0) {
+            await sql`
+                INSERT INTO "ClientPayment" (
+                    "clientId",
+                    "coachId",
+                    "productType",
+                    "stripePaymentIntentId",
+                    "amount",
+                    "currency",
+                    "status",
+                    "description",
+                    "createdAt",
+                    "updatedAt"
+                )
+                VALUES (
+                    ${clientId},
+                    ${coachId},
+                    ${productType || 'custom'},
+                    ${paymentIntent.id},
+                    ${paymentIntent.amount},
+                    ${paymentIntent.currency || 'dkk'},
+                    'succeeded',
+                    ${paymentIntent.metadata?.description || null},
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP
+                )
+                ON CONFLICT ("stripePaymentIntentId") DO UPDATE SET
+                    "status" = 'succeeded',
+                    "amount" = ${paymentIntent.amount},
+                    "description" = ${paymentIntent.metadata?.description || null},
+                    "updatedAt" = CURRENT_TIMESTAMP
+            `;
+        }
 
         // Save payment method if setup_future_usage was set
         if (paymentIntent.setup_future_usage && paymentIntent.payment_method) {
