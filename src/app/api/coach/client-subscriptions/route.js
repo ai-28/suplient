@@ -4,32 +4,49 @@ import authOptions from '@/app/lib/authoption';
 import { sql } from '@/app/lib/db/postgresql';
 import { stripe } from '@/app/lib/stripe';
 
-// GET /api/client/subscriptions - Get all client subscriptions
+// GET /api/coach/client-subscriptions - Get all client subscriptions for the coach
 export async function GET(request) {
     try {
         const session = await getServerSession(authOptions);
-        
-        if (!session?.user?.id || session.user.role !== 'client') {
+
+        if (!session?.user?.id || session.user.role !== 'coach') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const clientId = session.user.id;
+        const coachId = session.user.id;
 
-        // Get client's subscriptions from database
+        // Get coach's Connect account ID
+        const accountData = await sql`
+            SELECT "stripeConnectAccountId"
+            FROM "StripeAccount"
+            WHERE "userId" = ${coachId}
+        `;
+
+        if (accountData.length === 0 || !accountData[0].stripeConnectAccountId) {
+            return NextResponse.json({
+                success: true,
+                subscriptions: []
+            });
+        }
+
+        const stripeConnectAccountId = accountData[0].stripeConnectAccountId;
+
+        // Get all client subscriptions for this coach from database
         const dbSubscriptions = await sql`
             SELECT 
                 cs.id,
                 cs."stripeSubscriptionId",
-                cs."coachId",
+                cs."clientId",
                 cs."productType",
                 cs.status,
                 cs."currentPeriodStart",
                 cs."currentPeriodEnd",
                 cs."createdAt",
-                u.name as "coachName"
+                u.name as "clientName",
+                u.email as "clientEmail"
             FROM "ClientSubscription" cs
-            JOIN "User" u ON u.id = cs."coachId"
-            WHERE cs."clientId" = ${clientId}
+            JOIN "User" u ON u.id = cs."clientId"
+            WHERE cs."coachId" = ${coachId}
             ORDER BY cs."createdAt" DESC
         `;
 
@@ -40,8 +57,9 @@ export async function GET(request) {
                     return {
                         id: sub.id,
                         stripeSubscriptionId: sub.stripeSubscriptionId,
-                        coachId: sub.coachId,
-                        coachName: sub.coachName,
+                        clientId: sub.clientId,
+                        clientName: sub.clientName,
+                        clientEmail: sub.clientEmail,
                         productType: sub.productType,
                         status: sub.status,
                         amount: 0,
@@ -52,30 +70,20 @@ export async function GET(request) {
                 }
 
                 try {
-                    // Get coach's Connect account ID
-                    const accountData = await sql`
-                        SELECT "stripeConnectAccountId"
-                        FROM "StripeAccount"
-                        WHERE "userId" = ${sub.coachId}
-                    `;
-
-                    if (accountData.length === 0 || !accountData[0].stripeConnectAccountId) {
-                        throw new Error('Connect account not found');
-                    }
-
                     // Retrieve subscription from Connect account
                     const stripeSubscription = await stripe.subscriptions.retrieve(
                         sub.stripeSubscriptionId,
                         {
-                            stripeAccount: accountData[0].stripeConnectAccountId,
+                            stripeAccount: stripeConnectAccountId,
                         }
                     );
 
                     return {
                         id: sub.id,
                         stripeSubscriptionId: sub.stripeSubscriptionId,
-                        coachId: sub.coachId,
-                        coachName: sub.coachName,
+                        clientId: sub.clientId,
+                        clientName: sub.clientName,
+                        clientEmail: sub.clientEmail,
                         productType: sub.productType,
                         status: stripeSubscription.status,
                         amount: stripeSubscription.items.data[0]?.price.unit_amount || 0,
@@ -88,8 +96,9 @@ export async function GET(request) {
                     return {
                         id: sub.id,
                         stripeSubscriptionId: sub.stripeSubscriptionId,
-                        coachId: sub.coachId,
-                        coachName: sub.coachName,
+                        clientId: sub.clientId,
+                        clientName: sub.clientName,
+                        clientEmail: sub.clientEmail,
                         productType: sub.productType,
                         status: sub.status || 'unknown',
                         amount: 0,

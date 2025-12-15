@@ -122,7 +122,8 @@ export default function Settings() {
   const [updatingPrice, setUpdatingPrice] = useState(null);
   const [customPaymentLink, setCustomPaymentLink] = useState('');
   const [creatingProducts, setCreatingProducts] = useState(false);
-
+  const [clientSubscriptions, setClientSubscriptions] = useState([]);
+  const [clientSubscriptionsLoading, setClientSubscriptionsLoading] = useState(false);
   // Pipeline stage handlers
   const colorOptions = [
     { value: 'bg-blue-500', label: 'Blue' },
@@ -557,6 +558,7 @@ export default function Settings() {
     fetchSubscriptionStatus();
     fetchConnectStatus();
     fetchProducts();
+    fetchClientSubscriptions();
   }, [session?.user?.id]);
 
   // Handle URL params for billing tab (success/error messages)
@@ -2161,6 +2163,62 @@ export default function Settings() {
                                     'Update'
                                   )}
                                 </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Client Subscriptions Section */}
+                  {connectStatus?.onboardingComplete && (
+                    <div className="mt-8 pt-8 border-t">
+                      <h3 className="text-lg font-semibold mb-4">
+                        Client Subscriptions
+                      </h3>
+                      {clientSubscriptionsLoading ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          <span className="text-sm text-muted-foreground">Loading subscriptions...</span>
+                        </div>
+                      ) : clientSubscriptions.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground text-sm">
+                            No client subscriptions yet.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {clientSubscriptions.map((sub) => (
+                            <div key={sub.id} className="p-4 rounded-lg border bg-muted/30">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <h4 className="font-semibold">
+                                    {sub.clientName || sub.clientEmail}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {sub.productType === 'program' && 'Program Subscription'}
+                                    {sub.productType === 'group' && 'Group Membership'}
+                                  </p>
+                                </div>
+                                <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
+                                  {sub.status}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center justify-between mt-3">
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Amount</p>
+                                  <p className="font-semibold">{(sub.amount / 100).toFixed(0)} DKK/month</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm text-muted-foreground">Next billing</p>
+                                  <p className="text-sm">
+                                    {sub.currentPeriodEnd 
+                                      ? new Date(sub.currentPeriodEnd).toLocaleDateString()
+                                      : 'N/A'}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           ))}
