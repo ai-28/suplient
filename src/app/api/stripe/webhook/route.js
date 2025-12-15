@@ -19,19 +19,42 @@ export async function POST(request) {
         }
 
         let event;
+        const platformSecret = STRIPE_CONFIG.webhookSecret || process.env.STRIPE_WEBHOOK_SECRET;
+        const connectSecret = process.env.STRIPE_WEBHOOK_SECRET_CONNECT;
+        
+        // Try platform account webhook secret first
         try {
-            // Verify webhook signature
             event = stripe.webhooks.constructEvent(
                 body,
                 signature,
-                STRIPE_CONFIG.webhookSecret || process.env.STRIPE_WEBHOOK_SECRET
+                platformSecret
             );
         } catch (err) {
-            console.error('Webhook signature verification failed:', err.message);
-            return NextResponse.json(
-                { error: `Webhook Error: ${err.message}` },
-                { status: 400 }
-            );
+            // If platform secret fails, try Connect account secret
+            if (connectSecret) {
+                try {
+                    event = stripe.webhooks.constructEvent(
+                        body,
+                        signature,
+                        connectSecret
+                    );
+                } catch (connectErr) {
+                    console.error('Webhook signature verification failed for both secrets:', {
+                        platform: err.message,
+                        connect: connectErr.message
+                    });
+                    return NextResponse.json(
+                        { error: `Webhook Error: Signature verification failed` },
+                        { status: 400 }
+                    );
+                }
+            } else {
+                console.error('Webhook signature verification failed:', err.message);
+                return NextResponse.json(
+                    { error: `Webhook Error: ${err.message}` },
+                    { status: 400 }
+                );
+            }
         }
 
         // Handle different event types
