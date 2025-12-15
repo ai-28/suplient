@@ -14,27 +14,51 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { amount, description } = await request.json();
+        const { amount, description, coachId: coachIdFromRequest } = await request.json();
         const clientId = session.user.id;
 
         if (!amount || amount <= 0) {
             return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
-        // Get client's coach
-        const clientData = await sql`
-            SELECT "coachId" FROM "User"
-            WHERE id = ${clientId} AND role = 'client'
-            LIMIT 1
-        `;
+        let coachId = null;
 
-        if (clientData.length === 0 || !clientData[0].coachId) {
-            return NextResponse.json({ error: 'No coach assigned' }, { status: 400 });
+        // If coachId is provided in request (from URL parameter), use it
+        if (coachIdFromRequest) {
+            // Verify coach exists and has Connect account set up
+            const coachCheck = await sql`
+                SELECT u.id, sa."stripeConnectAccountId", sa."stripeConnectOnboardingComplete"
+                FROM "User" u
+                LEFT JOIN "StripeAccount" sa ON sa."userId" = u.id
+                WHERE u.id = ${coachIdFromRequest} AND u.role = 'coach'
+                LIMIT 1
+            `;
+            
+            if (coachCheck.length === 0) {
+                return NextResponse.json({ error: 'Invalid coach ID' }, { status: 400 });
+            }
+            
+            if (!coachCheck[0].stripeConnectAccountId || !coachCheck[0].stripeConnectOnboardingComplete) {
+                return NextResponse.json({ error: 'Coach has not set up payment account' }, { status: 400 });
+            }
+            
+            coachId = coachIdFromRequest;
+        } else {
+            // Fall back to client's assigned coach
+            const clientData = await sql`
+                SELECT "coachId" FROM "User"
+                WHERE id = ${clientId} AND role = 'client'
+                LIMIT 1
+            `;
+
+            if (clientData.length === 0 || !clientData[0].coachId) {
+                return NextResponse.json({ error: 'No coach assigned' }, { status: 400 });
+            }
+
+            coachId = clientData[0].coachId;
         }
 
-        const coachId = clientData[0].coachId;
-
-        // Get coach's Connect account
+        // Get coach's Connect account (verify it exists)
         const accountData = await sql`
             SELECT "stripeConnectAccountId"
             FROM "StripeAccount"
@@ -116,7 +140,7 @@ export async function POST(request) {
             ],
             mode: 'payment',
             success_url: `${process.env.NEXT_PUBLIC_APP_URL}/client/profile?tab=billing&success=payment_succeeded`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/client/custom-payment?canceled=true`,
+            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/client/custom-payment?canceled=true${coachIdFromRequest ? `&coach=${coachIdFromRequest}` : ''}`,
             metadata: {
                 clientId: clientId,
                 coachId: coachId,

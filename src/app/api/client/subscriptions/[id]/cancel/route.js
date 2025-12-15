@@ -41,17 +41,20 @@ export async function POST(request, { params }) {
             return NextResponse.json({ error: 'Coach account not found' }, { status: 404 });
         }
 
-        // Cancel subscription on coach's Connect account
-        await stripe.subscriptions.update(
+        // Cancel subscription on coach's Connect account (cancel at period end)
+        const updatedSubscription = await stripe.subscriptions.update(
             subscriptionId,
             { cancel_at_period_end: true },
             { stripeAccount: coachAccount[0].stripeConnectAccountId }
         );
 
-        // Update database
+        // Update database - keep status as active but mark for cancellation at period end
+        // The webhook will handle the final cancellation when the period ends
         await sql`
             UPDATE "ClientSubscription"
-            SET status = 'canceled',
+            SET 
+                "cancelAtPeriodEnd" = true,
+                "status" = ${updatedSubscription.status},  -- Keep current status (usually 'active')
                 "updatedAt" = CURRENT_TIMESTAMP
             WHERE "stripeSubscriptionId" = ${subscriptionId}
             AND "clientId" = ${clientId}

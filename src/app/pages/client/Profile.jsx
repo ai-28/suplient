@@ -537,7 +537,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
               <p className="text-muted-foreground">No active subscriptions</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="max-h-[400px] overflow-y-auto space-y-4 pr-2">
               {subscriptions.map((sub) => (
                 <div key={sub.id} className="p-4 rounded-lg border bg-muted/30">
                   <div className="flex items-center justify-between mb-2">
@@ -595,7 +595,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
               <p className="text-muted-foreground">No payment history</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
               {payments.map((payment) => (
                 <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>

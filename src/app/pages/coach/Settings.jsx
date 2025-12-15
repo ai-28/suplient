@@ -813,10 +813,11 @@ export default function Settings() {
     }
   };
 
-  // Generate custom payment link
+  // Generate custom payment link with coach ID
   useEffect(() => {
     if (session?.user?.id) {
-      const link = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/client/custom-payment`;
+      const coachId = session.user.id;
+      const link = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/client/custom-payment?coach=${coachId}`;
       setCustomPaymentLink(link);
     }
   }, [session]);
@@ -2228,7 +2229,7 @@ export default function Settings() {
                           </p>
                         </div>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="max-h-[400px] overflow-y-auto space-y-4 pr-2">
                           {clientSubscriptions.map((sub) => (
                             <div key={sub.id} className="p-4 rounded-lg border bg-muted/30">
                               <div className="flex items-center justify-between mb-2">
@@ -2284,7 +2285,7 @@ export default function Settings() {
                           </p>
                         </div>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
                           {payments.map((payment) => (
                             <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                               <div>
