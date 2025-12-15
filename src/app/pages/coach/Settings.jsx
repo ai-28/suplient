@@ -656,6 +656,24 @@ export default function Settings() {
     }
   };
 
+  // Fetch client subscriptions
+  const fetchClientSubscriptions = async () => {
+    if (!session?.user?.id || session.user.role !== 'coach') return;
+    
+    try {
+      setClientSubscriptionsLoading(true);
+      const response = await fetch('/api/coach/client-subscriptions');
+      if (response.ok) {
+        const data = await response.json();
+        setClientSubscriptions(data.subscriptions || []);
+      }
+    } catch (error) {
+      console.error('Error fetching client subscriptions:', error);
+    } finally {
+      setClientSubscriptionsLoading(false);
+    }
+  };
+
   // Handle Connect account creation
   const handleCreateConnectAccount = async () => {
     try {
