@@ -704,20 +704,29 @@ export function UniversalChatInterface({
 
           <div className="flex items-end gap-2">
             <div className="relative flex-1">
-              <div className="relative">
-                <Textarea ref={inputRef} value={message} rows={1} onChange={e => {
-                const newValue = e.target.value;
-              const el = e.currentTarget;
-              if (newValue.length <= 1000) {
-                setMessage(newValue);
-              }
-            }} onInput={e => {
-              const el = e.currentTarget;
-              el.style.height = 'auto';
-              el.style.height = Math.min(el.scrollHeight, 160) + 'px';
-            }} onKeyPress={handleKeyPress} placeholder={replyToMessage ? `Reply to ${replyToMessage.senderName}...` : "Type your message..."} className="bg-transparent border-0 outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[40px] max-h-40 rounded-full pr-12" />
-                <div className="absolute right-1 top-1/2 -translate-y-1/2">
-                  <EmojiButton onEmojiSelect={handleEmojiSelect} className="h-8 w-8" />
+              <div className="relative bg-muted/30 rounded-sm border border-border/50 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 transition-all">
+                <Textarea 
+                  ref={inputRef} 
+                  value={message} 
+                  rows={1} 
+                  onChange={e => {
+                    const newValue = e.target.value;
+                    const el = e.currentTarget;
+                    if (newValue.length <= 1000) {
+                      setMessage(newValue);
+                    }
+                  }} 
+                  onInput={e => {
+                    const el = e.currentTarget;
+                    el.style.height = 'auto';
+                    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+                  }} 
+                  onKeyPress={handleKeyPress} 
+                  placeholder={replyToMessage ? `Reply to ${replyToMessage.senderName}...` : "Type your message..."} 
+                  className="bg-transparent border-0 outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[44px] max-h-40 px-4 py-3 pr-12 text-sm leading-relaxed overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent" 
+                />
+                <div className="absolute right-2 bottom-2 flex-shrink-0 z-10">
+                  <EmojiButton onEmojiSelect={handleEmojiSelect} className="h-9 w-9" />
                 </div>
               </div>
             </div>
@@ -727,7 +736,7 @@ export function UniversalChatInterface({
               size="icon" 
               onClick={message.trim() ? handleSendMessage : () => allowVoiceMessages && setShowVoiceRecorder(true)} 
               disabled={(!message.trim() && !allowVoiceMessages) || sending || !isConnected} 
-              className="h-10 w-10 p-0"
+              className="h-11 w-11 p-0 flex-shrink-0 rounded-full shadow-sm"
             >
               {sending ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
