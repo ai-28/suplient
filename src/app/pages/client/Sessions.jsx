@@ -4,8 +4,8 @@ import { Button } from "@/app/components/ui/button";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Users, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { Users, MessageCircle, Lock, CreditCard } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UniversalChatInterface } from "@/app/components/UniversalChatInterface";
 import { GroupChatInterface } from "@/app/components/GroupChatInterface";
@@ -34,6 +34,34 @@ export default function ClientSessions() {
   
   // Get joined groups (only groups the client is actually a member of)
   const joinedGroups = groups.filter(group => group.isJoined);
+  
+  // Check group subscription status
+  const [hasGroupSubscription, setHasGroupSubscription] = useState(false);
+  const [checkingGroupSubscription, setCheckingGroupSubscription] = useState(true);
+
+  useEffect(() => {
+    const checkGroupSubscription = async () => {
+      if (!session?.user?.id) {
+        setCheckingGroupSubscription(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/client/subscriptions/check?productType=group');
+        if (response.ok) {
+          const data = await response.json();
+          setHasGroupSubscription(data.hasActiveSubscription || false);
+        }
+      } catch (error) {
+        console.error('Error checking group subscription:', error);
+        setHasGroupSubscription(false);
+      } finally {
+        setCheckingGroupSubscription(false);
+      }
+    };
+
+    checkGroupSubscription();
+  }, [session?.user?.id]);
   
   const handleOpenGroupChat = (groupId, groupName) => {
     router.push(`/client/group/${groupId}?groupName=${encodeURIComponent(groupName)}`);
@@ -86,7 +114,7 @@ export default function ClientSessions() {
   };
 
   const GroupsTab = () => {
-    if (groupsLoading) {
+    if (groupsLoading || checkingGroupSubscription) {
       return (
         <div className="flex items-center justify-center h-[calc(100vh-100px)]">
           <Loader2 className="h-8 w-8 animate-spin" />
@@ -102,7 +130,38 @@ export default function ClientSessions() {
       );
     }
 
-    // If user is member of exactly one group, show group chat directly
+    // If no group subscription and user has joined groups, show subscription prompt
+    if (!hasGroupSubscription && joinedGroups.length > 0) {
+      return (
+        <div className="p-3 sm:p-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Group Subscription Required
+              </CardTitle>
+              <CardDescription>
+                You need an active group subscription to access group chats.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Subscribe to your coach's group service to access group chats and sessions.
+              </p>
+              <Button 
+                onClick={() => router.push('/client/profile?tab=billing')}
+                className="w-full"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Go to Billing & Subscribe
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    // If user is member of exactly one group, show group chat directly (subscription check is in GroupChatInterface)
     if (joinedGroups.length === 1) {
       const group = joinedGroups[0];
       return (
