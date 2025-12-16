@@ -540,24 +540,24 @@ export default function Settings() {
   }, [session?.user?.id]);
 
   // Fetch subscription status
-  useEffect(() => {
-    const fetchSubscriptionStatus = async () => {
-      if (!session?.user?.id || session.user.role !== 'coach') return;
+  const fetchSubscriptionStatus = async () => {
+    if (!session?.user?.id || session.user.role !== 'coach') return;
 
-      try {
-        setBillingLoading(true);
-        const response = await fetch('/api/stripe/subscription/status');
-        if (response.ok) {
-          const data = await response.json();
-          setSubscriptionStatus(data);
-        }
-      } catch (error) {
-        console.error('Error fetching subscription status:', error);
-      } finally {
-        setBillingLoading(false);
+    try {
+      setBillingLoading(true);
+      const response = await fetch('/api/stripe/subscription/status');
+      if (response.ok) {
+        const data = await response.json();
+        setSubscriptionStatus(data);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching subscription status:', error);
+    } finally {
+      setBillingLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchSubscriptionStatus();
     fetchConnectStatus();
     fetchProducts();

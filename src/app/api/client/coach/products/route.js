@@ -30,7 +30,7 @@ export async function GET(request) {
 
         const coachId = clientData[0].coachId;
 
-        // Get coach's products (only program and group, not one_to_one)
+        // Get coach's products (program, group, and one_to_one)
         const products = await sql`
             SELECT 
                 id,
@@ -44,12 +44,13 @@ export async function GET(request) {
                 "updatedAt"
             FROM "CoachProduct"
             WHERE "coachId" = ${coachId}
-            AND "productType" IN ('program', 'group')
+            AND "productType" IN ('program', 'group', 'one_to_one')
             AND "isActive" = true
             ORDER BY 
                 CASE "productType"
                     WHEN 'program' THEN 1
                     WHEN 'group' THEN 2
+                    WHEN 'one_to_one' THEN 3
                 END
         `;
 

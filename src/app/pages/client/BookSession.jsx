@@ -399,9 +399,14 @@ export default function BookSession() {
       return;
     }
 
-    // Check if payment is required but not completed
+    // Check if payment is required but not completed - redirect to payment instead of showing error
     if (paymentRequired && !paymentIntentId) {
-      toast.error("Please complete payment before booking the session.");
+      if (sessionPrice) {
+        toast.info(`Please complete payment of ${sessionPrice.toFixed(2)} DKK to book your session.`);
+        await handlePayment();
+      } else {
+        toast.error("Payment is required but price information is not available. Please try again.");
+      }
       return;
     }
 
@@ -431,11 +436,16 @@ export default function BookSession() {
       if (!response.ok) {
         const errorData = await response.json();
         
-        // If payment is required, redirect to payment
+        // If payment is required, redirect to payment instead of showing error
         if (response.status === 402 && errorData.requiresPayment) {
-          toast.error(errorData.message || 'Payment is required before booking');
-          setPaymentRequired(true);
           setIsBooking(false);
+          if (sessionPrice) {
+            toast.info(`Please complete payment of ${sessionPrice.toFixed(2)} DKK to book your session.`);
+            await handlePayment();
+          } else {
+            toast.error(errorData.message || 'Payment is required before booking');
+            setPaymentRequired(true);
+          }
           return;
         }
         
@@ -744,7 +754,7 @@ export default function BookSession() {
                 <p className="text-sm font-medium mb-2">{t('sessions.details', 'Session Details')}:</p>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• {t('sessions.duration', 'Duration')}: {duration} minutes</li>
-                  <li>• {t('sessions.price', 'Price')}: {t('sessions.priceValue', '1,000 DKK')}</li>
+                  <li>• {t('sessions.price', 'Price')}: {sessionPrice ? `${sessionPrice.toFixed(2)} DKK` : (paymentRequired ? 'Price will be shown after loading...' : 'Free')}</li>
                   <li>• {t('sessions.cancellation', 'Cancellation')}: {t('sessions.cancellationNotice', '24 hours notice required')}</li>
                 </ul>
               </div>
@@ -753,13 +763,21 @@ export default function BookSession() {
                 <Checkbox 
                   id="conditions" 
                   checked={acceptedConditions} 
-                  onCheckedChange={checked => setAcceptedConditions(checked)} 
+                  onCheckedChange={async (checked) => {
+                    setAcceptedConditions(checked);
+                    // If payment is required and conditions are accepted, redirect to payment
+                    if (checked && paymentRequired && !paymentIntentId && sessionPrice) {
+                      await handlePayment();
+                    }
+                  }} 
                 />
                 <Label 
                   htmlFor="conditions" 
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  {t('sessions.acceptConditions', "I accept the conditions for the paid 1-1 session (1,000 DKK)")}
+                  {paymentRequired && sessionPrice 
+                    ? `I accept the conditions for the paid 1-1 session (${sessionPrice.toFixed(2)} DKK)`
+                    : t('sessions.acceptConditions', "I accept the conditions for the paid 1-1 session")}
                 </Label>
               </div>
             </div>
@@ -772,12 +790,14 @@ export default function BookSession() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                Payment Required
+                {paymentIntentId ? "Payment Completed" : "Payment Required"}
               </CardTitle>
               <CardDescription>
                 {paymentIntentId 
                   ? "Payment completed! You can now book your session."
-                  : `Payment of ${sessionPrice?.toFixed(2) || '0.00'} DKK is required before booking a 1-to-1 session.`}
+                  : sessionPrice 
+                    ? `Payment of ${sessionPrice.toFixed(2)} DKK is required before booking a 1-to-1 session. Click "Accept Conditions" above or the button below to proceed to payment.`
+                    : "Loading payment information..."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -786,7 +806,7 @@ export default function BookSession() {
                   <CheckCircle className="h-5 w-5" />
                   <span className="font-medium">Payment Successful</span>
                 </div>
-              ) : (
+              ) : sessionPrice ? (
                 <Button
                   className="w-full"
                   size="lg"
@@ -801,10 +821,15 @@ export default function BookSession() {
                   ) : (
                     <>
                       <CreditCard className="h-4 w-4 mr-2" />
-                      Pay {sessionPrice?.toFixed(2) || '0.00'} DKK
+                      Pay {sessionPrice.toFixed(2)} DKK
                     </>
                   )}
                 </Button>
+              ) : (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Loading payment information...</span>
+                </div>
               )}
             </CardContent>
           </Card>

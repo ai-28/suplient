@@ -9,7 +9,7 @@ import { stripe } from '@/app/lib/stripe';
 export async function POST(request) {
     try {
         const session = await getServerSession(authOptions);
-        
+
         if (!session?.user?.id || session.user.role !== 'client') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -101,32 +101,26 @@ export async function POST(request) {
 
             customerId = customer.id;
 
-            // Save customer ID
-            await sql`
-                INSERT INTO "ClientPaymentMethod" (
-                    "clientId",
-                    "stripeCustomerId",
-                    "createdAt",
-                    "updatedAt"
-                )
-                VALUES (
-                    ${clientId},
-                    ${customerId},
-                    CURRENT_TIMESTAMP,
-                    CURRENT_TIMESTAMP
-                )
-                ON CONFLICT ("stripeCustomerId") DO UPDATE SET
-                    "clientId" = ${clientId},
+            // Update any existing payment method records for this client with the customer ID
+            // For one-time payments, the customer ID will be saved when payment method is added via webhook
+            // We just update existing records if they exist
+            const updateResult = await sql`
+                UPDATE "ClientPaymentMethod"
+                SET "stripeCustomerId" = ${customerId},
                     "updatedAt" = CURRENT_TIMESTAMP
+                WHERE "clientId" = ${clientId}
+                AND ("stripeCustomerId" IS NULL OR "stripeCustomerId" != ${customerId})
             `;
+
+            // If no records were updated, that's fine - the webhook will handle it when payment succeeds
         }
 
         // Build success and cancel URLs
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        const successUrl = returnUrl 
+        const successUrl = returnUrl
             ? `${baseUrl}${returnUrl}?payment=success&coachId=${coachId}`
             : `${baseUrl}/client/book-session?payment=success&coachId=${coachId}`;
-        const cancelUrl = returnUrl 
+        const cancelUrl = returnUrl
             ? `${baseUrl}${returnUrl}?payment=canceled`
             : `${baseUrl}/client/book-session?payment=canceled`;
 
