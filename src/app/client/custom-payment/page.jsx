@@ -23,9 +23,8 @@ export default function CustomPaymentPage() {
   const [loadingCoach, setLoadingCoach] = useState(true);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated' && session?.user?.role !== 'client') {
+    // Only redirect non-clients if authenticated (allow unauthenticated users to view page)
+    if (status === 'authenticated' && session?.user?.role !== 'client') {
       router.push('/access-denied');
     }
   }, [status, session, router]);
@@ -43,7 +42,7 @@ export default function CustomPaymentPage() {
         let coachData = null;
         
         if (coachIdFromUrl) {
-          // Fetch coach by ID from URL parameter
+          // Fetch coach by ID from URL parameter (public endpoint)
           const response = await fetch(`/api/coach/info?coachId=${coachIdFromUrl}`);
           if (response.ok) {
             const data = await response.json();
@@ -55,7 +54,7 @@ export default function CustomPaymentPage() {
         }
         
         // If no coach from URL, try to get from logged-in client's assigned coach
-        if (!coachData && session?.user?.id) {
+        if (!coachData && session?.user?.id && session?.user?.role === 'client') {
           const response = await fetch('/api/client/coach');
           if (response.ok) {
             const data = await response.json();
@@ -80,14 +79,25 @@ export default function CustomPaymentPage() {
       }
     };
 
-    if (status === 'authenticated' || status === 'loading') {
-      fetchCoachInfo();
-    }
+    // Fetch coach info regardless of auth status (page is public)
+    fetchCoachInfo();
   }, [session, status]);
 
   const handlePayment = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('Please enter a valid amount');
+      return;
+    }
+
+    // Require login before payment
+    if (status === 'unauthenticated' || session?.user?.role !== 'client') {
+      toast.error('Please login to make a payment');
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.href)}`);
+      return;
+    }
+
+    if (!coachId) {
+      toast.error('Coach information not available');
       return;
     }
 
@@ -124,7 +134,7 @@ export default function CustomPaymentPage() {
     }
   };
 
-  if (status === 'loading' || loadingCoach) {
+  if (loadingCoach) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -135,17 +145,20 @@ export default function CustomPaymentPage() {
   if (!hasCoach) {
     const urlParams = new URLSearchParams(window.location.search);
     const coachIdFromUrl = urlParams.get('coach');
+    const isLoggedIn = status === 'authenticated' && session?.user?.role === 'client';
     
     return (
       <div className="container max-w-2xl mx-auto py-8 px-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/client/profile?tab=billing')}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+        {isLoggedIn && (
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/client/profile?tab=billing')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        )}
 
         <Card>
           <CardHeader>
@@ -159,12 +172,20 @@ export default function CustomPaymentPage() {
               <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">
                 {coachIdFromUrl 
-                  ? 'Coach not found or payment account not set up. Please contact the coach directly.'
-                  : 'You don\'t have a coach assigned. Please contact support to get assigned to a coach.'}
+                  ? 'Coach not found or payment account not set up. Please contact the coach directly or check the payment link.'
+                  : isLoggedIn
+                    ? 'You don\'t have a coach assigned. Please contact support to get assigned to a coach.'
+                    : 'Please use a valid payment link with a coach parameter, or login if you have an account.'}
               </p>
-              <Button onClick={() => router.push('/client/profile?tab=billing')}>
-                Go to Profile
-              </Button>
+              {isLoggedIn ? (
+                <Button onClick={() => router.push('/client/profile?tab=billing')}>
+                  Go to Profile
+                </Button>
+              ) : (
+                <Button onClick={() => router.push('/login')}>
+                  Login
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -172,16 +193,20 @@ export default function CustomPaymentPage() {
     );
   }
 
+  const isLoggedIn = status === 'authenticated' && session?.user?.role === 'client';
+
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4">
-      <Button
-        variant="ghost"
-        onClick={() => router.push('/client/profile?tab=billing')}
-        className="mb-4"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back
-      </Button>
+      {isLoggedIn && (
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/client/profile?tab=billing')}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+      )}
 
       <Card>
         <CardHeader>
@@ -223,9 +248,17 @@ export default function CustomPaymentPage() {
             />
           </div>
 
+          {status === 'unauthenticated' && (
+            <div className="p-4 rounded-lg border bg-muted/30 mb-4">
+              <p className="text-sm text-muted-foreground mb-3">
+                Please login to make a payment. You'll be redirected to login after clicking the button.
+              </p>
+            </div>
+          )}
+
           <Button
             onClick={handlePayment}
-            disabled={processing || !amount || parseFloat(amount) <= 0}
+            disabled={processing || !amount || parseFloat(amount) <= 0 || !coachId}
             className="w-full"
             size="lg"
           >
@@ -237,7 +270,7 @@ export default function CustomPaymentPage() {
             ) : (
               <>
                 <CreditCard className="h-4 w-4 mr-2" />
-                Pay {amount ? `${parseFloat(amount).toFixed(2)} DKK` : ''}
+                {status === 'unauthenticated' ? 'Login to Pay' : `Pay ${amount ? `${parseFloat(amount).toFixed(2)} DKK` : ''}`}
               </>
             )}
           </Button>

@@ -14,6 +14,7 @@ export default withAuth(
             req.nextUrl.pathname.startsWith("/setup-2fa") ||
             req.nextUrl.pathname.startsWith("/subscription-error") ||
             req.nextUrl.pathname.startsWith("/access-denied") ||
+            req.nextUrl.pathname.startsWith("/client/custom-payment") ||
             req.nextUrl.pathname === "/") {
             return NextResponse.next();
         }
@@ -33,7 +34,8 @@ export default withAuth(
             req.nextUrl.pathname.startsWith('/api/auth/') ||
             req.nextUrl.pathname.startsWith('/api/stripe/webhook') ||
             req.nextUrl.pathname.startsWith('/api/platform/settings/public') ||
-            req.nextUrl.pathname.startsWith('/api/subscription/check')
+            req.nextUrl.pathname.startsWith('/api/subscription/check') ||
+            req.nextUrl.pathname.startsWith('/api/coach/info')
         )) {
             return NextResponse.next();
         }
@@ -52,7 +54,8 @@ export default withAuth(
                 if (req.nextUrl.pathname.startsWith('/api/stripe/webhook') ||
                     req.nextUrl.pathname.startsWith('/api/auth/') ||
                     req.nextUrl.pathname.startsWith('/api/platform/settings/public') ||
-                    req.nextUrl.pathname.startsWith('/api/subscription/check')) {
+                    req.nextUrl.pathname.startsWith('/api/subscription/check') ||
+                    req.nextUrl.pathname.startsWith('/api/coach/info')) {
                     return true;
                 }
 
@@ -62,6 +65,7 @@ export default withAuth(
                     req.nextUrl.pathname.startsWith("/forgot-password") ||
                     req.nextUrl.pathname.startsWith("/reset-password") ||
                     req.nextUrl.pathname.startsWith("/setup-2fa") ||
+                    req.nextUrl.pathname.startsWith("/client/custom-payment") ||
                     req.nextUrl.pathname === "/") {
                     return true;
                 }
@@ -86,7 +90,11 @@ export default withAuth(
                 }
 
                 if (req.nextUrl.pathname.startsWith("/client")) {
-                    // Client routes: accessible by clients or admins impersonating clients
+                    // Custom payment page is public (handled above)
+                    if (req.nextUrl.pathname.startsWith("/client/custom-payment")) {
+                        return true;
+                    }
+                    // Other client routes: accessible by clients or admins impersonating clients
                     return userRole === 'client' || isAdminImpersonating;
                 }
 
