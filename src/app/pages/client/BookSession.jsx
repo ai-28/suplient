@@ -10,7 +10,7 @@ import { Calendar } from "@/app/components/ui/calendar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { ArrowLeft, Clock, User, CheckCircle, Video, Calendar as CalendarIcon, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Clock, User, CheckCircle, Video, Calendar as CalendarIcon, Loader2, AlertCircle, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { useClientCoach } from "@/app/hooks/useClientCoach";
@@ -84,6 +84,13 @@ export default function BookSession() {
   const [duration, setDuration] = useState("60");
   const [selectedTimezone, setSelectedTimezone] = useState("UTC");
   
+  // Payment state
+  const [paymentRequired, setPaymentRequired] = useState(false);
+  const [sessionPrice, setSessionPrice] = useState(null);
+  const [paymentIntentId, setPaymentIntentId] = useState(null);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  
   // Availability state
   const [availableTimes, setAvailableTimes] = useState([]);
   const [timesLoading, setTimesLoading] = useState(false);
@@ -105,6 +112,81 @@ export default function BookSession() {
       setSelectedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
     }
   }, [coach?.timezone]);
+
+  // Check payment requirement and handle payment success callback
+  useEffect(() => {
+    const checkPaymentRequirement = async () => {
+      if (!coach?.id || !session?.user?.id) return;
+
+      try {
+        // Check URL params for payment success
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentStatus = urlParams.get('payment');
+        const coachIdFromUrl = urlParams.get('coachId');
+
+        if (paymentStatus === 'success' && coachIdFromUrl === coach.id) {
+          // Payment was successful, get payment intent ID from recent payment
+          setCheckingPayment(true);
+          const paymentResponse = await fetch(`/api/client/payments?coachId=${coach.id}&productType=one_to_one&limit=1`);
+          if (paymentResponse.ok) {
+            const paymentData = await paymentResponse.json();
+            if (paymentData.payments && paymentData.payments.length > 0) {
+              const latestPayment = paymentData.payments[0];
+              if (latestPayment.status === 'succeeded') {
+                setPaymentIntentId(latestPayment.paymentIntentId);
+                setPaymentRequired(false); // Payment completed
+                toast.success('Payment successful! You can now book your session.');
+                // Clean URL
+                window.history.replaceState({}, '', window.location.pathname);
+              }
+            }
+          }
+          setCheckingPayment(false);
+          return;
+        }
+
+        if (paymentStatus === 'canceled') {
+          toast.error('Payment was canceled. Please complete payment to book a session.');
+          // Clean URL
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+
+        // Check if payment is required
+        const productResponse = await fetch(`/api/client/coach/products`);
+        if (productResponse.ok) {
+          const productData = await productResponse.json();
+          const oneToOneProduct = productData.products?.find(p => p.productType === 'one_to_one');
+          
+          if (oneToOneProduct && oneToOneProduct.amount > 0) {
+            setPaymentRequired(true);
+            setSessionPrice(oneToOneProduct.amount / 100); // Convert from øre to DKK
+            
+            // Check if client has a successful payment for this session
+            const paymentCheck = await fetch(`/api/client/payments?coachId=${coach.id}&productType=one_to_one&status=succeeded&limit=1`);
+            if (paymentCheck.ok) {
+              const paymentData = await paymentCheck.json();
+              if (paymentData.payments && paymentData.payments.length > 0) {
+                const latestPayment = paymentData.payments[0];
+                // Check if payment is recent (within last hour) and not linked to a session
+                const paymentDate = new Date(latestPayment.createdAt);
+                const now = new Date();
+                const hoursDiff = (now - paymentDate) / (1000 * 60 * 60);
+                
+                if (hoursDiff < 1 && !latestPayment.sessionId) {
+                  setPaymentIntentId(latestPayment.paymentIntentId);
+                  setPaymentRequired(false); // Payment already completed
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking payment requirement:', error);
+      }
+    };
+
+    checkPaymentRequirement();
+  }, [coach?.id, session?.user?.id]);
 
   // Fetch coach's available times when date changes
   useEffect(() => {
@@ -266,6 +348,46 @@ export default function BookSession() {
     }
   };
 
+  const handlePayment = async () => {
+    if (!coach?.id) {
+      toast.error("Coach information not available. Please try again.");
+      return;
+    }
+
+    setProcessingPayment(true);
+
+    try {
+      const response = await fetch('/api/payments/create-session-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          coachId: coach.id,
+          returnUrl: '/client/book-session'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create payment');
+      }
+
+      const data = await response.json();
+
+      if (data.checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast.error(error.message || 'Failed to process payment');
+      setProcessingPayment(false);
+    }
+  };
+
   const handleBookSession = async () => {
     if (!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions) {
       toast.error("Please fill in all required fields and accept the conditions.");
@@ -274,6 +396,12 @@ export default function BookSession() {
 
     if (!coach?.id) {
       toast.error("Coach information not available. Please try again.");
+      return;
+    }
+
+    // Check if payment is required but not completed
+    if (paymentRequired && !paymentIntentId) {
+      toast.error("Please complete payment before booking the session.");
       return;
     }
 
@@ -288,7 +416,8 @@ export default function BookSession() {
         duration: parseInt(duration),
         meetingType: meetingType,
         notes: sessionTopic,
-        timeZone: selectedTimezone
+        timeZone: selectedTimezone,
+        paymentIntentId: paymentIntentId // Include payment intent ID if available
       };
 
       const response = await fetch('/api/sessions/client', {
@@ -301,6 +430,15 @@ export default function BookSession() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // If payment is required, redirect to payment
+        if (response.status === 402 && errorData.requiresPayment) {
+          toast.error(errorData.message || 'Payment is required before booking');
+          setPaymentRequired(true);
+          setIsBooking(false);
+          return;
+        }
+        
         throw new Error(errorData.error || 'Failed to book session');
       }
 
@@ -628,13 +766,65 @@ export default function BookSession() {
           </CardContent>
         </Card>
 
+        {/* Payment Section */}
+        {paymentRequired && (
+          <Card className={paymentIntentId ? "border-green-500" : "border-orange-500"}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Payment Required
+              </CardTitle>
+              <CardDescription>
+                {paymentIntentId 
+                  ? "Payment completed! You can now book your session."
+                  : `Payment of ${sessionPrice?.toFixed(2) || '0.00'} DKK is required before booking a 1-to-1 session.`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {paymentIntentId ? (
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-medium">Payment Successful</span>
+                </div>
+              ) : (
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handlePayment}
+                  disabled={processingPayment || checkingPayment}
+                >
+                  {processingPayment || checkingPayment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Pay {sessionPrice?.toFixed(2) || '0.00'} DKK
+                    </>
+                  )}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Book Button */}
         <div style = {{marginBottom: '100px'}}>
           <Button 
             className="w-full" 
             size="lg" 
             onClick={handleBookSession} 
-            disabled={!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions || isBooking}
+            disabled={
+              !selectedDate || 
+              !selectedTime || 
+              !sessionTopic.trim() || 
+              !acceptedConditions || 
+              isBooking || 
+              (paymentRequired && !paymentIntentId) ||
+              checkingPayment
+            }
           >
             {isBooking ? (
               <>
@@ -645,6 +835,11 @@ export default function BookSession() {
               t('sessions.bookVideoCall', 'Book Video Call')
             )}
           </Button>
+          {paymentRequired && !paymentIntentId && (
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              Please complete payment above to book your session
+            </p>
+          )}
         </div>
       </div>
     </div>

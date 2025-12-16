@@ -57,6 +57,55 @@ export async function POST(request) {
         
         const coachId = clientResult[0].coachId;
         
+        // Check if payment is required for 1-to-1 sessions
+        const productCheck = await sql`
+            SELECT cp."amount", cp."isActive"
+            FROM "CoachProduct" cp
+            WHERE cp."coachId" = ${coachId}
+            AND cp."productType" = 'one_to_one'
+            AND cp."isActive" = true
+            LIMIT 1
+        `;
+
+        // If coach has a one_to_one product with a price, payment is required
+        if (productCheck.length > 0 && productCheck[0].amount > 0) {
+            // Check for paymentIntentId in request (from successful payment)
+            const { paymentIntentId } = body;
+            
+            if (!paymentIntentId) {
+                return NextResponse.json(
+                    { 
+                        error: 'Payment required',
+                        requiresPayment: true,
+                        message: 'Payment is required before booking a 1-to-1 session'
+                    },
+                    { status: 402 } // 402 Payment Required
+                );
+            }
+
+            // Verify payment exists and is successful
+            const paymentCheck = await sql`
+                SELECT id, status, "stripePaymentIntentId"
+                FROM "ClientPayment"
+                WHERE "clientId" = ${session.user.id}
+                AND "coachId" = ${coachId}
+                AND "productType" = 'one_to_one'
+                AND "stripePaymentIntentId" = ${paymentIntentId}
+                AND status = 'succeeded'
+                LIMIT 1
+            `;
+
+            if (paymentCheck.length === 0) {
+                return NextResponse.json(
+                    { 
+                        error: 'Payment verification failed',
+                        message: 'Valid payment is required before booking. Please complete the payment first.'
+                    },
+                    { status: 402 }
+                );
+            }
+        }
+        
         // Get client record
         const clientRecord = await sql`
             SELECT id FROM "Client"
@@ -154,6 +203,26 @@ export async function POST(request) {
         `;
         
         const newSessionId = insertResult[0].id;
+        
+        // Link payment to session if payment was provided
+        const { paymentIntentId } = body;
+        if (paymentIntentId) {
+            try {
+                await sql`
+                    UPDATE "ClientPayment"
+                    SET "sessionId" = ${newSessionId},
+                        "updatedAt" = CURRENT_TIMESTAMP
+                    WHERE "stripePaymentIntentId" = ${paymentIntentId}
+                    AND "clientId" = ${session.user.id}
+                    AND "coachId" = ${coachId}
+                    AND "productType" = 'one_to_one'
+                    AND "sessionId" IS NULL
+                `;
+            } catch (error) {
+                console.error('Error linking payment to session:', error);
+                // Don't fail the session creation if payment linking fails
+            }
+        }
         
         // Create meeting link if meeting type is selected (using coach's integration)
         let meetingLink = null;

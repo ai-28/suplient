@@ -115,6 +115,7 @@ export default function Settings() {
   const [billingLoading, setBillingLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [connectingStripe, setConnectingStripe] = useState(false);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const [connectStatus, setConnectStatus] = useState(null);
   const [connectLoading, setConnectLoading] = useState(false);
   const [products, setProducts] = useState([]);
@@ -624,6 +625,32 @@ export default function Settings() {
       toast.error(error.message || t('settings.billing.connectFailed', 'Failed to start checkout'));
     } finally {
       setConnectingStripe(false);
+    }
+  };
+
+  // Handle subscription cancellation
+  const handleCancelSubscription = async () => {
+    try {
+      setCancelingSubscription(true);
+      const response = await fetch('/api/coach/subscription/cancel', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to cancel subscription');
+      }
+
+      const data = await response.json();
+      toast.success(data.message || 'Subscription will be canceled at the end of the billing period');
+      
+      // Refresh subscription status
+      fetchSubscriptionStatus();
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+      toast.error(error.message || 'Failed to cancel subscription');
+    } finally {
+      setCancelingSubscription(false);
     }
   };
 
@@ -2028,6 +2055,48 @@ export default function Settings() {
                           <p className="text-sm text-red-800 dark:text-red-200">
                             {t('settings.billing.paymentFailed', 'Your last payment failed. Please update your payment method.')}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Cancel Subscription Button */}
+                      {subscriptionStatus.subscription.status === 'active' && 
+                       !subscriptionStatus.subscription.cancelAtPeriodEnd && (
+                        <div className="mt-4 pt-4 border-t">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                disabled={cancelingSubscription}
+                                className="w-full"
+                              >
+                                {cancelingSubscription ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Canceling...
+                                  </>
+                                ) : (
+                                  'Cancel Subscription'
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to cancel your subscription? Your subscription will remain active until the end of the current billing period ({subscriptionStatus.subscription.currentPeriodEnd ? new Date(subscriptionStatus.subscription.currentPeriodEnd).toLocaleDateString() : 'N/A'}), and you will continue to have access to all features until then.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={handleCancelSubscription}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Cancel Subscription
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       )}
                     </div>

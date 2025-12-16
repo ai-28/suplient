@@ -70,11 +70,18 @@ export async function POST(request) {
         switch (event.type) {
             // Coach to Admin subscription events
             case 'checkout.session.completed':
-                // Check if it's a client subscription to coach or coach subscription to admin
-                if (event.data.object.metadata?.clientId && event.data.object.metadata?.coachId) {
-                    await handleClientSubscriptionCheckout(event.data.object);
-                } else {
-                    await handleCheckoutCompleted(event.data.object);
+                const session = event.data.object;
+                // Check if it's a subscription (has subscription field) or payment (has payment_intent)
+                if (session.mode === 'subscription' && session.metadata?.clientId && session.metadata?.coachId) {
+                    // Client subscription to coach
+                    await handleClientSubscriptionCheckout(session);
+                } else if (session.mode === 'subscription') {
+                    // Coach subscription to admin
+                    await handleCheckoutCompleted(session);
+                } else if (session.mode === 'payment' && session.payment_intent) {
+                    // One-time payment (one_to_one or custom) - payment_intent.succeeded will handle it
+                    // This event is just for logging/confirmation
+                    console.log(`✅ Checkout completed for payment: ${session.payment_intent}`);
                 }
                 break;
 

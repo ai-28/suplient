@@ -14,8 +14,15 @@ export async function GET(request) {
 
         const clientId = session.user.id;
 
-        // Get client's payments from database
-        const payments = await sql`
+        // Get query parameters for filtering
+        const { searchParams } = new URL(request.url);
+        const coachId = searchParams.get('coachId');
+        const productType = searchParams.get('productType');
+        const status = searchParams.get('status');
+        const limit = parseInt(searchParams.get('limit') || '50');
+
+        // Build query with filters
+        let query = sql`
             SELECT 
                 cp.id,
                 cp."stripePaymentIntentId",
@@ -24,14 +31,29 @@ export async function GET(request) {
                 cp.amount,
                 cp.status,
                 cp.description,
+                cp."sessionId",
                 cp."createdAt",
                 u.name as "coachName"
             FROM "ClientPayment" cp
             LEFT JOIN "User" u ON u.id = cp."coachId"
             WHERE cp."clientId" = ${clientId}
-            ORDER BY cp."createdAt" DESC
-            LIMIT 50
         `;
+
+        if (coachId) {
+            query = sql`${query} AND cp."coachId" = ${coachId}`;
+        }
+
+        if (productType) {
+            query = sql`${query} AND cp."productType" = ${productType}`;
+        }
+
+        if (status) {
+            query = sql`${query} AND cp.status = ${status}`;
+        }
+
+        query = sql`${query} ORDER BY cp."createdAt" DESC LIMIT ${limit}`;
+
+        const payments = await query;
 
         return NextResponse.json({
             success: true,
@@ -44,6 +66,7 @@ export async function GET(request) {
                 amount: p.amount,
                 status: p.status,
                 description: p.description,
+                sessionId: p.sessionId,
                 createdAt: p.createdAt,
             }))
         });

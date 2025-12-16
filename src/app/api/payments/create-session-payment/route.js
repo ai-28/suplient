@@ -5,7 +5,7 @@ import { sql } from '@/app/lib/db/postgresql';
 import { stripe } from '@/app/lib/stripe';
 
 // POST /api/payments/create-session-payment
-// Create payment intent for 1-to-1 session
+// Create Stripe Checkout session for 1-to-1 session payment
 export async function POST(request) {
     try {
         const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { coachId } = await request.json();
+        const { coachId, returnUrl } = await request.json();
         const clientId = session.user.id;
 
         if (!coachId) {
@@ -45,7 +45,7 @@ export async function POST(request) {
         `;
 
         if (productData.length === 0) {
-            return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+            return NextResponse.json({ error: '1-to-1 session product not found. Please contact your coach.' }, { status: 404 });
         }
 
         const { stripePriceId, amount, stripeConnectAccountId } = productData[0];
@@ -121,58 +121,49 @@ export async function POST(request) {
             `;
         }
 
-        // Create Payment Intent on coach's Connect account
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount,
-            currency: 'dkk',
+        // Build success and cancel URLs
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const successUrl = returnUrl 
+            ? `${baseUrl}${returnUrl}?payment=success&coachId=${coachId}`
+            : `${baseUrl}/client/book-session?payment=success&coachId=${coachId}`;
+        const cancelUrl = returnUrl 
+            ? `${baseUrl}${returnUrl}?payment=canceled`
+            : `${baseUrl}/client/book-session?payment=canceled`;
+
+        // Create Checkout Session on coach's Connect account
+        const checkoutSession = await stripe.checkout.sessions.create({
             customer: customerId,
             payment_method_types: ['card'],
-            setup_future_usage: 'off_session', // Save payment method
+            line_items: [
+                {
+                    price: stripePriceId,
+                    quantity: 1,
+                },
+            ],
+            mode: 'payment',
+            success_url: successUrl,
+            cancel_url: cancelUrl,
             metadata: {
                 clientId: clientId,
                 coachId: coachId,
                 productType: 'one_to_one',
             },
-            application_fee_amount: 0, // No platform fee
-            transfer_data: {
-                destination: stripeConnectAccountId,
+            payment_intent_data: {
+                metadata: {
+                    clientId: clientId,
+                    coachId: coachId,
+                    productType: 'one_to_one',
+                },
             },
         }, {
             stripeAccount: stripeConnectAccountId,
         });
 
-        // Save payment intent to database
-        await sql`
-            INSERT INTO "ClientPayment" (
-                "clientId",
-                "coachId",
-                "productType",
-                "stripePaymentIntentId",
-                "amount",
-                "currency",
-                "status",
-                "createdAt",
-                "updatedAt"
-            )
-            VALUES (
-                ${clientId},
-                ${coachId},
-                'one_to_one',
-                ${paymentIntent.id},
-                ${amount},
-                'dkk',
-                ${paymentIntent.status},
-                CURRENT_TIMESTAMP,
-                CURRENT_TIMESTAMP
-            )
-            ON CONFLICT ("stripePaymentIntentId") DO UPDATE SET
-                "status" = ${paymentIntent.status},
-                "updatedAt" = CURRENT_TIMESTAMP
-        `;
+        // Payment will be saved via webhook when checkout is completed
 
         return NextResponse.json({
-            clientSecret: paymentIntent.client_secret,
-            paymentIntentId: paymentIntent.id,
+            checkoutUrl: checkoutSession.url,
+            sessionId: checkoutSession.id
         });
 
     } catch (error) {
