@@ -12,15 +12,23 @@
     "allowNavigation": [
       "https://suplient.com",
       "https://app.suplient.com",
-      "https://*.suplient.com"
-    ]
+      "https://*.suplient.com",
+      "suplient.com",
+      "app.suplient.com"
+    ],
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
   },
   "ios": {
     "allowNavigation": [
       "https://suplient.com",
       "https://app.suplient.com",
-      "https://*.suplient.com"
-    ]
+      "https://*.suplient.com",
+      "suplient.com",
+      "app.suplient.com"
+    ],
+    "scrollEnabled": true,
+    "webContentsDebuggingEnabled": false
   },
   "plugins": {
     "SplashScreen": {
