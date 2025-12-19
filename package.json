@@ -6,11 +6,29 @@
     "dev": "node server.js",
     "build": "next build",
     "start": "cross-env NODE_ENV=production node server.js",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cap:add:ios": "npx cap add ios",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:copy": "npx cap copy",
+    "cap:update": "npx cap update",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android",
+    "cap:build": "npm run build && npx cap sync",
+    "cap:run:ios": "npx cap run ios",
+    "cap:run:android": "npx cap run android",
+    "android:build:debug": "cd android && gradlew.bat assembleDebug",
+    "android:build:release": "cd android && gradlew.bat assembleRelease",
+    "android:clean": "cd android && gradlew.bat clean",
+    "android:build:full": "npm run build && npm run cap:sync && npm run android:build:debug"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
     "@aws-sdk/s3-request-presigner": "^3.930.0",
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "@emailjs/nodejs": "^5.0.2",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -86,6 +104,7 @@
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "eslint": "^9",
-    "eslint-config-next": "15.5.0"
+    "eslint-config-next": "15.5.0",
+    "typescript": "5.9.3"
   }
 }

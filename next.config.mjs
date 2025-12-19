@@ -4,6 +4,7 @@ import withPWAInit from 'next-pwa';
 const nextConfig = {
     images: {
         domains: ['i.pravatar.cc'],
+        unoptimized: false, // Keep optimization for web, but may need to adjust for mobile
     },
     typescript: {
         ignoreBuildErrors: true,
@@ -12,6 +13,10 @@ const nextConfig = {
         NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     },
     staticPageGenerationTimeout: 1000,
+    // Optimize for mobile performance
+    compress: true,
+    poweredByHeader: false,
+    reactStrictMode: true,
     // swcMinify removed - SWC minification is always enabled in Next.js 15
     // workboxOptions removed - not a valid Next.js config option
     // Disable PWA-related warnings in development
