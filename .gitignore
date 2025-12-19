@@ -51,4 +51,3 @@ next-env.d.ts
 /android/.idea/
 *.jks
 *.keystore
-/www/
