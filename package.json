@@ -17,10 +17,12 @@
     "cap:build": "npm run build && npx cap sync",
     "cap:run:ios": "npx cap run ios",
     "cap:run:android": "npx cap run android",
-    "android:build:debug": "cd android && gradlew.bat assembleDebug",
-    "android:build:release": "cd android && gradlew.bat assembleRelease",
-    "android:clean": "cd android && gradlew.bat clean",
-    "android:build:full": "npm run build && npm run cap:sync && npm run android:build:debug"
+    "android:build:debug": "cd android && ./gradlew assembleDebug",
+    "android:build:release": "cd android && ./gradlew assembleRelease",
+    "android:build:bundle": "cd android && ./gradlew bundleRelease",
+    "android:clean": "cd android && ./gradlew clean",
+    "android:build:full": "npm run build && npm run cap:sync && npm run android:build:debug",
+    "ios:build": "npm run build && npm run cap:sync && npm run cap:open:ios"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",

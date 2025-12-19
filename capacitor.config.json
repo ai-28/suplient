@@ -3,6 +3,8 @@
   "appName": "Suplient",
   "webDir": "www",
   "server": {
+    "url": "https://suplient.com",
+    "cleartext": false,
     "androidScheme": "https",
     "iosScheme": "https"
   },
@@ -30,4 +32,3 @@
     }
   }
 }
-
