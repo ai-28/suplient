@@ -8,6 +8,20 @@
     "androidScheme": "https",
     "iosScheme": "https"
   },
+  "android": {
+    "allowNavigation": [
+      "https://suplient.com",
+      "https://app.suplient.com",
+      "https://*.suplient.com"
+    ]
+  },
+  "ios": {
+    "allowNavigation": [
+      "https://suplient.com",
+      "https://app.suplient.com",
+      "https://*.suplient.com"
+    ]
+  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
