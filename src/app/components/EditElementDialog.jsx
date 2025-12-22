@@ -14,11 +14,11 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
 
   useEffect(() => {
-    if (element) {
+    if (element && element.id) {
       // Ensure data is properly set, handling both elementData (from DB) and data (from component)
       let elementData = element.elementData || element.data || {};
       
-      // Parse elementData if it's a string
+      // Parse elementData if it's a string (shouldn't be needed if parsed in ProgramEditor, but safety check)
       if (typeof elementData === 'string') {
         try {
           elementData = JSON.parse(elementData);
@@ -41,7 +41,7 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
       // Reset formData when element is null
       setFormData({});
     }
-  }, [element, open]);
+  }, [element?.id, open]); // Use element.id to ensure proper change detection
 
   const handleSave = () => {
     if (!formData.id || !formData.type || !formData.scheduledDay) {

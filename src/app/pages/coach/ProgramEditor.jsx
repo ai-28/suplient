@@ -93,15 +93,35 @@ export default function ProgramEditor() {
       });
       
       // Transform elements to ProgramFlowChart expected format
-      const transformedElements = (data.program.elements || []).map(element => ({
-        ...element,
-        // Calculate absolute day from week and day-of-week (day is 1-7, week is 1+)
-        scheduledDay: element.week && element.day ? (element.week - 1) * 7 + element.day : (element.scheduledDay || 1),
-        scheduledTime: element.scheduledTime || '09:00',
-        type: element.type || 'content',
-        // Map elementData from database to data for component
-        data: element.elementData || element.data || {}
-      }));
+      const transformedElements = (data.program.elements || []).map(element => {
+        // Parse elementData if it's a string from database
+        let elementData = element.elementData || element.data || {};
+        
+        // If elementData is a string, parse it
+        if (typeof elementData === 'string') {
+          try {
+            elementData = JSON.parse(elementData);
+          } catch (e) {
+            console.error('Error parsing elementData for element:', element.id, e);
+            elementData = {};
+          }
+        }
+        
+        // Ensure elementData is an object, not null or array
+        if (!elementData || typeof elementData !== 'object' || Array.isArray(elementData)) {
+          elementData = {};
+        }
+        
+        return {
+          ...element,
+          // Calculate absolute day from week and day-of-week (day is 1-7, week is 1+)
+          scheduledDay: element.week && element.day ? (element.week - 1) * 7 + element.day : (element.scheduledDay || 1),
+          scheduledTime: element.scheduledTime || '09:00',
+          type: element.type || 'content',
+          // Map elementData from database to data for component (now properly parsed)
+          data: elementData
+        };
+      });
       console.log("transformedElements", transformedElements);
       
       setElements(transformedElements);
