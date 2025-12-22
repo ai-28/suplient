@@ -230,7 +230,7 @@ export function AddElementDialog({
 
   const elementInfo = getElementInfo(elementType);
   const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const previewText = `${getElementTitle()} - Week ${selectedWeek}, ${dayNames[selectedDayOfWeek - 1]} at ${selectedTime}`;
+  const previewText = `${getElementTitle()} - Week ${selectedWeek}, ${dayNames[selectedDayOfWeek - 1]}`;
 
   const renderTimeSelector = () => (
     <div className="space-y-4 border-b pb-4">
@@ -271,17 +271,6 @@ export function AddElementDialog({
           </div>
         </div>
       )}
-
-      <div className="space-y-2">
-        <Label htmlFor="time">Time</Label>
-        <Input
-          id="time"
-          type="time"
-          value={selectedTime}
-          onChange={(e) => setSelectedTime(e.target.value)}
-          className="w-32"
-        />
-      </div>
     </div>
   );
 
