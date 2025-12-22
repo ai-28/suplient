@@ -16,25 +16,59 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
   useEffect(() => {
     if (element) {
       // Ensure data is properly set, handling both elementData (from DB) and data (from component)
-      const elementData = element.elementData || element.data || {};
-      // If elementData is a string, parse it
-      const parsedData = typeof elementData === 'string' ? JSON.parse(elementData) : elementData;
+      let elementData = element.elementData || element.data || {};
+      
+      // Parse elementData if it's a string
+      if (typeof elementData === 'string') {
+        try {
+          elementData = JSON.parse(elementData);
+        } catch (e) {
+          console.error('Error parsing elementData:', e);
+          elementData = {};
+        }
+      }
+      
+      // Ensure elementData is an object, not null or undefined
+      if (!elementData || typeof elementData !== 'object' || Array.isArray(elementData)) {
+        elementData = {};
+      }
       
       setFormData({
         ...element,
-        data: parsedData
+        data: { ...elementData } // Create a fresh copy to avoid reference issues
       });
+    } else {
+      // Reset formData when element is null
+      setFormData({});
     }
-  }, [element]);
+  }, [element, open]);
 
   const handleSave = () => {
-    if (!formData.id || !formData.type || !formData.scheduledDay || !formData.scheduledTime) {
+    if (!formData.id || !formData.type || !formData.scheduledDay) {
       return;
     }
 
+    // Ensure scheduledTime has a default value if not set
+    if (!formData.scheduledTime) {
+      formData.scheduledTime = '09:00:00';
+    }
+
+    // Clean and prepare data object
+    let cleanData = {};
+    if (formData.data && typeof formData.data === 'object' && !Array.isArray(formData.data)) {
+      // Copy only valid properties, avoid corrupted structures
+      cleanData = { ...formData.data };
+      // Remove any numeric string keys (corrupted data)
+      Object.keys(cleanData).forEach(key => {
+        if (!isNaN(parseInt(key)) && key.length === 1) {
+          delete cleanData[key];
+        }
+      });
+    }
+
     // For message elements, update title from message text
-    if (formData.type === 'message' && formData.data?.message) {
-      const messageText = formData.data.message;
+    if (formData.type === 'message' && cleanData.message) {
+      const messageText = cleanData.message;
       formData.title = messageText.slice(0, 50) + (messageText.length > 50 ? '...' : '') || 'Send Message';
     }
 
@@ -43,7 +77,13 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
       return;
     }
 
-    onSave(formData);
+    // Create clean element to save
+    const elementToSave = {
+      ...formData,
+      data: cleanData
+    };
+
+    onSave(elementToSave);
     onOpenChange(false);
   };
 
