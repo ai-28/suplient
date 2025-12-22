@@ -98,7 +98,9 @@ export default function ProgramEditor() {
         // Calculate absolute day from week and day-of-week (day is 1-7, week is 1+)
         scheduledDay: element.week && element.day ? (element.week - 1) * 7 + element.day : (element.scheduledDay || 1),
         scheduledTime: element.scheduledTime || '09:00',
-        type: element.type || 'content'
+        type: element.type || 'content',
+        // Map elementData from database to data for component
+        data: element.elementData || element.data || {}
       }));
       console.log("transformedElements", transformedElements);
       

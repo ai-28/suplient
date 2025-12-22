@@ -15,7 +15,15 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
 
   useEffect(() => {
     if (element) {
-      setFormData(element);
+      // Ensure data is properly set, handling both elementData (from DB) and data (from component)
+      const elementData = element.elementData || element.data || {};
+      // If elementData is a string, parse it
+      const parsedData = typeof elementData === 'string' ? JSON.parse(elementData) : elementData;
+      
+      setFormData({
+        ...element,
+        data: parsedData
+      });
     }
   }, [element]);
 
