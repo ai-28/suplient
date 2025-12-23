@@ -241,13 +241,10 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                               highlightedElementId === element.id ? 'ring-2 ring-yellow-400 animate-pulse scale-110' : ''
                             )}
                             onClick={() => onElementClick?.(element)}
-                            title={`${element.scheduledTime} - ${element.title || ELEMENT_TYPES[element.type]}${isCoachTask ? ' (Coach Task)' : ''}`}
+                            title={`${element.title || ELEMENT_TYPES[element.type]}${isCoachTask ? ' (Coach Task)' : ''}`}
                           >
                             <div className="flex items-center gap-1">
                               <Icon className={isMobile ? 'w-2.5 h-2.5 flex-shrink-0' : 'w-3 h-3 flex-shrink-0'} />
-                              <span className={`font-medium ${isMobile ? 'text-[9px]' : 'text-[10px]'} break-words`}>
-                                {element.scheduledTime}
-                              </span>
                               {isCoachTask && (
                                 <div className={`${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} rounded-full bg-yellow-300 border border-yellow-500`} title="Coach Task" />
                               )}

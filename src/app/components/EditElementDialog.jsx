@@ -15,8 +15,10 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
 
   useEffect(() => {
     if (element && element.id) {
-      // Ensure data is properly set, handling both elementData (from DB) and data (from component)
-      let elementData = element.elementData || element.data || {};
+      // Prioritize data over elementData - data is the transformed/updated version
+      // elementData is the raw DB value, data is what the component uses after transformation
+      // This ensures edited content shows correctly on subsequent clicks
+      let elementData = element.data || element.elementData || {};
       
       // Parse elementData if it's a string (shouldn't be needed if parsed in ProgramEditor, but safety check)
       if (typeof elementData === 'string') {
