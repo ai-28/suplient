@@ -36,15 +36,9 @@ const nextConfig = {
             };
         }
         
-        // Fix PDFKit font loading issues in Next.js
+        // Server-side configuration
         if (isServer) {
-            config.resolve.alias = {
-                ...config.resolve.alias,
-                // Prevent PDFKit from trying to load font files
-                'pdfkit': require.resolve('pdfkit'),
-            };
-            
-            // Ignore font metric files that PDFKit tries to load
+            // Ignore Node.js modules that aren't available in browser
             config.resolve.fallback = {
                 ...config.resolve.fallback,
                 fs: false,
