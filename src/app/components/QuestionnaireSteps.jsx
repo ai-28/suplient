@@ -127,10 +127,11 @@ export function QuestionnaireSteps({ onComplete, onCancel }) {
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between pt-4 border-t">
+      <div className="flex flex-col sm:flex-row justify-between gap-2 pt-4 pb-4 border-t">
         <Button
           variant="outline"
           onClick={currentStep === 1 ? onCancel : handleBack}
+          className="w-full sm:w-auto"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           {currentStep === 1 ? "Cancel" : "Back"}
@@ -138,6 +139,7 @@ export function QuestionnaireSteps({ onComplete, onCancel }) {
         <Button
           onClick={handleNext}
           disabled={!validateStep(currentStep)}
+          className="w-full sm:w-auto"
         >
           {currentStep === totalSteps ? (
             <>
@@ -189,7 +191,7 @@ function Step1BasicInfo({ formData, updateFormData }) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="duration">Duration (Weeks) *</Label>
             <Input

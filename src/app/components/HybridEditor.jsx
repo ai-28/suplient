@@ -252,11 +252,11 @@ export function HybridEditor({ element, elementType, onSave, onCancel }) {
                 </p>
               )}
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onCancel}>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button onClick={handleManualSave}>
+              <Button onClick={handleManualSave} className="w-full sm:w-auto">
                 Save Changes
               </Button>
             </div>
@@ -264,7 +264,7 @@ export function HybridEditor({ element, elementType, onSave, onCancel }) {
 
           <TabsContent value="ai" className="space-y-4">
             {/* Chat History */}
-            <div className="border rounded-lg p-4 h-40 overflow-y-auto space-y-4">
+            <div className="border rounded-lg p-3 sm:p-4 h-32 sm:h-40 overflow-y-auto space-y-3 sm:space-y-4">
               {chatHistory.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -354,7 +354,7 @@ export function HybridEditor({ element, elementType, onSave, onCancel }) {
             {/* Suggested Prompts */}
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Suggested prompts:</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {suggestedPrompts.map((prompt, idx) => (
                   <Button
                     key={idx}
@@ -382,13 +382,14 @@ export function HybridEditor({ element, elementType, onSave, onCancel }) {
                 }}
               />
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <p className="text-xs text-muted-foreground">
                 Press Ctrl+Enter to send
               </p>
               <Button
                 onClick={handleAISend}
                 disabled={!aiRequest.trim() || isGenerating}
+                className="w-full sm:w-auto"
               >
                 {isGenerating ? (
                   <>
@@ -438,16 +439,16 @@ export function HybridEditor({ element, elementType, onSave, onCancel }) {
                     })()}
                   </p>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setAiResponse(null)}>
+                <div className="flex flex-col sm:flex-row justify-end gap-2">
+                  <Button variant="outline" onClick={() => setAiResponse(null)} className="w-full sm:w-auto">
                     Try Again
                   </Button>
-                  <Button onClick={handleAcceptAI}>
+                  <Button onClick={handleAcceptAI} className="w-full sm:w-auto">
                     Accept Changes
                   </Button>
-                  <Button variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
+                  <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+                    Cancel
+                  </Button>
                 </div>
               </div>
             )}

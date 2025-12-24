@@ -91,7 +91,7 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
   return (
     <div className="space-y-6">
       {/* Overview Dashboard */}
-      <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
         <div>
           <p className="text-sm text-muted-foreground">Total Elements</p>
           <p className="text-2xl font-bold">{stats.totalElements}</p>
@@ -110,7 +110,7 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
         </div>
       </div>
 
-      <ScrollArea className="h-[500px] pr-4">
+      <ScrollArea className="h-[400px] sm:h-[500px] pr-4">
         <div className="space-y-6">
           {/* Elements Section */}
           <div>
@@ -159,17 +159,17 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
             </h4>
             <div className="space-y-2">
               {program.documents?.map((doc, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4" />
-                    <div>
-                      <p className="font-medium text-sm">{doc.title}</p>
+                <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 border rounded-lg">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <FileText className="h-4 w-4 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{doc.title}</p>
                       <p className="text-xs text-muted-foreground">
                         Week {doc.week} Guide
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -216,15 +216,15 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
       </ScrollArea>
 
       {/* Actions */}
-      <div className="flex justify-between pt-4 border-t">
-        <Button variant="outline" onClick={onBack}>
+      <div className="flex flex-col sm:flex-row justify-between gap-2 pt-4 border-t">
+        <Button variant="outline" onClick={onBack} className="w-full sm:w-auto">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
         <Button
           onClick={handleImport}
           disabled={isImporting}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto"
         >
           {isImporting ? (
             <>
