@@ -16,6 +16,7 @@ import { EmojiButton } from "@/app/components/EmojiButton";
 import { MessageActions } from "@/app/components/MessageActions";
 import { ReplyPreview } from "@/app/components/ReplyPreview";
 import { RepliedMessage } from "@/app/components/RepliedMessage";
+import { MessageWithLinks } from "@/app/components/MessageWithLinks";
 import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTimestamp } from "@/app/utils/timestampGrouping";
 import { useChat } from "@/app/hooks/useChat";
 import { useSession } from "next-auth/react";
@@ -601,7 +602,7 @@ export function UniversalChatInterface({
                                 {msg.isDeleted ? (
                                   <span className="italic opacity-70">This message was deleted</span>
                                 ) : (
-                                  msg.content || '[No content]'
+                                  <MessageWithLinks messageText={msg.content || '[No content]'} />
                                 )}
                               </p>
                               {msg.isEdited && !msg.isDeleted && (

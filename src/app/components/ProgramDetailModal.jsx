@@ -5,9 +5,11 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
-import { CheckCircle2, Clock, FileText, MessageCircle, ClipboardList, Calendar, Play, Pause } from 'lucide-react';
+import { CheckCircle2, Clock, FileText, MessageCircle, ClipboardList, Calendar, Play, Pause, Eye, Download } from 'lucide-react';
+import { useState } from 'react';
 import { Program, ClientProgram, ProgramElement } from '@/app/types/program';
 import { useFormatting } from '@/app/hooks/useFormatting';
+import { MessageWithLinks } from '@/app/components/MessageWithLinks';
 
 export function ProgramDetailModal({
   open,
@@ -19,6 +21,48 @@ export function ProgramDetailModal({
   onPauseResume
 }) {
   const { formatDate } = useFormatting();
+  const [loadingResource, setLoadingResource] = useState(null);
+
+  const handleViewContent = async (element) => {
+    const libraryFileId = element.data?.libraryFileId;
+    if (!libraryFileId) return;
+
+    try {
+      setLoadingResource(element.id);
+      const response = await fetch(`/api/resources/${libraryFileId}/access?action=access`);
+      if (!response.ok) throw new Error('Failed to access resource');
+      
+      const data = await response.json();
+      window.open(data.resource.url, '_blank');
+    } catch (error) {
+      console.error('Error viewing resource:', error);
+    } finally {
+      setLoadingResource(null);
+    }
+  };
+
+  const handleDownloadContent = async (element) => {
+    const libraryFileId = element.data?.libraryFileId;
+    if (!libraryFileId) return;
+
+    try {
+      setLoadingResource(element.id);
+      const response = await fetch(`/api/resources/${libraryFileId}/access?action=download`);
+      if (!response.ok) throw new Error('Failed to download resource');
+      
+      const data = await response.json();
+      const link = document.createElement('a');
+      link.href = data.downloadUrl || data.resource.url;
+      link.download = data.fileName || element.data?.fileName || element.title;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading resource:', error);
+    } finally {
+      setLoadingResource(null);
+    }
+  };
 
   const getElementIcon = (type) => {
     switch (type) {
@@ -63,7 +107,7 @@ export function ProgramDetailModal({
         return taskData.description;
       case 'message':
         const messageData = element.data;
-        return messageData.message;
+        return messageData.message || '';
       case 'checkin':
         const checkinData = element.data;
         return `${checkinData.questions.length} questions`;
@@ -184,13 +228,38 @@ export function ProgramDetailModal({
                                   Day {element.scheduledDay} • {element.scheduledTime}
                                 </p>
                                 
-                                <p className="text-sm text-muted-foreground">
-                                  {getElementDescription(element)}
-                                </p>
+                                <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                  {element.type === 'message' 
+                                    ? <MessageWithLinks messageText={getElementDescription(element)} />
+                                    : getElementDescription(element)
+                                  }
+                                </div>
                               </div>
                             </div>
                             
                             <div className="flex items-center gap-2 ml-3">
+                              {element.type === 'content' && element.data?.libraryFileId && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleViewContent(element)}
+                                    disabled={loadingResource === element.id}
+                                    title="View document"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDownloadContent(element)}
+                                    disabled={loadingResource === element.id}
+                                    title="Download document"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                               {!isCompleted && isCurrent && (
                                 <Button
                                   size="sm"

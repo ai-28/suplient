@@ -8,10 +8,56 @@ import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { LibraryPickerModal } from '@/app/components/LibraryPickerModal';
+import { Eye, Download, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
-export function EditElementDialog({ element, open, onOpenChange, onSave }) {
+export function EditElementDialog({ element, open, onOpenChange, onSave, onDelete }) {
   const [formData, setFormData] = useState({});
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
+  const [loadingResource, setLoadingResource] = useState(false);
+
+  const handleViewContent = async () => {
+    const libraryFileId = formData.data?.libraryFileId;
+    if (!libraryFileId) return;
+
+    try {
+      setLoadingResource(true);
+      const response = await fetch(`/api/resources/${libraryFileId}`);
+      if (!response.ok) throw new Error('Failed to fetch resource');
+      
+      const data = await response.json();
+      window.open(data.resource.url, '_blank');
+    } catch (error) {
+      console.error('Error viewing resource:', error);
+      alert('Failed to open document. Please try again.');
+    } finally {
+      setLoadingResource(false);
+    }
+  };
+
+  const handleDownloadContent = async () => {
+    const libraryFileId = formData.data?.libraryFileId;
+    if (!libraryFileId) return;
+
+    try {
+      setLoadingResource(true);
+      const response = await fetch(`/api/resources/${libraryFileId}`);
+      if (!response.ok) throw new Error('Failed to fetch resource');
+      
+      const data = await response.json();
+      const link = document.createElement('a');
+      link.href = data.resource.url;
+      link.download = data.resource.fileName || formData.data?.fileName || formData.title;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading resource:', error);
+      alert('Failed to download document. Please try again.');
+    } finally {
+      setLoadingResource(false);
+    }
+  };
 
   useEffect(() => {
     if (element && element.id) {
@@ -165,17 +211,6 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Additional details about this element"
-                    rows={3}
-                  />
-                </div>
-
                 {/* Type-specific content */}
                 <Tabs value={formData.type} className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
@@ -201,6 +236,32 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
                           Browse Library
                         </Button>
                       </div>
+                      {formData.data?.libraryFileId && (
+                        <div className="flex items-center gap-2 pt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleViewContent}
+                            disabled={loadingResource}
+                            className="flex items-center gap-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Document
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDownloadContent}
+                            disabled={loadingResource}
+                            className="flex items-center gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            Download
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
 
@@ -216,20 +277,6 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
                         }))}
                         placeholder="Describe what the client needs to do"
                         rows={4}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dueInDays">Due in Days (Optional)</Label>
-                      <Input
-                        id="dueInDays"
-                        type="number"
-                        min="1"
-                        value={formData.data?.dueInDays || ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          data: { ...(prev.data), dueInDays: e.target.value ? parseInt(e.target.value) : undefined, title: formData.title || '', description: (prev.data)?.description || '' }
-                        }))}
-                        placeholder="Number of days to complete"
                       />
                     </div>
                   </TabsContent>
@@ -250,13 +297,41 @@ export function EditElementDialog({ element, open, onOpenChange, onSave }) {
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>
-              Save Changes
-            </Button>
+          <DialogFooter className="flex justify-between">
+            {onDelete && element?.id && (
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  toast('Delete Element', {
+                    description: 'Are you sure you want to delete this element? This action cannot be undone.',
+                    action: {
+                      label: 'Delete',
+                      onClick: () => {
+                        onDelete(element.id);
+                        onOpenChange(false);
+                      }
+                    },
+                    cancel: {
+                      label: 'Cancel',
+                      onClick: () => {}
+                    },
+                    duration: 5000
+                  });
+                }}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave}>
+                Save Changes
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

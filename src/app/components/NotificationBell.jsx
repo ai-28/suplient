@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/pop
 import { useNotifications } from '@/app/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { MessageWithLinks } from './MessageWithLinks';
 
 const notificationIcons = {
   client_signup: '👤',
@@ -457,13 +458,13 @@ export function NotificationBell({ userRole = 'client' }) {
                               </Button> */}
                             </div>
                           </div>
-                          <p className={`text-xs mt-1 line-clamp-2 ${
+                          <div className={`text-xs mt-1 line-clamp-2 ${
                             !notification.isRead 
                               ? 'text-foreground dark:text-foreground' 
                               : 'text-muted-foreground dark:text-muted-foreground'
                           }`}>
-                            {notification.message}
-                          </p>
+                            <MessageWithLinks messageText={notification.message} />
+                          </div>
                           <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
                             {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                           </p>

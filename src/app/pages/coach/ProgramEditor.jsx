@@ -211,6 +211,12 @@ export default function ProgramEditor() {
     setEditElementDialog({ open: false, element: null });
   };
 
+  const handleDeleteElement = (elementId) => {
+    setElements(prev => prev.filter(el => el.id !== elementId));
+    setEditElementDialog({ open: false, element: null });
+    toast.success('Element deleted. Click Save to apply changes.');
+  };
+
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -383,6 +389,7 @@ export default function ProgramEditor() {
         open={editElementDialog.open}
         onOpenChange={(open) => setEditElementDialog({ open, element: null })}
         onSave={handleUpdateElement}
+        onDelete={handleDeleteElement}
       />
     </div>
   );

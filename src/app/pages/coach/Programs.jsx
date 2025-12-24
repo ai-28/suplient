@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from "@/app/context/LanguageContext";
-import { Plus, Users, Target, Clock, Copy, Edit, CheckCircle, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Users, Target, Clock, Copy, Edit, CheckCircle, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
+import { AIAssistProgramModal } from '@/app/components/AIAssistProgramModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
@@ -54,6 +55,7 @@ export default function Programs() {
   const [error, setError] = useState(null);
   const [enrolledClients, setEnrolledClients] = useState({});
   const [loadingClients, setLoadingClients] = useState({});
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   // Fetch programs data
   const fetchPrograms = async () => {
@@ -223,10 +225,25 @@ export default function Programs() {
         title={t('navigation.programs')} 
         subtitle={t('programs.managePrograms', 'Manage your programs')}
       >
-        <Button onClick={() => router.push('/coach/programs/create')} className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
-          <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-[#1A2D4D]`}/>
-          {isMobile ? 'Create' : t('programs.createProgram')}
-        </Button>
+        <div className={`flex gap-2 ${isMobile ? 'flex-col w-full' : ''}`}>
+          <Button 
+            onClick={() => router.push('/coach/programs/create')} 
+            className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 w-full' : 'gap-2'}`} 
+            size={isMobile ? "sm" : "default"}
+          >
+            <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-[#1A2D4D]`}/>
+            {isMobile ? 'Create' : t('programs.createProgram')}
+          </Button>
+          <Button 
+            onClick={() => setAiModalOpen(true)} 
+            variant="outline"
+            className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 w-full' : 'gap-2'}`} 
+            size={isMobile ? "sm" : "default"}
+          >
+            <Sparkles className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`}/>
+            {isMobile ? 'AI Assist' : 'AI Assist Program'}
+          </Button>
+        </div>
       </PageHeader>
 
       {/* KPI Dashboard */}
@@ -466,6 +483,12 @@ export default function Programs() {
         onClose={() => setEnrolledMembersDialogOpen(false)}
         programName={selectedProgram?.name || ''}
         enrolledClients={selectedProgram ? getEnrolledClients(selectedProgram.id) : []}
+      />
+
+      {/* AI Assist Program Modal */}
+      <AIAssistProgramModal
+        open={aiModalOpen}
+        onOpenChange={setAiModalOpen}
       />
     </div>
   );

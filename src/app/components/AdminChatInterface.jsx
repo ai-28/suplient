@@ -17,6 +17,7 @@ import { VoiceMessage } from "./VoiceMessage";
 import { FileAttachmentPreview } from "./FileAttachmentPreview";
 import { ReplyPreview } from "./ReplyPreview";
 import { RepliedMessage } from "./RepliedMessage";
+import { MessageWithLinks } from "./MessageWithLinks";
 import { useSession } from "next-auth/react";
 
 export function AdminChatInterface({ 
@@ -245,7 +246,7 @@ export function AdminChatInterface({
                           {message.isDeleted ? (
                             <span className="italic opacity-70">This message was deleted</span>
                           ) : (
-                            message.content
+                            <MessageWithLinks messageText={message.content} />
                           )}
                         </p>
                       )}
