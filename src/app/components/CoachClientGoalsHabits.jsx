@@ -7,11 +7,14 @@ import { Button } from "@/app/components/ui/button";
 import { Switch } from "@/app/components/ui/switch";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Target, TrendingDown, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Target, TrendingDown, Plus, Trash2, Loader2, FileText, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from '@/app/context/LanguageContext';
 import { IconPicker } from '@/app/components/IconPicker';
 import { ColorPicker } from '@/app/components/ColorPicker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
 
 export function CoachClientGoalsHabits({ clientId }) {
   const t = useTranslation();
@@ -47,6 +50,13 @@ export function CoachClientGoalsHabits({ clientId }) {
   const [newHabitColor, setNewHabitColor] = useState("#EF4444");
   const [saving, setSaving] = useState(false);
 
+  // Template states
+  const [templates, setTemplates] = useState([]);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
+  const [applyMode, setApplyMode] = useState('merge');
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
+
   // Fetch goals and habits
   useEffect(() => {
     const fetchGoalsAndHabits = async () => {
@@ -73,6 +83,24 @@ export function CoachClientGoalsHabits({ clientId }) {
 
     fetchGoalsAndHabits();
   }, [clientId]);
+
+  // Fetch templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await fetch('/api/coach/templates');
+        const data = await response.json();
+
+        if (data.success) {
+          setTemplates(data.templates);
+        }
+      } catch (err) {
+        console.error('Error fetching templates:', err);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   const handleToggleGoal = async (goalId) => {
     const goal = goals.find(g => g.id === goalId);
@@ -242,6 +270,48 @@ export function CoachClientGoalsHabits({ clientId }) {
     }
   };
 
+  const handleApplyTemplate = async () => {
+    if (!selectedTemplateId) {
+      toast.error('Please select a template');
+      return;
+    }
+
+    try {
+      setApplyingTemplate(true);
+      const response = await fetch(`/api/coach/clients/${clientId}/goals/apply-template`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: selectedTemplateId,
+          mode: applyMode
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(data.message || 'Template applied successfully!');
+        setShowTemplateDialog(false);
+        setSelectedTemplateId(null);
+        setApplyMode('merge');
+        
+        // Refresh goals and habits
+        const refreshResponse = await fetch(`/api/coach/clients/${clientId}/goals`);
+        const refreshData = await refreshResponse.json();
+        if (refreshData.success) {
+          setGoals(refreshData.goals);
+          setHabits(refreshData.badHabits);
+        }
+      } else {
+        throw new Error(data.error || 'Failed to apply template');
+      }
+    } catch (error) {
+      console.error('Error applying template:', error);
+      toast.error(error.message || "Failed to apply template");
+    } finally {
+      setApplyingTemplate(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
@@ -269,6 +339,31 @@ export function CoachClientGoalsHabits({ clientId }) {
 
   return (
     <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
+      {/* Template Selector */}
+      {templates.length > 0 && (
+        <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
+          <CardContent className={isMobile ? 'px-2 pb-2 pt-2' : 'p-4'}>
+            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between gap-4'}`}>
+              <div className={isMobile ? 'w-full' : 'flex-1'}>
+                <Label className={isMobile ? 'text-xs' : ''}>Apply Template</Label>
+                <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1`}>
+                  Apply a pre-defined template of goals and habits
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowTemplateDialog(true)}
+                size={isMobile ? "sm" : "default"}
+                className={isMobile ? 'w-full text-xs' : ''}
+              >
+                <FileText className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
+                {isMobile ? 'Apply Template' : 'Apply Template'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Goals Section */}
       <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
         <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
@@ -532,6 +627,96 @@ export function CoachClientGoalsHabits({ clientId }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Apply Template Dialog */}
+      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+        <DialogContent className={isMobile ? 'max-w-[95vw]' : ''}>
+          <DialogHeader>
+            <DialogTitle>Apply Template</DialogTitle>
+            <DialogDescription>
+              Select a template to apply goals and habits to this client
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Select Template *</Label>
+              <Select value={selectedTemplateId || ""} onValueChange={setSelectedTemplateId}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Choose a template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{template.name}</span>
+                        {template.isDefault && (
+                          <Badge variant="secondary" className="text-xs">Default</Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground ml-auto">
+                          ({template.items.filter(i => i.type === 'goal').length} goals, {template.items.filter(i => i.type === 'habit').length} habits)
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedTemplateId && (
+              <div>
+                <Label>Apply Mode *</Label>
+                <RadioGroup value={applyMode} onValueChange={setApplyMode} className="mt-2">
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                    <RadioGroupItem value="merge" id="merge" />
+                    <Label htmlFor="merge" className="flex-1 cursor-pointer">
+                      <div className="font-medium">Merge with existing</div>
+                      <div className="text-xs text-muted-foreground">
+                        Keep current goals/habits and add new ones from template
+                      </div>
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                    <RadioGroupItem value="replace" id="replace" />
+                    <Label htmlFor="replace" className="flex-1 cursor-pointer">
+                      <div className="font-medium">Replace all existing</div>
+                      <div className="text-xs text-muted-foreground">
+                        Remove all current goals/habits and apply template
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowTemplateDialog(false);
+              setSelectedTemplateId(null);
+              setApplyMode('merge');
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleApplyTemplate} 
+              disabled={!selectedTemplateId || applyingTemplate}
+            >
+              {applyingTemplate ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Apply Template
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

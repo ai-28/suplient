@@ -476,6 +476,56 @@ async function createGoalsAndHabitsTables() {
   }
 }
 
+async function createGoalHabitTemplateTables() {
+  try {
+    // Create GoalHabitTemplate table (coach-level templates)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "GoalHabitTemplate" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        "isDefault" BOOLEAN DEFAULT false,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Create GoalHabitTemplateItem table (items in templates)
+    await sql`
+      CREATE TABLE IF NOT EXISTS "GoalHabitTemplateItem" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "templateId" UUID NOT NULL REFERENCES "GoalHabitTemplate"(id) ON DELETE CASCADE,
+        type VARCHAR(10) NOT NULL CHECK (type IN ('goal', 'habit')),
+        name VARCHAR(255) NOT NULL,
+        icon VARCHAR(10),
+        color VARCHAR(50),
+        "order" INTEGER DEFAULT 0,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Add goalHabitTemplateId column to Client table (optional, for tracking which template was applied)
+    try {
+      await sql`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "goalHabitTemplateId" UUID REFERENCES "GoalHabitTemplate"(id)`;
+    } catch (error) {
+      // Column might already exist, ignore
+      console.log('Note: goalHabitTemplateId column may already exist in Client table');
+    }
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_template_coach_id ON "GoalHabitTemplate"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_template_item_template_id ON "GoalHabitTemplateItem"("templateId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_template_item_type ON "GoalHabitTemplateItem"(type)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_client_template_id ON "Client"("goalHabitTemplateId")`;
+
+    console.log('✅ Goal and Habit Template tables created successfully');
+  } catch (error) {
+    console.error('Error creating Goal and Habit Template tables:', error);
+    throw error;
+  }
+}
+
 async function createCheckInTable() {
   try {
     // Create CheckIn table for daily journal entries
@@ -871,6 +921,7 @@ export async function GET() {
     await createResourceTable(); // Create Resource table for library
     await seedNote();
     await createGoalsAndHabitsTables(); // Create Goal and Habit tables
+    await createGoalHabitTemplateTables(); // Create Goal and Habit Template tables
     await createCheckInTable(); // Create CheckIn table for daily journal entries
     await createUserStatsTable(); // Create user stats table
     await createResourceCompletionTable(); // Create resource completion table

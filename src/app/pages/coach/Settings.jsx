@@ -46,6 +46,7 @@ import {
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
+import { GoalHabitTemplateManager } from "@/app/components/GoalHabitTemplateManager";
 
 export default function Settings() {
   const { data: session } = useSession();
@@ -1387,7 +1388,7 @@ export default function Settings() {
       />
 
       <Tabs defaultValue="profile" className={isMobile ? 'space-y-4' : 'space-y-6'}>
-        <TabsList className={`${isMobile ? 'grid grid-cols-3' : 'grid w-full grid-cols-5'} bg-muted ${isMobile ? 'h-auto p-1' : ''}`}>
+        <TabsList className={`${isMobile ? 'grid grid-cols-3' : 'grid w-full grid-cols-6'} bg-muted ${isMobile ? 'h-auto p-1' : ''}`}>
           <TabsTrigger 
             value="profile" 
             className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
@@ -1411,6 +1412,12 @@ export default function Settings() {
             className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
           >
             {t('settings.pipeline.title', 'Pipeline')}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="templates" 
+            className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
+          >
+            Templates
           </TabsTrigger>
           <TabsTrigger 
             value="billing" 
@@ -1938,6 +1945,23 @@ export default function Settings() {
         </TabsContent>
 
         {/* Billing Settings */}
+        {/* Templates Settings */}
+        <TabsContent value="templates">
+          <div className="space-y-6">
+            <Card className="card-standard">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Goal & Habit Templates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <GoalHabitTemplateManager />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         <TabsContent value="billing">
           <div className="space-y-6">
             <Card className="card-standard">

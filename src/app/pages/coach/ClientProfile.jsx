@@ -686,7 +686,7 @@ export default function ClientProfile() {
   // Show loading state
   if (loading) {
     return (
-      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'p-4' : 'p-6'}`}>
+      <div className={`min-h-screen ${isMobile ? 'p-4' : 'p-6'}`}>
         <div className={`max-w-7xl mx-auto flex items-center justify-center ${isMobile ? 'h-64' : 'h-96'}`}>
           <div className="text-center">
             <Loader2 className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} animate-spin mx-auto mb-4`} />
@@ -700,7 +700,7 @@ export default function ClientProfile() {
   // Show error state
   if (error) {
     return (
-      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'p-4' : 'p-6'}`}>
+      <div className={`min-h-screen ${isMobile ? 'p-4' : 'p-6'}`}>
         <div className={`max-w-7xl mx-auto flex items-center justify-center ${isMobile ? 'h-64' : 'h-96'}`}>
           <div className="text-center">
             <AlertCircle className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} text-red-500 mx-auto mb-4`} />
@@ -717,7 +717,7 @@ export default function ClientProfile() {
   // Show not found state
   if (!clientData) {
     return (
-      <div className={`min-h-screen bg-gray-50 ${isMobile ? 'p-4' : 'p-6'}`}>
+      <div className={`min-h-screen ${isMobile ? 'p-4' : 'p-6'}`}>
         <div className={`max-w-7xl mx-auto flex items-center justify-center ${isMobile ? 'h-64' : 'h-96'}`}>
           <div className="text-center">
             <User className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} text-gray-400 mx-auto mb-4`} />
@@ -985,7 +985,7 @@ export default function ClientProfile() {
   };
 
   return (
-    <div className={`max-h-screen bg-gray-50 ${isMobile ? 'p-4 pb-24' : 'p-6'}`}>
+    <div className={`max-h-screen ${isMobile ? 'p-4 pb-24' : 'p-6'}`}>
       <div className={`max-w-7xl mx-auto ${isMobile ? 'space-y-3' : 'space-y-6'}`}>
         {/* Header */}
         <div className={`flex items-center ${isMobile ? 'gap-2' : 'justify-between'}`}>
