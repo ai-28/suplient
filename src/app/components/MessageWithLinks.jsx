@@ -53,11 +53,13 @@ export function MessageWithLinks({ messageText, className = "" }) {
   }
   
   // If no links found, return plain text
+  // Note: Parent element should have whitespace-pre-wrap class
   if (parts.length === 0) {
     return <span className={className}>{text}</span>;
   }
-  
+
   // Return the parts array wrapped in a span
+  // The parent element's whitespace-pre-wrap will preserve formatting
   return <span className={className}>{parts}</span>;
 }
 

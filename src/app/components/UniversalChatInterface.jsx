@@ -126,7 +126,9 @@ export function UniversalChatInterface({
     }
   }, [chatId, session?.user?.id]);
   const handleSendMessage = () => {
-    if (message.trim()) {
+    // Use trim() only for validation, but preserve the original message content with formatting
+    const trimmedMessage = message.trim();
+    if (trimmedMessage) {
       // Only use replyToId if it's a valid UUID (not a temp ID)
       // Temp IDs start with "temp-" or "socket-", real UUIDs are in UUID format
       const isValidUUID = (id) => {
@@ -136,7 +138,7 @@ export function UniversalChatInterface({
       };
 
       const messageData = {
-        content: message.trim(),
+        content: message, // Preserve original formatting (newlines, spaces, etc.)
         type: "text",
         replyToId: replyToMessage?.id && isValidUUID(replyToMessage.id) ? replyToMessage.id : null
       };
@@ -598,7 +600,7 @@ export function UniversalChatInterface({
                                   ? "bg-primary text-primary-foreground" 
                                   : "bg-secondary text-secondary-foreground"
                             } ${msg.status === 'sending' ? 'opacity-70' : ''} ${msg.status === 'error' ? 'bg-red-100 border-red-300' : ''}`}>
-                              <p className="text-sm leading-relaxed">
+                              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                                 {msg.isDeleted ? (
                                   <span className="italic opacity-70">This message was deleted</span>
                                 ) : (
