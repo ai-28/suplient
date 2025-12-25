@@ -985,7 +985,7 @@ export default function ClientProfile() {
   };
 
   return (
-    <div className={`max-h-screen bg-gray-50 ${isMobile ? 'p-4 pb-24' : 'p-6'}`}>
+    <div className={`max-h-screen ${isMobile ? 'p-4 pb-24' : 'p-6'}`}>
       <div className={`max-w-7xl mx-auto ${isMobile ? 'space-y-3' : 'space-y-6'}`}>
         {/* Header */}
         <div className={`flex items-center ${isMobile ? 'gap-2' : 'justify-between'}`}>
@@ -1768,7 +1768,6 @@ export default function ClientProfile() {
 
             {/* Daily Check-in View */}
             <div className={isMobile ? 'px-0' : ''}>
-              <CoachClientCheckInView clientId={id} />
             </div>
 
             {/* Recent Activity Timeline */}
