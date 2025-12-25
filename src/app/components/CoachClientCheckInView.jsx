@@ -22,6 +22,7 @@ const formatDateLocal = (date) => {
 export function CoachClientCheckInView({ clientId }) {
   const t = useTranslation();
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [activePeriod, setActivePeriod] = useState('today');
   const [checkInData, setCheckInData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -42,7 +43,7 @@ export function CoachClientCheckInView({ clientId }) {
     }
   }, []);
 
-  // Fetch check-in data when date changes
+  // Fetch check-in data when date or period changes
   useEffect(() => {
     const fetchCheckInData = async () => {
       if (!clientId) return;
@@ -52,7 +53,7 @@ export function CoachClientCheckInView({ clientId }) {
 
       try {
         const dateStr = formatDateLocal(selectedDate);
-        const response = await fetch(`/api/coach/clients/${clientId}/checkin?date=${dateStr}`);
+        const response = await fetch(`/api/coach/clients/${clientId}/checkin?date=${dateStr}&period=${activePeriod}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch check-in data');
@@ -69,7 +70,7 @@ export function CoachClientCheckInView({ clientId }) {
     };
 
     fetchCheckInData();
-  }, [clientId, selectedDate]);
+  }, [clientId, selectedDate, activePeriod]);
 
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
@@ -118,7 +119,10 @@ export function CoachClientCheckInView({ clientId }) {
       tooltip: {
         callbacks: {
           label: function(context) {
-            return `${context.label}: ${context.parsed.r} / 5`;
+            const value = activePeriod === 'today' 
+              ? context.parsed.r 
+              : context.parsed.r.toFixed(1);
+            return `${context.label}: ${value} / 5`;
           }
         }
       }
@@ -157,7 +161,10 @@ export function CoachClientCheckInView({ clientId }) {
           {t('clients.dailyCheckIn', 'Daily Check-in')}
         </CardTitle>
         <CardDescription className={isMobile ? 'text-xs hidden' : ''}>
-          {t('clients.viewClientDailyTracking', 'View client\'s daily check-in metrics and notes')}
+          {activePeriod === 'today' 
+            ? t('clients.viewClientDailyTracking', 'View client\'s daily check-in metrics and notes')
+            : t('clients.viewClientPeriodTracking', `View client's ${activePeriod} average check-in metrics`)
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className={`space-y-6 ${isMobile ? 'px-2 pb-2 space-y-3' : ''}`}>
@@ -213,10 +220,41 @@ export function CoachClientCheckInView({ clientId }) {
           <Button
             variant="outline"
             size={isMobile ? "sm" : "sm"}
-            onClick={() => setSelectedDate(new Date())}
+            onClick={() => {
+              setSelectedDate(new Date());
+              setActivePeriod('today');
+            }}
             className={isMobile ? 'ml-0 text-xs px-2 h-8' : 'ml-2'}
           >
             {t('common.time.today', 'Today')}
+          </Button>
+        </div>
+
+        {/* Time Period Selector */}
+        <div className={`flex justify-center gap-1.5 ${isMobile ? 'px-2' : ''}`}>
+          <Button 
+            variant={activePeriod === 'today' ? "secondary" : "outline"} 
+            size="sm"
+            onClick={() => setActivePeriod('today')}
+            className={isMobile ? "text-xs px-3 py-1" : "text-xs px-3 py-1"}
+          >
+            {t('common.time.today', 'Today')}
+          </Button>
+          <Button 
+            variant={activePeriod === 'week' ? "secondary" : "outline"} 
+            size="sm"
+            onClick={() => setActivePeriod('week')}
+            className={isMobile ? "text-xs px-3 py-1" : "text-xs px-3 py-1"}
+          >
+            {t('analytics.week', 'Week')}
+          </Button>
+          <Button 
+            variant={activePeriod === 'month' ? "secondary" : "outline"} 
+            size="sm"
+            onClick={() => setActivePeriod('month')}
+            className={isMobile ? "text-xs px-3 py-1" : "text-xs px-3 py-1"}
+          >
+            {t('analytics.month', 'Month')}
           </Button>
         </div>
 
@@ -238,7 +276,7 @@ export function CoachClientCheckInView({ clientId }) {
         )}
 
         {/* No Data State */}
-        {!loading && !error && !checkInData?.checkIn && (
+        {!loading && !error && activePeriod === 'today' && !checkInData?.checkIn && (
           <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-muted-foreground`}>
             <CalendarIcon className={isMobile ? 'h-8 w-8 mx-auto' : 'h-12 w-12 mx-auto'} />
             <p className={isMobile ? 'text-xs' : 'text-sm'}>{t('clients.noCheckInForDate', 'No check-in found for this date')}</p>
@@ -248,8 +286,22 @@ export function CoachClientCheckInView({ clientId }) {
           </div>
         )}
 
+        {/* No Data State for Week/Month */}
+        {!loading && !error && (activePeriod === 'week' || activePeriod === 'month') && 
+         (!checkInData?.goalDistribution || checkInData.goalDistribution.length === 0 || 
+          checkInData.goalDistribution.every(g => g.value === 0)) && (
+          <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-muted-foreground`}>
+            <CalendarIcon className={isMobile ? 'h-8 w-8 mx-auto' : 'h-12 w-12 mx-auto'} />
+            <p className={isMobile ? 'text-xs' : 'text-sm'}>
+              {t('clients.noCheckInForPeriod', `No check-in data found for this ${activePeriod}`)}
+            </p>
+          </div>
+        )}
+
         {/* Check-in Data */}
-        {!loading && !error && checkInData?.checkIn && (
+        {!loading && !error && ((activePeriod === 'today' && checkInData?.checkIn) || 
+         (activePeriod !== 'today' && checkInData?.goalDistribution && checkInData.goalDistribution.length > 0 && 
+          checkInData.goalDistribution.some(g => g.value > 0))) && (
           <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
             {/* Goal Metrics - Polar Chart */}
             {checkInData.goalDistribution && checkInData.goalDistribution.length > 0 && (
@@ -272,7 +324,9 @@ export function CoachClientCheckInView({ clientId }) {
                       />
                       <span className={isMobile ? 'text-xs' : 'text-sm'}>{item.icon}</span>
                       <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium break-words flex-1 min-w-0`}>{item.name}</span>
-                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground flex-shrink-0 ml-auto`}>{item.value}/5</span>
+                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground flex-shrink-0 ml-auto`}>
+                        {activePeriod === 'today' ? `${item.value}/5` : `${item.value.toFixed(1)}/5`}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -303,7 +357,7 @@ export function CoachClientCheckInView({ clientId }) {
                           />
                         </div>
                         <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'min-w-[25px]' : 'min-w-[30px]'} text-right flex-shrink-0`}>
-                          {habit.value}/5
+                          {activePeriod === 'today' ? `${habit.value}/5` : `${habit.value.toFixed(1)}/5`}
                         </span>
                       </div>
                     </div>
@@ -312,25 +366,27 @@ export function CoachClientCheckInView({ clientId }) {
               </div>
             )}
 
-            {/* Daily Notes */}
-            <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
-              <h3 className={isMobile ? 'text-sm font-semibold' : 'text-lg font-semibold'}>
-                {t('clients.dailyNotes', 'Daily Notes')}
-              </h3>
-              {checkInData.notes ? (
-                <div className={`${isMobile ? 'p-2' : 'p-4'} rounded-lg bg-muted/30 border`}>
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground whitespace-pre-wrap break-words`}>
-                    {checkInData.notes}
-                  </p>
-                </div>
-              ) : (
-                <div className={`${isMobile ? 'p-2' : 'p-4'} rounded-lg bg-muted/30 border text-center text-muted-foreground`}>
-                  <p className={isMobile ? 'text-xs' : 'text-sm'}>
-                    {t('clients.noNotesForDate', 'No notes saved for this date')}
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* Daily Notes - Only show for today period */}
+            {activePeriod === 'today' && (
+              <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
+                <h3 className={isMobile ? 'text-sm font-semibold' : 'text-lg font-semibold'}>
+                  {t('clients.dailyNotes', 'Daily Notes')}
+                </h3>
+                {checkInData.notes ? (
+                  <div className={`${isMobile ? 'p-2' : 'p-4'} rounded-lg bg-muted/30 border`}>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground whitespace-pre-wrap break-words`}>
+                      {checkInData.notes}
+                    </p>
+                  </div>
+                ) : (
+                  <div className={`${isMobile ? 'p-2' : 'p-4'} rounded-lg bg-muted/30 border text-center text-muted-foreground`}>
+                    <p className={isMobile ? 'text-xs' : 'text-sm'}>
+                      {t('clients.noNotesForDate', 'No notes saved for this date')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
