@@ -37,7 +37,7 @@ export async function GET(request) {
                 "updatedAt"
             FROM "GoalHabitTemplate"
             WHERE "coachId" = ${coachId}
-            ORDER BY "isDefault" DESC, "createdAt" DESC
+            ORDER BY "createdAt" DESC
         `;
 
         // For each template, fetch its items
@@ -106,7 +106,7 @@ export async function POST(request) {
 
         const coachId = user[0].id;
         const body = await request.json();
-        const { name, description, items, isDefault } = body;
+        const { name, description, items } = body;
 
         if (!name || !items || !Array.isArray(items)) {
             return NextResponse.json(
@@ -115,19 +115,10 @@ export async function POST(request) {
             );
         }
 
-        // If setting as default, unset other defaults
-        if (isDefault) {
-            await sql`
-                UPDATE "GoalHabitTemplate"
-                SET "isDefault" = false
-                WHERE "coachId" = ${coachId} AND "isDefault" = true
-            `;
-        }
-
         // Create the template
         const [template] = await sql`
             INSERT INTO "GoalHabitTemplate" ("coachId", name, description, "isDefault")
-            VALUES (${coachId}, ${name}, ${description || null}, ${isDefault || false})
+            VALUES (${coachId}, ${name}, ${description || null}, false)
             RETURNING id, name, description, "isDefault", "createdAt", "updatedAt"
         `;
 
@@ -210,7 +201,7 @@ export async function PUT(request) {
 
         const coachId = user[0].id;
         const body = await request.json();
-        const { id, name, description, items, isDefault } = body;
+        const { id, name, description, items } = body;
 
         if (!id || !name) {
             return NextResponse.json(
@@ -232,22 +223,12 @@ export async function PUT(request) {
             );
         }
 
-        // If setting as default, unset other defaults
-        if (isDefault) {
-            await sql`
-                UPDATE "GoalHabitTemplate"
-                SET "isDefault" = false
-                WHERE "coachId" = ${coachId} AND "isDefault" = true AND id != ${id}
-            `;
-        }
-
         // Update the template
         await sql`
             UPDATE "GoalHabitTemplate"
             SET 
                 name = ${name},
                 description = ${description || null},
-                "isDefault" = ${isDefault || false},
                 "updatedAt" = CURRENT_TIMESTAMP
             WHERE id = ${id}
         `;

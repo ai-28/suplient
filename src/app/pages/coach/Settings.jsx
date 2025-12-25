@@ -41,7 +41,8 @@ import {
   CheckCircle,
   AlertCircle,
   LogOut,
-  Copy
+  Copy,
+  Target
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";

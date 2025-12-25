@@ -33,19 +33,31 @@ export function IconPicker({ value, onChange, placeholder = "🎯" }) {
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
           className="w-full justify-start"
+          onClick={(e) => e.stopPropagation()}
         >
           <span className="text-xl mr-2">{value || placeholder}</span>
           <Smile className="h-4 w-4 ml-auto" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80" align="start">
-        <div className="space-y-4">
+      <PopoverContent 
+        className="w-80" 
+        align="start"
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking inside dialog
+          const target = e.target;
+          if (target && target.closest && target.closest('[role="dialog"]')) {
+            e.preventDefault();
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
           <div>
             <h4 className="text-sm font-medium mb-2">Common Icons</h4>
             <div className="grid grid-cols-8 gap-2 max-h-48 overflow-y-auto">
@@ -53,8 +65,11 @@ export function IconPicker({ value, onChange, placeholder = "🎯" }) {
                 <button
                   key={icon}
                   type="button"
-                  onClick={() => handleIconSelect(icon)}
-                  className="text-2xl hover:bg-muted rounded p-2 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleIconSelect(icon);
+                  }}
+                  className="text-2xl hover:bg-muted rounded p-2 transition-colors flex items-center justify-center aspect-square"
                   title={icon}
                 >
                   {icon}
@@ -68,18 +83,26 @@ export function IconPicker({ value, onChange, placeholder = "🎯" }) {
               <Input
                 placeholder="Enter emoji"
                 value={customIcon}
-                onChange={(e) => setCustomIcon(e.target.value)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setCustomIcon(e.target.value);
+                }}
                 maxLength={2}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
+                    e.stopPropagation();
                     handleCustomIcon();
                   }
                 }}
+                onClick={(e) => e.stopPropagation()}
               />
               <Button
                 type="button"
-                onClick={handleCustomIcon}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCustomIcon();
+                }}
                 size="sm"
               >
                 Add

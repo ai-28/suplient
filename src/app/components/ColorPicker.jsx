@@ -25,12 +25,13 @@ export function ColorPicker({ value, onChange }) {
   };
 
   return (
-    <Popover>
+    <Popover modal={true}>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
           className="w-full justify-start"
+          onClick={(e) => e.stopPropagation()}
         >
           <div 
             className="w-4 h-4 rounded-full mr-2 border border-gray-300"
@@ -42,8 +43,19 @@ export function ColorPicker({ value, onChange }) {
           <Palette className="h-4 w-4 ml-auto" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64" align="start">
-        <div className="space-y-4">
+      <PopoverContent 
+        className="w-64" 
+        align="start"
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking inside dialog
+          const target = e.target;
+          if (target && target.closest && target.closest('[role="dialog"]')) {
+            e.preventDefault();
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
           <div>
             <h4 className="text-sm font-medium mb-2">Preset Colors</h4>
             <div className="grid grid-cols-6 gap-2">
@@ -51,7 +63,10 @@ export function ColorPicker({ value, onChange }) {
                 <button
                   key={color.value}
                   type="button"
-                  onClick={() => handleColorSelect(color.value)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleColorSelect(color.value);
+                  }}
                   className="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition-transform"
                   style={{ backgroundColor: color.value }}
                   title={color.name}
@@ -64,7 +79,11 @@ export function ColorPicker({ value, onChange }) {
             <input
               type="color"
               value={value}
-              onChange={(e) => handleColorSelect(e.target.value)}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleColorSelect(e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
               className="w-full h-10 rounded cursor-pointer"
             />
           </div>

@@ -650,9 +650,6 @@ export function CoachClientGoalsHabits({ clientId }) {
                     <SelectItem key={template.id} value={template.id}>
                       <div className="flex items-center gap-2">
                         <span>{template.name}</span>
-                        {template.isDefault && (
-                          <Badge variant="secondary" className="text-xs">Default</Badge>
-                        )}
                         <span className="text-xs text-muted-foreground ml-auto">
                           ({template.items.filter(i => i.type === 'goal').length} goals, {template.items.filter(i => i.type === 'habit').length} habits)
                         </span>

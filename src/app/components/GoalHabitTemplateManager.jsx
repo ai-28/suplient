@@ -27,7 +27,6 @@ export function GoalHabitTemplateManager() {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
-  const [isDefault, setIsDefault] = useState(false);
   const [templateItems, setTemplateItems] = useState([]);
   const [saving, setSaving] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
@@ -83,13 +82,11 @@ export function GoalHabitTemplateManager() {
       setEditingTemplate(template);
       setTemplateName(template.name);
       setTemplateDescription(template.description || "");
-      setIsDefault(template.isDefault || false);
       setTemplateItems(template.items || []);
     } else {
       setEditingTemplate(null);
       setTemplateName("");
       setTemplateDescription("");
-      setIsDefault(false);
       setTemplateItems([]);
     }
     setShowTemplateDialog(true);
@@ -140,7 +137,6 @@ export function GoalHabitTemplateManager() {
         ...(editingTemplate && { id: editingTemplate.id }),
         name: templateName.trim(),
         description: templateDescription.trim() || null,
-        isDefault,
         items: templateItems.map(item => ({
           type: item.type,
           name: item.name,
@@ -248,11 +244,6 @@ export function GoalHabitTemplateManager() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <CardTitle className={isMobile ? 'text-sm' : ''}>{template.name}</CardTitle>
-                      {template.isDefault && (
-                        <Badge variant="secondary" className={isMobile ? 'text-[10px]' : 'text-xs'}>
-                          Default
-                        </Badge>
-                      )}
                     </div>
                     {template.description && (
                       <CardDescription className={isMobile ? 'text-xs mt-1' : 'mt-1'}>
@@ -326,14 +317,6 @@ export function GoalHabitTemplateManager() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={isDefault}
-                onCheckedChange={setIsDefault}
-              />
-              <Label>Set as default template</Label>
-            </div>
-
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label>Goals & Habits ({templateItems.length})</Label>
@@ -404,8 +387,17 @@ export function GoalHabitTemplateManager() {
       </Dialog>
 
       {/* Add Item Dialog */}
-      <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
-        <DialogContent className={isMobile ? 'max-w-[95vw]' : ''}>
+      <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog} modal={true}>
+        <DialogContent 
+          className={isMobile ? 'max-w-[95vw]' : ''}
+          onInteractOutside={(e) => {
+            // Prevent closing when clicking on popover content
+            const target = e.target;
+            if (target && target.closest && (target.closest('[role="dialog"]') || target.closest('[data-radix-popper-content-wrapper]'))) {
+              e.preventDefault();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Add Goal or Habit</DialogTitle>
             <DialogDescription>
@@ -458,19 +450,23 @@ export function GoalHabitTemplateManager() {
 
             <div>
               <Label>Icon</Label>
-              <IconPicker
-                value={newItemIcon}
-                onChange={setNewItemIcon}
-                placeholder={newItemType === 'goal' ? "🎯" : "📱"}
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <IconPicker
+                  value={newItemIcon}
+                  onChange={setNewItemIcon}
+                  placeholder={newItemType === 'goal' ? "🎯" : "📱"}
+                />
+              </div>
             </div>
 
             <div>
               <Label>Color</Label>
-              <ColorPicker
-                value={newItemColor}
-                onChange={setNewItemColor}
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <ColorPicker
+                  value={newItemColor}
+                  onChange={setNewItemColor}
+                />
+              </div>
             </div>
           </div>
 
