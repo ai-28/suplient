@@ -270,26 +270,26 @@ export function CoachClientCheckInView({ clientId }) {
         )}
 
         {/* No Data State */}
-        {!loading && !error && !checkInData?.checkIn && activePeriod === 'today' && (
+        {!loading && !error && (!checkInData?.goalDistribution || checkInData.goalDistribution.length === 0) && (
           <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-muted-foreground`}>
             <CalendarIcon className={isMobile ? 'h-8 w-8 mx-auto' : 'h-12 w-12 mx-auto'} />
-            <p className={isMobile ? 'text-xs' : 'text-sm'}>{t('clients.noCheckInForDate', 'No check-in found for this date')}</p>
-            <p className={`${isMobile ? 'text-xs' : 'text-sm'} mt-1 break-words`}>
-              {formatDate(selectedDate)}
-            </p>
-          </div>
-        )}
-        {!loading && !error && activePeriod !== 'today' && (!checkInData?.goalDistribution || checkInData.goalDistribution.length === 0) && (
-          <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-muted-foreground`}>
-            <CalendarIcon className={isMobile ? 'h-8 w-8 mx-auto' : 'h-12 w-12 mx-auto'} />
-            <p className={isMobile ? 'text-xs' : 'text-sm'}>
-              {t('clients.noCheckInForPeriod', `No check-in data found for this ${activePeriod}`)}
-            </p>
+            {activePeriod === 'today' ? (
+              <>
+                <p className={isMobile ? 'text-xs' : 'text-sm'}>{t('clients.noCheckInForDate', 'No check-in found for this date')}</p>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} mt-1 break-words`}>
+                  {formatDate(selectedDate)}
+                </p>
+              </>
+            ) : (
+              <p className={isMobile ? 'text-xs' : 'text-sm'}>
+                {t('clients.noCheckInForPeriod', `No check-in data found for this ${activePeriod}`)}
+              </p>
+            )}
           </div>
         )}
 
         {/* Check-in Data */}
-        {!loading && !error && (checkInData?.checkIn || (activePeriod !== 'today' && checkInData?.goalDistribution)) && (
+        {!loading && !error && checkInData?.goalDistribution && checkInData.goalDistribution.length > 0 && (
           <div className={isMobile ? 'space-y-3' : 'space-y-6'}>
             {/* Goal Metrics - Polar Chart */}
             {checkInData.goalDistribution && checkInData.goalDistribution.length > 0 && (
