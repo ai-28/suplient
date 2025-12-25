@@ -236,7 +236,7 @@ export function GoalHabitTemplateManager() {
           </CardContent>
         </Card>
       ) : (
-        <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
+        <div className={`${isMobile ? 'space-y-3' : 'space-y-4'} max-h-[500px] overflow-y-auto pr-2`}>
           {templates.map((template) => (
             <Card key={template.id}>
               <CardHeader className={isMobile ? 'px-3 py-3' : ''}>

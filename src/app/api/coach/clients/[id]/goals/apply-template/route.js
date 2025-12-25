@@ -116,17 +116,17 @@ export async function POST(request, { params }) {
             const existingHabitNames = new Set(existingHabits.map(h => h.name_lower));
 
             // Filter out duplicates
-            const goalsToAdd = templateItems.filter(item => 
+            const goalsToAdd = templateItems.filter(item =>
                 item.type === 'goal' && !existingGoalNames.has(item.name.toLowerCase())
             );
-            const habitsToAdd = templateItems.filter(item => 
+            const habitsToAdd = templateItems.filter(item =>
                 item.type === 'habit' && !existingHabitNames.has(item.name.toLowerCase())
             );
 
-            skippedGoals = templateItems.filter(item => 
+            skippedGoals = templateItems.filter(item =>
                 item.type === 'goal' && existingGoalNames.has(item.name.toLowerCase())
             ).length;
-            skippedHabits = templateItems.filter(item => 
+            skippedHabits = templateItems.filter(item =>
                 item.type === 'habit' && existingHabitNames.has(item.name.toLowerCase())
             ).length;
 
@@ -163,13 +163,6 @@ export async function POST(request, { params }) {
                 addedHabits++;
             }
 
-            // Update client's template reference
-            await sql`
-                UPDATE "Client"
-                SET "goalHabitTemplateId" = ${templateId}
-                WHERE id = ${clientId}
-            `;
-
             return NextResponse.json({
                 success: true,
                 message: `Template applied successfully (merge mode)`,
@@ -198,13 +191,6 @@ export async function POST(request, { params }) {
                 addedHabits++;
             }
         }
-
-        // Update client's template reference
-        await sql`
-            UPDATE "Client"
-            SET "goalHabitTemplateId" = ${templateId}
-            WHERE id = ${clientId}
-        `;
 
         return NextResponse.json({
             success: true,
