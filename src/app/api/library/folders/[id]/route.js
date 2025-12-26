@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import authOptions from "@/app/lib/authoption";
 import { userRepo } from "@/app/lib/db/userRepo";
-import { 
-  getFolderById, 
-  updateFolder, 
-  deleteFolder, 
+import {
+  getFolderById,
+  updateFolder,
+  deleteFolder,
   moveFolder,
   getFolderPath,
   getFolderWithCount
 } from "@/app/lib/db/folderRepo";
+import { deleteFileFromS3, extractFilePathFromUrl } from "@/app/lib/s3Client";
+import { deleteResource } from "@/app/lib/db/resourceRepo";
 
 export async function GET(request, { params }) {
   try {
@@ -46,7 +48,7 @@ export async function GET(request, { params }) {
     }
 
     const result = { folder };
-    
+
     if (withPath) {
       result.path = await getFolderPath(id);
     }
@@ -141,9 +143,29 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
-    await deleteFolder(id);
+    const result = await deleteFolder(id);
 
-    return NextResponse.json({ status: true, message: "Folder deleted successfully" });
+    // Delete all resources in the folder from S3 and database
+    if (result.resources && result.resources.length > 0) {
+      for (const resource of result.resources) {
+        try {
+          // Delete from S3
+          if (resource.url) {
+            const filePath = extractFilePathFromUrl(resource.url);
+            if (filePath) {
+              await deleteFileFromS3(filePath);
+            }
+          }
+          // Delete from database
+          await deleteResource(resource.id);
+        } catch (error) {
+          console.error(`Error deleting resource ${resource.id}:`, error);
+          // Continue deleting other resources even if one fails
+        }
+      }
+    }
+
+    return NextResponse.json({ status: true, message: "Folder and all files deleted successfully" });
   } catch (error) {
     console.error('Error deleting folder:', error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });

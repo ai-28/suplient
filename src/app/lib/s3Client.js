@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand, PutBucketCorsCommand, PutObjectAclCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, HeadObjectCommand, PutBucketCorsCommand, PutObjectAclCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import https from 'https';
 
@@ -187,6 +187,46 @@ export async function abortMultipartUpload(filePath, uploadId) {
         console.log(`✅ Aborted multipart upload: ${filePath}`);
     } catch (error) {
         console.error(`❌ Error aborting multipart upload: ${filePath}`, error);
+    }
+}
+
+// Extract file path from CDN URL
+export function extractFilePathFromUrl(url) {
+    if (!url) return null;
+    
+    try {
+        // Handle CDN format: https://bucket.region.cdn.endpoint/path
+        // Or standard format: https://bucket.region.endpoint/path
+        const urlObj = new URL(url);
+        const pathname = urlObj.pathname;
+        
+        // Remove leading slash
+        return pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    } catch (error) {
+        console.error('Error extracting file path from URL:', error);
+        return null;
+    }
+}
+
+// Delete file from S3
+export async function deleteFileFromS3(filePath) {
+    try {
+        if (!filePath) {
+            console.warn('⚠️ No file path provided for deletion');
+            return false;
+        }
+
+        const command = new DeleteObjectCommand({
+            Bucket: process.env.DO_SPACES_BUCKET,
+            Key: filePath,
+        });
+        
+        await s3Client.send(command);
+        console.log(`✅ File deleted from S3: ${filePath}`);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error deleting file from S3: ${filePath}`, error);
+        return false;
     }
 }
 

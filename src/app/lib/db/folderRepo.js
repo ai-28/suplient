@@ -116,7 +116,7 @@ export async function updateFolder(folderId, updates) {
   }
 }
 
-// Delete folder (cascade deletes subfolders and sets resources folderId to NULL)
+// Delete folder (cascade deletes subfolders and deletes all resources in folder)
 export async function deleteFolder(folderId) {
   try {
     // First, recursively get all subfolders
@@ -136,16 +136,21 @@ export async function deleteFolder(folderId) {
     
     const allFolderIds = await getAllSubfolders(folderId);
     
-    // Set all resources in these folders to NULL
-    for (const id of allFolderIds) {
-      await sql`UPDATE "Resource" SET "folderId" = NULL WHERE "folderId" = ${id}`;
-    }
+    // Get all resources in these folders (to delete from S3)
+    const resources = await sql`
+      SELECT id, url FROM "Resource" WHERE "folderId" = ANY(${allFolderIds})
+    `;
     
     // Delete all folders (cascade will handle subfolders)
     const result = await sql`
       DELETE FROM "ResourceFolder" WHERE id = ${folderId} RETURNING *
     `;
-    return result[0];
+    
+    // Return folder info and resources for S3 deletion
+    return {
+      folder: result[0],
+      resources: resources // Resources will be deleted from S3 by the API route
+    };
   } catch (error) {
     console.error('Error deleting folder:', error);
     throw error;

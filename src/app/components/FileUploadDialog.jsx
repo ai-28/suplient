@@ -8,7 +8,8 @@ import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Upload, X, File, Image, Video, Music, FileText, FileImage, BookOpen, Loader2 } from "lucide-react";
+import { Upload, X, File, Image, Video, Music, FileText, FileImage, BookOpen, Loader2, Folder } from "lucide-react";
+import { TreePickerDialog } from "@/app/components/TreePickerDialog";
 import { toast } from "sonner";
 import { Progress } from "@/app/components/ui/progress";
 
@@ -55,7 +56,9 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
   // Folder selection state
   const [selectedFolderId, setSelectedFolderId] = useState(currentFolderId || null);
   const [availableFolders, setAvailableFolders] = useState([]);
+  const [folderTree, setFolderTree] = useState([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const [showTreePicker, setShowTreePicker] = useState(false);
 
   const IconComponent = categoryIcons[category] || File;
 
@@ -83,7 +86,8 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
         const result = await response.json();
         
         if (result.status) {
-          // Flatten the tree structure for the dropdown
+          setFolderTree(result.folders || []);
+          // Also keep flattened for backward compatibility if needed
           const flattenFolders = (folders, parentPath = '') => {
             let flat = [];
             folders.forEach(folder => {
@@ -697,29 +701,30 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           <div className="space-y-4">
             {/* Folder Selection */}
             <div className="space-y-2">
-              <Label htmlFor="folder">Upload to Folder (Optional)</Label>
-              <Select 
-                value={selectedFolderId || 'root'} 
-                onValueChange={(value) => setSelectedFolderId(value === 'root' ? null : value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="root">Root (No Folder)</SelectItem>
-                  {loadingFolders ? (
-                    <SelectItem value="loading" disabled>Loading folders...</SelectItem>
-                  ) : availableFolders.length === 0 ? (
-                    <SelectItem value="no-folders" disabled>No folders available</SelectItem>
-                  ) : (
-                    availableFolders.map((folder) => (
-                      <SelectItem key={folder.id} value={folder.id}>
-                        {folder.displayPath}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <Label>Upload to Folder</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 p-2 border rounded-lg bg-muted/50 flex items-center gap-2">
+                  <Folder className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <p className="text-sm text-muted-foreground truncate">
+                    {selectedFolderId ? (
+                      loadingFolders ? 'Loading...' : (
+                        availableFolders.find(f => f.id === selectedFolderId)?.displayPath || 'Selected folder'
+                      )
+                    ) : (
+                      'Root (No Folder)'
+                    )}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTreePicker(true)}
+                  disabled={loadingFolders}
+                >
+                  Change
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -795,6 +800,26 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           </div>
         </div>
       </DialogContent>
+
+      {/* Tree Picker Dialog */}
+      <TreePickerDialog
+        open={showTreePicker}
+        onOpenChange={setShowTreePicker}
+        folders={folderTree}
+        selectedFolderId={selectedFolderId}
+        onSelect={(folderId) => {
+          setSelectedFolderId(folderId);
+          setShowTreePicker(false);
+        }}
+        title="Select Upload Folder"
+        allowRoot={true}
+        categoryInfo={{
+          color: category === 'videos' ? 'bg-primary' : 
+                 category === 'images' ? 'bg-accent' : 
+                 category === 'articles' ? 'bg-secondary' : 
+                 'bg-blue-teal'
+        }}
+      />
     </Dialog>
   );
 }

@@ -28,17 +28,20 @@ import {
   Folder,
   FolderPlus,
   ChevronRight,
+  ChevronDown,
   MoreVertical,
   Edit2,
   Trash2,
   FolderOpen,
   Scissors,
   Clipboard,
-  X as XIcon
+  X as XIcon,
+  Layers
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { FileUploadDialog } from "@/app/components/FileUploadDialog";
 import { ShareFileDialog } from "@/app/components/ShareFileDialog";
+import { TreePickerDialog } from "@/app/components/TreePickerDialog";
 import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Input } from "@/app/components/ui/input";
@@ -72,6 +75,180 @@ const getCategoryData = (t) => ({
   },
 });
 
+// Recursive Folder Tree Item Component
+function FolderTreeItem({ 
+  folder, 
+  depth, 
+  expandedFolders, 
+  onToggleExpand, 
+  onNavigate,
+  onEdit,
+  onDelete,
+  onPaste,
+  cutFiles,
+  movingFiles,
+  dragOverFolderId,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  categoryInfo,
+  isMobile,
+  t
+}) {
+  const hasChildren = folder.children && folder.children.length > 0;
+  const isExpanded = expandedFolders.has(folder.id);
+  const indentLevel = depth * 24; // 24px per level
+
+  return (
+    <div>
+      <Card
+        className={`group hover:shadow-medium transition-all cursor-pointer border-2 hover:border-primary/50 ${
+          dragOverFolderId === folder.id ? 'border-primary border-4 bg-primary/10' : ''
+        }`}
+        onDragOver={(e) => onDragOver(e, folder.id)}
+        onDragLeave={onDragLeave}
+        onDrop={(e) => onDrop(e, folder.id)}
+      >
+        <CardContent className={`p-3 ${isMobile ? 'p-2' : ''}`}>
+          <div className="flex items-start justify-between gap-2">
+            <div 
+              className="flex items-center gap-2 flex-1 min-w-0"
+              style={{ paddingLeft: `${indentLevel}px` }}
+            >
+              {hasChildren ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleExpand(folder.id);
+                  }}
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </Button>
+              ) : (
+                <div className="w-6 shrink-0" /> // Spacer for alignment
+              )}
+              <div 
+                className={`${categoryInfo.color} rounded-lg p-1.5 shrink-0 cursor-pointer`}
+                onClick={() => onNavigate(folder.id)}
+              >
+                <Folder className="h-4 w-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <h4 
+                        className={`font-medium text-foreground truncate ${isMobile ? 'text-xs' : 'text-sm'} cursor-pointer`}
+                        onClick={() => onNavigate(folder.id)}
+                      >
+                        {folder.name}
+                      </h4>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{folder.name}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {cutFiles.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPaste(folder.id);
+                  }}
+                  disabled={movingFiles}
+                  className="opacity-100 text-xs"
+                >
+                  {movingFiles ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    t('library.moveHere', 'Move Here')
+                  )}
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Use requestAnimationFrame to ensure dropdown closes first
+                      requestAnimationFrame(() => {
+                        onEdit(folder);
+                      });
+                    }}
+                  >
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    {t('common.buttons.edit', 'Edit')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Use requestAnimationFrame to ensure dropdown closes first
+                      requestAnimationFrame(() => {
+                        onDelete(folder.id);
+                      });
+                    }}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {t('common.buttons.delete', 'Delete')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      {hasChildren && isExpanded && (
+        <div className="mt-1">
+          {folder.children.map((child) => (
+            <FolderTreeItem
+              key={child.id}
+              folder={child}
+              depth={depth + 1}
+              expandedFolders={expandedFolders}
+              onToggleExpand={onToggleExpand}
+              onNavigate={onNavigate}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onPaste={onPaste}
+              cutFiles={cutFiles}
+              movingFiles={movingFiles}
+              dragOverFolderId={dragOverFolderId}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              categoryInfo={categoryInfo}
+              isMobile={isMobile}
+              t={t}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function LibraryCategory() {
   const { category } = useParams();
   const router = useRouter();
@@ -90,6 +267,7 @@ export default function LibraryCategory() {
   // Folder state
   const [currentFolderId, setCurrentFolderId] = useState(null); // null = root level
   const [folders, setFolders] = useState([]);
+  const [folderTree, setFolderTree] = useState([]); // Full tree structure
   const [folderPath, setFolderPath] = useState([]); // Breadcrumb path
   const [loadingFolders, setLoadingFolders] = useState(true);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
@@ -98,6 +276,14 @@ export default function LibraryCategory() {
   const [editingFolder, setEditingFolder] = useState(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [deletingFolderId, setDeletingFolderId] = useState(null);
+  const [updatingFolder, setUpdatingFolder] = useState(false);
+  const [deletingFolder, setDeletingFolder] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState(null);
+  const [deletingFiles, setDeletingFiles] = useState(false);
+  const [folderViewMode, setFolderViewMode] = useState('current'); // 'current' or 'tree'
+  const [expandedFolders, setExpandedFolders] = useState(new Set()); // Track expanded folders in tree view
+  const [newFolderParentId, setNewFolderParentId] = useState(null); // For creating subfolders
+  const [showTreePicker, setShowTreePicker] = useState(false); // For tree picker dialog
   
   // Cut/Paste state
   const [cutFiles, setCutFiles] = useState([]); // Array of file IDs that are cut
@@ -133,26 +319,81 @@ export default function LibraryCategory() {
     return mapping[category] || 'video';
   };
 
+  // Flatten folder tree for dropdown selection
+  const flattenFolders = (folders, parentPath = '') => {
+    let flat = [];
+    folders.forEach(folder => {
+      const path = parentPath ? `${parentPath} / ${folder.name}` : folder.name;
+      flat.push({ ...folder, displayPath: path });
+      if (folder.children && folder.children.length > 0) {
+        flat = [...flat, ...flattenFolders(folder.children, path)];
+      }
+    });
+    return flat;
+  };
 
-  // Fetch folders
+  // Get folder path from tree structure
+  const getFolderPathFromTree = (folderId, tree = folderTree) => {
+    if (!folderId) return [];
+    
+    const findPath = (folders, targetId, currentPath = []) => {
+      for (const folder of folders) {
+        const newPath = [...currentPath, folder];
+        if (folder.id === targetId) {
+          return newPath;
+        }
+        if (folder.children && folder.children.length > 0) {
+          const found = findPath(folder.children, targetId, newPath);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    return findPath(tree, folderId) || [];
+  };
+
+
+  // Fetch folders (current level or tree)
   useEffect(() => {
     const fetchFolders = async () => {
       try {
         setLoadingFolders(true);
         const resourceType = getResourceType();
-        const parentId = currentFolderId || null;
-        const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
-        const response = await fetch(url);
-        const result = await response.json();
         
-        if (result.status) {
-          setFolders(result.folders || []);
+        if (folderViewMode === 'tree') {
+          // Fetch full tree structure
+          const url = `/api/library/folders?resourceType=${resourceType}&tree=true`;
+          const response = await fetch(url);
+          const result = await response.json();
+          
+          if (result.status) {
+            setFolderTree(result.folders || []);
+            // Also set folders to empty for tree view
+            setFolders([]);
+          } else {
+            setFolderTree([]);
+            setFolders([]);
+          }
         } else {
-          setFolders([]);
+          // Fetch current level only
+          const parentId = currentFolderId || null;
+          const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
+          const response = await fetch(url);
+          const result = await response.json();
+          
+          if (result.status) {
+            setFolders(result.folders || []);
+            setFolderTree([]);
+          } else {
+            setFolders([]);
+            setFolderTree([]);
+          }
         }
       } catch (error) {
         console.error('Error fetching folders:', error);
         setFolders([]);
+        setFolderTree([]);
       } finally {
         setLoadingFolders(false);
       }
@@ -161,7 +402,7 @@ export default function LibraryCategory() {
     if (category) {
       fetchFolders();
     }
-  }, [category, currentFolderId]);
+  }, [category, currentFolderId, folderViewMode]);
 
   // Fetch folder path (breadcrumb)
   useEffect(() => {
@@ -315,6 +556,63 @@ export default function LibraryCategory() {
     return items.filter(item => selectedFiles.includes(item.id));
   };
 
+  const handleDeleteFile = async (fileId) => {
+    try {
+      setDeletingFileId(fileId);
+      const response = await fetch(`/api/library/resources/${fileId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+      
+      if (result.status) {
+        toast.success(t('library.fileDeleted', 'File deleted successfully'));
+        // Remove from items list
+        setItems(prev => prev.filter(item => item.id !== fileId));
+        // Remove from selection if selected
+        setSelectedFiles(prev => prev.filter(id => id !== fileId));
+      } else {
+        toast.error(result.message || t('library.fileDeleteFailed', 'Failed to delete file'));
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error(t('library.fileDeleteFailed', 'Failed to delete file'));
+    } finally {
+      setDeletingFileId(null);
+    }
+  };
+
+  const handleDeleteSelectedFiles = async () => {
+    if (selectedFiles.length === 0) return;
+
+    try {
+      setDeletingFiles(true);
+      const deletePromises = selectedFiles.map(fileId => 
+        fetch(`/api/library/resources/${fileId}`, { method: 'DELETE' })
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.length - successful;
+
+      if (successful > 0) {
+        toast.success(`${successful} file(s) deleted successfully`);
+        // Remove deleted files from items list
+        setItems(prev => prev.filter(item => !selectedFiles.includes(item.id)));
+        setSelectedFiles([]);
+      }
+      
+      if (failed > 0) {
+        toast.error(`${failed} file(s) failed to delete`);
+      }
+    } catch (error) {
+      console.error('Error deleting files:', error);
+      toast.error(t('library.filesDeleteFailed', 'Failed to delete files'));
+    } finally {
+      setDeletingFiles(false);
+    }
+  };
+
   const handlePreview = (item) => {
     // Since the direct URL works in browser, let's try using it directly first
     // If that fails, we can fall back to the preview API
@@ -345,6 +643,13 @@ export default function LibraryCategory() {
   };
 
   // Folder handlers
+  // Initialize newFolderParentId to currentFolderId when dialog opens
+  useEffect(() => {
+    if (showCreateFolderDialog) {
+      setNewFolderParentId(currentFolderId);
+    }
+  }, [showCreateFolderDialog, currentFolderId]);
+
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {
       toast.error(t('library.folderNameRequired', 'Folder name is required'));
@@ -354,13 +659,14 @@ export default function LibraryCategory() {
     try {
       setCreatingFolder(true);
       const resourceType = getResourceType();
+      const parentId = newFolderParentId;
       const response = await fetch('/api/library/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newFolderName.trim(),
           resourceType,
-          parentFolderId: currentFolderId
+          parentFolderId: parentId
         })
       });
 
@@ -370,13 +676,27 @@ export default function LibraryCategory() {
         toast.success(t('library.folderCreated', 'Folder created successfully'));
         setShowCreateFolderDialog(false);
         setNewFolderName("");
-        // Refresh folders list
-        const parentId = currentFolderId || null;
-        const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
-        const foldersResponse = await fetch(url);
-        const foldersResult = await foldersResponse.json();
-        if (foldersResult.status) {
-          setFolders(foldersResult.folders || []);
+        setNewFolderParentId(null);
+        // Refresh folders list based on current view mode
+        if (folderViewMode === 'tree') {
+          const treeUrl = `/api/library/folders?resourceType=${resourceType}&tree=true`;
+          const treeResponse = await fetch(treeUrl);
+          const treeResult = await treeResponse.json();
+          if (treeResult.status) {
+            setFolderTree(treeResult.folders || []);
+            // Auto-expand parent folder if creating subfolder
+            if (parentId) {
+              setExpandedFolders(prev => new Set([...prev, parentId]));
+            }
+          }
+        } else {
+          const parentId = currentFolderId || null;
+          const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
+          const foldersResponse = await fetch(url);
+          const foldersResult = await foldersResponse.json();
+          if (foldersResult.status) {
+            setFolders(foldersResult.folders || []);
+          }
         }
       } else {
         toast.error(result.message || t('library.folderCreateFailed', 'Failed to create folder'));
@@ -396,6 +716,7 @@ export default function LibraryCategory() {
     }
 
     try {
+      setUpdatingFolder(true);
       const response = await fetch(`/api/library/folders/${editingFolder.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -410,14 +731,26 @@ export default function LibraryCategory() {
         toast.success(t('library.folderUpdated', 'Folder updated successfully'));
         setEditingFolder(null);
         setEditingFolderName("");
-        // Refresh folders list
+        
+        // Refresh folders list based on current view mode
         const resourceType = getResourceType();
-        const parentId = currentFolderId || null;
-        const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
-        const foldersResponse = await fetch(url);
-        const foldersResult = await foldersResponse.json();
-        if (foldersResult.status) {
-          setFolders(foldersResult.folders || []);
+        if (folderViewMode === 'tree') {
+          // Refresh tree structure
+          const treeUrl = `/api/library/folders?resourceType=${resourceType}&tree=true`;
+          const treeResponse = await fetch(treeUrl);
+          const treeResult = await treeResponse.json();
+          if (treeResult.status) {
+            setFolderTree(treeResult.folders || []);
+          }
+        } else {
+          // Refresh current level
+          const parentId = currentFolderId || null;
+          const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
+          const foldersResponse = await fetch(url);
+          const foldersResult = await foldersResponse.json();
+          if (foldersResult.status) {
+            setFolders(foldersResult.folders || []);
+          }
         }
       } else {
         toast.error(result.message || t('library.folderUpdateFailed', 'Failed to update folder'));
@@ -425,6 +758,8 @@ export default function LibraryCategory() {
     } catch (error) {
       console.error('Error updating folder:', error);
       toast.error(t('library.folderUpdateFailed', 'Failed to update folder'));
+    } finally {
+      setUpdatingFolder(false);
     }
   };
 
@@ -432,6 +767,7 @@ export default function LibraryCategory() {
     if (!deletingFolderId) return;
 
     try {
+      setDeletingFolder(true);
       const response = await fetch(`/api/library/folders/${deletingFolderId}`, {
         method: 'DELETE'
       });
@@ -441,15 +777,28 @@ export default function LibraryCategory() {
       if (result.status) {
         toast.success(t('library.folderDeleted', 'Folder deleted successfully'));
         setDeletingFolderId(null);
-        // Refresh folders list and items
+        
+        // Refresh folders list based on current view mode
         const resourceType = getResourceType();
-        const parentId = currentFolderId || null;
-        const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
-        const foldersResponse = await fetch(url);
-        const foldersResult = await foldersResponse.json();
-        if (foldersResult.status) {
-          setFolders(foldersResult.folders || []);
+        if (folderViewMode === 'tree') {
+          // Refresh tree structure
+          const treeUrl = `/api/library/folders?resourceType=${resourceType}&tree=true`;
+          const treeResponse = await fetch(treeUrl);
+          const treeResult = await treeResponse.json();
+          if (treeResult.status) {
+            setFolderTree(treeResult.folders || []);
+          }
+        } else {
+          // Refresh current level
+          const parentId = currentFolderId || null;
+          const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
+          const foldersResponse = await fetch(url);
+          const foldersResult = await foldersResponse.json();
+          if (foldersResult.status) {
+            setFolders(foldersResult.folders || []);
+          }
         }
+        
         // Refresh items
         const folderParam = currentFolderId ? `&folderId=${currentFolderId}` : '&folderId=null';
         const itemsResponse = await fetch(`/api/library/${category}?${folderParam}`);
@@ -465,13 +814,47 @@ export default function LibraryCategory() {
     } catch (error) {
       console.error('Error deleting folder:', error);
       toast.error(t('library.folderDeleteFailed', 'Failed to delete folder'));
+    } finally {
+      setDeletingFolder(false);
     }
   };
 
   const handleFolderClick = (folderId) => {
+    if (folderViewMode === 'tree') {
+      // In tree view, toggle expand/collapse instead of navigating
+      setExpandedFolders(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(folderId)) {
+          newSet.delete(folderId);
+        } else {
+          newSet.add(folderId);
+        }
+        return newSet;
+      });
+    } else {
+      // In current view, navigate into folder
+      setCurrentFolderId(folderId);
+      setSelectedFiles([]);
+    }
+  };
+
+  const handleFolderNavigate = (folderId) => {
+    // Navigate into folder (used in tree view)
     setCurrentFolderId(folderId);
-    setSelectedFiles([]); // Clear selection when navigating
-    // Keep cut files - user might want to paste in new folder
+    setSelectedFiles([]);
+    setFolderViewMode('current'); // Switch back to current view when navigating
+  };
+
+  const toggleExpandFolder = (folderId) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
   };
 
   const handleBreadcrumbClick = (folderId) => {
@@ -771,6 +1154,26 @@ export default function LibraryCategory() {
                 </Button>
               )}
               
+              <Button 
+                variant="outline"
+                onClick={handleDeleteSelectedFiles}
+                disabled={deletingFiles}
+                className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'} text-destructive hover:text-destructive`}
+                size={isMobile ? "sm" : "default"}
+              >
+                {deletingFiles ? (
+                  <>
+                    <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-spin`} />
+                    {isMobile ? 'Deleting...' : t('common.messages.deleting', 'Deleting...')}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                    {isMobile ? `Delete (${selectedFiles.length})` : `${t('common.buttons.delete', 'Delete')} (${selectedFiles.length})`}
+                  </>
+                )}
+              </Button>
+              
               <ShareFileDialog 
                 files={getSelectedFiles()}
                 onShare={handleShareSelected}
@@ -793,7 +1196,7 @@ export default function LibraryCategory() {
             >
               {movingFiles ? (
                 <>
-                  <Loader2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-spin />
+                  <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-spin`} />
                   {isMobile ? 'Moving...' : t('common.messages.moving', 'Moving...')}
                 </>
               ) : (
@@ -831,25 +1234,26 @@ export default function LibraryCategory() {
         >
           {categoryInfo.title}
         </button>
-        {folderPath.map((folder, index) => (
-          <div key={folder.id} className="flex items-center gap-2">
-            <ChevronRight className="h-3 w-3" />
-            <button
-              onClick={() => handleBreadcrumbClick(folder.id)}
-              className="hover:text-foreground transition-colors"
-            >
-              {folder.name}
-            </button>
-          </div>
-        ))}
-        {currentFolderId && folderPath.length > 0 && (
-          <>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-foreground font-medium">
-              {folderPath[folderPath.length - 1]?.name}
-            </span>
-          </>
-        )}
+        {folderPath.map((folder, index) => {
+          const isLast = index === folderPath.length - 1;
+          return (
+            <div key={folder.id} className="flex items-center gap-2">
+              <ChevronRight className="h-3 w-3" />
+              {isLast ? (
+                <span className="text-foreground font-medium">
+                  {folder.name}
+                </span>
+              ) : (
+                <button
+                  onClick={() => handleBreadcrumbClick(folder.id)}
+                  className="hover:text-foreground transition-colors"
+                >
+                  {folder.name}
+                </button>
+              )}
+            </div>
+          );
+        })}
         {cutFiles.length > 0 && dragOverFolderId === 'root' && (
           <span className="text-primary font-medium ml-2">
             {t('library.dropHere', 'Drop here to move to root')}
@@ -861,9 +1265,20 @@ export default function LibraryCategory() {
       {!loadingFolders && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-semibold text-foreground`}>
-              {t('library.folders', 'Folders')}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-semibold text-foreground`}>
+                {t('library.folders', 'Folders')}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFolderViewMode(folderViewMode === 'current' ? 'tree' : 'current')}
+                className={`flex items-center gap-1 ${isMobile ? 'text-xs px-1.5 h-7' : 'text-xs px-2 h-8'}`}
+              >
+                <Layers className={isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+                {folderViewMode === 'current' ? t('library.treeView', 'Tree') : t('library.currentView', 'Current')}
+              </Button>
+            </div>
             <Dialog open={showCreateFolderDialog} onOpenChange={setShowCreateFolderDialog}>
               <DialogTrigger asChild>
                 <Button 
@@ -897,6 +1312,34 @@ export default function LibraryCategory() {
                       }}
                     />
                   </div>
+                  {folderViewMode === 'tree' && (
+                    <div className="space-y-2">
+                      <Label>{t('library.parentFolder', 'Parent Folder')}</Label>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 p-2 border rounded-lg bg-muted/50">
+                          <p className="text-sm text-muted-foreground">
+                            {newFolderParentId ? (() => {
+                              const selectedPath = getFolderPathFromTree(newFolderParentId);
+                              if (selectedPath.length > 0) {
+                                return `${categoryInfo.title} / ${selectedPath.map(f => f.name).join(' / ')}`;
+                              }
+                              return categoryInfo.title;
+                            })() : (
+                              `${categoryInfo.title} (Root)`
+                            )}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowTreePicker(true)}
+                        >
+                          {t('library.changeLocation', 'Change')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button
@@ -904,6 +1347,7 @@ export default function LibraryCategory() {
                     onClick={() => {
                       setShowCreateFolderDialog(false);
                       setNewFolderName("");
+                      setNewFolderParentId(currentFolderId);
                     }}
                   >
                     {t('common.buttons.cancel', 'Cancel')}
@@ -924,9 +1368,61 @@ export default function LibraryCategory() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* Tree Picker Dialog for Folder Creation */}
+            <TreePickerDialog
+              open={showTreePicker}
+              onOpenChange={setShowTreePicker}
+              folders={folderTree}
+              selectedFolderId={newFolderParentId}
+              onSelect={(folderId) => {
+                setNewFolderParentId(folderId);
+                setShowTreePicker(false);
+              }}
+              title={t('library.selectParentFolder', 'Select Parent Folder')}
+              allowRoot={true}
+              categoryInfo={categoryInfo}
+            />
           </div>
           
-          {folders.length > 0 ? (
+          {/* Render folders based on view mode */}
+          {folderViewMode === 'tree' ? (
+            // Tree View
+            <div className="space-y-1">
+              {folderTree.length > 0 ? (
+                folderTree.map((folder) => (
+                  <FolderTreeItem
+                    key={folder.id}
+                    folder={folder}
+                    depth={0}
+                    expandedFolders={expandedFolders}
+                    onToggleExpand={toggleExpandFolder}
+                    onNavigate={handleFolderNavigate}
+                    onEdit={(folder) => {
+                      setEditingFolder(folder);
+                      setEditingFolderName(folder.name);
+                    }}
+                    onDelete={(folderId) => setDeletingFolderId(folderId)}
+                    onPaste={handlePasteFiles}
+                    cutFiles={cutFiles}
+                    movingFiles={movingFiles}
+                    dragOverFolderId={dragOverFolderId}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    categoryInfo={categoryInfo}
+                    isMobile={isMobile}
+                    t={t}
+                  />
+                ))
+              ) : (
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'} py-4`}>
+                  {t('library.noFolders', 'No folders yet. Create one to organize your files.')}
+                </p>
+              )}
+            </div>
+          ) : folders.length > 0 ? (
+            // Current Level View (Grid)
             <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3'}`}>
               {folders.map((folder) => (
                 <Card
@@ -993,8 +1489,11 @@ export default function LibraryCategory() {
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditingFolder(folder);
-                                setEditingFolderName(folder.name);
+                                // Use requestAnimationFrame to ensure dropdown closes first
+                                requestAnimationFrame(() => {
+                                  setEditingFolder(folder);
+                                  setEditingFolderName(folder.name);
+                                });
                               }}
                             >
                               <Edit2 className="mr-2 h-4 w-4" />
@@ -1003,7 +1502,10 @@ export default function LibraryCategory() {
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDeletingFolderId(folder.id);
+                                // Use requestAnimationFrame to ensure dropdown closes first
+                                requestAnimationFrame(() => {
+                                  setDeletingFolderId(folder.id);
+                                });
                               }}
                               className="text-destructive"
                             >
@@ -1019,7 +1521,7 @@ export default function LibraryCategory() {
               ))}
             </div>
           ) : (
-            !loading && (
+            !loading && folderViewMode === 'current' && (
               <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'} py-4`}>
                 {t('library.noFolders', 'No folders yet. Create one to organize your files.')}
               </p>
@@ -1211,6 +1713,20 @@ export default function LibraryCategory() {
                       <Share2 className="h-4 w-4" />
                     </Button>
                   </ShareFileDialog>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    title={t('common.buttons.delete', 'Delete')} 
+                    className="px-3 text-destructive hover:text-destructive"
+                    disabled={deletingFileId === item.id}
+                    onClick={() => handleDeleteFile(item.id)}
+                  >
+                    {deletingFileId === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1314,6 +1830,20 @@ export default function LibraryCategory() {
                           <Share2 className="h-4 w-4" />
                         </Button>
                       </ShareFileDialog>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        title={t('common.buttons.delete', 'Delete')} 
+                        className="px-3 text-destructive hover:text-destructive"
+                        disabled={deletingFileId === item.id}
+                        onClick={() => handleDeleteFile(item.id)}
+                      >
+                        {deletingFileId === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1584,14 +2114,22 @@ export default function LibraryCategory() {
                   setEditingFolder(null);
                   setEditingFolderName("");
                 }}
+                disabled={updatingFolder}
               >
                 {t('common.buttons.cancel', 'Cancel')}
               </Button>
               <Button
                 onClick={handleEditFolder}
-                disabled={!editingFolderName.trim()}
+                disabled={!editingFolderName.trim() || updatingFolder}
               >
-                {t('common.buttons.save', 'Save')}
+                {updatingFolder ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('common.messages.saving', 'Saving...')}
+                  </>
+                ) : (
+                  t('common.buttons.save', 'Save')
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1604,16 +2142,26 @@ export default function LibraryCategory() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('library.deleteFolder', 'Delete Folder')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('library.deleteFolderDesc', 'Are you sure you want to delete this folder? All files in this folder will be moved to the parent folder. This action cannot be undone.')}
+              {t('library.deleteFolderDesc', 'Are you sure you want to delete this folder? All files in this folder will be permanently deleted from both database and storage. This action cannot be undone.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.buttons.cancel', 'Cancel')}</AlertDialogCancel>
+            <AlertDialogCancel disabled={deletingFolder}>
+              {t('common.buttons.cancel', 'Cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteFolder}
+              disabled={deletingFolder}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {t('common.buttons.delete', 'Delete')}
+              {deletingFolder ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('common.messages.deleting', 'Deleting...')}
+                </>
+              ) : (
+                t('common.buttons.delete', 'Delete')
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
