@@ -38,6 +38,12 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
     }
   };
 
+  const handleBackToQuestionnaire = () => {
+    // Clear generated program when going back to edit prompts
+    setGeneratedProgram(null);
+    setStep(1);
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden sm:w-full">
@@ -74,7 +80,7 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
               generatedProgram={generatedProgram}
               questionnaireData={questionnaireData}
               onImportComplete={handleImportComplete}
-              onBack={() => setStep(2)}
+              onBack={handleBackToQuestionnaire}
             />
           )}
         </div>
