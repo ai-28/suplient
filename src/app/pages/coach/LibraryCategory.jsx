@@ -24,12 +24,28 @@ import {
   Grid3X3,
   List,
   X,
-  Loader2
+  Loader2,
+  Folder,
+  FolderPlus,
+  ChevronRight,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  FolderOpen,
+  Scissors,
+  Clipboard,
+  X as XIcon
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { FileUploadDialog } from "@/app/components/FileUploadDialog";
 import { ShareFileDialog } from "@/app/components/ShareFileDialog";
 import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/app/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 // Note: categoryData is now using translations in the component
@@ -70,6 +86,25 @@ export default function LibraryCategory() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewType, setPreviewType] = useState(null);
   const [downloadingItemId, setDownloadingItemId] = useState(null);
+  
+  // Folder state
+  const [currentFolderId, setCurrentFolderId] = useState(null); // null = root level
+  const [folders, setFolders] = useState([]);
+  const [folderPath, setFolderPath] = useState([]); // Breadcrumb path
+  const [loadingFolders, setLoadingFolders] = useState(true);
+  const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [editingFolder, setEditingFolder] = useState(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
+  const [deletingFolderId, setDeletingFolderId] = useState(null);
+  
+  // Cut/Paste state
+  const [cutFiles, setCutFiles] = useState([]); // Array of file IDs that are cut
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedFiles, setDraggedFiles] = useState([]);
+  const [dragOverFolderId, setDragOverFolderId] = useState(null);
+  const [movingFiles, setMovingFiles] = useState(false);
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
@@ -87,12 +122,84 @@ export default function LibraryCategory() {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  // Map category to resourceType
+  const getResourceType = () => {
+    const mapping = {
+      videos: 'video',
+      images: 'image',
+      articles: 'article',
+      sounds: 'sound'
+    };
+    return mapping[category] || 'video';
+  };
+
+
+  // Fetch folders
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        setLoadingFolders(true);
+        const resourceType = getResourceType();
+        const parentId = currentFolderId || null;
+        const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.status) {
+          setFolders(result.folders || []);
+        } else {
+          setFolders([]);
+        }
+      } catch (error) {
+        console.error('Error fetching folders:', error);
+        setFolders([]);
+      } finally {
+        setLoadingFolders(false);
+      }
+    };
+
+    if (category) {
+      fetchFolders();
+    }
+  }, [category, currentFolderId]);
+
+  // Fetch folder path (breadcrumb)
+  useEffect(() => {
+    const fetchFolderPath = async () => {
+      if (!currentFolderId) {
+        setFolderPath([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/library/folders/${currentFolderId}?withPath=true`);
+        const result = await response.json();
+        
+        if (result.status && result.path) {
+          setFolderPath(result.path);
+        } else {
+          setFolderPath([]);
+        }
+      } catch (error) {
+        console.error('Error fetching folder path:', error);
+        setFolderPath([]);
+      }
+    };
+
+    if (currentFolderId) {
+      fetchFolderPath();
+    } else {
+      setFolderPath([]);
+    }
+  }, [currentFolderId]);
+
   // Fetch items from API
   useEffect(() => {
     const fetchItems = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/library/${category}`);
+        const folderParam = currentFolderId ? `&folderId=${currentFolderId}` : '&folderId=null';
+        const response = await fetch(`/api/library/${category}?${folderParam}`);
         const result = await response.json();
         
         if (result.status) {
@@ -123,7 +230,7 @@ export default function LibraryCategory() {
     if (category) {
       fetchItems();
     }
-  }, [category]);
+  }, [category, currentFolderId]);
 
   const handleFileUpload = (uploadedFile) => {
     // Debug: Log the uploaded file structure
@@ -193,8 +300,11 @@ export default function LibraryCategory() {
   const handleShareSelected = (shareData) => {
     const selectedItems = items.filter(item => selectedFiles.includes(item.id));
     
+    const count = selectedFiles.length;
+    const fileText = count === 1 ? 'file has' : 'files have';
+    const description = `${count} ${fileText} been shared.`;
     toast.success(t('library.filesShared', 'Files Shared Successfully'), {
-      description: t('library.filesSharedDesc', '{count} files have been shared.', { count: selectedFiles.length })
+      description: description
     });
     
     // Clear selection after sharing
@@ -232,6 +342,293 @@ export default function LibraryCategory() {
     }
     
     setPreviewUrl(directUrl);
+  };
+
+  // Folder handlers
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      toast.error(t('library.folderNameRequired', 'Folder name is required'));
+      return;
+    }
+
+    try {
+      setCreatingFolder(true);
+      const resourceType = getResourceType();
+      const response = await fetch('/api/library/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newFolderName.trim(),
+          resourceType,
+          parentFolderId: currentFolderId
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.status) {
+        toast.success(t('library.folderCreated', 'Folder created successfully'));
+        setShowCreateFolderDialog(false);
+        setNewFolderName("");
+        // Refresh folders list
+        const parentId = currentFolderId || null;
+        const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
+        const foldersResponse = await fetch(url);
+        const foldersResult = await foldersResponse.json();
+        if (foldersResult.status) {
+          setFolders(foldersResult.folders || []);
+        }
+      } else {
+        toast.error(result.message || t('library.folderCreateFailed', 'Failed to create folder'));
+      }
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      toast.error(t('library.folderCreateFailed', 'Failed to create folder'));
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  const handleEditFolder = async () => {
+    if (!editingFolderName.trim()) {
+      toast.error(t('library.folderNameRequired', 'Folder name is required'));
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/library/folders/${editingFolder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editingFolderName.trim()
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.status) {
+        toast.success(t('library.folderUpdated', 'Folder updated successfully'));
+        setEditingFolder(null);
+        setEditingFolderName("");
+        // Refresh folders list
+        const resourceType = getResourceType();
+        const parentId = currentFolderId || null;
+        const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
+        const foldersResponse = await fetch(url);
+        const foldersResult = await foldersResponse.json();
+        if (foldersResult.status) {
+          setFolders(foldersResult.folders || []);
+        }
+      } else {
+        toast.error(result.message || t('library.folderUpdateFailed', 'Failed to update folder'));
+      }
+    } catch (error) {
+      console.error('Error updating folder:', error);
+      toast.error(t('library.folderUpdateFailed', 'Failed to update folder'));
+    }
+  };
+
+  const handleDeleteFolder = async () => {
+    if (!deletingFolderId) return;
+
+    try {
+      const response = await fetch(`/api/library/folders/${deletingFolderId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+      
+      if (result.status) {
+        toast.success(t('library.folderDeleted', 'Folder deleted successfully'));
+        setDeletingFolderId(null);
+        // Refresh folders list and items
+        const resourceType = getResourceType();
+        const parentId = currentFolderId || null;
+        const url = `/api/library/folders?resourceType=${resourceType}&parentFolderId=${parentId || 'null'}`;
+        const foldersResponse = await fetch(url);
+        const foldersResult = await foldersResponse.json();
+        if (foldersResult.status) {
+          setFolders(foldersResult.folders || []);
+        }
+        // Refresh items
+        const folderParam = currentFolderId ? `&folderId=${currentFolderId}` : '&folderId=null';
+        const itemsResponse = await fetch(`/api/library/${category}?${folderParam}`);
+        const itemsResult = await itemsResponse.json();
+        if (itemsResult.status) {
+          const itemsKey = category === 'articles' ? 'articles' : category;
+          const fetchedItems = itemsResult[itemsKey] || [];
+          setItems(fetchedItems.filter(item => item.id));
+        }
+      } else {
+        toast.error(result.message || t('library.folderDeleteFailed', 'Failed to delete folder'));
+      }
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      toast.error(t('library.folderDeleteFailed', 'Failed to delete folder'));
+    }
+  };
+
+  const handleFolderClick = (folderId) => {
+    setCurrentFolderId(folderId);
+    setSelectedFiles([]); // Clear selection when navigating
+    // Keep cut files - user might want to paste in new folder
+  };
+
+  const handleBreadcrumbClick = (folderId) => {
+    setCurrentFolderId(folderId);
+    setSelectedFiles([]);
+  };
+
+  // Cut files (mark for moving)
+  const handleCutFiles = () => {
+    if (selectedFiles.length === 0) {
+      toast.error(t('library.noFilesSelected', 'Please select files to move'));
+      return;
+    }
+    setCutFiles(selectedFiles);
+    const count = selectedFiles.length;
+    const fileText = count === 1 ? 'file' : 'files';
+    toast.info(`${count} ${fileText} cut. Navigate to destination and click Paste Here.`);
+  };
+
+  // Cancel cut operation
+  const handleCancelCut = () => {
+    setCutFiles([]);
+    toast.info(t('library.cutCancelled', 'Cut operation cancelled'));
+  };
+
+  // Paste files to current folder
+  const handlePasteFiles = async (targetFolderId = null) => {
+    if (cutFiles.length === 0) {
+      toast.error(t('library.noFilesCut', 'No files are cut'));
+      return;
+    }
+
+    try {
+      setMovingFiles(true);
+      const response = await fetch('/api/library/resources/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resourceIds: cutFiles,
+          folderId: targetFolderId || currentFolderId || null
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.status) {
+        const count = cutFiles.length;
+        const fileText = count === 1 ? 'file' : 'files';
+        toast.success(`${count} ${fileText} moved successfully`);
+        setCutFiles([]);
+        setSelectedFiles([]);
+        
+        // Refresh items list
+        const folderParam = currentFolderId ? `&folderId=${currentFolderId}` : '&folderId=null';
+        const itemsResponse = await fetch(`/api/library/${category}?${folderParam}`);
+        const itemsResult = await itemsResponse.json();
+        if (itemsResult.status) {
+          const itemsKey = category === 'articles' ? 'articles' : category;
+          const fetchedItems = itemsResult[itemsKey] || [];
+          setItems(fetchedItems.filter(item => item.id));
+        }
+      } else {
+        toast.error(result.message || t('library.moveFailed', 'Failed to move files'));
+      }
+    } catch (error) {
+      console.error('Error moving files:', error);
+      toast.error(t('library.moveFailed', 'Failed to move files'));
+    } finally {
+      setMovingFiles(false);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, fileIds) => {
+    setIsDragging(true);
+    setDraggedFiles(fileIds);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify(fileIds));
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDraggedFiles([]);
+    setDragOverFolderId(null);
+  };
+
+  const handleDragOver = (e, folderId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverFolderId(folderId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverFolderId(null);
+  };
+
+  const handleDrop = async (e, targetFolderId) => {
+    e.preventDefault();
+    setDragOverFolderId(null);
+    
+    let filesToMove = draggedFiles;
+    
+    // If no dragged files, try to get from dataTransfer
+    if (filesToMove.length === 0) {
+      try {
+        const data = e.dataTransfer.getData('text/plain');
+        filesToMove = JSON.parse(data);
+      } catch (error) {
+        console.error('Error parsing drag data:', error);
+        return;
+      }
+    }
+
+    if (filesToMove.length === 0) {
+      return;
+    }
+
+    try {
+      setMovingFiles(true);
+      const response = await fetch('/api/library/resources/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resourceIds: filesToMove,
+          folderId: targetFolderId || null
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.status) {
+        const count = filesToMove.length;
+        const fileText = count === 1 ? 'file' : 'files';
+        toast.success(`${count} ${fileText} moved successfully`);
+        setSelectedFiles([]);
+        setCutFiles([]);
+        
+        // Refresh items list
+        const folderParam = currentFolderId ? `&folderId=${currentFolderId}` : '&folderId=null';
+        const itemsResponse = await fetch(`/api/library/${category}?${folderParam}`);
+        const itemsResult = await itemsResponse.json();
+        if (itemsResult.status) {
+          const itemsKey = category === 'articles' ? 'articles' : category;
+          const fetchedItems = itemsResult[itemsKey] || [];
+          setItems(fetchedItems.filter(item => item.id));
+        }
+      } else {
+        toast.error(result.message || t('library.moveFailed', 'Failed to move files'));
+      }
+    } catch (error) {
+      console.error('Error moving files:', error);
+      toast.error(t('library.moveFailed', 'Failed to move files'));
+    } finally {
+      setMovingFiles(false);
+      setIsDragging(false);
+      setDraggedFiles([]);
+    }
   };
 
   const handleDownload = async (item) => {
@@ -298,8 +695,8 @@ export default function LibraryCategory() {
             <div className="flex-1 min-w-0">
               <h2 className={`${isMobile ? 'text-lg' : 'text-3xl'} font-bold text-foreground`}>{categoryInfo.title}</h2>
               <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>
-                {loading ? t('common.messages.loading') : t('library.itemsAvailable', '{count} items available', { count: items.length })}
-                {selectedFiles.length > 0 && ` • ${t('library.selectedCount', '{count} selected', { count: selectedFiles.length })}`}
+                {loading ? t('common.messages.loading') : `${items.length} ${items.length === 1 ? 'item' : 'items'} available`}
+                {selectedFiles.length > 0 && ` • ${selectedFiles.length} selected`}
               </p>
             </div>
           </div>
@@ -308,6 +705,7 @@ export default function LibraryCategory() {
         <div className={`flex items-center ${isMobile ? 'w-full gap-1 flex-wrap' : 'gap-2'}`}>
           <FileUploadDialog
             category={category || ""}
+            currentFolderId={currentFolderId}
             onUploadComplete={handleFileUpload}
           >
             <Button variant="outline" className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
@@ -350,18 +748,294 @@ export default function LibraryCategory() {
           </Button>
           
           {selectedFiles.length > 0 && (
-            <ShareFileDialog 
-              files={getSelectedFiles()}
-              onShare={handleShareSelected}
+            <>
+              {cutFiles.length > 0 ? (
+                <Button 
+                  variant="outline"
+                  onClick={handleCancelCut}
+                  className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'}`}
+                  size={isMobile ? "sm" : "default"}
+                >
+                  <XIcon className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                  {isMobile ? `Cancel (${cutFiles.length})` : `${t('library.cancelCut', 'Cancel Cut')} (${cutFiles.length})`}
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline"
+                  onClick={handleCutFiles}
+                  className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'}`}
+                  size={isMobile ? "sm" : "default"}
+                >
+                  <Scissors className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                  {isMobile ? `Cut (${selectedFiles.length})` : `${t('library.cut', 'Cut')} (${selectedFiles.length})`}
+                </Button>
+              )}
+              
+              <ShareFileDialog 
+                files={getSelectedFiles()}
+                onShare={handleShareSelected}
+              >
+                <Button className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
+                  <Share2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                  {isMobile ? `Share (${selectedFiles.length})` : `${t('library.shareSelected', 'Share Selected')} (${selectedFiles.length})`}
+                </Button>
+              </ShareFileDialog>
+            </>
+          )}
+
+          {/* Paste Here button - shows when files are cut */}
+          {cutFiles.length > 0 && (
+            <Button 
+              onClick={() => handlePasteFiles()}
+              disabled={movingFiles}
+              className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'} bg-primary`}
+              size={isMobile ? "sm" : "default"}
             >
-              <Button className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8 flex-1' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
-                <Share2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                {isMobile ? `Share (${selectedFiles.length})` : `${t('library.shareSelected', 'Share Selected')} (${selectedFiles.length})`}
-              </Button>
-            </ShareFileDialog>
+              {movingFiles ? (
+                <>
+                  <Loader2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-spin />
+                  {isMobile ? 'Moving...' : t('common.messages.moving', 'Moving...')}
+                </>
+              ) : (
+                <>
+                  <Clipboard className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                  {isMobile ? `Paste (${cutFiles.length})` : `${t('library.pasteHere', 'Paste Here')} (${cutFiles.length})`}
+                </>
+              )}
+            </Button>
           )}
         </div>
       </div>
+
+      {/* Breadcrumb Navigation */}
+      <div 
+        className={`flex items-center gap-2 ${isMobile ? 'flex-wrap text-xs' : 'text-sm'} text-muted-foreground ${
+          dragOverFolderId === 'root' ? 'bg-primary/10 p-2 rounded-lg border-2 border-primary' : ''
+        }`}
+        onDragOver={(e) => {
+          if (isDragging) {
+            e.preventDefault();
+            setDragOverFolderId('root');
+          }
+        }}
+        onDragLeave={() => setDragOverFolderId(null)}
+        onDrop={(e) => handleDrop(e, null)}
+      >
+        <button
+          onClick={() => {
+            setCurrentFolderId(null);
+            setSelectedFiles([]);
+            // Keep cut files - user might want to paste in root
+          }}
+          className="hover:text-foreground transition-colors flex items-center gap-1"
+        >
+          {categoryInfo.title}
+        </button>
+        {folderPath.map((folder, index) => (
+          <div key={folder.id} className="flex items-center gap-2">
+            <ChevronRight className="h-3 w-3" />
+            <button
+              onClick={() => handleBreadcrumbClick(folder.id)}
+              className="hover:text-foreground transition-colors"
+            >
+              {folder.name}
+            </button>
+          </div>
+        ))}
+        {currentFolderId && folderPath.length > 0 && (
+          <>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-foreground font-medium">
+              {folderPath[folderPath.length - 1]?.name}
+            </span>
+          </>
+        )}
+        {cutFiles.length > 0 && dragOverFolderId === 'root' && (
+          <span className="text-primary font-medium ml-2">
+            {t('library.dropHere', 'Drop here to move to root')}
+          </span>
+        )}
+      </div>
+
+      {/* Folders Section */}
+      {!loadingFolders && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-semibold text-foreground`}>
+              {t('library.folders', 'Folders')}
+            </h3>
+            <Dialog open={showCreateFolderDialog} onOpenChange={setShowCreateFolderDialog}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size={isMobile ? "sm" : "sm"}
+                  className={`flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`}
+                >
+                  <FolderPlus className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                  {!isMobile && t('library.createFolder', 'New Folder')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className={isMobile ? 'w-[90vw]' : ''}>
+                <DialogHeader>
+                  <DialogTitle>{t('library.createFolder', 'Create New Folder')}</DialogTitle>
+                  <DialogDescription>
+                    {t('library.createFolderDesc', 'Organize your files by creating folders')}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="folderName">{t('library.folderName', 'Folder Name')}</Label>
+                    <Input
+                      id="folderName"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      placeholder={t('library.folderNamePlaceholder', 'Enter folder name')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !creatingFolder) {
+                          handleCreateFolder();
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowCreateFolderDialog(false);
+                      setNewFolderName("");
+                    }}
+                  >
+                    {t('common.buttons.cancel', 'Cancel')}
+                  </Button>
+                  <Button
+                    onClick={handleCreateFolder}
+                    disabled={creatingFolder || !newFolderName.trim()}
+                  >
+                    {creatingFolder ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('common.messages.creating', 'Creating...')}
+                      </>
+                    ) : (
+                      t('common.buttons.create', 'Create')
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          
+          {folders.length > 0 ? (
+            <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3'}`}>
+              {folders.map((folder) => (
+                <Card
+                  key={folder.id}
+                  className={`group hover:shadow-medium transition-all cursor-pointer border-2 hover:border-primary/50 ${
+                    dragOverFolderId === folder.id ? 'border-primary border-4 bg-primary/10' : ''
+                  }`}
+                  onClick={() => handleFolderClick(folder.id)}
+                  onDragOver={(e) => handleDragOver(e, folder.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, folder.id)}
+                >
+                  <CardContent className={`p-4 ${isMobile ? 'p-3' : ''}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className={`${categoryInfo.color} rounded-lg p-2 shrink-0`}>
+                          <Folder className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <h4 className={`font-medium text-foreground truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                                  {folder.name}
+                                </h4>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{folder.name}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {cutFiles.length > 0 && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePasteFiles(folder.id);
+                            }}
+                            disabled={movingFiles}
+                            className="opacity-100"
+                          >
+                            {movingFiles ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              t('library.moveHere', 'Move Here')
+                            )}
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingFolder(folder);
+                                setEditingFolderName(folder.name);
+                              }}
+                            >
+                              <Edit2 className="mr-2 h-4 w-4" />
+                              {t('common.buttons.edit', 'Edit')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingFolderId(folder.id);
+                              }}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              {t('common.buttons.delete', 'Delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            !loading && (
+              <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'} py-4`}>
+                {t('library.noFolders', 'No folders yet. Create one to organize your files.')}
+              </p>
+            )
+          )}
+        </div>
+      )}
+
+      {/* Files Section Header */}
+      {!loading && folders.length > 0 && (
+        <div className="pt-4">
+          <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-semibold text-foreground mb-2`}>
+            {t('library.files', 'Files')}
+          </h3>
+        </div>
+      )}
 
       {/* Loading State */}
       {loading && (
@@ -381,8 +1055,17 @@ export default function LibraryCategory() {
               {items.map((item, index) => (
             <Card 
               key={item.id || `item-${index}`}
+              draggable={selectedFiles.includes(item.id) && selectedFiles.length > 0}
+              onDragStart={(e) => {
+                if (selectedFiles.includes(item.id)) {
+                  handleDragStart(e, selectedFiles);
+                }
+              }}
+              onDragEnd={handleDragEnd}
               className={`shadow-soft border-border bg-card hover:shadow-medium transition-all group flex flex-col cursor-pointer ${
                 selectedFiles.includes(item.id) ? 'ring-2 ring-primary' : ''
+              } ${
+                cutFiles.includes(item.id) ? 'border-dashed border-2 border-primary opacity-75' : ''
               } ${isMobile ? 'p-3' : ''}`}
               onClick={() => handleFileToggle(item.id)}
             >
@@ -539,8 +1222,17 @@ export default function LibraryCategory() {
               {items.map((item, index) => (
             <Card 
               key={item.id || `item-${index}`}
+              draggable={selectedFiles.includes(item.id) && selectedFiles.length > 0}
+              onDragStart={(e) => {
+                if (selectedFiles.includes(item.id)) {
+                  handleDragStart(e, selectedFiles);
+                }
+              }}
+              onDragEnd={handleDragEnd}
               className={`shadow-soft border-border bg-card hover:shadow-medium transition-all cursor-pointer ${
                 selectedFiles.includes(item.id) ? 'ring-2 ring-primary' : ''
+              } ${
+                cutFiles.includes(item.id) ? 'border-dashed border-2 border-primary opacity-75' : ''
               }`}
               onClick={() => handleFileToggle(item.id)}
             >
@@ -857,7 +1549,76 @@ export default function LibraryCategory() {
             </div>
           </div>
         </div>
-      )} 
+      )}
+
+      {/* Edit Folder Dialog */}
+      {editingFolder && (
+        <Dialog open={!!editingFolder} onOpenChange={(open) => !open && setEditingFolder(null)}>
+          <DialogContent className={isMobile ? 'w-[90vw]' : ''}>
+            <DialogHeader>
+              <DialogTitle>{t('library.editFolder', 'Edit Folder')}</DialogTitle>
+              <DialogDescription>
+                {t('library.editFolderDesc', 'Update the folder name')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="editFolderName">{t('library.folderName', 'Folder Name')}</Label>
+                <Input
+                  id="editFolderName"
+                  value={editingFolderName}
+                  onChange={(e) => setEditingFolderName(e.target.value)}
+                  placeholder={t('library.folderNamePlaceholder', 'Enter folder name')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleEditFolder();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditingFolder(null);
+                  setEditingFolderName("");
+                }}
+              >
+                {t('common.buttons.cancel', 'Cancel')}
+              </Button>
+              <Button
+                onClick={handleEditFolder}
+                disabled={!editingFolderName.trim()}
+              >
+                {t('common.buttons.save', 'Save')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Folder Confirmation Dialog */}
+      <AlertDialog open={!!deletingFolderId} onOpenChange={(open) => !open && setDeletingFolderId(null)}>
+        <AlertDialogContent className={isMobile ? 'w-[90vw]' : ''}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('library.deleteFolder', 'Delete Folder')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('library.deleteFolderDesc', 'Are you sure you want to delete this folder? All files in this folder will be moved to the parent folder. This action cannot be undone.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.buttons.cancel', 'Cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFolder}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('common.buttons.delete', 'Delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

@@ -29,7 +29,7 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { filePath, fileName, uploadId, parts, title, description, author, category, fileSize, fileType } = body;
+        const { filePath, fileName, uploadId, parts, title, description, author, category, fileSize, fileType, folderId } = body;
 
         // Validate required fields
         if (!filePath || !fileName || !uploadId || !parts || !title || !description || !category) {
@@ -108,7 +108,8 @@ export async function POST(request) {
                 description,
                 author || '',
                 fileSize || null,
-                fileType || null
+                fileType || null,
+                folderId || null
             );
         } else {
             resource = await saveFunction(
@@ -119,7 +120,8 @@ export async function POST(request) {
                 description,
                 '',
                 fileSize || null,
-                fileType || null
+                fileType || null,
+                folderId || null
             );
         }
 

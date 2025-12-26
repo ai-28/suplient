@@ -356,8 +356,79 @@ async function createResourceTable() {
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_group_ids ON "Resource" USING GIN("groupIds")`;
     await sql`CREATE INDEX IF NOT EXISTS idx_resource_created_at ON "Resource"("createdAt")`;
 
+    // Note: folderId column and its index will be added in createResourceFolderTable()
+    // after ResourceFolder table is created
+
   } catch (error) {
     console.error('Error creating Resource table:', error);
+    throw error;
+  }
+}
+
+// Create ResourceFolder table for hierarchical folder organization
+async function createResourceFolderTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ResourceFolder" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        "parentFolderId" UUID REFERENCES "ResourceFolder"(id) ON DELETE CASCADE,
+        "resourceType" VARCHAR(50) NOT NULL CHECK ("resourceType" IN ('video', 'image', 'article', 'sound')),
+        color VARCHAR(50),
+        icon VARCHAR(10),
+        "order" INTEGER DEFAULT 0,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("coachId", "parentFolderId", name, "resourceType")
+      );
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_folder_coach ON "ResourceFolder"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_folder_parent ON "ResourceFolder"("parentFolderId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_folder_type ON "ResourceFolder"("resourceType")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_folder_coach_type ON "ResourceFolder"("coachId", "resourceType")`;
+
+    // Now add folderId column to Resource table (after ResourceFolder exists)
+    await sql`
+      DO $$ 
+      BEGIN
+        -- Check if column exists before adding
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'Resource' AND column_name = 'folderId'
+        ) THEN
+          ALTER TABLE "Resource" ADD COLUMN "folderId" UUID REFERENCES "ResourceFolder"(id) ON DELETE SET NULL;
+        END IF;
+      EXCEPTION
+        WHEN OTHERS THEN
+          -- Log error but don't fail
+          RAISE NOTICE 'Error adding folderId column: %', SQLERRM;
+      END $$;
+    `;
+
+    // Create index on folderId (only if column exists)
+    await sql`
+      DO $$ 
+      BEGIN
+        -- Check if column exists before creating index
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'Resource' AND column_name = 'folderId'
+        ) THEN
+          CREATE INDEX IF NOT EXISTS idx_resource_folder ON "Resource"("folderId");
+        END IF;
+      EXCEPTION
+        WHEN OTHERS THEN
+          -- Log error but don't fail
+          RAISE NOTICE 'Error creating folderId index: %', SQLERRM;
+      END $$;
+    `;
+
+    console.log('✅ ResourceFolder table created successfully');
+  } catch (error) {
+    console.error('Error creating ResourceFolder table:', error);
     throw error;
   }
 }
@@ -919,6 +990,7 @@ export async function GET() {
     await createProgramEnrollmentTable(); // Now Client table exists
     await createChatTables(); // Create Chat tables
     await createResourceTable(); // Create Resource table for library
+    await createResourceFolderTable(); // Create ResourceFolder table for folder organization
     await seedNote();
     await createGoalsAndHabitsTables(); // Create Goal and Habit tables
     await createGoalHabitTemplateTables(); // Create Goal and Habit Template tables

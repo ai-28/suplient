@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -39,7 +39,7 @@ const fileFieldNames = {
   programs: 'program'
 };
 
-export function FileUploadDialog({ category, onUploadComplete, children }) {
+export function FileUploadDialog({ category, currentFolderId, onUploadComplete, children }) {
   const [open, setOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -51,8 +51,68 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [uploadAbortController, setUploadAbortController] = useState(null);
+  
+  // Folder selection state
+  const [selectedFolderId, setSelectedFolderId] = useState(currentFolderId || null);
+  const [availableFolders, setAvailableFolders] = useState([]);
+  const [loadingFolders, setLoadingFolders] = useState(false);
 
   const IconComponent = categoryIcons[category] || File;
+
+  // Map category to resourceType
+  const getResourceType = () => {
+    const mapping = {
+      videos: 'video',
+      images: 'image',
+      articles: 'article',
+      sounds: 'sound'
+    };
+    return mapping[category] || 'video';
+  };
+
+  // Fetch all folders for this category (for selection)
+  useEffect(() => {
+    const fetchFolders = async () => {
+      if (!category || !open) return;
+      
+      try {
+        setLoadingFolders(true);
+        const resourceType = getResourceType();
+        // Fetch all folders (tree structure) for this category
+        const response = await fetch(`/api/library/folders?resourceType=${resourceType}&tree=true`);
+        const result = await response.json();
+        
+        if (result.status) {
+          // Flatten the tree structure for the dropdown
+          const flattenFolders = (folders, parentPath = '') => {
+            let flat = [];
+            folders.forEach(folder => {
+              const path = parentPath ? `${parentPath} / ${folder.name}` : folder.name;
+              flat.push({ ...folder, displayPath: path });
+              if (folder.children && folder.children.length > 0) {
+                flat = [...flat, ...flattenFolders(folder.children, path)];
+              }
+            });
+            return flat;
+          };
+          
+          setAvailableFolders(flattenFolders(result.folders || []));
+        }
+      } catch (error) {
+        console.error('Error fetching folders:', error);
+        setAvailableFolders([]);
+      } finally {
+        setLoadingFolders(false);
+      }
+    };
+
+    fetchFolders();
+  }, [category, open]);
+
+  // Update selectedFolderId when currentFolderId changes
+  useEffect(() => {
+    setSelectedFolderId(currentFolderId || null);
+  }, [currentFolderId]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -437,6 +497,7 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
               category: category,
               fileSize: fileSize,
               fileType: selectedFile.type,
+              folderId: selectedFolderId || null,
             }),
             signal: abortController.signal,
           });
@@ -466,6 +527,7 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
               category: category,
               fileSize: fileSize,
               fileType: selectedFile.type,
+              folderId: selectedFolderId || null,
             }),
             signal: abortController.signal,
           });
@@ -497,6 +559,7 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
       setUploadProgress(0);
       setRetryCount(0);
       setIsRetrying(false);
+      setSelectedFolderId(currentFolderId || null); // Reset to current folder
       setOpen(false);
     } catch (error) {
       console.error('Upload error:', error);
@@ -632,6 +695,33 @@ export function FileUploadDialog({ category, onUploadComplete, children }) {
 
           {/* File Information */}
           <div className="space-y-4">
+            {/* Folder Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="folder">Upload to Folder (Optional)</Label>
+              <Select 
+                value={selectedFolderId || 'root'} 
+                onValueChange={(value) => setSelectedFolderId(value === 'root' ? null : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a folder" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="root">Root (No Folder)</SelectItem>
+                  {loadingFolders ? (
+                    <SelectItem value="loading" disabled>Loading folders...</SelectItem>
+                  ) : availableFolders.length === 0 ? (
+                    <SelectItem value="no-folders" disabled>No folders available</SelectItem>
+                  ) : (
+                    availableFolders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        {folder.displayPath}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="title">Title *</Label>
               <Input

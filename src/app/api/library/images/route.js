@@ -17,11 +17,15 @@ export async function GET(request) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
 
+        const { searchParams } = new URL(request.url);
+        const folderId = searchParams.get('folderId'); // null = root, UUID = specific folder, undefined = all
+
         let images;
         if (user.role === "admin") {
             images = await getAllImages();
         } else if (user.role === "coach") {
-            images = await getAllImagesForCoach();
+            const parsedFolderId = folderId === 'null' || folderId === '' ? null : folderId;
+            images = await getAllImagesForCoach(user.id, parsedFolderId);
         }
 
         return NextResponse.json({ status: true, images });

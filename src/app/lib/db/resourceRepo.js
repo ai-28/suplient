@@ -1,14 +1,14 @@
 import { sql } from './postgresql.js';
 
 // Video operations
-export async function saveVideo(title, coachId, resourceType, url, description = '', author = '', fileSize = null, fileType = null) {
+export async function saveVideo(title, coachId, resourceType, url, description = '', author = '', fileSize = null, fileType = null, folderId = null) {
     try {
         // Extract filename from URL for fileName field
         const fileName = url.split('/').pop() || title;
 
         const result = await sql`
-      INSERT INTO "Resource" (title, description, "resourceType", url, "fileName", "fileSize", "fileType", "coachId", author)
-      VALUES (${title}, ${description}, ${resourceType}, ${url}, ${fileName}, ${fileSize}, ${fileType}, ${coachId}, ${author})
+      INSERT INTO "Resource" (title, description, "resourceType", url, "fileName", "fileSize", "fileType", "coachId", author, "folderId")
+      VALUES (${title}, ${description}, ${resourceType}, ${url}, ${fileName}, ${fileSize}, ${fileType}, ${coachId}, ${author}, ${folderId})
       RETURNING *
     `;
         return result[0];
@@ -34,15 +34,54 @@ export async function getAllVideos() {
     }
 }
 
-export async function getAllVideosForCoach() {
+export async function getAllVideosForCoach(coachId = null, folderId = null) {
     try {
-        const result = await sql`
-      SELECT r.*, u.name as "coachName"
-      FROM "Resource" r
-      LEFT JOIN "User" u ON r."coachId" = u.id
-      WHERE r."resourceType" = 'video'
-      ORDER BY r."createdAt" DESC
-    `;
+        let query;
+        if (coachId) {
+            if (folderId !== null && folderId !== undefined) {
+                // Get resources in specific folder
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'video'
+                    AND r."coachId" = ${coachId}
+                    AND r."folderId" = ${folderId}
+                  ORDER BY r."createdAt" DESC
+                `;
+            } else if (folderId === null) {
+                // Get resources at root level (no folder)
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'video'
+                    AND r."coachId" = ${coachId}
+                    AND r."folderId" IS NULL
+                  ORDER BY r."createdAt" DESC
+                `;
+            } else {
+                // Get all resources for coach (no folder filter)
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'video'
+                    AND r."coachId" = ${coachId}
+                  ORDER BY r."createdAt" DESC
+                `;
+            }
+        } else {
+            // Original behavior - all videos
+            query = sql`
+              SELECT r.*, u.name as "coachName"
+              FROM "Resource" r
+              LEFT JOIN "User" u ON r."coachId" = u.id
+              WHERE r."resourceType" = 'video'
+              ORDER BY r."createdAt" DESC
+            `;
+        }
+        const result = await query;
         return result;
     } catch (error) {
         console.error('Error fetching videos for coach:', error);
@@ -67,14 +106,14 @@ export async function getAllVideosForClinic() {
 }
 
 // Image operations
-export async function saveImage(title, coachId, resourceType, url, description = '', author = '', fileSize = null, fileType = null) {
+export async function saveImage(title, coachId, resourceType, url, description = '', author = '', fileSize = null, fileType = null, folderId = null) {
     try {
         // Extract filename from URL for fileName field
         const fileName = url.split('/').pop() || title;
 
         const result = await sql`
-      INSERT INTO "Resource" (title, description, "resourceType", url, "fileName", "fileSize", "fileType", "coachId", author)
-      VALUES (${title}, ${description}, ${resourceType}, ${url}, ${fileName}, ${fileSize}, ${fileType}, ${coachId}, ${author})
+      INSERT INTO "Resource" (title, description, "resourceType", url, "fileName", "fileSize", "fileType", "coachId", author, "folderId")
+      VALUES (${title}, ${description}, ${resourceType}, ${url}, ${fileName}, ${fileSize}, ${fileType}, ${coachId}, ${author}, ${folderId})
       RETURNING *
     `;
         return result[0];
@@ -100,15 +139,50 @@ export async function getAllImages() {
     }
 }
 
-export async function getAllImagesForCoach() {
+export async function getAllImagesForCoach(coachId = null, folderId = null) {
     try {
-        const result = await sql`
-      SELECT r.*, u.name as "coachName"
-      FROM "Resource" r
-      LEFT JOIN "User" u ON r."coachId" = u.id
-      WHERE r."resourceType" = 'image'
-      ORDER BY r."createdAt" DESC
-    `;
+        let query;
+        if (coachId) {
+            if (folderId !== null && folderId !== undefined) {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'image'
+                    AND r."coachId" = ${coachId}
+                    AND r."folderId" = ${folderId}
+                  ORDER BY r."createdAt" DESC
+                `;
+            } else if (folderId === null) {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'image'
+                    AND r."coachId" = ${coachId}
+                    AND r."folderId" IS NULL
+                  ORDER BY r."createdAt" DESC
+                `;
+            } else {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'image'
+                    AND r."coachId" = ${coachId}
+                  ORDER BY r."createdAt" DESC
+                `;
+            }
+        } else {
+            query = sql`
+              SELECT r.*, u.name as "coachName"
+              FROM "Resource" r
+              LEFT JOIN "User" u ON r."coachId" = u.id
+              WHERE r."resourceType" = 'image'
+              ORDER BY r."createdAt" DESC
+            `;
+        }
+        const result = await query;
         return result;
     } catch (error) {
         console.error('Error fetching images for coach:', error);
@@ -117,14 +191,14 @@ export async function getAllImagesForCoach() {
 }
 
 // Article/PDF operations
-export async function savePDF(title, coachId, resourceType, url, description = '', author = '', fileSize = null, fileType = null) {
+export async function savePDF(title, coachId, resourceType, url, description = '', author = '', fileSize = null, fileType = null, folderId = null) {
     try {
         // Extract filename from URL for fileName field
         const fileName = url.split('/').pop() || title;
 
         const result = await sql`
-      INSERT INTO "Resource" (title, description, "resourceType", url, "fileName", "fileSize", "fileType", "coachId", author)
-      VALUES (${title}, ${description}, ${resourceType}, ${url}, ${fileName}, ${fileSize}, ${fileType}, ${coachId}, ${author})
+      INSERT INTO "Resource" (title, description, "resourceType", url, "fileName", "fileSize", "fileType", "coachId", author, "folderId")
+      VALUES (${title}, ${description}, ${resourceType}, ${url}, ${fileName}, ${fileSize}, ${fileType}, ${coachId}, ${author}, ${folderId})
       RETURNING *
     `;
         return result[0];
@@ -150,15 +224,50 @@ export async function getAllPDFs() {
     }
 }
 
-export async function getAllPDFsForCoach() {
+export async function getAllPDFsForCoach(coachId = null, folderId = null) {
     try {
-        const result = await sql`
-      SELECT r.*, u.name as "coachName"
-      FROM "Resource" r
-      LEFT JOIN "User" u ON r."coachId" = u.id
-      WHERE r."resourceType" = 'article'
-      ORDER BY r."createdAt" DESC
-    `;
+        let query;
+        if (coachId) {
+            if (folderId !== null && folderId !== undefined) {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'article'
+                    AND r."coachId" = ${coachId}
+                    AND r."folderId" = ${folderId}
+                  ORDER BY r."createdAt" DESC
+                `;
+            } else if (folderId === null) {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'article'
+                    AND r."coachId" = ${coachId}
+                    AND r."folderId" IS NULL
+                  ORDER BY r."createdAt" DESC
+                `;
+            } else {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'article'
+                    AND r."coachId" = ${coachId}
+                  ORDER BY r."createdAt" DESC
+                `;
+            }
+        } else {
+            query = sql`
+              SELECT r.*, u.name as "coachName"
+              FROM "Resource" r
+              LEFT JOIN "User" u ON r."coachId" = u.id
+              WHERE r."resourceType" = 'article'
+              ORDER BY r."createdAt" DESC
+            `;
+        }
+        const result = await query;
         return result;
     } catch (error) {
         console.error('Error fetching PDFs for coach:', error);
@@ -167,14 +276,14 @@ export async function getAllPDFsForCoach() {
 }
 
 // Sound operations
-export async function saveSound(title, coachId, resourceType, url, description = '', author = '', fileSize = null, fileType = null) {
+export async function saveSound(title, coachId, resourceType, url, description = '', author = '', fileSize = null, fileType = null, folderId = null) {
     try {
         // Extract filename from URL for fileName field
         const fileName = url.split('/').pop() || title;
 
         const result = await sql`
-      INSERT INTO "Resource" (title, description, "resourceType", url, "fileName", "fileSize", "fileType", "coachId", author)
-      VALUES (${title}, ${description}, ${resourceType}, ${url}, ${fileName}, ${fileSize}, ${fileType}, ${coachId}, ${author})
+      INSERT INTO "Resource" (title, description, "resourceType", url, "fileName", "fileSize", "fileType", "coachId", author, "folderId")
+      VALUES (${title}, ${description}, ${resourceType}, ${url}, ${fileName}, ${fileSize}, ${fileType}, ${coachId}, ${author}, ${folderId})
       RETURNING *
     `;
         return result[0];
@@ -200,15 +309,50 @@ export async function getAllSounds() {
     }
 }
 
-export async function getAllSoundsForCoach() {
+export async function getAllSoundsForCoach(coachId = null, folderId = null) {
     try {
-        const result = await sql`
-      SELECT r.*, u.name as "coachName"
-      FROM "Resource" r
-      LEFT JOIN "User" u ON r."coachId" = u.id
-      WHERE r."resourceType" = 'sound'
-      ORDER BY r."createdAt" DESC
-    `;
+        let query;
+        if (coachId) {
+            if (folderId !== null && folderId !== undefined) {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'sound'
+                    AND r."coachId" = ${coachId}
+                    AND r."folderId" = ${folderId}
+                  ORDER BY r."createdAt" DESC
+                `;
+            } else if (folderId === null) {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'sound'
+                    AND r."coachId" = ${coachId}
+                    AND r."folderId" IS NULL
+                  ORDER BY r."createdAt" DESC
+                `;
+            } else {
+                query = sql`
+                  SELECT r.*, u.name as "coachName"
+                  FROM "Resource" r
+                  LEFT JOIN "User" u ON r."coachId" = u.id
+                  WHERE r."resourceType" = 'sound'
+                    AND r."coachId" = ${coachId}
+                  ORDER BY r."createdAt" DESC
+                `;
+            }
+        } else {
+            query = sql`
+              SELECT r.*, u.name as "coachName"
+              FROM "Resource" r
+              LEFT JOIN "User" u ON r."coachId" = u.id
+              WHERE r."resourceType" = 'sound'
+              ORDER BY r."createdAt" DESC
+            `;
+        }
+        const result = await query;
         return result;
     } catch (error) {
         console.error('Error fetching sounds for coach:', error);
@@ -268,8 +412,14 @@ export async function deleteResource(id) {
 
 export async function updateResource(id, updates) {
     try {
-        const setClause = Object.keys(updates)
-            .map(key => `"${key}" = $${key}`)
+        const keys = Object.keys(updates);
+        if (keys.length === 0) {
+            throw new Error('No fields to update');
+        }
+
+        // Build SET clause with positional parameters
+        const setClause = keys
+            .map((key, index) => `"${key}" = $${index + 2}`)
             .join(', ');
 
         const values = Object.values(updates);
