@@ -89,35 +89,56 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
   );
 }
 
+// Premium loading messages that show active, meaningful work
+const loadingMessages = [
+  { text: "Reviewing your insights...", duration: 800 },
+  { text: "Organizing your data...", duration: 900 },
+  { text: "Researching best practices...", duration: 1000 },
+  { text: "Crafting a personalized plan...", duration: 1100 },
+  { text: "Adding extra value...", duration: 900 },
+  { text: "Preparing your program...", duration: 800 }
+];
+
 // Generation step component
 function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
   const [isGenerating, setIsGenerating] = useState(true);
   const [error, setError] = useState(null);
-  const [progress, setProgress] = useState("Analyzing your requirements...");
+  const [progress, setProgress] = useState(loadingMessages[0].text);
+  const [progressIndex, setProgressIndex] = useState(0);
 
   useEffect(() => {
     generateProgram();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Rotate through premium loading messages
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const currentMessage = loadingMessages[progressIndex];
+    if (!currentMessage) return;
+
+    const timer = setTimeout(() => {
+      setProgress(currentMessage.text);
+      setProgressIndex((prev) => {
+        const nextIndex = prev + 1;
+        // Loop back to start if we've gone through all messages
+        return nextIndex >= loadingMessages.length ? 0 : nextIndex;
+      });
+    }, currentMessage.duration);
+
+    return () => clearTimeout(timer);
+  }, [progressIndex, isGenerating, loadingMessages]);
+
   const generateProgram = async () => {
     try {
       setIsGenerating(true);
       setError(null);
+      setProgressIndex(0);
+      setProgress(loadingMessages[0].text);
       
-      setProgress("Analyzing your requirements...");
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setProgress("Generating program structure...");
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setProgress("Creating messages...");
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setProgress("Creating tasks...");
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setProgress("Creating documents...");
+      // Let the messages rotate for a bit before starting the actual API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       const response = await fetch('/api/ai/generate-program', {
         method: 'POST',
@@ -131,8 +152,10 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
       }
 
       const data = await response.json();
-      setProgress("Generation complete!");
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Final premium message before completion
+      setProgress("Finalizing your personalized program...");
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       onComplete(data);
     } catch (err) {
@@ -146,12 +169,31 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
   return (
     <div className="space-y-6 py-8">
       {isGenerating ? (
-        <div className="flex flex-col items-center justify-center space-y-4 py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-lg font-medium">{progress}</p>
-          <p className="text-sm text-muted-foreground">
-            This may take 30-60 seconds...
-          </p>
+        <div className="flex flex-col items-center justify-center space-y-6 py-16">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+            </div>
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-xl font-semibold text-foreground transition-all duration-500">
+              {progress}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-md">
+              We're carefully crafting a program tailored specifically for your needs. This thoughtful process ensures the highest quality experience.
+            </p>
+          </div>
+          <div className="w-full max-w-md">
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-300"
+                style={{ 
+                  width: `${Math.min(90, 20 + (progressIndex * 12))}%` 
+                }}
+              />
+            </div>
+          </div>
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center space-y-4 py-12">
