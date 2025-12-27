@@ -68,9 +68,24 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
     try {
       const response = await fetch(`/api/ai/load-draft/${selectedDraftId}`);
       if (!response.ok) {
-        throw new Error('Failed to load draft');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to load draft');
       }
       const data = await response.json();
+      
+      // Log for debugging
+      console.log('Draft loaded:', {
+        hasDraft: !!data.draft,
+        hasProgramData: !!data.draft?.programData,
+        hasQuestionnaireData: !!data.draft?.questionnaireData,
+        programDataType: typeof data.draft?.programData,
+        programDataKeys: data.draft?.programData ? Object.keys(data.draft.programData) : null
+      });
+
+      if (!data.draft || !data.draft.programData || !data.draft.questionnaireData) {
+        throw new Error('Draft data is incomplete');
+      }
+
       setDraftId(data.draft.id);
       setQuestionnaireData(data.draft.questionnaireData);
       setGeneratedProgram(data.draft.programData);
@@ -80,7 +95,7 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
       toast.success("Draft loaded successfully");
     } catch (error) {
       console.error('Error loading draft:', error);
-      toast.error('Failed to load draft');
+      toast.error(error.message || 'Failed to load draft');
     }
   };
 
@@ -198,7 +213,7 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto max-h-[calc(90vh-100px)]">
+        <div className="overflow-y-auto">
           {step === 1 && showDraftSelector && drafts.length > 0 ? (
             <div className="space-y-4 py-4">
               <div className="text-center">

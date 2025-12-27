@@ -12,34 +12,46 @@ export async function GET(request) {
 
     const coachId = session.user.id;
 
-    const drafts = await sql`
-      SELECT 
-        id,
-        name,
-        "lastSavedAt",
-        "createdAt",
-        "updatedAt",
-        "questionnaireData"->>'programName' as "programName"
-      FROM "ProgramDraft"
-      WHERE "coachId" = ${coachId}
-      ORDER BY "lastSavedAt" DESC
-    `;
+    try {
+      const drafts = await sql`
+        SELECT 
+          id,
+          name,
+          "lastSavedAt",
+          "createdAt",
+          "updatedAt",
+          "questionnaireData"->>'programName' as "programName"
+        FROM "ProgramDraft"
+        WHERE "coachId" = ${coachId}
+        ORDER BY "lastSavedAt" DESC
+      `;
 
-    return NextResponse.json({
-      success: true,
-      drafts: drafts.map(draft => ({
-        id: draft.id,
-        name: draft.name,
-        programName: draft.programName,
-        lastSavedAt: draft.lastSavedAt,
-        createdAt: draft.createdAt,
-        updatedAt: draft.updatedAt
-      }))
-    });
+      return NextResponse.json({
+        success: true,
+        drafts: drafts.map(draft => ({
+          id: draft.id,
+          name: draft.name || null,
+          programName: draft.programName || null,
+          lastSavedAt: draft.lastSavedAt,
+          createdAt: draft.createdAt,
+          updatedAt: draft.updatedAt
+        }))
+      });
+    } catch (dbError) {
+      // Check if table doesn't exist
+      if (dbError.message && dbError.message.includes('does not exist')) {
+        console.error('ProgramDraft table does not exist. Please run the seed script.');
+        return NextResponse.json({
+          success: true,
+          drafts: []
+        });
+      }
+      throw dbError;
+    }
   } catch (error) {
     console.error('Error fetching drafts:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch drafts' },
+      { error: error.message || 'Failed to fetch drafts', details: error.stack },
       { status: 500 }
     );
   }

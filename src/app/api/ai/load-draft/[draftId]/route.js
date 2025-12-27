@@ -35,12 +35,43 @@ export async function GET(request, { params }) {
 
     const draft = result[0];
 
+    // Parse JSONB fields if they're strings (some PostgreSQL drivers return JSONB as strings)
+    let programData = draft.programData;
+    let questionnaireData = draft.questionnaireData;
+
+    if (typeof programData === 'string') {
+      try {
+        programData = JSON.parse(programData);
+      } catch (e) {
+        console.error('Error parsing programData:', e);
+        return NextResponse.json({ error: 'Invalid program data format' }, { status: 500 });
+      }
+    }
+
+    if (typeof questionnaireData === 'string') {
+      try {
+        questionnaireData = JSON.parse(questionnaireData);
+      } catch (e) {
+        console.error('Error parsing questionnaireData:', e);
+        return NextResponse.json({ error: 'Invalid questionnaire data format' }, { status: 500 });
+      }
+    }
+
+    // Log for debugging
+    console.log('Loading draft:', {
+      id: draft.id,
+      hasProgramData: !!programData,
+      hasQuestionnaireData: !!questionnaireData,
+      programDataKeys: programData ? Object.keys(programData) : null,
+      questionnaireDataKeys: questionnaireData ? Object.keys(questionnaireData) : null
+    });
+
     return NextResponse.json({
       success: true,
       draft: {
         id: draft.id,
-        programData: draft.programData,
-        questionnaireData: draft.questionnaireData,
+        programData: programData,
+        questionnaireData: questionnaireData,
         name: draft.name,
         lastSavedAt: draft.lastSavedAt,
         createdAt: draft.createdAt

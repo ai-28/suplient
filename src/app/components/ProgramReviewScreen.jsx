@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Badge } from "@/app/components/ui/badge";
@@ -15,6 +15,20 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftId, setDraftId] = useState(initialDraftId || null);
   const [lastSavedAt, setLastSavedAt] = useState(null);
+
+  // Update program state when generatedProgram prop changes (e.g., when loading a draft)
+  useEffect(() => {
+    if (generatedProgram) {
+      setProgram(generatedProgram);
+    }
+  }, [generatedProgram]);
+
+  // Update draftId when prop changes
+  useEffect(() => {
+    if (initialDraftId) {
+      setDraftId(initialDraftId);
+    }
+  }, [initialDraftId]);
 
   // Notify parent when program changes
   useEffect(() => {
@@ -155,7 +169,7 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
         </div>
       </div>
 
-      <ScrollArea className="h-[400px] sm:h-[500px] pr-4">
+      <ScrollArea className="h-[400px] pr-4">
         <div className="space-y-6">
           {/* Elements Section */}
           <div>
