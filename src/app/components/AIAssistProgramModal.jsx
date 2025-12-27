@@ -15,7 +15,7 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { QuestionnaireSteps } from "./QuestionnaireSteps";
 import { ProgramReviewScreen } from "./ProgramReviewScreen";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function AIAssistProgramModal({ open, onOpenChange }) {
@@ -28,6 +28,8 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
   const [pendingClose, setPendingClose] = useState(false);
   const [drafts, setDrafts] = useState([]);
   const [showDraftSelector, setShowDraftSelector] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const originalProgramRef = useRef(null);
 
   // Load drafts when modal opens
@@ -96,6 +98,45 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
     } catch (error) {
       console.error('Error loading draft:', error);
       toast.error(error.message || 'Failed to load draft');
+    }
+  };
+
+  const handleDeleteDraft = async (draftIdToDelete, event) => {
+    event.stopPropagation(); // Prevent triggering the resume action
+    setDraftToDelete(draftIdToDelete);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteDraft = async () => {
+    if (!draftToDelete) return;
+    
+    try {
+      const response = await fetch(`/api/ai/delete-draft/${draftToDelete}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete draft');
+      }
+
+      // Remove from local state
+      setDrafts(drafts.filter(d => d.id !== draftToDelete));
+      setDraftToDelete(null);
+      setShowDeleteConfirmation(false);
+      toast.success("Draft deleted successfully");
+      
+      // If we deleted the current draft, reset state
+      if (draftId === draftToDelete) {
+        setDraftId(null);
+      }
+
+      // If no drafts left, hide selector
+      if (drafts.length === 1) {
+        setShowDraftSelector(false);
+      }
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+      toast.error('Failed to delete draft');
     }
   };
 
@@ -213,7 +254,7 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto max-h-[calc(90vh-100px)]">
           {step === 1 && showDraftSelector && drafts.length > 0 ? (
             <div className="space-y-4 py-4">
               <div className="text-center">
@@ -222,22 +263,38 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
                   You have {drafts.length} saved draft{drafts.length > 1 ? 's' : ''}. Would you like to resume one?
                 </p>
               </div>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                 {drafts.map((draft) => (
                   <div
                     key={draft.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer"
-                    onClick={() => handleLoadDraft(draft.id)}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted"
                   >
-                    <div>
-                      <p className="font-medium">{draft.name || draft.programName || 'Untitled Draft'}</p>
+                    <div 
+                      className="flex-1 cursor-pointer min-w-0"
+                      onClick={() => handleLoadDraft(draft.id)}
+                    >
+                      <p className="font-medium truncate">{draft.name || draft.programName || 'Untitled Draft'}</p>
                       <p className="text-xs text-muted-foreground">
                         Saved {new Date(draft.lastSavedAt).toLocaleString()}
                       </p>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Resume
-                    </Button>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleLoadDraft(draft.id)}
+                      >
+                        Resume
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteDraft(draft.id, e)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -303,6 +360,32 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
           </Button>
           <AlertDialogAction onClick={() => setShowCloseConfirmation(false)}>
             Cancel
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Draft?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this draft? This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => {
+            setDraftToDelete(null);
+            setShowDeleteConfirmation(false);
+          }}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={confirmDeleteDraft}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

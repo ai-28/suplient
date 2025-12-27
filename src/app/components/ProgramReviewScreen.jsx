@@ -103,6 +103,40 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
     }
   };
 
+  const handleDeleteCurrentDraft = async () => {
+    if (!draftId) return;
+    
+    toast('Delete Draft?', {
+      description: 'Are you sure you want to delete this draft? This action cannot be undone.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          try {
+            const response = await fetch(`/api/ai/delete-draft/${draftId}`, {
+              method: 'DELETE'
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to delete draft');
+            }
+
+            setDraftId(null);
+            setLastSavedAt(null);
+            toast.success("Draft deleted successfully");
+          } catch (error) {
+            console.error('Error deleting draft:', error);
+            toast.error('Failed to delete draft');
+          }
+        }
+      },
+      cancel: {
+        label: 'Cancel',
+        onClick: () => {}
+      },
+      duration: 5000
+    });
+  };
+
   const handleImport = async () => {
     setIsImporting(true);
     try {
@@ -305,6 +339,18 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
                 </>
               )}
             </Button>
+            {draftId && (
+              <Button
+                onClick={handleDeleteCurrentDraft}
+                disabled={isSavingDraft}
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Draft
+              </Button>
+            )}
             <Button
               onClick={handleImport}
               disabled={isImporting}

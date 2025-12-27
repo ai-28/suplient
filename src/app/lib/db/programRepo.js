@@ -519,7 +519,6 @@ export async function getEnrolledClientsForTemplate(templateId, coachId) {
             ORDER BY pe."createdAt" DESC
         `;
 
-        console.log('🔍 getEnrolledClientsForTemplate result:', JSON.stringify(result, null, 2));
         return result;
     } catch (error) {
         console.error('Error getting enrolled clients for template:', error);
