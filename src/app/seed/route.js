@@ -1005,6 +1005,7 @@ export async function GET() {
     await createClientPaymentTable(); // Create ClientPayment table
     await createClientPaymentMethodTable(); // Create ClientPaymentMethod table
     await createProgramDraftTable(); // Create ProgramDraft table for saving AI program drafts
+    await createProgramElementDeliveryTable(); // Create ProgramElementDelivery table for tracking automatic program deliveries
     await createPlatformSettingsTable();
     await seedDefaultGoalsAndHabits(); // Seed default goals and habits for all clients
     console.log('Database seeded successfully');
@@ -1221,6 +1222,34 @@ async function createProgramDraftTable() {
     console.log('✅ ProgramDraft table created');
   } catch (error) {
     console.error('Error creating ProgramDraft table:', error);
+    throw error;
+  }
+}
+
+async function createProgramElementDeliveryTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ProgramElementDelivery" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "enrollmentId" UUID NOT NULL REFERENCES "ProgramEnrollment"(id) ON DELETE CASCADE,
+        "elementId" UUID NOT NULL REFERENCES "ProgramTemplateElement"(id) ON DELETE CASCADE,
+        "programDay" INTEGER NOT NULL,
+        "deliveredDate" DATE NOT NULL,
+        "messageId" UUID REFERENCES "Message"(id),
+        "deliveredAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("enrollmentId", "elementId", "programDay")
+      );
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_delivery_enrollment_date ON "ProgramElementDelivery"("enrollmentId", "deliveredDate")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_delivery_date ON "ProgramElementDelivery"("deliveredDate")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_delivery_enrollment_day ON "ProgramElementDelivery"("enrollmentId", "programDay")`;
+
+    console.log('✅ ProgramElementDelivery table created');
+  } catch (error) {
+    console.error('Error creating ProgramElementDelivery table:', error);
     throw error;
   }
 }
