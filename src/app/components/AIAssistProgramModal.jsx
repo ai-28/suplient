@@ -91,12 +91,12 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
 
 // Premium loading messages that show active, meaningful work
 const loadingMessages = [
-  { text: "Reviewing your insights...", duration: 800 },
-  { text: "Organizing your data...", duration: 900 },
-  { text: "Researching best practices...", duration: 1000 },
-  { text: "Crafting a personalized plan...", duration: 1100 },
-  { text: "Adding extra value...", duration: 900 },
-  { text: "Preparing your program...", duration: 800 }
+  { text: "Reviewing your insights...", duration: 2000 },
+  { text: "Organizing your data...", duration: 2500 },
+  { text: "Researching best practices...", duration: 3000 },
+  { text: "Crafting a personalized plan...", duration: 3500 },
+  { text: "Adding extra value...", duration: 4000 },
+  { text: "Preparing your program...", duration: 4500 }
 ];
 
 // Generation step component
