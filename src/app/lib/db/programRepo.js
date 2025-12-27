@@ -268,11 +268,7 @@ export async function createProgramEnrollment(templateId, clientId, coachId) {
             throw new Error('Client is already enrolled in this program');
         }
 
-        // Set startDate to today (date only, no time) - program starts automatically on enrollment
-        const startDate = new Date();
-        startDate.setUTCHours(0, 0, 0, 0);
-
-        // Create enrollment with active status and startDate (program starts immediately)
+        // Create enrollment with 'enrolled' status (program will start when coach clicks "Start Program")
         const result = await sql`
             INSERT INTO "ProgramEnrollment" (
                 "programTemplateId", "clientId", "coachId", 
@@ -283,36 +279,14 @@ export async function createProgramEnrollment(templateId, clientId, coachId) {
                 ${templateId}, 
                 ${clientId}, 
                 ${coachId}, 
-                'active',
+                'enrolled',
                 '{}',
-                ${startDate},
+                NULL,
                 NOW(), 
                 NOW()
             )
             RETURNING id, "programTemplateId", "clientId", "coachId", status, "completedElements", "startDate", "createdAt"
         `;
-
-        // Send Day 1 elements immediately (asynchronously, don't block enrollment)
-        if (result.length > 0) {
-            const enrollmentId = result[0].id;
-            // Import delivery service dynamically to avoid circular dependencies
-            import('@/app/lib/services/programDeliveryService').then(({ deliverProgramElements }) => {
-                deliverProgramElements(enrollmentId, 1, startDate)
-                    .then(deliveryResult => {
-                        if (deliveryResult.delivered) {
-                            console.log(`Day 1 elements delivered to enrollment ${enrollmentId}`);
-                        } else {
-                            console.log(`Day 1 elements skipped for enrollment ${enrollmentId}: ${deliveryResult.reason}`);
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`Error sending Day 1 elements to enrollment ${enrollmentId}:`, error);
-                        // Don't fail enrollment if delivery fails
-                    });
-            }).catch(error => {
-                console.error('Error importing delivery service:', error);
-            });
-        }
 
         return result[0];
     } catch (error) {
