@@ -1,15 +1,88 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
+import { Button } from "@/app/components/ui/button";
 import { QuestionnaireSteps } from "./QuestionnaireSteps";
 import { ProgramReviewScreen } from "./ProgramReviewScreen";
 import { Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 export function AIAssistProgramModal({ open, onOpenChange }) {
-  const [step, setStep] = useState(1); // 1: Questionnaire, 2: Review
+  const [step, setStep] = useState(1); // 1: Questionnaire, 2: Generation, 3: Review
   const [questionnaireData, setQuestionnaireData] = useState(null);
   const [generatedProgram, setGeneratedProgram] = useState(null);
+  const [draftId, setDraftId] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
+  const [drafts, setDrafts] = useState([]);
+  const [showDraftSelector, setShowDraftSelector] = useState(false);
+  const originalProgramRef = useRef(null);
+
+  // Load drafts when modal opens
+  useEffect(() => {
+    if (open) {
+      const loadDrafts = async () => {
+        try {
+          const response = await fetch('/api/ai/drafts');
+          if (response.ok) {
+            const data = await response.json();
+            setDrafts(data.drafts || []);
+            // If there are drafts and we're starting fresh, show selector
+            if (data.drafts?.length > 0 && step === 1 && !draftId && !questionnaireData) {
+              setShowDraftSelector(true);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading drafts:', error);
+        }
+      };
+      loadDrafts();
+      // Reset state when opening fresh (only if no existing state)
+      if (step === 1 && !draftId && !questionnaireData) {
+        setQuestionnaireData(null);
+        setGeneratedProgram(null);
+        setDraftId(null);
+        setHasUnsavedChanges(false);
+        originalProgramRef.current = null;
+        setShowDraftSelector(false);
+      }
+    } else {
+      // Reset when closing
+      setShowDraftSelector(false);
+    }
+  }, [open, step, draftId, questionnaireData]);
+
+  const handleLoadDraft = async (selectedDraftId) => {
+    try {
+      const response = await fetch(`/api/ai/load-draft/${selectedDraftId}`);
+      if (!response.ok) {
+        throw new Error('Failed to load draft');
+      }
+      const data = await response.json();
+      setDraftId(data.draft.id);
+      setQuestionnaireData(data.draft.questionnaireData);
+      setGeneratedProgram(data.draft.programData);
+      originalProgramRef.current = JSON.stringify(data.draft.programData);
+      setStep(3); // Go directly to review step
+      setShowDraftSelector(false);
+      toast.success("Draft loaded successfully");
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      toast.error('Failed to load draft');
+    }
+  };
 
   const handleQuestionnaireComplete = (data) => {
     setQuestionnaireData(data);
@@ -18,15 +91,60 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
 
   const handleGenerationComplete = (program) => {
     setGeneratedProgram(program);
+    originalProgramRef.current = JSON.stringify(program);
     setStep(3); // Move to review
   };
 
-  const handleClose = () => {
+  const handleDraftSaved = (savedDraftId) => {
+    setDraftId(savedDraftId);
+    setHasUnsavedChanges(false);
+    if (generatedProgram) {
+      originalProgramRef.current = JSON.stringify(generatedProgram);
+    }
+  };
+
+  const handleClose = (force = false) => {
+    if (!force && hasUnsavedChanges && step === 3) {
+      setPendingClose(true);
+      setShowCloseConfirmation(true);
+      return;
+    }
     // Reset state when closing
     setStep(1);
     setQuestionnaireData(null);
     setGeneratedProgram(null);
+    setDraftId(null);
+    setHasUnsavedChanges(false);
+    originalProgramRef.current = null;
+    setPendingClose(false);
     onOpenChange(false);
+  };
+
+  const handleConfirmClose = async (saveBeforeClose = false) => {
+    if (saveBeforeClose && step === 3) {
+      // Save draft before closing
+      try {
+        const response = await fetch('/api/ai/save-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            programData: generatedProgram,
+            questionnaireData: questionnaireData,
+            draftId: draftId
+          })
+        });
+        if (response.ok) {
+          const result = await response.json();
+          setDraftId(result.draft.id);
+          toast.success("Draft saved before closing");
+        }
+      } catch (error) {
+        console.error('Error saving draft:', error);
+        toast.error('Failed to save draft');
+      }
+    }
+    setShowCloseConfirmation(false);
+    handleClose(true);
   };
 
   const handleImportComplete = () => {
@@ -41,11 +159,32 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
   const handleBackToQuestionnaire = () => {
     // Clear generated program when going back to edit prompts
     setGeneratedProgram(null);
+    setDraftId(null);
+    setHasUnsavedChanges(false);
+    originalProgramRef.current = null;
     setStep(1);
   };
 
+  // Track changes to program
+  useEffect(() => {
+    if (step === 3 && generatedProgram) {
+      if (originalProgramRef.current) {
+        const currentProgram = JSON.stringify(generatedProgram);
+        setHasUnsavedChanges(currentProgram !== originalProgramRef.current);
+      } else {
+        // Set original if not set yet
+        originalProgramRef.current = JSON.stringify(generatedProgram);
+      }
+    }
+  }, [generatedProgram, step]);
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <>
+      <Dialog open={open} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          handleClose();
+        }
+      }}>
       <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden sm:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -60,12 +199,48 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
         </DialogHeader>
 
         <div className="overflow-y-auto max-h-[calc(90vh-100px)]">
-          {step === 1 && (
+          {step === 1 && showDraftSelector && drafts.length > 0 ? (
+            <div className="space-y-4 py-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-2">Resume a Draft?</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  You have {drafts.length} saved draft{drafts.length > 1 ? 's' : ''}. Would you like to resume one?
+                </p>
+              </div>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {drafts.map((draft) => (
+                  <div
+                    key={draft.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer"
+                    onClick={() => handleLoadDraft(draft.id)}
+                  >
+                    <div>
+                      <p className="font-medium">{draft.name || draft.programName || 'Untitled Draft'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Saved {new Date(draft.lastSavedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Resume
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowDraftSelector(false)}
+                >
+                  Start New Program
+                </Button>
+              </div>
+            </div>
+          ) : step === 1 ? (
             <QuestionnaireSteps
               onComplete={handleQuestionnaireComplete}
               onCancel={handleClose}
             />
-          )}
+          ) : null}
 
           {step === 2 && questionnaireData && (
             <ProgramGenerationStep
@@ -81,11 +256,43 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
               questionnaireData={questionnaireData}
               onImportComplete={handleImportComplete}
               onBack={handleBackToQuestionnaire}
+              draftId={draftId}
+              onDraftSaved={handleDraftSaved}
+              onProgramChange={(updatedProgram) => {
+                setGeneratedProgram(updatedProgram);
+              }}
             />
           )}
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation Dialog for Unsaved Changes */}
+    <AlertDialog open={showCloseConfirmation} onOpenChange={setShowCloseConfirmation}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+          <AlertDialogDescription>
+            You have unsaved changes to your program. Would you like to save them as a draft before closing?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => handleConfirmClose(false)}>
+            Close Without Saving
+          </AlertDialogCancel>
+          <Button
+            variant="outline"
+            onClick={() => handleConfirmClose(true)}
+          >
+            Save Draft & Close
+          </Button>
+          <AlertDialogAction onClick={() => setShowCloseConfirmation(false)}>
+            Cancel
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
@@ -96,7 +303,7 @@ const loadingMessages = [
   { text: "Researching best practices...", duration: 3000 },
   { text: "Crafting a personalized plan...", duration: 3500 },
   { text: "Adding extra value...", duration: 4000 },
-  { text: "Preparing your program...", duration: 4500 }
+  { text: "Preparing your program...", duration: 8000 }
 ];
 
 // Generation step component

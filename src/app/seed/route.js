@@ -1004,6 +1004,7 @@ export async function GET() {
     await createClientSubscriptionTable(); // Create ClientSubscription table
     await createClientPaymentTable(); // Create ClientPayment table
     await createClientPaymentMethodTable(); // Create ClientPaymentMethod table
+    await createProgramDraftTable(); // Create ProgramDraft table for saving AI program drafts
     await createPlatformSettingsTable();
     await seedDefaultGoalsAndHabits(); // Seed default goals and habits for all clients
     console.log('Database seeded successfully');
@@ -1194,6 +1195,32 @@ async function createClientPaymentMethodTable() {
     console.log('✅ ClientPaymentMethod table created successfully');
   } catch (error) {
     console.error('Error creating ClientPaymentMethod table:', error);
+    throw error;
+  }
+}
+
+async function createProgramDraftTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS "ProgramDraft" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "coachId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        "programData" JSONB NOT NULL,
+        "questionnaireData" JSONB NOT NULL,
+        name VARCHAR(255),
+        "lastSavedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Create indexes for better performance
+    await sql`CREATE INDEX IF NOT EXISTS idx_program_draft_coachId ON "ProgramDraft"("coachId")`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_program_draft_lastSavedAt ON "ProgramDraft"("lastSavedAt" DESC)`;
+
+    console.log('✅ ProgramDraft table created');
+  } catch (error) {
+    console.error('Error creating ProgramDraft table:', error);
     throw error;
   }
 }

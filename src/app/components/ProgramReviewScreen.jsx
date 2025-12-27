@@ -4,14 +4,24 @@ import { useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Badge } from "@/app/components/ui/badge";
-import { MessageSquare, CheckSquare, FileText, Edit2, Trash2, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { MessageSquare, CheckSquare, FileText, Edit2, Trash2, ArrowLeft, CheckCircle2, Loader2, Save } from "lucide-react";
 import { HybridEditor } from "./HybridEditor";
 import { toast } from "sonner";
 
-export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImportComplete, onBack }) {
+export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImportComplete, onBack, draftId: initialDraftId, onDraftSaved, onProgramChange }) {
   const [editingElement, setEditingElement] = useState(null);
   const [program, setProgram] = useState(generatedProgram);
   const [isImporting, setIsImporting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftId, setDraftId] = useState(initialDraftId || null);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+
+  // Notify parent when program changes
+  useEffect(() => {
+    if (onProgramChange) {
+      onProgramChange(program);
+    }
+  }, [program, onProgramChange]);
 
   const handleEdit = (element, index, type) => {
     setEditingElement({ element, index, type });
@@ -42,6 +52,41 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
       setProgram({ ...program, documents: newDocs });
     }
     toast.success("Item deleted");
+  };
+
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+    try {
+      const response = await fetch('/api/ai/save-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          programData: program,
+          questionnaireData: questionnaireData,
+          draftId: draftId
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save draft');
+      }
+
+      const result = await response.json();
+      setDraftId(result.draft.id);
+      setLastSavedAt(new Date(result.draft.lastSavedAt));
+      
+      if (onDraftSaved) {
+        onDraftSaved(result.draft.id);
+      }
+      
+      toast.success("Draft saved successfully!");
+    } catch (error) {
+      console.error('Save draft error:', error);
+      toast.error(error.message || 'Failed to save draft');
+    } finally {
+      setIsSavingDraft(false);
+    }
   };
 
   const handleImport = async () => {
@@ -216,28 +261,55 @@ export function ProgramReviewScreen({ generatedProgram, questionnaireData, onImp
       </ScrollArea>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row justify-between gap-2 pt-4 border-t">
-        <Button variant="outline" onClick={onBack} className="w-full sm:w-auto">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <Button
-          onClick={handleImport}
-          disabled={isImporting}
-          className="flex items-center gap-2 w-full sm:w-auto"
-        >
-          {isImporting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Importing...
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              Import to My Program
-            </>
-          )}
-        </Button>
+      <div className="space-y-2 pt-4 border-t">
+        {lastSavedAt && (
+          <p className="text-xs text-muted-foreground text-center sm:text-left">
+            Last saved: {new Date(lastSavedAt).toLocaleString()}
+          </p>
+        )}
+        <div className="flex flex-col sm:flex-row justify-between gap-2">
+          <Button variant="outline" onClick={onBack} className="w-full sm:w-auto">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              onClick={handleSaveDraft}
+              disabled={isSavingDraft}
+              variant="outline"
+              className="flex items-center gap-2 w-full sm:w-auto"
+            >
+              {isSavingDraft ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Save Draft
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={isImporting}
+              className="flex items-center gap-2 w-full sm:w-auto"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Import to My Program
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Edit Modal */}
