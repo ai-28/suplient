@@ -81,7 +81,30 @@ export async function getElementsForProgramDay(templateId, programDay) {
     ORDER BY type, "scheduledTime"
   `;
 
-    return elements;
+    // Parse elementData if it's a string (JSONB from PostgreSQL)
+    return elements.map(element => {
+        let elementData = element.elementData || {};
+
+        // If elementData is a string, parse it
+        if (typeof elementData === 'string') {
+            try {
+                elementData = JSON.parse(elementData);
+            } catch (e) {
+                console.error('Error parsing elementData for element:', element.id, e);
+                elementData = {};
+            }
+        }
+
+        // Ensure elementData is an object
+        if (!elementData || typeof elementData !== 'object' || Array.isArray(elementData)) {
+            elementData = {};
+        }
+
+        return {
+            ...element,
+            elementData
+        };
+    });
 }
 
 /**
