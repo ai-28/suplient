@@ -369,7 +369,8 @@ export async function getResourcesForDialog(coachId) {
                 "fileName",
                 title,
                 "resourceType",
-                "fileSize"
+                "fileSize",
+                url
             FROM "Resource"
             WHERE "coachId" = ${coachId}
             ORDER BY "createdAt" DESC

@@ -136,10 +136,11 @@ export function AddElementDialog({
     switch (type) {
       case 'content':
         return {
+          title: selectedFiles[0]?.name || '',
+          description: '',
+          assignedTo: 'client',
           libraryFileId: selectedFiles[0]?.id || '',
-          fileName: selectedFiles[0]?.name || '',
-          fileType: selectedFiles[0]?.type || '',
-          category: selectedFiles[0]?.category || ''
+          url: selectedFiles[0]?.url || null
         };
       case 'task':
         return {

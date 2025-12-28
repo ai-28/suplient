@@ -54,7 +54,8 @@ export async function GET(request) {
                 name: item.title,
                 type: type,
                 category: category,
-                size: item.fileSize ? formatFileSize(item.fileSize) : 'Unknown'
+                size: item.fileSize ? formatFileSize(item.fileSize) : 'Unknown',
+                url: item.url || null
             };
         });
 

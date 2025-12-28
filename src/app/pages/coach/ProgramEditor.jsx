@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -12,9 +12,81 @@ import { ArrowLeft, CheckSquare, MessageSquare, Upload, AlertTriangle } from "lu
 import { AddElementDialog } from "@/app/components/AddElementDialog";
 import { EditElementDialog } from "@/app/components/EditElementDialog";
 import { ProgramFlowChart } from "@/app/components/ProgramFlowChart";
+import { ProgramMessagePreview } from "@/app/components/ProgramMessagePreview";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { toast } from "sonner";
+import { cn } from "@/app/lib/utils";
+import { MobileDeviceEmulator } from "react-mobile-emulator";
 
+// Responsive wrapper component that calculates scale based on container width
+function ResponsiveMobileEmulator({ children }) {
+  const containerRef = useRef(null);
+  const [scale, setScale] = useState(0.8);
+  const deviceWidth = 393; // iPhone 14 Pro width (including bezels)
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const calculateScale = () => {
+      if (containerRef.current) {
+        // Get the actual available width (accounting for padding)
+        const containerWidth = containerRef.current.offsetWidth;
+        const padding = 16; // p-2 = 0.5rem = 8px on each side = 16px total
+        const availableWidth = containerWidth - padding;
+        
+        // Calculate scale to fit the device width
+        const calculatedScale = availableWidth / deviceWidth;
+        
+        // Clamp scale between 0.4 and 1.2
+        const clampedScale = Math.max(0.4, Math.min(1.2, calculatedScale));
+        
+        setScale(clampedScale);
+        console.log('Container width:', containerWidth, 'Available:', availableWidth, 'Scale:', clampedScale);
+      }
+    };
+
+    // Initial calculation
+    const timeoutId = setTimeout(calculateScale, 100);
+    
+    // Use ResizeObserver for better accuracy
+    const resizeObserver = new ResizeObserver(() => {
+      calculateScale();
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // Also listen to window resize as fallback
+    window.addEventListener('resize', calculateScale);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', calculateScale);
+    };
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center p-2 w-full">
+      <div 
+        ref={containerRef}
+        className="w-full max-w-full mobile-emulator-wrapper"
+        style={{ minWidth: 0 }}
+      >
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}>
+          <MobileDeviceEmulator 
+            device="iphone15" 
+            orientation="portrait" 
+            scale={1}
+          >
+            {children}
+          </MobileDeviceEmulator>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ProgramEditor() {
   const { id } = useParams();
@@ -61,6 +133,8 @@ export default function ProgramEditor() {
     element: null
   });
   const [highlightedElementId, setHighlightedElementId] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [previewElements, setPreviewElements] = useState([]);
 
   // Fetch program data
   const fetchProgram = async () => {
@@ -137,6 +211,44 @@ export default function ProgramEditor() {
       fetchProgram();
     }
   }, [id]);
+
+  // Refresh preview when elements change and a day is selected
+  useEffect(() => {
+    if (!selectedDay) {
+      setPreviewElements([]);
+      return;
+    }
+
+    if (!elements || !Array.isArray(elements)) {
+      setPreviewElements([]);
+      return;
+    }
+
+    // Calculate which elements belong to this day
+    try {
+      const dayElements = elements.filter(el => {
+        if (!el) return false;
+        
+        // Handle both scheduledDay (absolute day) and week/day format
+        if (el.scheduledDay !== undefined && el.scheduledDay !== null) {
+          return el.scheduledDay === selectedDay;
+        }
+        
+        if (el.week !== undefined && el.week !== null && 
+            el.day !== undefined && el.day !== null) {
+          const elementDay = ((el.week - 1) * 7) + el.day;
+          return elementDay === selectedDay;
+        }
+        
+        return false;
+      });
+      
+      setPreviewElements(dayElements);
+    } catch (error) {
+      console.error('Error calculating day elements:', error);
+      setPreviewElements([]);
+    }
+  }, [elements, selectedDay]);
 
   if (loading) {
     return (
@@ -215,6 +327,18 @@ export default function ProgramEditor() {
     setElements(prev => prev.filter(el => el.id !== elementId));
     setEditElementDialog({ open: false, element: null });
     toast.success('Element deleted. Click Save to apply changes.');
+  };
+
+  // Handle day click to show preview
+  const handleDayClick = (day) => {
+    setSelectedDay(day);
+    // Preview elements will be calculated by useEffect
+  };
+
+  // Close preview
+  const handleClosePreview = () => {
+    setSelectedDay(null);
+    setPreviewElements([]);
   };
 
 
@@ -362,16 +486,62 @@ export default function ProgramEditor() {
         </CardContent>
       </Card>
 
-      {/* Program Flow Overview with Integrated Actions */}
-      <div className="relative">
-        <ProgramFlowChart 
-          elements={elements} 
-          duration={formData.duration}
-          highlightedElementId={highlightedElementId}
-          forceCloseDropdowns={addElementDialog.open}
-          onElementClick={handleEditElement}
-          onAddElementToDay={handleAddElementToDay}
-        />
+      {/* Program Flow Overview with Preview Panel */}
+      <div className={cn(
+        "relative",
+        selectedDay && !isMobile ? "grid grid-cols-1 lg:grid-cols-3 gap-4" : ""
+      )}>
+        {/* Program Flow Chart - Takes 2/3 of width (2:1 ratio) */}
+        <div className={selectedDay && !isMobile ? "lg:col-span-2" : "w-full"}>
+          <ProgramFlowChart 
+            elements={elements} 
+            duration={formData.duration}
+            highlightedElementId={highlightedElementId}
+            forceCloseDropdowns={addElementDialog.open}
+            onElementClick={handleEditElement}
+            onAddElementToDay={handleAddElementToDay}
+            onDayClick={handleDayClick}
+            selectedDay={selectedDay}
+          />
+        </div>
+
+        {/* Preview Panel - Desktop: Side panel, Mobile: Bottom sheet */}
+        {selectedDay && (
+          <>
+            {/* Mobile backdrop */}
+            {isMobile && (
+              <div 
+                className="fixed inset-0 bg-black/50 z-40"
+                onClick={handleClosePreview}
+              />
+            )}
+            <div className={cn(
+              isMobile 
+                ? "fixed inset-x-0 bottom-0 z-50 bg-background border-t shadow-lg rounded-t-lg max-h-[70vh] animate-in slide-in-from-bottom duration-300"
+                : "lg:col-span-1 lg:sticky lg:top-4 animate-in fade-in slide-in-from-right duration-300"
+            )}>
+              {isMobile ? (
+                // Mobile view: Simple preview without emulator frame
+                <ProgramMessagePreview
+                  elements={previewElements}
+                  programDay={selectedDay}
+                  onClose={handleClosePreview}
+                  isMobile={isMobile}
+                />
+              ) : (
+                // Desktop view: Show in mobile emulator frame
+                <ResponsiveMobileEmulator>
+                  <ProgramMessagePreview
+                    elements={previewElements}
+                    programDay={selectedDay}
+                    onClose={handleClosePreview}
+                    isMobile={false}
+                  />
+                </ResponsiveMobileEmulator>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <AddElementDialog

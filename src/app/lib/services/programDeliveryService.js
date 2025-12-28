@@ -178,12 +178,15 @@ export function formatCombinedMessage(elements, programDay) {
     // File/Resource elements
     const files = elements.filter(e => e.type === 'content' || e.type === 'file');
     if (files.length > 0) {
-        parts.push('\n📎 **Resources:**\n');
         files.forEach(file => {
-            parts.push(`• **${file.title}**`);
+            // Use elementData.title if available (new schema), fallback to file.title
+            const fileTitle = file.elementData?.title || file.title;
+
             if (file.elementData?.url || file.elementData?.fileUrl) {
                 const url = file.elementData.url || file.elementData.fileUrl;
-                parts.push(`  [Open Resource](${url})`);
+                parts.push(`\n📄 You can find the detailed guide [${fileTitle}](${url}) in your Library.`);
+            } else {
+                parts.push(`\n📄 **${fileTitle}**`);
             }
         });
     }

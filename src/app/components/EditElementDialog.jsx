@@ -139,10 +139,11 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
     if (files.length > 0) {
       const file = files[0];
       const contentData = {
+        title: file.name,
+        description: formData.data?.description || '',
+        assignedTo: formData.data?.assignedTo || 'client',
         libraryFileId: file.id.toString(),
-        fileName: file.name,
-        fileType: file.type,
-        category: file.category
+        url: file.url || null
       };
 
       setFormData(prev => ({
@@ -224,7 +225,7 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
                       <Label>Library File</Label>
                       <div className="flex items-center gap-2">
                         <Input
-                          value={formData.data?.fileName || ''}
+                          value={formData.data?.fileName || formData.data?.title || ''}
                           readOnly
                           placeholder="No file selected"
                         />
@@ -262,6 +263,54 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
                           </Button>
                         </div>
                       )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contentDescription">Description</Label>
+                      <Textarea
+                        id="contentDescription"
+                        value={formData.data?.description || ''}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          data: { ...(prev.data), description: e.target.value }
+                        }))}
+                        placeholder="Describe the file or what the client should do with it"
+                        rows={4}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Assigned To</Label>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            id="contentAssignedClient"
+                            name="contentAssignedTo"
+                            value="client"
+                            checked={(formData.data?.assignedTo || 'client') === 'client'}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              data: { ...(prev.data), assignedTo: e.target.value }
+                            }))}
+                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                          />
+                          <Label htmlFor="contentAssignedClient" className="font-normal cursor-pointer">Client</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            id="contentAssignedCoach"
+                            name="contentAssignedTo"
+                            value="coach"
+                            checked={formData.data?.assignedTo === 'coach'}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              data: { ...(prev.data), assignedTo: e.target.value }
+                            }))}
+                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                          />
+                          <Label htmlFor="contentAssignedCoach" className="font-normal cursor-pointer">Coach</Label>
+                        </div>
+                      </div>
                     </div>
                   </TabsContent>
 

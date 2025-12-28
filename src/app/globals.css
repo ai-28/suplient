@@ -426,3 +426,54 @@ All colors MUST be HSL.
   /* Red-500 */
   background-color: rgba(248, 113, 113, 0.15) !important;
 }
+
+/* Mobile Emulator Responsive Styles */
+.mobile-emulator-wrapper {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mobile-emulator-wrapper .mobile-device-emulator-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 1rem !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* Scale the emulator to fit container width */
+.mobile-emulator-wrapper .mobile-device-emulator-container>div {
+  transform-origin: center !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* Make the device frame responsive */
+.mobile-emulator-wrapper .mobile-device-emulator-container>div>div {
+  max-width: 100% !important;
+  margin: 0 auto !important;
+}
+
+/* Responsive scaling - adjust scale based on container width */
+@media (max-width: 640px) {
+  .mobile-emulator-wrapper .mobile-device-emulator-container>div {
+    transform: scale(0.7) !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .mobile-emulator-wrapper .mobile-device-emulator-container>div {
+    transform: scale(0.85) !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .mobile-emulator-wrapper .mobile-device-emulator-container>div {
+    transform: scale(1) !important;
+  }
+}

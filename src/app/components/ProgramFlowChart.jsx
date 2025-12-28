@@ -30,7 +30,7 @@ const ELEMENT_ICONS = {
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export function ProgramFlowChart({ elements, duration, highlightedElementId, onElementClick, onAddElementToDay, forceCloseDropdowns = false }) {
+export function ProgramFlowChart({ elements, duration, highlightedElementId, onElementClick, onAddElementToDay, onDayClick, selectedDay, forceCloseDropdowns = false }) {
   const [currentWeekStart, setCurrentWeekStart] = useState(1);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -177,18 +177,34 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
               
               {/* Days Grid - Responsive: 7 cols on desktop, 2 cols on mobile */}
               <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-7'} ${isMobile ? 'gap-1.5' : 'gap-2'} overflow-x-auto`}>
-                {days.map(({ day, dayOfWeek, dayName, elements: dayElements }) => (
+                {days.map(({ day, dayOfWeek, dayName, elements: dayElements }) => {
+                  const isSelected = selectedDay === day;
+                  return (
                   <div
                     key={day}
+                    onClick={() => onDayClick && onDayClick(day)}
                     className={cn(
-                      `${isMobile ? 'min-h-[100px] p-1.5' : 'min-h-[80px] p-2'} border border-border rounded-lg bg-card relative group`,
-                      dayElements.length > 0 ? "border-primary/20 bg-primary/5" : "border-dashed hover:border-primary/40 hover:bg-primary/10"
+                      `${isMobile ? 'min-h-[100px] p-1.5' : 'min-h-[80px] p-2'} border rounded-lg bg-card relative group transition-all`,
+                      isSelected 
+                        ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20" 
+                        : dayElements.length > 0 
+                          ? "border-primary/20 bg-primary/5 hover:border-primary/40 hover:bg-primary/10 cursor-pointer" 
+                          : "border-dashed hover:border-primary/40 hover:bg-primary/10 cursor-pointer",
+                      onDayClick && "cursor-pointer"
                     )}
                   >
                     {/* Day Header */}
                     <div className={`${isMobile ? 'text-[10px] mb-1' : 'text-xs mb-2'} font-medium text-muted-foreground`}>
                       <div className="break-words">{dayName}</div>
-                      <div className={isMobile ? 'text-[9px]' : 'text-[10px]'}>Day {day}</div>
+                      <div className={cn(
+                        isMobile ? 'text-[9px]' : 'text-[10px]',
+                        onDayClick && dayElements.length > 0 && "text-primary font-semibold"
+                      )}>
+                        Day {day}
+                        {onDayClick && dayElements.length > 0 && (
+                          <span className="ml-1 text-[8px] opacity-70">(click to preview)</span>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Add Element Button */}
@@ -257,7 +273,8 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                       })}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
