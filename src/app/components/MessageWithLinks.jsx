@@ -27,20 +27,26 @@ export function MessageWithLinks({ messageText, className = "" }) {
       parts.push(text.substring(lastIndex, match.index));
     }
     
+    // Capture URL and text in variables to avoid closure issues
+    const linkUrl = match[2];
+    const linkText = match[1];
+    
     // Add clickable link - only show the text part, URL is hidden
     parts.push(
       <a
         key={`link-${keyCounter++}`}
-        href={match[2]}
+        href={linkUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-primary underline hover:text-primary/80 font-medium cursor-pointer"
+        className="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300 font-medium cursor-pointer break-all"
         onClick={(e) => {
           e.preventDefault();
-          window.open(match[2], '_blank');
+          if (linkUrl) {
+            window.open(linkUrl, '_blank', 'noopener,noreferrer');
+          }
         }}
       >
-        {match[1]}
+        {linkText}
       </a>
     );
     

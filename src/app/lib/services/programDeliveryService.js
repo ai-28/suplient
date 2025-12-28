@@ -100,6 +100,18 @@ export async function getElementsForProgramDay(templateId, programDay) {
             elementData = {};
         }
 
+        // Debug logging for message elements
+        if (element.type === 'message') {
+            console.log('[Program Delivery] Message element:', {
+                id: element.id,
+                title: element.title,
+                elementDataType: typeof element.elementData,
+                elementData: elementData,
+                messageContent: elementData?.message,
+                willUse: elementData?.message || element.title
+            });
+        }
+
         return {
             ...element,
             elementData
