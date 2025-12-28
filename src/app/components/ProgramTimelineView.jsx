@@ -160,15 +160,15 @@ export function ProgramTimelineView({
               setIsLoading(true);
               try {
                 await onPauseResume();
-                toast({
-                  title: clientProgram?.status === 'active' ? 'Program Paused' : 'Program Resumed',
-                  description: `${clientProgram?.name} has been ${clientProgram?.status === 'active' ? 'paused' : 'resumed'} successfully.`,
-                });
+                toast.success(
+                  clientProgram?.status === 'active' ? 'Program Paused' : 'Program Resumed',
+                  {
+                    description: `${clientProgram?.name} has been ${clientProgram?.status === 'active' ? 'paused' : 'resumed'} successfully.`,
+                  }
+                );
               } catch (error) {
-                toast({
-                  title: 'Error',
+                toast.error('Error', {
                   description: 'Failed to update program status. Please try again.',
-                  variant: 'destructive',
                 });
               } finally {
                 setIsLoading(false);
@@ -206,15 +206,12 @@ export function ProgramTimelineView({
                 setIsLoading(true);
                 try {
                   await onRestart();
-                  toast({
-                    title: 'Program Restarted',
+                  toast.success('Program Restarted', {
                     description: `${clientProgram?.name} has been restarted and is ready to begin again.`,
                   });
                 } catch (error) {
-                  toast({
-                    title: 'Error',
+                  toast.error('Error', {
                     description: 'Failed to restart program. Please try again.',
-                    variant: 'destructive',
                   });
                 } finally {
                   setIsLoading(false);
