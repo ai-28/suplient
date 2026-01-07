@@ -41,7 +41,6 @@ function ResponsiveMobileEmulator({ children }) {
         const clampedScale = Math.max(0.4, Math.min(1.2, calculatedScale));
         
         setScale(clampedScale);
-        console.log('Container width:', containerWidth, 'Available:', availableWidth, 'Scale:', clampedScale);
       }
     };
 
