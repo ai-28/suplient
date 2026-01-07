@@ -7,8 +7,9 @@ android {
         applicationId "com.suplient.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Increment versionCode for each release to Google Play Store
+        versionCode 4
+        versionName "4.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +17,61 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    
+    // Signing configuration for release builds
+    // Set these environment variables or create a keystore.properties file (not tracked in git)
+    signingConfigs {
+        release {
+            // Check for keystore file and credentials
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            def keystoreProperties = new Properties()
+            def keystoreFile = null
+            
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                def storeFilePath = keystoreProperties['storeFile']
+                if (storeFilePath) {
+                    keystoreFile = rootProject.file(storeFilePath)
+                    if (keystoreFile.exists()) {
+                        storeFile keystoreFile
+                        storePassword keystoreProperties['storePassword'] ?: ''
+                        keyAlias keystoreProperties['keyAlias'] ?: ''
+                        keyPassword keystoreProperties['keyPassword'] ?: ''
+                    }
+                }
+            } else {
+                // Fallback to environment variables
+                def keystorePath = System.getenv("KEYSTORE_PATH") ?: ''
+                if (keystorePath) {
+                    keystoreFile = file(keystorePath)
+                    if (keystoreFile.exists()) {
+                        storeFile keystoreFile
+                        storePassword System.getenv("KEYSTORE_PASSWORD") ?: ''
+                        keyAlias System.getenv("KEY_ALIAS") ?: ''
+                        keyPassword System.getenv("KEY_PASSWORD") ?: ''
+                    }
+                }
+            }
+        }
+    }
+    
     buildTypes {
         release {
+            // Enable signing for release builds if keystore is configured
+            def releaseSigning = signingConfigs.release
+            if (releaseSigning.storeFile != null && releaseSigning.storeFile.exists()) {
+                signingConfig releaseSigning
+            } else {
+                logger.warn("No keystore configured for release builds. Release APK will be unsigned.")
+            }
+            // Set to true to enable code shrinking and obfuscation (recommended for production)
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // Debug builds don't need signing
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
         }
     }
 }
