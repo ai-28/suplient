@@ -252,8 +252,14 @@ export default function ClientDashboard() {
           <p className="text-sm text-red-800">{t('client.offlineMessage', "You're offline. Some features may be limited.")}</p>
         </div>
       )}
-      {/* Sticky Topbar: header + date controls */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
+      {/* Sticky Topbar: header + date controls - Safe area aware */}
+      <div 
+        className="sticky z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border"
+        style={{ 
+          top: 'env(safe-area-inset-top, 0px)',
+          paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
+        }}
+      >
         {/* Header with Profile */}
         <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-semibold text-foreground">

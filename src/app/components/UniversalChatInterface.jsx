@@ -402,8 +402,13 @@ export function UniversalChatInterface({
     );
   }
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
-      {/* Chat Header - Fixed for client, normal for coach */}
-      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40 ${chatType === "personal" ? "top-12" : "top-12"}` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
+      {/* Chat Header - Fixed for client, normal for coach - Safe area aware */}
+      <div 
+        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
+        style={currentUserRole === "client" ? {
+          top: `calc(3rem + env(safe-area-inset-top, 0px))`,
+        } : {}}
+      >
         <div className="flex items-center gap-3">
           {showBackButton && (
             <Button 
@@ -680,8 +685,13 @@ export function UniversalChatInterface({
         </TooltipProvider>
       </ScrollArea>
 
-      {/* Voice Recorder - Normal positioning for both client and coach */}
-      {showVoiceRecorder && allowVoiceMessages && <div className="p-4 border-t border-border bg-card fixed bottom-[93px] left-0 right-0 z-40">
+      {/* Voice Recorder - Normal positioning for both client and coach - Safe area aware */}
+      {showVoiceRecorder && allowVoiceMessages && <div 
+        className="p-4 border-t border-border bg-card fixed left-0 right-0 z-40"
+        style={currentUserRole === "client" ? {
+          bottom: `calc(93px + env(safe-area-inset-bottom, 0px))`,
+        } : {}}
+      >
           <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
@@ -702,8 +712,13 @@ export function UniversalChatInterface({
       {/* Reply Preview */}
       {replyToMessage && allowReplies && <ReplyPreview replyToMessage={replyToMessage} onCancel={handleCancelReply} />}
 
-      {/* Message Input - Fixed for client, normal for coach */}
-      {!showVoiceRecorder && !hideInput && !readOnly && <div className={`p-3 border-t border-border bg-card ${currentUserRole === "client" ? "fixed bottom-[93px] left-0 right-0 z-40" : ""}`}>
+      {/* Message Input - Fixed for client, normal for coach - Safe area aware */}
+      {!showVoiceRecorder && !hideInput && !readOnly && <div 
+        className={`p-3 border-t border-border bg-card ${currentUserRole === "client" ? "fixed left-0 right-0 z-40" : ""}`}
+        style={currentUserRole === "client" ? {
+          bottom: `calc(93px + env(safe-area-inset-bottom, 0px))`,
+        } : {}}
+      >
 
           <div className="flex items-end gap-2">
             <div className="relative flex-1">

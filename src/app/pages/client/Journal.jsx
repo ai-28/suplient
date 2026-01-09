@@ -448,8 +448,14 @@ export default function ClientJournal() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="flex items-center p-3 border-b border-border bg-card fixed top-0 left-0 right-0 z-10">
+      {/* Header - Safe area aware */}
+      <div 
+        className="flex items-center p-3 border-b border-border bg-card fixed left-0 right-0 z-10"
+        style={{ 
+          top: 'env(safe-area-inset-top, 0px)',
+          paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))'
+        }}
+      >
         <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>

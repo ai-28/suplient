@@ -35,8 +35,13 @@ export default function ClientLayout({ children }) {
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
 
-      {/* Bottom Navigation - Flexbox */}
-      <div className="bg-card border-t border-border p-4 shadow-lg fixed bottom-0 left-0 right-0">
+      {/* Bottom Navigation - Flexbox with safe area support */}
+      <div 
+        className="bg-card border-t border-border p-4 shadow-lg fixed bottom-0 left-0 right-0"
+        style={{ 
+          paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`,
+        }}
+      >
         <div className="flex items-center justify-around max-w-md mx-auto">
           <Button 
             variant="ghost" 
