@@ -416,6 +416,23 @@ All colors MUST be HSL.
     bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  /* Bottom safe with padding for home indicator */
+  .bottom-safe-padded {
+    bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Bottom position accounting for bottom nav (93px) + safe area */
+  .bottom-nav-safe {
+    bottom: calc(93px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Bottom nav safe with padding */
+  .bottom-nav-safe-padded {
+    bottom: calc(93px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
   /* Height utilities accounting for safe areas */
   .h-screen-safe {
     height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));

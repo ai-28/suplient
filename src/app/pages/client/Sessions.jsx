@@ -257,10 +257,7 @@ export default function ClientSessions() {
     <div className="h-screen bg-background flex flex-col">
       <Tabs defaultValue="chat" className="h-full flex flex-col">
         {/* Tab Headers - Fixed at top */}
-        <div className="border-b border-border bg-card fixed left-0 right-0 z-50 safe-x" style={{ 
-          top: 'env(safe-area-inset-top, 0px)',
-          paddingTop: '0'
-        }}>
+        <div className="border-b border-border bg-card fixed top-safe left-0 right-0 z-50 safe-x">
           <TabsList className="w-full grid grid-cols-2 h-12 bg-transparent p-0">
             <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
               1-1

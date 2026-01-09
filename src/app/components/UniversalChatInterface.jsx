@@ -403,9 +403,7 @@ export function UniversalChatInterface({
   }
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
       {/* Chat Header - Fixed for client, normal for coach */}
-      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40 safe-x` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`} style={currentUserRole === "client" ? { 
-        top: 'env(safe-area-inset-top, 0px)'
-      } : {}}>
+      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed top-safe left-0 right-0 z-40 safe-x` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}>
         <div className="flex items-center gap-3">
           {showBackButton && (
             <Button 
@@ -686,10 +684,7 @@ export function UniversalChatInterface({
       </ScrollArea>
 
       {/* Voice Recorder - Normal positioning for both client and coach */}
-      {showVoiceRecorder && allowVoiceMessages && <div className="p-4 border-t border-border bg-card fixed left-0 right-0 z-40 safe-bottom safe-x" style={{ 
-        bottom: 'calc(93px + env(safe-area-inset-bottom, 0px))',
-        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))'
-      }}>
+      {showVoiceRecorder && allowVoiceMessages && <div className="p-4 border-t border-border bg-card fixed left-0 right-0 z-40 bottom-nav-safe-padded safe-x">
           <div className="flex items-center gap-3">
             <Button 
               variant="outline" 
@@ -711,8 +706,7 @@ export function UniversalChatInterface({
       {replyToMessage && allowReplies && <ReplyPreview replyToMessage={replyToMessage} onCancel={handleCancelReply} />}
 
       {/* Message Input - Fixed for client, normal for coach */}
-      {!showVoiceRecorder && !hideInput && !readOnly && <div className={`p-3 border-t border-border bg-card safe-x ${currentUserRole === "client" ? "fixed left-0 right-0 z-40 safe-bottom" : ""}`} style={currentUserRole === "client" ? { 
-        bottom: 'calc(93px + env(safe-area-inset-bottom, 0px))',
+      {!showVoiceRecorder && !hideInput && !readOnly && <div className={`p-3 border-t border-border bg-card safe-x ${currentUserRole === "client" ? "fixed left-0 right-0 z-40 bottom-nav-safe" : ""}`} style={currentUserRole === "client" ? { 
         paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))'
       } : {}}>
 
