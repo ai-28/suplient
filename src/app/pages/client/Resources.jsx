@@ -222,29 +222,28 @@ export default function ClientResources() {
         </div>
       )}
 
+      {/* Header - Sticky with safe area (like dashboard) - Always visible */}
+      <div 
+        className="sticky z-20 bg-background border-b border-border"
+        style={{ 
+          top: 'env(safe-area-inset-top, 0px)',
+          paddingTop: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-top, 0px))`
+        }}
+      >
+        <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>
+          <div>
+            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>{t('resources.title', 'Resources')}</h1>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
+              {t('resources.subtitle', 'Access helpful articles, exercises, and tools for your mental health journey.')}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content - only show when not loading and no error */}
       {!isLoading && !error && (
-        <>
-          {/* Header - Sticky with safe area (like dashboard) */}
-          <div 
-            className="sticky z-20 bg-background border-b border-border"
-            style={{ 
-              top: 'env(safe-area-inset-top, 0px)',
-              paddingTop: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-top, 0px))`
-            }}
-          >
-            <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>
-              <div>
-                <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>{t('resources.title', 'Resources')}</h1>
-                <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
-                  {t('resources.subtitle', 'Access helpful articles, exercises, and tools for your mental health journey.')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            <div className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}>
+        <div className="flex-1 overflow-y-auto">
+          <div className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}>
 
       {/* Search and Filter */}
       <div className="space-y-4">
@@ -411,9 +410,8 @@ export default function ClientResources() {
           </CardContent>
           </Card>
         )}
-            </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Preview Modal */}

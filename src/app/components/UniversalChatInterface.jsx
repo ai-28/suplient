@@ -401,12 +401,16 @@ export function UniversalChatInterface({
       </div>
     );
   }
+  // Check if we're inside a scrollable container (like Sessions page)
+  // If className includes "h-full" or "h-[calc", it's likely in a container
+  const isInScrollableContainer = className?.includes("h-full") || className?.includes("h-[calc");
+  
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
-      {/* Chat Header - Fixed for client, normal for coach - Safe area aware */}
+      {/* Chat Header - Sticky only when not in scrollable container, normal for coach - Safe area aware */}
       <div 
-        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
-        style={currentUserRole === "client" ? {
-          top: `calc(3rem + env(safe-area-inset-top, 0px))`,
+        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && !isInScrollableContainer ? `sticky z-40` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
+        style={currentUserRole === "client" && !isInScrollableContainer ? {
+          top: `env(safe-area-inset-top, 0px)`,
         } : {}}
       >
         <div className="flex items-center gap-3">
@@ -498,8 +502,8 @@ export function UniversalChatInterface({
         </div>
       </div>
 
-      {/* Messages Area - Adjusted for fixed header and input on client */}
-      <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `pt-24 ${showVoiceRecorder ? "pb-72" : "pb-40"}` : ""}`}>
+      {/* Messages Area - Natural flow with sticky header on client */}
+      <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-72" : "pb-40"}` : ""}`}>
         <TooltipProvider>
           <div className="space-y-1">
             {/* Load More Button */}
