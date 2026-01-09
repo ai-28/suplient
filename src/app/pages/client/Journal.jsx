@@ -453,7 +453,7 @@ export default function ClientJournal() {
         className="sticky z-20 bg-card border-b border-border"
         style={{ 
           top: 'env(safe-area-inset-top, 0px)',
-          paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))'
+          paddingTop: 'calc(1.5rem + env(safe-area-inset-top, 0px))'
         }}
       >
         <div className="flex items-center p-3">
