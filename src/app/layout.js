@@ -29,6 +29,7 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#3b82f6",
+  viewportFit: "cover", // Enable safe area insets for iPhone notch/Dynamic Island
 };
 
 export default function RootLayout({ children }) {
@@ -45,6 +46,7 @@ export default function RootLayout({ children }) {
         <meta name="msapplication-TileColor" content="#3b82f6" />
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#3b82f6" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 
         {/* iOS PWA Support */}
         <link rel="apple-touch-icon" href="/assets/Suplient-logo.png" />

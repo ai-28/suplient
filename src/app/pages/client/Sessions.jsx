@@ -257,7 +257,10 @@ export default function ClientSessions() {
     <div className="h-screen bg-background flex flex-col">
       <Tabs defaultValue="chat" className="h-full flex flex-col">
         {/* Tab Headers - Fixed at top */}
-        <div className="border-b border-border bg-card fixed top-0 left-0 right-0 z-50">
+        <div className="border-b border-border bg-card fixed left-0 right-0 z-50 safe-top safe-x" style={{ 
+          top: 'env(safe-area-inset-top, 0px)',
+          paddingTop: 'env(safe-area-inset-top, 0px)'
+        }}>
           <TabsList className="w-full grid grid-cols-2 h-12 bg-transparent p-0">
             <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
               1-1
@@ -269,7 +272,10 @@ export default function ClientSessions() {
         </div>
 
         {/* Tab Content - Adjusted for fixed header */}
-        <div className="flex-1 pt-12">
+        <div className="flex-1 pt-12 safe-x" style={{ 
+          paddingTop: 'calc(3rem + env(safe-area-inset-top, 0px))',
+          paddingBottom: 'calc(93px + env(safe-area-inset-bottom, 0px))'
+        }}>
           <TabsContent value="chat" className="mt-0 h-[calc(100vh-48px)]">
             <ChatTab />
           </TabsContent>
