@@ -261,7 +261,7 @@ export default function ClientSessions() {
           className="border-b border-border bg-card fixed left-0 right-0 z-50"
           style={{ 
             top: 'env(safe-area-inset-top, 0px)',
-            paddingTop: 'env(safe-area-inset-top, 0px)'
+            paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))'
           }}
         >
           <TabsList className="w-full grid grid-cols-2 h-12 bg-transparent p-0">

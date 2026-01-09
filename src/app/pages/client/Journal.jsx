@@ -508,7 +508,12 @@ export default function ClientJournal() {
         </div>
       </div>
 
-      <div className="p-4 space-y-6 mt-16 mb-24">
+      <div 
+        className="p-4 space-y-6 mb-24"
+        style={{ 
+          paddingTop: `calc(4rem + env(safe-area-inset-top, 0px))`
+        }}
+      >
         {/* Loading indicator when loading entry */}
         {/* {isLoadingEntry && (
           <div className="flex items-center justify-center py-8">

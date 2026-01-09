@@ -312,20 +312,26 @@ export default function ClientTasks() {
       {/* Main Content - only show when not loading and no error */}
       {!isLoading && !error && (
         <>
-          {/* Enhanced Header with Gamification */}
-      <div className="p-4 border-b border-border bg-card">
-        <div className="flex items-center gap-3 mb-4">
-                      <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-semibold text-foreground">{t('tasks.myTasks', 'My Tasks')}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{todayQuote}</p>
+          {/* Enhanced Header with Gamification - Fixed with safe area */}
+          <div 
+            className="p-4 border-b border-border bg-card fixed top-0 left-0 right-0 z-10"
+            style={{ 
+              top: 'env(safe-area-inset-top, 0px)',
+              paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex-1">
+                <h1 className="text-xl font-semibold text-foreground">{t('tasks.myTasks', 'My Tasks')}</h1>
+                <p className="text-sm text-muted-foreground mt-1">{todayQuote}</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 pt-24">
         
         {/* Simplified Filter Tabs */}
         <Tabs value={filter} onValueChange={setFilter}>

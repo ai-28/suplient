@@ -4,7 +4,7 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
-import { Search, BookOpen, Play, Download, Star, Filter, X, Eye, FileText } from "lucide-react";
+import { Search, BookOpen, Play, Download, Star, Filter, X, Eye, FileText, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -225,7 +225,12 @@ export default function ClientResources() {
       {/* Main Content - only show when not loading and no error */}
       {!isLoading && !error && (
         <>
-          <div className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}>
+          <div 
+            className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}
+            style={{ 
+              paddingTop: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-top, 0px))`
+            }}
+          >
         <div>
           <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>{t('resources.title', 'Resources')}</h1>
           <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
