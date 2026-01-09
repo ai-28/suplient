@@ -193,10 +193,10 @@ export default function ClientResources() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col">
       {/* Loading State */}
       {isLoading && (
-        <div className="container mx-auto px-4 py-6">
+        <div className="flex-1 overflow-y-auto container mx-auto px-4 py-6">
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">{t('resources.loading', 'Loading resources...')}</p>
@@ -206,7 +206,7 @@ export default function ClientResources() {
 
       {/* Error State */}
       {error && !isLoading && (
-        <div className="container mx-auto px-4 py-6">
+        <div className="flex-1 overflow-y-auto container mx-auto px-4 py-6">
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-8">
@@ -225,18 +225,26 @@ export default function ClientResources() {
       {/* Main Content - only show when not loading and no error */}
       {!isLoading && !error && (
         <>
+          {/* Header - Sticky with safe area (like dashboard) */}
           <div 
-            className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}
+            className="sticky z-20 bg-background border-b border-border"
             style={{ 
+              top: 'env(safe-area-inset-top, 0px)',
               paddingTop: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-top, 0px))`
             }}
           >
-        <div>
-          <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>{t('resources.title', 'Resources')}</h1>
-          <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
-            {t('resources.subtitle', 'Access helpful articles, exercises, and tools for your mental health journey.')}
-          </p>
-        </div>
+            <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>
+              <div>
+                <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>{t('resources.title', 'Resources')}</h1>
+                <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
+                  {t('resources.subtitle', 'Access helpful articles, exercises, and tools for your mental health journey.')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className={`container mx-auto ${isMobile ? 'px-3 py-4' : 'px-4 py-6'} space-y-6`}>
 
       {/* Search and Filter */}
       <div className="space-y-4">
@@ -401,8 +409,9 @@ export default function ClientResources() {
               </p>
             </div>
           </CardContent>
-        </Card>
-      )}
+          </Card>
+        )}
+            </div>
           </div>
         </>
       )}

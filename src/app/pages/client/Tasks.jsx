@@ -280,7 +280,7 @@ export default function ClientTasks() {
   const { completedTasks, availableTasks, completionRate } = taskStats;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="h-screen bg-background flex flex-col pb-20">
       {/* Loading State */}
       {isLoading && (
         <div className="p-4">
@@ -312,15 +312,15 @@ export default function ClientTasks() {
       {/* Main Content - only show when not loading and no error */}
       {!isLoading && !error && (
         <>
-          {/* Enhanced Header with Gamification - Fixed with safe area */}
+          {/* Enhanced Header with Gamification - Sticky with safe area (like dashboard) */}
           <div 
-            className="p-4 border-b border-border bg-card fixed top-0 left-0 right-0 z-10"
+            className="sticky z-20 bg-card border-b border-border"
             style={{ 
               top: 'env(safe-area-inset-top, 0px)',
               paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
             }}
           >
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 p-4">
               <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -331,7 +331,7 @@ export default function ClientTasks() {
             </div>
           </div>
 
-      <div className="p-4 space-y-6 pt-24">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
         
         {/* Simplified Filter Tabs */}
         <Tabs value={filter} onValueChange={setFilter}>

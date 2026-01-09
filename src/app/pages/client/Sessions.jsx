@@ -256,9 +256,9 @@ export default function ClientSessions() {
   return (
     <div className="h-screen bg-background flex flex-col">
       <Tabs defaultValue="chat" className="h-full flex flex-col">
-        {/* Tab Headers - Fixed at top with safe area support */}
+        {/* Tab Headers - Sticky with safe area support (like dashboard) */}
         <div 
-          className="border-b border-border bg-card fixed left-0 right-0 z-50"
+          className="sticky z-20 border-b border-border bg-card"
           style={{ 
             top: 'env(safe-area-inset-top, 0px)',
             paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))'
@@ -274,14 +274,9 @@ export default function ClientSessions() {
           </TabsList>
         </div>
 
-        {/* Tab Content - Adjusted for fixed header and safe area */}
-        <div 
-          className="flex-1"
-          style={{ 
-            paddingTop: `calc(3rem + env(safe-area-inset-top, 0px))`
-          }}
-        >
-          <TabsContent value="chat" className="mt-0 h-[calc(100vh-48px-env(safe-area-inset-top,0px))]">
+        {/* Tab Content - Natural flow with sticky header */}
+        <div className="flex-1 overflow-y-auto">
+          <TabsContent value="chat" className="mt-0 h-full">
             <ChatTab />
           </TabsContent>
           
