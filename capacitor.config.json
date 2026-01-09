@@ -3,7 +3,7 @@
   "appName": "Suplient",
   "webDir": "www",
   "server": {
-    "url": "https://suplient.com",
+    "url": "https://app.suplient.com",
     "cleartext": false,
     "androidScheme": "https",
     "iosScheme": "https"
