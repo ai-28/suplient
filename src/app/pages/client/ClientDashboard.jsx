@@ -253,8 +253,9 @@ export default function ClientDashboard() {
         </div>
       )}
       {/* Sticky Topbar: header + date controls */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border safe-top safe-x" style={{ 
-        paddingTop: 'env(safe-area-inset-top, 0px)'
+      <div className="sticky z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border safe-x" style={{ 
+        top: 'env(safe-area-inset-top, 0px)',
+        paddingTop: '0'
       }}>
         {/* Header with Profile */}
         <div className="flex items-center justify-between p-4">

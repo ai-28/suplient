@@ -29,7 +29,6 @@ export default function ClientLayout({ children }) {
     <div className="h-screen max-h-screen bg-background flex flex-col safe-y">
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto safe-x" style={{ 
-        paddingTop: 'env(safe-area-inset-top, 0px)',
         paddingBottom: 'calc(93px + env(safe-area-inset-bottom, 0px))'
       }}>
         {children}

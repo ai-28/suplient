@@ -403,9 +403,8 @@ export function UniversalChatInterface({
   }
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
       {/* Chat Header - Fixed for client, normal for coach */}
-      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40 safe-top safe-x` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`} style={currentUserRole === "client" ? { 
-        top: 'env(safe-area-inset-top, 0px)',
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${chatType === "personal" ? "0.75rem" : "1rem"})`
+      <div className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `fixed left-0 right-0 z-40 safe-x` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`} style={currentUserRole === "client" ? { 
+        top: 'env(safe-area-inset-top, 0px)'
       } : {}}>
         <div className="flex items-center gap-3">
           {showBackButton && (
