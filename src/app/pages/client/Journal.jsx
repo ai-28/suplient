@@ -449,7 +449,7 @@ export default function ClientJournal() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="flex items-center p-3 border-b border-border bg-card fixed top-safe left-0 right-0 z-10 safe-x">
+      <div className="flex items-center p-3 border-b border-border bg-card fixed top-0 left-0 right-0 z-10">
         <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -502,10 +502,7 @@ export default function ClientJournal() {
         </div>
       </div>
 
-      <div className="p-4 space-y-6 mt-16 mb-24 safe-x" style={{ 
-        marginTop: 'calc(4rem + env(safe-area-inset-top, 0px))',
-        marginBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))'
-      }}>
+      <div className="p-4 space-y-6 mt-16 mb-24">
         {/* Loading indicator when loading entry */}
         {/* {isLoadingEntry && (
           <div className="flex items-center justify-center py-8">

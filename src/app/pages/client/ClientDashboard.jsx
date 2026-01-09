@@ -253,7 +253,7 @@ export default function ClientDashboard() {
         </div>
       )}
       {/* Sticky Topbar: header + date controls */}
-      <div className="sticky top-safe z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border safe-x">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border">
         {/* Header with Profile */}
         <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-semibold text-foreground">
@@ -324,10 +324,7 @@ export default function ClientDashboard() {
       </div>
 
       {/* Scrollable Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 safe-x" style={{ 
-        paddingBottom: 'calc(110px + env(safe-area-inset-bottom, 0px))',
-        paddingTop: 'env(safe-area-inset-top, 0px)'
-      }}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-6" style={{ paddingBottom: '110px' }}>
         {/* Analytics Chart */}
         {loading ? (
           <Card>

@@ -280,10 +280,7 @@ export default function ClientTasks() {
   const { completedTasks, availableTasks, completionRate } = taskStats;
 
   return (
-    <div className="min-h-screen bg-background pb-20 safe-x" style={{ 
-      paddingTop: 'env(safe-area-inset-top, 0px)',
-      paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))'
-    }}>
+    <div className="min-h-screen bg-background pb-20">
       {/* Loading State */}
       {isLoading && (
         <div className="p-4">
