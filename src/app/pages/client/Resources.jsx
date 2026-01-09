@@ -194,6 +194,24 @@ export default function ClientResources() {
 
   return (
     <div className="h-screen bg-background flex flex-col">
+      {/* Header - Sticky with safe area (like dashboard) - Always visible */}
+      <div 
+        className="sticky z-20 bg-background border-b border-border"
+        style={{ 
+          top: 'env(safe-area-inset-top, 0px)',
+          paddingTop: `calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px))`
+        }}
+      >
+        <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>
+          <div>
+            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>{t('resources.title', 'Resources')}</h1>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
+              {t('resources.subtitle', 'Access helpful articles, exercises, and tools for your mental health journey.')}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Loading State */}
       {isLoading && (
         <div className="flex-1 overflow-y-auto container mx-auto px-4 py-6">
@@ -221,24 +239,6 @@ export default function ClientResources() {
           </Card>
         </div>
       )}
-
-      {/* Header - Sticky with safe area (like dashboard) - Always visible */}
-      <div 
-        className="sticky z-20 bg-background border-b border-border"
-        style={{ 
-          top: 'env(safe-area-inset-top, 0px)',
-          paddingTop: `calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px))`
-        }}
-      >
-        <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>
-          <div>
-            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold tracking-tight`}>{t('resources.title', 'Resources')}</h1>
-            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
-              {t('resources.subtitle', 'Access helpful articles, exercises, and tools for your mental health journey.')}
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content - only show when not loading and no error */}
       {!isLoading && !error && (
