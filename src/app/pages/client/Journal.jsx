@@ -452,8 +452,11 @@ export default function ClientJournal() {
       <div 
         className="sticky z-20 bg-card border-b border-border"
         style={{ 
-          top: 'env(safe-area-inset-top, 0px)',
-          paddingTop: 'calc(1.5rem + env(safe-area-inset-top, 0px))'
+          top: 0,
+          // Use max() to ensure minimum 1.5rem padding, more if safe area exists
+          paddingTop: 'max(1.5rem, calc(1.5rem + env(safe-area-inset-top, 0px)))',
+          // Ensure minimum height so content doesn't get squished
+          minHeight: 'max(4.5rem, calc(4.5rem + env(safe-area-inset-top, 0px)))'
         }}
       >
         <div className="flex items-center p-3">

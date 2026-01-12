@@ -410,7 +410,9 @@ export function UniversalChatInterface({
       <div 
         className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && !isInScrollableContainer ? `sticky z-40` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
         style={currentUserRole === "client" && !isInScrollableContainer ? {
-          top: `env(safe-area-inset-top, 0px)`,
+          top: 0,
+          // Use max() to ensure minimum padding, more if safe area exists
+          paddingTop: 'max(0.75rem, calc(0.75rem + env(safe-area-inset-top, 0px)))',
         } : {}}
       >
         <div className="flex items-center gap-3">

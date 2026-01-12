@@ -198,8 +198,12 @@ export default function ClientResources() {
       <div 
         className="sticky z-20 bg-background border-b border-border"
         style={{ 
-          top: 'env(safe-area-inset-top, 0px)',
-          paddingTop: `calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px))`
+          top: 0,
+          // Use max() to ensure minimum padding, more if safe area exists
+          // Mobile: 1.5rem, Desktop: 2rem
+          paddingTop: `max(${isMobile ? '1.5rem' : '2rem'}, calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px)))`,
+          // Ensure minimum height so content doesn't get squished
+          minHeight: `max(${isMobile ? '5rem' : '6rem'}, calc(${isMobile ? '5rem' : '6rem'} + env(safe-area-inset-top, 0px)))`
         }}
       >
         <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>

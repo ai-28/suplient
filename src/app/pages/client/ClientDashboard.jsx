@@ -256,8 +256,12 @@ export default function ClientDashboard() {
       <div 
         className="sticky z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border"
         style={{ 
-          top: 'env(safe-area-inset-top, 0px)',
-          paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
+          top: 0,
+          // Use max() to ensure minimum 1rem padding, more if safe area exists
+          // This handles: iPhone 16, iPhone 17, Android, and web consistently
+          paddingTop: 'max(1rem, calc(1rem + env(safe-area-inset-top, 0px)))',
+          // Ensure minimum height so content doesn't get squished
+          minHeight: 'max(4rem, calc(4rem + env(safe-area-inset-top, 0px)))'
         }}
       >
         {/* Header with Profile */}
