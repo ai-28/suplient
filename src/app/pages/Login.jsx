@@ -8,6 +8,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerStep, setRegisterStep] = useState(1); // 1 = basic info, 2 = questionnaire
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   
   // Questionnaire state
   const [expectedPlatformBestAt, setExpectedPlatformBestAt] = useState("");
@@ -223,6 +225,12 @@ export default function Login() {
   const handleNextStep = (e) => {
     e.preventDefault();
     
+    // Validate terms acceptance
+    if (!acceptedTerms) {
+      toast.error(`❌ ${t('login.errors.acceptTerms', 'You must accept the Terms of Service and Privacy Policy to continue')}`, { duration: 5000 });
+      return;
+    }
+    
     // Validate passwords match
     if (registerPassword !== confirmPassword) {
       toast.error(`❌ ${t('login.errors.passwordsNotMatch', 'Passwords do not match')}`, { duration: 5000 });
@@ -242,6 +250,13 @@ export default function Login() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegisterLoading(true);
+    
+    // Validate terms acceptance
+    if (!acceptedTerms) {
+      toast.error(`❌ ${t('login.errors.acceptTerms', 'You must accept the Terms of Service and Privacy Policy to continue')}`, { duration: 5000 });
+      setRegisterLoading(false);
+      return;
+    }
     
     // Validate questionnaire fields
     if (!expectedPlatformBestAt.trim()) {
@@ -606,7 +621,32 @@ export default function Login() {
                         </div>
                       </div>
                       
-                      <Button type="submit" className="w-full h-11">
+                      <div className="space-y-2">
+                        <div className="flex items-start space-x-2">
+                          <Checkbox 
+                            id="acceptTerms" 
+                            checked={acceptedTerms}
+                            onCheckedChange={(checked) => setAcceptedTerms(checked)}
+                            required
+                            className="mt-1"
+                          />
+                          <Label 
+                            htmlFor="acceptTerms" 
+                            className="text-sm leading-relaxed cursor-pointer"
+                          >
+                            {t('login.acceptTerms', 'I agree to the')}{" "}
+                            <Link href="https://suplient.com/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                              {t('login.termsOfService', 'Terms of Service')}
+                            </Link>{" "}
+                            {t('login.and', 'and')}{" "}
+                            <Link href="https://suplient.com/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                              {t('login.privacyPolicy', 'Privacy Policy')}
+                            </Link>
+                          </Label>
+                        </div>
+                      </div>
+                      
+                      <Button type="submit" className="w-full h-11" disabled={!acceptedTerms}>
                         {t('login.next', 'Next')}
                       </Button>
                     </form>
@@ -671,7 +711,32 @@ export default function Login() {
                         />
                       </div>
                       
-                      <Button type="submit" className="w-full h-11" disabled={registerLoading}>
+                      <div className="space-y-2">
+                        <div className="flex items-start space-x-2">
+                          <Checkbox 
+                            id="acceptTermsStep2" 
+                            checked={acceptedTerms}
+                            onCheckedChange={(checked) => setAcceptedTerms(checked)}
+                            required
+                            className="mt-1"
+                          />
+                          <Label 
+                            htmlFor="acceptTermsStep2" 
+                            className="text-sm leading-relaxed cursor-pointer"
+                          >
+                            {t('login.acceptTerms', 'I agree to the')}{" "}
+                            <Link href="https://suplient.com/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                              {t('login.termsOfService', 'Terms of Service')}
+                            </Link>{" "}
+                            {t('login.and', 'and')}{" "}
+                            <Link href="https://suplient.com/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                              {t('login.privacyPolicy', 'Privacy Policy')}
+                            </Link>
+                          </Label>
+                        </div>
+                      </div>
+                      
+                      <Button type="submit" className="w-full h-11" disabled={registerLoading || !acceptedTerms}>
                         {registerLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -685,17 +750,6 @@ export default function Login() {
                   )}
                 </TabsContent>
               </Tabs>
-              
-              <div className="mt-6 text-center text-sm text-muted-foreground">
-                {t('login.termsAndPrivacy', 'By continuing, you agree to our')}{" "}
-                <Link href="https://suplient.com/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                  {t('login.termsOfService', 'Terms of Service')}
-                </Link>{" "}
-                {t('login.and', 'and')}{" "}
-                <Link href="https://suplient.com/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                  {t('login.privacyPolicy', 'Privacy Policy')}
-                </Link>
-              </div>
             </CardContent>
           </Card>
         </div>
