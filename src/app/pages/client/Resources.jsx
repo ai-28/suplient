@@ -198,13 +198,8 @@ export default function ClientResources() {
       <div 
         className="sticky z-20 bg-background border-b border-border"
         style={{ 
-          top: 0,
-          // iOS: Direct safe area calculation (works on all iPhone models)
-          // Android/Web: Falls back to base padding if safe area is 0
-          // Mobile: 1.5rem, Desktop: 2rem
-          paddingTop: `calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px))`,
-          // Ensure minimum height so content doesn't get squished
-          minHeight: `calc(${isMobile ? '5rem' : '6rem'} + env(safe-area-inset-top, 0px))`
+          top: 'env(safe-area-inset-top, 0px)',
+          paddingTop: `calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px))`
         }}
       >
         <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>
@@ -413,8 +408,8 @@ export default function ClientResources() {
               </p>
             </div>
           </CardContent>
-          </Card>
-        )}
+        </Card>
+      )}
           </div>
         </div>
       )}
