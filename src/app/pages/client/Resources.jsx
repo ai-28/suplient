@@ -198,8 +198,10 @@ export default function ClientResources() {
       <div 
         className="sticky z-20 bg-background border-b border-border"
         style={{ 
-          top: 'env(safe-area-inset-top, 0px)',
-          paddingTop: `calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px))`
+          top: 0,
+          // Use max() to ensure minimum 59px safe area for iOS devices with Dynamic Island
+          // Falls back to CSS env() if it works, otherwise uses minimum for iOS
+          paddingTop: `max(calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px)), calc(${isMobile ? '1.5rem' : '2rem'} + 59px))`
         }}
       >
         <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>

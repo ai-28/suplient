@@ -411,9 +411,8 @@ export function UniversalChatInterface({
         className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && !isInScrollableContainer ? `sticky z-40` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
         style={currentUserRole === "client" && !isInScrollableContainer ? {
           top: 0,
-          // iOS: Direct safe area calculation (works on all iPhone models)
-          // Android/Web: Falls back to 0.75rem if safe area is 0
-          paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+          // Use max() to ensure minimum 59px safe area for iOS devices with Dynamic Island
+          paddingTop: 'max(calc(0.75rem + env(safe-area-inset-top, 0px)), calc(0.75rem + 59px))',
         } : {}}
       >
         <div className="flex items-center gap-3">

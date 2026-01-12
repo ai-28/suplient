@@ -316,8 +316,9 @@ export default function ClientTasks() {
           <div 
             className="sticky z-20 bg-card border-b border-border"
             style={{ 
-              top: 'env(safe-area-inset-top, 0px)',
-              paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
+              top: 0,
+              // Use max() to ensure minimum 59px safe area for iOS devices with Dynamic Island
+              paddingTop: 'max(calc(1rem + env(safe-area-inset-top, 0px)), calc(1rem + 59px))'
             }}
           >
             <div className="flex items-center gap-3 p-4">
