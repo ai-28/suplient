@@ -318,8 +318,6 @@ export default function ClientTasks() {
             style={{ 
               top: 'env(safe-area-inset-top, 0px)',
               paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
-              // Ensure minimum height so content doesn't get squished
-              minHeight: 'calc(4rem + env(safe-area-inset-top, 0px))'
             }}
           >
             <div className="flex items-center gap-3 p-4">
