@@ -344,13 +344,14 @@ All colors MUST be HSL.
     padding-right: var(--safe-area-inset-right);
   }
 
-  /* For fixed headers - accounts for safe area top with fallbacks */
+  /* For fixed headers - accounts for safe area top */
   .fixed-header-safe {
     top: 0;
-    /* Ensures minimum 1rem padding, adds safe area when available */
-    padding-top: max(1rem, calc(1rem + var(--safe-area-inset-top)));
+    /* iOS: Direct safe area calculation (works on all iPhone models) */
+    /* Android/Web: Falls back to 1rem if safe area is 0 */
+    padding-top: calc(1rem + var(--safe-area-inset-top));
     /* Minimum height to prevent content squishing */
-    min-height: max(4rem, calc(4rem + var(--safe-area-inset-top)));
+    min-height: calc(4rem + var(--safe-area-inset-top));
   }
 
   /* For fixed bottom navigation */

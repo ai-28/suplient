@@ -257,11 +257,11 @@ export default function ClientDashboard() {
         className="sticky z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border"
         style={{ 
           top: 0,
-          // Use max() to ensure minimum 1rem padding, more if safe area exists
-          // This handles: iPhone 16, iPhone 17, Android, and web consistently
-          paddingTop: 'max(1rem, calc(1rem + env(safe-area-inset-top, 0px)))',
+          // iOS: Direct safe area calculation (works on all iPhone models)
+          // Android/Web: Falls back to 1rem if safe area is 0
+          paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
           // Ensure minimum height so content doesn't get squished
-          minHeight: 'max(4rem, calc(4rem + env(safe-area-inset-top, 0px)))'
+          minHeight: 'calc(4rem + env(safe-area-inset-top, 0px))'
         }}
       >
         {/* Header with Profile */}
