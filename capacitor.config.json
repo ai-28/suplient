@@ -28,7 +28,8 @@
       "app.suplient.com"
     ],
     "scrollEnabled": true,
-    "webContentsDebuggingEnabled": false
+    "webContentsDebuggingEnabled": false,
+    "contentInset": "automatic"
   },
   "plugins": {
     "SplashScreen": {

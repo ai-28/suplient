@@ -261,8 +261,8 @@ export default function ClientSessions() {
           className="sticky z-20 border-b border-border bg-card"
           style={{ 
             top: 0,
-            // Use max() to ensure minimum 59px safe area for iOS devices with Dynamic Island
-            paddingTop: 'max(calc(1rem + env(safe-area-inset-top, 0px)), calc(1rem + 59px))'
+            // Safe area insets now work correctly with proper Capacitor/Next.js configuration
+            paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
           }}
         >
           <TabsList className="w-full grid grid-cols-2 h-12 bg-transparent p-0">

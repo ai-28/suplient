@@ -199,9 +199,8 @@ export default function ClientResources() {
         className="sticky z-20 bg-background border-b border-border"
         style={{ 
           top: 0,
-          // Use max() to ensure minimum 59px safe area for iOS devices with Dynamic Island
-          // Falls back to CSS env() if it works, otherwise uses minimum for iOS
-          paddingTop: `max(calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px)), calc(${isMobile ? '1.5rem' : '2rem'} + 59px))`
+          // Safe area insets now work correctly with proper Capacitor/Next.js configuration
+          paddingTop: `calc(${isMobile ? '1.5rem' : '2rem'} + env(safe-area-inset-top, 0px))`
         }}
       >
         <div className={`container mx-auto ${isMobile ? 'px-3 pb-4' : 'px-4 pb-6'}`}>
