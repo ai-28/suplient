@@ -35,9 +35,8 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   const currentAudioRef = useRef(null);
   const audioLevelIntervalRef = useRef(null);
   const isRecordingRef = useRef(false);
-  const audioContextRef = useRef(null);
   const audioStreamRef = useRef(null);
-  const audioBuffersRef = useRef([]);
+  const audioLevelContextRef = useRef(null);
 
   // Detect iOS and check MediaRecorder support
   useEffect(() => {
@@ -45,22 +44,23 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     const isNativePlatform = isNative();
     setIsIOSSafari(isIOSDevice);
     
-    // Check MediaRecorder support
+    // Check MediaRecorder support - required for all platforms
     if (typeof MediaRecorder !== 'undefined') {
       // Test if MediaRecorder actually works
       try {
+        // iOS supports audio/mp4 and audio/aac
         const testSupported = MediaRecorder.isTypeSupported('audio/webm') || 
                             MediaRecorder.isTypeSupported('audio/mp4') ||
+                            MediaRecorder.isTypeSupported('audio/aac') ||
                             MediaRecorder.isTypeSupported('audio/wav');
         setBrowserSupported(testSupported);
       } catch (err) {
-        // If MediaRecorder exists but throws errors, we'll use Web Audio API fallback
-        setBrowserSupported(true); // Still try to use fallback
+        // If MediaRecorder exists but throws errors, mark as unsupported
+        setBrowserSupported(false);
       }
     } else {
-      // No MediaRecorder, but we can still use Web Audio API fallback on iOS
-      // On native platforms, Web Audio API should work
-      setBrowserSupported(isIOSDevice || isNativePlatform);
+      // No MediaRecorder support
+      setBrowserSupported(false);
     }
   }, []);
 
@@ -91,60 +91,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     
     loadMicrophones();
   }, []);
-
-  // Convert raw audio buffers to WAV format (for iOS Safari fallback)
-  const bufferToWave = (abuffer, len) => {
-    const numOfChan = abuffer.numberOfChannels;
-    const length = len * numOfChan * 2 + 44;
-    const buffer = new ArrayBuffer(length);
-    const view = new DataView(buffer);
-    const channels = [];
-    let sample;
-    let offset = 0;
-    let pos = 0;
-
-    // Write WAV header
-    setUint32(0x46464952); // "RIFF"
-    setUint32(length - 8); // file length - 8
-    setUint32(0x45564157); // "WAVE"
-    setUint32(0x20746d66); // "fmt " chunk
-    setUint32(16); // length = 16
-    setUint16(1); // PCM (uncompressed)
-    setUint16(numOfChan);
-    setUint32(abuffer.sampleRate);
-    setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-    setUint16(numOfChan * 2); // block-align
-    setUint16(16); // 16-bit
-    setUint32(0x61746164); // "data" - chunk
-    setUint32(length - pos - 4); // chunk length
-
-    // Write audio data
-    for (let i = 0; i < abuffer.numberOfChannels; i++) {
-      channels.push(abuffer.getChannelData(i));
-    }
-
-    while (pos < len) {
-      for (let i = 0; i < numOfChan; i++) {
-        sample = Math.max(-1, Math.min(1, channels[i][pos]));
-        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-        view.setInt16(offset, sample, true);
-        offset += 2;
-      }
-      pos++;
-    }
-
-    return new Blob([buffer], { type: 'audio/wav' });
-
-    function setUint16(data) {
-      view.setUint16(pos, data, true);
-      pos += 2;
-    }
-
-    function setUint32(data) {
-      view.setUint32(pos, data, true);
-      pos += 4;
-    }
-  };
 
   // Generate real waveform from audio blob (like Discord/Telegram)
   const generateWaveform = async (audioBlob) => {
@@ -266,22 +212,13 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         console.warn('Could not enumerate microphones:', err);
       }
       
-      // Check if we should use MediaRecorder or Web Audio API fallback
-      const useMediaRecorder = typeof MediaRecorder !== 'undefined' && 
-        (MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ||
-         MediaRecorder.isTypeSupported('audio/mp4') ||
-         MediaRecorder.isTypeSupported('audio/wav'));
-      
-      // On iOS native or iOS Safari, prefer Web Audio API
-      const isIOSDevice = isIOS() || /iPad|iPhone|iPod/.test(navigator.userAgent);
-      
-      if (useMediaRecorder && !isIOSDevice) {
-        // Use MediaRecorder (standard method) for non-iOS platforms
-        await startMediaRecorderRecording(stream);
-      } else {
-        // Use Web Audio API fallback (for iOS Safari and iOS native)
-        await startWebAudioRecording(stream);
+      // Check MediaRecorder support - iOS 14.3+ supports MediaRecorder
+      if (typeof MediaRecorder === 'undefined') {
+        throw new Error('MediaRecorder is not supported on this device. Please update your iOS version to 14.3 or later.');
       }
+      
+      // Always use MediaRecorder (it's supported on iOS 14.3+ and all modern browsers)
+      await startMediaRecorderRecording(stream);
       
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -303,9 +240,14 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   // Standard MediaRecorder recording
   const startMediaRecorderRecording = async (stream) => {
     try {
+      const isIOSDevice = isIOS() || /iPad|iPhone|iPod/.test(navigator.userAgent);
       
-      // Select best supported audio format
-      const formats = [
+      // Select best supported audio format (iOS supports mp4/aac)
+      const formats = isIOSDevice ? [
+        'audio/mp4',
+        'audio/aac',
+        'audio/wav'
+      ] : [
         'audio/webm;codecs=opus',
         'audio/ogg;codecs=opus',
         'audio/webm',
@@ -322,7 +264,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       }
       
       if (!mimeType) {
-        throw new Error('No supported audio format found');
+        throw new Error('No supported audio format found. Please update your device.');
       }
       
       const mediaRecorder = new MediaRecorder(stream, {
@@ -414,130 +356,12 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     }
   };
 
-  // Web Audio API recording (iOS Safari fallback)
-  const startWebAudioRecording = async (stream) => {
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      audioBuffersRef.current = [];
-      
-      const source = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessorNode(4096, 1, 1);
-      
-      processor.onaudioprocess = (e) => {
-        if (isRecordingRef.current) {
-          const channelData = e.inputBuffer.getChannelData(0);
-          audioBuffersRef.current.push(new Float32Array(channelData));
-        }
-      };
-      
-      source.connect(processor);
-      processor.connect(audioContext.destination);
-      
-      mediaRecorderRef.current = { processor, source }; // Store for cleanup
-      
-      setIsRecording(true);
-      isRecordingRef.current = true;
-      setDuration(0);
-      
-      // Start audio level monitoring
-      startAudioLevelMonitoring(stream);
-      
-      // Start duration counter
-      durationIntervalRef.current = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 1;
-          
-          if (newDuration >= MAX_RECORDING_DURATION - WARNING_DURATION) {
-            setShowTimeWarning(true);
-          }
-          
-          if (newDuration >= MAX_RECORDING_DURATION) {
-            stopWebAudioRecording();
-            return MAX_RECORDING_DURATION;
-          }
-          
-          return newDuration;
-        });
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Error starting Web Audio recording:', error);
-      throw error;
-    }
-  };
-
-  const stopWebAudioRecording = async () => {
-    if (!audioContextRef.current) return;
-    
-    setIsRecording(false);
-    isRecordingRef.current = false;
-    setIsProcessing(true);
-    setShowTimeWarning(false);
-    setAudioLevel(0);
-    
-    if (durationIntervalRef.current) {
-      clearInterval(durationIntervalRef.current);
-      durationIntervalRef.current = null;
-    }
-    
-    try {
-      // Cleanup
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.processor.disconnect();
-        mediaRecorderRef.current.source.disconnect();
-      }
-      
-      // Merge all audio buffers
-      const totalLength = audioBuffersRef.current.reduce((acc, buf) => acc + buf.length, 0);
-      const mergedBuffer = new Float32Array(totalLength);
-      let offset = 0;
-      
-      for (const buffer of audioBuffersRef.current) {
-        mergedBuffer.set(buffer, offset);
-        offset += buffer.length;
-      }
-      
-      // Create AudioBuffer
-      const audioBuffer = audioContextRef.current.createBuffer(
-        1,
-        mergedBuffer.length,
-        audioContextRef.current.sampleRate
-      );
-      audioBuffer.getChannelData(0).set(mergedBuffer);
-      
-      // Convert to WAV
-      const wavBlob = bufferToWave(audioBuffer, audioBuffer.length);
-      const url = URL.createObjectURL(wavBlob);
-      setAudioUrl(url);
-      
-      // Generate waveform
-      try {
-        const waveform = await generateWaveform(wavBlob);
-        setWaveformData(waveform);
-      } catch (error) {
-        console.error('Error generating waveform:', error);
-        setWaveformData(Array.from({ length: 32 }, () => Math.random() * 0.8 + 0.1));
-      }
-      
-      setIsProcessing(false);
-      
-      // Cleanup
-      if (audioStreamRef.current) {
-        audioStreamRef.current.getTracks().forEach(track => track.stop());
-      }
-      await audioContextRef.current.close();
-      
-    } catch (error) {
-      console.error('Error stopping Web Audio recording:', error);
-      setIsProcessing(false);
-    }
-  };
 
   // Helper function to start audio level monitoring
   const startAudioLevelMonitoring = (stream) => {
     try {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioLevelContextRef.current = audioContext; // Store for cleanup
       const analyser = audioContext.createAnalyser();
       const microphone = audioContext.createMediaStreamSource(stream);
       
@@ -548,10 +372,17 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       
       const checkAudioLevel = () => {
-        if (!isRecordingRef.current) {
+        if (!isRecordingRef.current || !audioLevelContextRef.current) {
           setAudioLevel(0);
-          microphone.disconnect();
-          audioContext.close();
+          if (microphone) {
+            microphone.disconnect();
+          }
+          if (audioLevelContextRef.current) {
+            audioLevelContextRef.current.close().catch(err => {
+              console.warn('Error closing audio level context:', err);
+            });
+            audioLevelContextRef.current = null;
+          }
           return;
         }
         
@@ -578,10 +409,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   };
 
   const stopRecording = () => {
-    if (audioContextRef.current) {
-      // Web Audio API recording
-      stopWebAudioRecording();
-    } else if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       // MediaRecorder recording
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -589,6 +417,14 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       setIsProcessing(true);
       setShowTimeWarning(false);
       setAudioLevel(0);
+      
+      // Cleanup audio level monitoring
+      if (audioLevelContextRef.current) {
+        audioLevelContextRef.current.close().catch(err => {
+          console.warn('Error closing audio level context:', err);
+        });
+        audioLevelContextRef.current = null;
+      }
       
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
@@ -607,25 +443,24 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     setWaveformData([]);
     setShowTimeWarning(false);
     
-    // Clean up Web Audio API recording
-    if (audioContextRef.current) {
+    // Clean up audio level monitoring
+    if (audioLevelContextRef.current) {
       try {
-        if (mediaRecorderRef.current?.processor) {
-          mediaRecorderRef.current.processor.disconnect();
-          mediaRecorderRef.current.source.disconnect();
-        }
-        audioContextRef.current.close();
-        audioContextRef.current = null;
+        audioLevelContextRef.current.close().catch(err => {
+          console.warn('Error closing audio level context:', err);
+        });
       } catch (err) {
-        console.error('Error stopping audio context:', err);
+        console.error('Error stopping audio level context:', err);
       }
-      audioBuffersRef.current = [];
+      audioLevelContextRef.current = null;
     }
     
     // Clean up MediaRecorder
-    if (mediaRecorderRef.current?.stop) {
+    if (mediaRecorderRef.current) {
       try {
-        mediaRecorderRef.current.stop();
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
       } catch (err) {
         console.error('Error stopping media recorder:', err);
       }
@@ -716,11 +551,21 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         URL.revokeObjectURL(audioUrl);
       }
       if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
       }
       if (currentAudioRef.current) {
         currentAudioRef.current.pause();
         currentAudioRef.current = null;
+      }
+      // Cleanup audio level monitoring
+      if (audioLevelContextRef.current) {
+        audioLevelContextRef.current.close().catch(() => {});
+      }
+      // Cleanup audio stream
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, [audioUrl]);
@@ -823,8 +668,15 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         const blob = await response.blob();
         
         // Determine file extension based on mime type
-        const extension = blob.type.includes('webm') ? 'webm' : 
-                         blob.type.includes('ogg') ? 'ogg' : 'webm';
+        let extension = 'webm';
+        if (blob.type.includes('mp4') || blob.type.includes('aac')) {
+          extension = 'mp4';
+        } else if (blob.type.includes('ogg')) {
+          extension = 'ogg';
+        } else if (blob.type.includes('wav')) {
+          extension = 'wav';
+        }
+        
         const file = new File([blob], `voice-message.${extension}`, { type: blob.type });
         
         // Upload audio file

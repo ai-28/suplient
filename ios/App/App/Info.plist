@@ -49,6 +49,12 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- Camera Permission -->
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to take photos for your profile picture.</string>
+	<!-- Photo Library Permission -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to select photos for your profile picture.</string>
 	<!-- Microphone Permission -->
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone to record voice messages.</string>
