@@ -49,5 +49,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- Microphone Permission -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to your microphone to record voice messages.</string>
 </dict>
 </plist>

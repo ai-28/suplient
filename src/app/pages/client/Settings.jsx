@@ -30,7 +30,8 @@ import {
   Clock,
   Key,
   LogOut,
-  UserX
+  UserX,
+  Trash2
 } from "lucide-react";
 
 export default function ClientSettings() {
@@ -44,6 +45,7 @@ export default function ClientSettings() {
     calendar: true
   });
   const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleTimeFormatChange = (value) => {
     setTimeFormat(value);
@@ -84,6 +86,40 @@ export default function ClientSettings() {
       toast.error(t('settings.deactivate.failed', 'Failed to deactivate profile'));
     } finally {
       setDeactivating(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!session?.user?.id) {
+      toast.error(t('common.messages.mustBeLoggedIn', 'You must be logged in to delete your account'));
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      const response = await fetch('/api/user/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(t('settings.delete.success', 'Account deleted successfully'));
+        // Sign out after deletion
+        setTimeout(() => {
+          signOut({ callbackUrl: '/login' });
+        }, 2000);
+      } else {
+        toast.error(data.error || t('settings.delete.failed', 'Failed to delete account'));
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error(t('settings.delete.failed', 'Failed to delete account'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -281,8 +317,51 @@ export default function ClientSettings() {
         </TabsContent>
       </Tabs>
 
-      {/* Deactivate Profile and Logout Section */}
+      {/* Delete Account, Deactivate Profile and Logout Section */}
       <div className="mt-8 pt-6 border-t border-border space-y-4">
+        {/* Delete Account */}
+        <Card className="card-standard border-destructive/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              {t('settings.delete.title', 'Delete Account')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t('settings.delete.description', 'Permanently delete your account and all associated data. This action cannot be undone.')}
+              </p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="gap-2" disabled={deleting}>
+                    <Trash2 className="h-4 w-4" />
+                    {t('settings.delete.button', 'Delete Account')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('settings.delete.confirmTitle', 'Delete Account')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('settings.delete.confirmDescription', 'Are you sure you want to permanently delete your account? This will remove all your data, messages, and account information. This action cannot be undone.')}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('common.buttons.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={deleting}
+                    >
+                      {deleting ? t('common.messages.loading') : t('settings.delete.confirmButton', 'Delete Permanently')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Deactivate Profile */}
         <Card className="card-standard">
           <CardHeader>

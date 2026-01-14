@@ -4,6 +4,8 @@ import { Button } from '@/app/components/ui/button';
 import { Mic, Square, Send, X, AlertCircle, Trash2, Play, Pause } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
 import { toast } from 'sonner';
+import { Capacitor } from '@capacitor/core';
+import { isNative, isIOS } from '@/lib/capacitor';
 
 // Recording time limits following best practices (Discord/Telegram standard)
 const MAX_RECORDING_DURATION = 300; // 5 minutes maximum (Discord: ~5min, Telegram: 1hr)
@@ -39,8 +41,9 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   // Detect iOS and check MediaRecorder support
   useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIOSSafari(isIOS);
+    const isIOSDevice = isIOS() || /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isNativePlatform = isNative();
+    setIsIOSSafari(isIOSDevice);
     
     // Check MediaRecorder support
     if (typeof MediaRecorder !== 'undefined') {
@@ -56,7 +59,8 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       }
     } else {
       // No MediaRecorder, but we can still use Web Audio API fallback on iOS
-      setBrowserSupported(isIOS); // iOS can use Web Audio API fallback
+      // On native platforms, Web Audio API should work
+      setBrowserSupported(isIOSDevice || isNativePlatform);
     }
   }, []);
 
@@ -175,11 +179,20 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     try {
       // First check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Your browser does not support audio recording');
+        const error = new Error('Your browser does not support audio recording');
+        error.name = 'NotSupportedError';
+        throw error;
+      }
+      
+      // On native platforms, ensure we're using HTTPS or localhost
+      // Capacitor WebView should support getUserMedia, but we need proper permissions
+      const isNativePlatform = isNative();
+      if (isNativePlatform && !window.location.protocol.includes('https') && !window.location.hostname.includes('localhost')) {
+        console.warn('Microphone access may require HTTPS on native platforms');
       }
       
       // Audio constraints optimized for voice recording
-      const audioConstraints = {
+      let audioConstraints = {
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,
@@ -211,22 +224,47 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
           }
         } catch (err) {
           // Use default if auto-selection fails
+          console.warn('Could not enumerate devices:', err);
         }
       }
       
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: audioConstraints
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: audioConstraints
+        });
+      } catch (getUserMediaError) {
+        // If specific device fails, try with default constraints
+        if (getUserMediaError.name === 'OverconstrainedError' || getUserMediaError.name === 'NotFoundError') {
+          console.warn('Failed with specific constraints, trying default:', getUserMediaError);
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+              audio: true
+            });
+          } catch (fallbackError) {
+            // Re-throw the original error if fallback also fails
+            throw getUserMediaError;
+          }
+        } else {
+          throw getUserMediaError;
+        }
+      }
       
       audioStreamRef.current = stream;
       
       // Get the actual microphone being used
       const audioTrack = stream.getAudioTracks()[0];
-      const micName = audioTrack.label;
-      setCurrentMicrophoneName(micName);
+      if (audioTrack) {
+        const micName = audioTrack.label;
+        setCurrentMicrophoneName(micName);
+      }
       
       // Refresh microphone list after permission is granted
-      await enumerateMicrophones();
+      try {
+        await enumerateMicrophones();
+      } catch (err) {
+        console.warn('Could not enumerate microphones:', err);
+      }
       
       // Check if we should use MediaRecorder or Web Audio API fallback
       const useMediaRecorder = typeof MediaRecorder !== 'undefined' && 
@@ -234,16 +272,30 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
          MediaRecorder.isTypeSupported('audio/mp4') ||
          MediaRecorder.isTypeSupported('audio/wav'));
       
-      if (useMediaRecorder && !isIOSSafari) {
-        // Use MediaRecorder (standard method)
+      // On iOS native or iOS Safari, prefer Web Audio API
+      const isIOSDevice = isIOS() || /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      if (useMediaRecorder && !isIOSDevice) {
+        // Use MediaRecorder (standard method) for non-iOS platforms
         await startMediaRecorderRecording(stream);
       } else {
-        // Use Web Audio API fallback (for iOS Safari)
+        // Use Web Audio API fallback (for iOS Safari and iOS native)
         await startWebAudioRecording(stream);
       }
       
     } catch (error) {
       console.error('Error starting recording:', error);
+      
+      // Clean up any partial stream
+      if (audioStreamRef.current) {
+        try {
+          audioStreamRef.current.getTracks().forEach(track => track.stop());
+        } catch (cleanupError) {
+          console.warn('Error cleaning up stream:', cleanupError);
+        }
+        audioStreamRef.current = null;
+      }
+      
       throw error;
     }
   };
@@ -686,15 +738,59 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     } catch (error) {
       console.error('Recording error:', error);
       setIsInitializing(false);
-      if (error instanceof DOMException && error.name === 'NotAllowedError') {
-        const errorMsg = 'Microphone permission denied. Please allow microphone access to record voice messages.';
-        setPermissionError(errorMsg);
-        toast.error(`❌ ${errorMsg}`, { duration: 5000 });
-      } else {
-        const errorMsg = 'Failed to start recording. Please check your microphone.';
-        setPermissionError(errorMsg);
-        toast.error(`❌ ${errorMsg}`, { duration: 5000 });
+      
+      // Handle specific error types with detailed messages
+      let errorMsg = 'Failed to start recording. Please check your microphone.';
+      let errorDescription = null;
+      
+      if (error instanceof DOMException) {
+        const isNativePlatform = isNative();
+        switch (error.name) {
+          case 'NotAllowedError':
+            errorMsg = 'Microphone permission denied.';
+            if (isNativePlatform) {
+              errorDescription = 'Please allow microphone access in your device Settings > Suplient > Microphone.';
+            } else {
+              errorDescription = 'Please allow microphone access in your browser or device settings to record voice messages.';
+            }
+            break;
+          case 'NotFoundError':
+            errorMsg = 'No microphone found.';
+            errorDescription = 'Please connect a microphone to your device and try again.';
+            break;
+          case 'NotReadableError':
+            errorMsg = 'Microphone is already in use.';
+            errorDescription = 'Another application is using your microphone. Please close it and try again.';
+            break;
+          case 'OverconstrainedError':
+            errorMsg = 'Microphone settings not supported.';
+            errorDescription = 'Your microphone does not support the required settings. Please try again or select a different microphone.';
+            break;
+          case 'SecurityError':
+            errorMsg = 'Microphone access blocked.';
+            errorDescription = 'Your browser or device has blocked microphone access. Please check your security settings.';
+            break;
+          case 'AbortError':
+            errorMsg = 'Microphone access was interrupted.';
+            errorDescription = 'The microphone access was interrupted. Please try again.';
+            break;
+          default:
+            errorMsg = `Microphone error: ${error.name}`;
+            errorDescription = error.message || 'Please check your microphone and try again.';
+        }
+      } else if (error.name === 'NotSupportedError') {
+        errorMsg = 'Audio recording not supported.';
+        errorDescription = 'Your browser does not support audio recording. Please use a modern browser like Chrome, Firefox, or Safari.';
+      } else if (error.message) {
+        errorMsg = error.message;
+        errorDescription = 'Please check your microphone permissions and try again.';
       }
+      
+      setPermissionError(errorMsg);
+      toast.error(`❌ ${errorMsg}`, {
+        description: errorDescription,
+        duration: 7000
+      });
     }
   };
 

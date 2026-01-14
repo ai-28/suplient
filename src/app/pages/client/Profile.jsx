@@ -422,7 +422,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        <span className="text-sm text-muted-foreground">Loading billing information...</span>
+        <span className="text-sm text-muted-foreground">Loading...</span>
       </div>
     );
   }
@@ -432,15 +432,14 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
       {/* Subscribe to Services */}
       {coachId && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Subscribe to Services
-            </CardTitle>
-            {!isIOSDevice && (
-              <CardDescription>Subscribe to your coach's programs or groups</CardDescription>
-            )}
-          </CardHeader>
+          {!isIOSDevice && (
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Subscribe to Services
+              </CardTitle>
+            </CardHeader>
+          )}
           <CardContent>
             {productsLoading ? (
               <div className="flex items-center justify-center py-8">
