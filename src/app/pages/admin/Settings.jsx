@@ -31,6 +31,7 @@ import {
 import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
+import { pickAvatarImage, convertHeicToJpeg, validateImageFile } from "@/lib/photoPicker";
 
 function AdminBillingTab() {
   const t = useTranslation();
@@ -450,6 +451,61 @@ export default function AdminSettings() {
   };
 
   // Handle avatar file selection
+  // Handle avatar file selection - Cross-platform (Web/iOS/Android)
+  const handlePickAvatar = async () => {
+    try {
+      const file = await pickAvatarImage({ allowEditing: true, quality: 90 });
+      
+      if (!file) {
+        return; // User cancelled
+      }
+
+      // Check if HEIC and convert
+      let fileToUse = file;
+      const isHeic = file.type === 'image/heic' || 
+                     file.type === 'image/heif' || 
+                     file.name.toLowerCase().endsWith('.heic') || 
+                     file.name.toLowerCase().endsWith('.heif');
+
+      if (isHeic) {
+        try {
+          toast.info('Converting HEIC image to JPEG...', { duration: 2000 });
+          fileToUse = await convertHeicToJpeg(file);
+          toast.success('HEIC image converted successfully', { duration: 2000 });
+        } catch (conversionError) {
+          console.error('Error converting HEIC:', conversionError);
+          toast.error('Failed to convert HEIC image', {
+            description: conversionError.message || 'Please try converting it to JPEG first, or use a different image format.'
+          });
+          return;
+        }
+      }
+
+      // Validate file
+      const validation = validateImageFile(fileToUse, 10);
+      if (!validation.valid) {
+        toast.error(validation.error);
+        return;
+      }
+
+      // Store the file for upload
+      setSelectedFile(fileToUse);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(fileToUse);
+    } catch (error) {
+      console.error('Error picking avatar:', error);
+      toast.error('Failed to pick image', {
+        description: error.message || 'An unexpected error occurred. Please try again or use a different image.'
+      });
+    }
+  };
+
+  // Legacy handler for file input (fallback for web if needed)
   const handleAvatarFileSelect = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -466,39 +522,11 @@ export default function AdminSettings() {
       // Convert HEIC to JPEG if needed
       if (isHeic) {
         try {
-          // Dynamically import heic2any only on client side
-          if (typeof window === 'undefined') {
-            toast.error('HEIC conversion is not available on server side');
-            return;
-          }
-          
-          const heic2any = (await import('heic2any')).default;
           toast.info('Converting HEIC image to JPEG...', { duration: 2000 });
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 0.9
-          });
-          
-          // heic2any returns an array, get the first item
-          const convertedFile = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-          
-          // Create a File object from the blob
-          fileToUse = new File([convertedFile], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
-            type: 'image/jpeg',
-            lastModified: Date.now()
-          });
-          
+          fileToUse = await convertHeicToJpeg(file);
           toast.success('HEIC image converted successfully', { duration: 2000 });
         } catch (conversionError) {
-          const errorDetails = {
-            message: conversionError.message,
-            name: conversionError.name,
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: file.type
-          };
-          console.error('Error converting HEIC:', errorDetails);
+          console.error('Error converting HEIC:', conversionError);
           toast.error('Failed to convert HEIC image', {
             description: conversionError.message || 'Please try converting it to JPEG first, or use a different image format.'
           });
@@ -506,25 +534,10 @@ export default function AdminSettings() {
         }
       }
 
-      // Validate file type (after conversion)
-      if (!fileToUse.type.startsWith('image/')) {
-        const fileSizeMB = (fileToUse.size / (1024 * 1024)).toFixed(2);
-        const errorDetails = `File type: ${fileToUse.type || 'unknown'}, Size: ${fileSizeMB}MB, Name: ${fileToUse.name}`;
-        console.error('Invalid file type:', errorDetails);
-        toast.error(`Invalid file type (${fileToUse.type || 'unknown'}). Please select a JPG, PNG, WebP, GIF, or HEIC image.`, {
-          description: `File: ${fileToUse.name} (${fileSizeMB}MB)`
-        });
-        return;
-      }
-
-      // Validate file size (10MB max)
-      if (fileToUse.size > 10 * 1024 * 1024) {
-        const fileSizeMB = (fileToUse.size / (1024 * 1024)).toFixed(2);
-        const errorDetails = `File: ${fileToUse.name}, Type: ${fileToUse.type}, Size: ${fileSizeMB}MB (max: 10MB)`;
-        console.error('File too large:', errorDetails);
-        toast.error(`Image too large (${fileSizeMB}MB). Maximum size is 10MB.`, {
-          description: `Please compress or resize your image. File: ${fileToUse.name}`
-        });
+      // Validate file
+      const validation = validateImageFile(fileToUse, 10);
+      if (!validation.valid) {
+        toast.error(validation.error);
         return;
       }
 
@@ -538,14 +551,7 @@ export default function AdminSettings() {
       };
       reader.readAsDataURL(fileToUse);
     } catch (error) {
-      const errorDetails = {
-        message: error.message,
-        name: error.name,
-        fileName: file?.name,
-        fileType: file?.type,
-        fileSize: file?.size
-      };
-      console.error('Error processing image:', errorDetails, error);
+      console.error('Error processing image:', error);
       toast.error('Failed to process image', {
         description: error.message || 'An unexpected error occurred. Please try again or use a different image.'
       });
@@ -917,6 +923,7 @@ export default function AdminSettings() {
                   </div>
                   <div className={`flex-1 ${isMobile ? 'w-full' : ''}`}>
                     <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
+                      {/* Hidden file input for web fallback */}
                       <input
                         type="file"
                         id="avatar-upload-admin"
@@ -928,11 +935,7 @@ export default function AdminSettings() {
                       />
                       <Button 
                         variant="outline" 
-                        onClick={() => {
-                          if (typeof document !== 'undefined') {
-                            document.getElementById('avatar-upload-admin')?.click();
-                          }
-                        }}
+                        onClick={handlePickAvatar}
                         disabled={uploadingAvatar}
                         className={isMobile ? 'text-xs h-8 px-2' : ''}
                         size={isMobile ? "sm" : "default"}

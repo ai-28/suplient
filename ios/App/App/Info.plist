@@ -55,6 +55,9 @@
 	<!-- Photo Library Permission -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to select photos for your profile picture.</string>
+	<!-- Photo Library Add Permission -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need access to save photos to your photo library.</string>
 	<!-- Microphone Permission -->
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone to record voice messages.</string>
