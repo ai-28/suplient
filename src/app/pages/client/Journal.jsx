@@ -458,55 +458,55 @@ export default function ClientJournal() {
         }}
       >
         <div className="flex items-center p-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
-            <ArrowLeft className="h-5 w-5" />
+        <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="ml-3 text-lg font-semibold">{t('journal.quickCheckIn', 'Quick Daily Check-in')}</h1>
+        <div className="ml-auto flex flex-col items-end gap-2">
+          {/* Date Picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "justify-start text-left font-normal",
+                  "min-w-[140px]"
+                )}
+                disabled={isLoadingEntry}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? (
+                  format(selectedDate, "MMM d, yyyy")
+                ) : (
+                  <span>{t('journal.selectDate', 'Select date')}</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                  }
+                }}
+                initialFocus
+                disabled={(date) => {
+                  // Allow past dates, but disable future dates
+                  const today = new Date();
+                  today.setHours(23, 59, 59, 999);
+                  return date > today;
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          
+          <Button onClick={handleSave} disabled={isLoading || isLoadingEntry} size="sm" className="w-full min-w-[140px]">
+            <Save className="h-4 w-4 mr-1" />
+            {isLoading ? t('common.messages.saving', 'Saving...') : t('common.buttons.save', 'Save')}
           </Button>
-          <h1 className="ml-3 text-lg font-semibold">{t('journal.quickCheckIn', 'Quick Daily Check-in')}</h1>
-          <div className="ml-auto flex flex-col items-end gap-2">
-            {/* Date Picker */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    "min-w-[140px]"
-                  )}
-                  disabled={isLoadingEntry}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? (
-                    format(selectedDate, "MMM d, yyyy")
-                  ) : (
-                    <span>{t('journal.selectDate', 'Select date')}</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    if (date) {
-                      setSelectedDate(date);
-                    }
-                  }}
-                  initialFocus
-                  disabled={(date) => {
-                    // Allow past dates, but disable future dates
-                    const today = new Date();
-                    today.setHours(23, 59, 59, 999);
-                    return date > today;
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            
-            <Button onClick={handleSave} disabled={isLoading || isLoadingEntry} size="sm" className="w-full min-w-[140px]">
-              <Save className="h-4 w-4 mr-1" />
-              {isLoading ? t('common.messages.saving', 'Saving...') : t('common.buttons.save', 'Save')}
-            </Button>
           </div>
         </div>
       </div>

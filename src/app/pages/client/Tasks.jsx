@@ -322,15 +322,15 @@ export default function ClientTasks() {
             }}
           >
             <div className="flex items-center gap-3 p-4">
-              <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex-1">
-                <h1 className="text-xl font-semibold text-foreground">{t('tasks.myTasks', 'My Tasks')}</h1>
-                <p className="text-sm text-muted-foreground mt-1">{todayQuote}</p>
-              </div>
-            </div>
+                      <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          <div className="flex-1">
+            <h1 className="text-xl font-semibold text-foreground">{t('tasks.myTasks', 'My Tasks')}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{todayQuote}</p>
           </div>
+        </div>
+      </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         

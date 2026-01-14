@@ -44,6 +44,7 @@ export default function ClientSettings() {
     calendar: true
   });
   const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleTimeFormatChange = (value) => {
     setTimeFormat(value);
@@ -84,6 +85,40 @@ export default function ClientSettings() {
       toast.error(t('settings.deactivate.failed', 'Failed to deactivate profile'));
     } finally {
       setDeactivating(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!session?.user?.id) {
+      toast.error(t('common.messages.mustBeLoggedIn', 'You must be logged in to delete your account'));
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      const response = await fetch('/api/user/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(t('settings.security.accountDeleted', 'Account deleted successfully'));
+        // Sign out and redirect to login
+        setTimeout(() => {
+          signOut({ callbackUrl: '/login' });
+        }, 2000);
+      } else {
+        toast.error(data.error || t('settings.security.deleteAccountFailed', 'Failed to delete account'));
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error(t('settings.security.deleteAccountFailed', 'Failed to delete account'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -278,6 +313,52 @@ export default function ClientSettings() {
           </Card>
 
           <TwoFactorSettings />
+
+          {/* Account Deletion */}
+          <Card className="card-standard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                {t('settings.security.deleteAccount', 'Delete Account')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  {t('settings.security.deleteAccountDescription', 'Permanently delete your account and all associated data. This action cannot be undone.')}
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="gap-2" disabled={deleting}>
+                      <UserX className="h-4 w-4" />
+                      {t('settings.security.deleteAccount', 'Delete Account')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('settings.security.deleteAccount', 'Delete Account')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('settings.security.deleteAccountConfirm', 'Are you sure you want to delete your account? This action cannot be undone. All your data, including messages, tasks, sessions, and settings will be permanently deleted.')}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('common.buttons.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={deleting}
+                      >
+                        {deleting ? t('common.messages.loading') : t('settings.security.deleteAccount', 'Delete Account')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <p className="text-xs text-muted-foreground">
+                  {t('settings.security.deleteAccountWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

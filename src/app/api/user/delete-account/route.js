@@ -12,6 +12,7 @@ export async function DELETE(request) {
         }
 
         const userId = session.user.id;
+        const userRole = session.user.role;
 
         // Start a transaction to delete all related data
         await sql.begin(async (sql) => {
@@ -30,17 +31,41 @@ export async function DELETE(request) {
             // Delete conversations created by this user
             await sql`DELETE FROM "Conversation" WHERE "createdBy" = ${userId}`;
 
-            // Delete client relationships (if user is a coach)
-            await sql`DELETE FROM "Client" WHERE "coachId" = ${userId}`;
+            // If user is a client, delete client-specific data
+            if (userRole === 'client') {
+                // Delete client subscriptions
+                await sql`DELETE FROM "ClientSubscription" WHERE "clientId" = ${userId}`;
+                
+                // Delete client payments
+                await sql`DELETE FROM "ClientPayment" WHERE "clientId" = ${userId}`;
+                
+                // Delete client payment methods
+                await sql`DELETE FROM "ClientPaymentMethod" WHERE "clientId" = ${userId}`;
+                
+                // Delete client record
+                await sql`DELETE FROM "Client" WHERE "userId" = ${userId}`;
+            }
 
-            // Delete groups created by this user
-            await sql`DELETE FROM "Group" WHERE "coachId" = ${userId}`;
+            // If user is a coach, delete coach-specific data
+            if (userRole === 'coach') {
+                // Delete client relationships (clients assigned to this coach)
+                await sql`DELETE FROM "Client" WHERE "coachId" = ${userId}`;
 
-            // Delete tasks assigned by this user
-            await sql`DELETE FROM "Task" WHERE "coachId" = ${userId}`;
+                // Delete groups created by this user
+                await sql`DELETE FROM "Group" WHERE "coachId" = ${userId}`;
 
-            // Delete sessions created by this user
-            await sql`DELETE FROM "Session" WHERE "coachId" = ${userId}`;
+                // Delete tasks assigned by this user
+                await sql`DELETE FROM "Task" WHERE "coachId" = ${userId}`;
+
+                // Delete sessions created by this user
+                await sql`DELETE FROM "Session" WHERE "coachId" = ${userId}`;
+                
+                // Delete coach products
+                await sql`DELETE FROM "CoachProduct" WHERE "coachId" = ${userId}`;
+                
+                // Delete Stripe account (if exists)
+                await sql`DELETE FROM "StripeAccount" WHERE "userId" = ${userId}`;
+            }
 
             // Finally, delete the user
             await sql`DELETE FROM "User" WHERE id = ${userId}`;

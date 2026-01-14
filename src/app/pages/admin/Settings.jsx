@@ -31,6 +31,8 @@ import {
 import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
+import { takePhoto } from '@/lib/camera';
+import { isNative } from '@/lib/capacitor';
 
 function AdminBillingTab() {
   const t = useTranslation();
@@ -449,10 +451,19 @@ export default function AdminSettings() {
     }));
   };
 
-  // Handle avatar file selection
+  // Handle avatar file selection - updated to use Capacitor Camera on native
   const handleAvatarFileSelect = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    let file = null;
+
+    // On native platforms, use Capacitor Camera
+    if (isNative() && !event?.target?.files) {
+      // This path is for native camera (called directly, not from file input)
+      file = event; // event is already the File object from takePhoto
+    } else {
+      // On web, use file input
+      file = event?.target?.files?.[0];
+      if (!file) return;
+    }
 
     try {
       // Check if file is HEIC/HEIF
@@ -463,8 +474,8 @@ export default function AdminSettings() {
 
       let fileToUse = file;
 
-      // Convert HEIC to JPEG if needed
-      if (isHeic) {
+      // Convert HEIC to JPEG if needed (only on web, Capacitor handles this on native)
+      if (isHeic && !isNative()) {
         try {
           // Dynamically import heic2any only on client side
           if (typeof window === 'undefined') {
@@ -917,20 +928,36 @@ export default function AdminSettings() {
                   </div>
                   <div className={`flex-1 ${isMobile ? 'w-full' : ''}`}>
                     <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
-                      <input
-                        type="file"
-                        id="avatar-upload-admin"
-                        accept="image/*,.heic,.heif"
-                        capture={false}
-                        className="hidden"
-                        onChange={handleAvatarFileSelect}
-                        disabled={uploadingAvatar}
-                      />
+                      {!isNative() && (
+                        <input
+                          type="file"
+                          id="avatar-upload-admin"
+                          accept="image/*,.heic,.heif"
+                          capture={false}
+                          className="hidden"
+                          onChange={handleAvatarFileSelect}
+                          disabled={uploadingAvatar}
+                        />
+                      )}
                       <Button 
                         variant="outline" 
-                        onClick={() => {
-                          if (typeof document !== 'undefined') {
-                            document.getElementById('avatar-upload-admin')?.click();
+                        onClick={async () => {
+                          if (isNative()) {
+                            try {
+                              const file = await takePhoto({ source: 'gallery' });
+                              if (file) {
+                                await handleAvatarFileSelect(file);
+                              }
+                            } catch (error) {
+                              console.error('Error taking photo:', error);
+                              if (error.message && !error.message.includes('cancel')) {
+                                toast.error('Failed to take photo. Please try again.');
+                              }
+                            }
+                          } else {
+                            if (typeof document !== 'undefined') {
+                              document.getElementById('avatar-upload-admin')?.click();
+                            }
                           }
                         }}
                         disabled={uploadingAvatar}

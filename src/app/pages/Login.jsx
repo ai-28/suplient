@@ -14,6 +14,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { isIOS } from "@/lib/capacitor";
 
 const loginImage = "/assets/mobile-web-dashboard.png";
 export default function Login() {
@@ -25,6 +26,7 @@ export default function Login() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [isClient, setIsClient] = useState(false);
+  const [isIOSNative, setIsIOSNative] = useState(false);
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -54,6 +56,10 @@ export default function Login() {
   // Ensure we're on the client side
   useEffect(() => {
     setIsClient(true);
+    // Check if running on iOS native app
+    if (typeof window !== 'undefined') {
+      setIsIOSNative(isIOS());
+    }
   }, []);
 
   // Handle redirect when authenticated
@@ -378,12 +384,14 @@ export default function Login() {
               </div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-center flex-1">
-                  <Link 
-                    href="https://suplient.com/" 
-                    className="text-xs text-muted-foreground hover:text-primary hover:underline"
-                  >
-                    {t('login.goToHomepage', 'Go to homepage')} →
-                  </Link>
+                  {!isIOSNative && (
+                    <Link 
+                      href="https://suplient.com/" 
+                      className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                    >
+                      {t('login.goToHomepage', 'Go to homepage')} →
+                    </Link>
+                  )}
                 </div>
                 <div className="flex-1 flex justify-end">
                   <LanguageSelector variant="header" />
