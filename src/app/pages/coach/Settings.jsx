@@ -16,6 +16,7 @@ import { Separator } from "@/app/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { 
   Settings as SettingsIcon, 
@@ -42,13 +43,15 @@ import {
   AlertCircle,
   LogOut,
   Copy,
-  Target
+  Target,
+  Image,
+  Folder
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { GoalHabitTemplateManager } from "@/app/components/GoalHabitTemplateManager";
-import { takePhoto } from '@/lib/camera';
+import { selectPhotoFromLibrary, selectPhotoFromFiles } from '@/lib/photoPicker';
 import { isNative } from '@/lib/capacitor';
 
 export default function Settings() {
@@ -1486,30 +1489,74 @@ export default function Settings() {
                           disabled={uploadingAvatar}
                         />
                       )}
-                      <Button 
-                        variant="outline" 
-                        onClick={async () => {
-                          if (isNative()) {
-                            try {
-                              const file = await takePhoto({ source: 'gallery' });
-                              if (file) {
-                                await handleAvatarFileSelect(file);
-                              }
-                            } catch (error) {
-                              console.error('Error taking photo:', error);
-                              if (error.message && !error.message.includes('cancel')) {
-                                toast.error('Failed to take photo. Please try again.');
-                              }
-                            }
-                          } else {
-                            document.getElementById('avatar-upload')?.click();
-                          }
-                        }}
-                        disabled={uploadingAvatar}
-                      >
-                        <Camera className="h-4 w-4 mr-2" />
-                        {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
-                      </Button>
+                      {isNative() ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              disabled={uploadingAvatar}
+                            >
+                              <Camera className="h-4 w-4 mr-2" />
+                              {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                try {
+                                  const file = await selectPhotoFromLibrary();
+                                  if (file) {
+                                    await handleAvatarFileSelect(file);
+                                  }
+                                } catch (error) {
+                                  console.error('Error selecting photo:', error);
+                                  if (error.message && 
+                                      !error.message.includes('cancel') && 
+                                      !error.message.includes('User cancelled') &&
+                                      !error.message.includes('User canceled')) {
+                                    toast.error('Failed to select photo. Please try again.');
+                                  }
+                                }
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Image className="h-4 w-4 mr-2" />
+                              Photo Library
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                try {
+                                  const file = await selectPhotoFromFiles();
+                                  if (file) {
+                                    await handleAvatarFileSelect(file);
+                                  }
+                                } catch (error) {
+                                  console.error('Error selecting file:', error);
+                                  if (error.message && 
+                                      !error.message.includes('cancel') && 
+                                      !error.message.includes('User cancelled') &&
+                                      !error.message.includes('User canceled')) {
+                                    toast.error('Failed to select file. Please try again.');
+                                  }
+                                }
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Folder className="h-4 w-4 mr-2" />
+                              Choose File
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => document.getElementById('avatar-upload')?.click()}
+                          disabled={uploadingAvatar}
+                        >
+                          <Camera className="h-4 w-4 mr-2" />
+                          {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
+                        </Button>
+                      )}
                       {avatarPreview && (
                         <>
                           <Button 

@@ -10,6 +10,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Switch } from "@/app/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
 import { GroupOverviewModal } from "@/app/components/GroupOverviewModal";
 import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
 import { IconPicker } from "@/app/components/IconPicker";
@@ -39,7 +40,9 @@ import {
   UserX,
   CreditCard,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Image,
+  Folder
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -48,7 +51,7 @@ import { useRouter } from "next/navigation";
 import { useGroups } from "@/app/hooks/useGroups";
 import { toast } from "sonner";
 import { isIOS } from "@/lib/capacitor";
-import { takePhoto } from '@/lib/camera';
+import { selectPhotoFromLibrary, selectPhotoFromFiles } from '@/lib/photoPicker';
 import { isNative } from '@/lib/capacitor';
 
 // Demo data for goals and habits
@@ -435,10 +438,12 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
       {coachId && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Subscribe to Services
-            </CardTitle>
+            {!isIOSDevice && (
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Subscribe to Services
+              </CardTitle>
+            )}
             {!isIOSDevice && (
               <CardDescription>Subscribe to your coach's programs or groups</CardDescription>
             )}
@@ -1748,36 +1753,84 @@ export default function ClientProfile() {
                     />
                   )}
                   <div className="flex flex-col gap-2">
-                    <Button 
-                      variant="outline" 
-                      size={isMobile ? "sm" : "sm"} 
-                      className="w-full"
-                      onClick={async () => {
-                        if (isNative()) {
-                          // On native, use Capacitor Camera
-                          try {
-                            const file = await takePhoto({ source: 'gallery' });
-                            if (file) {
-                              await handleAvatarFileSelect(file);
-                            }
-                          } catch (error) {
-                            console.error('Error taking photo:', error);
-                            if (error.message && !error.message.includes('cancel')) {
-                              toast.error('Failed to take photo. Please try again.');
-                            }
-                          }
-                        } else {
-                          // On web, use file input
+                    {isNative() ? (
+                      // On native iOS/Android, show dropdown menu with options
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size={isMobile ? "sm" : "sm"} 
+                            className="w-full"
+                            disabled={uploadingAvatar}
+                          >
+                            <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
+                            {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              try {
+                                const file = await selectPhotoFromLibrary();
+                                if (file) {
+                                  await handleAvatarFileSelect(file);
+                                }
+                              } catch (error) {
+                                console.error('Error selecting photo:', error);
+                                if (error.message && 
+                                    !error.message.includes('cancel') && 
+                                    !error.message.includes('User cancelled') &&
+                                    !error.message.includes('User canceled')) {
+                                  toast.error('Failed to select photo. Please try again.');
+                                }
+                              }
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Image className="h-4 w-4 mr-2" />
+                            Photo Library
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              try {
+                                const file = await selectPhotoFromFiles();
+                                if (file) {
+                                  await handleAvatarFileSelect(file);
+                                }
+                              } catch (error) {
+                                console.error('Error selecting file:', error);
+                                if (error.message && 
+                                    !error.message.includes('cancel') && 
+                                    !error.message.includes('User cancelled') &&
+                                    !error.message.includes('User canceled')) {
+                                  toast.error('Failed to select file. Please try again.');
+                                }
+                              }
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Folder className="h-4 w-4 mr-2" />
+                            Choose File
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      // On web, use file input directly
+                      <Button 
+                        variant="outline" 
+                        size={isMobile ? "sm" : "sm"} 
+                        className="w-full"
+                        onClick={() => {
                           if (typeof document !== 'undefined') {
                             document.getElementById('avatar-upload-client')?.click();
                           }
-                        }
-                      }}
-                      disabled={uploadingAvatar}
-                    >
-                      <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
-                      {avatarPreview ? 'Change Photo' : 'Upload Photo'}
-                    </Button>
+                        }}
+                        disabled={uploadingAvatar}
+                      >
+                        <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
+                        {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                      </Button>
+                    )}
                     {avatarPreview && (
                       <div className="flex gap-2">
                         <Button 
