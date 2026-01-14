@@ -47,8 +47,7 @@ import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useGroups } from "@/app/hooks/useGroups";
 import { toast } from "sonner";
-import { isIOS, isNative } from "@/lib/capacitor";
-import { selectPhotoFromLibrary } from "@/lib/photoPicker";
+import { isIOS } from "@/lib/capacitor";
 
 // Demo data for goals and habits
 const demoGoals = [
@@ -434,12 +433,10 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
       {coachId && (
         <Card>
           <CardHeader>
-            {!isIOSDevice && (
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Subscribe to Services
-              </CardTitle>
-            )}
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Subscribe to Services
+            </CardTitle>
             {!isIOSDevice && (
               <CardDescription>Subscribe to your coach's programs or groups</CardDescription>
             )}
@@ -765,7 +762,6 @@ export default function ClientProfile() {
 
   // Deactivate profile state
   const [deactivating, setDeactivating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   // Billing state
   const [billingLoading, setBillingLoading] = useState(false);
@@ -1091,16 +1087,8 @@ export default function ClientProfile() {
 
   // Handle avatar file selection
   const handleAvatarFileSelect = async (event) => {
-    let file = null;
-
-    // On native platforms, event might be a File object from selectPhotoFromLibrary
-    if (isNative() && !event?.target?.files) {
-      file = event; // event is already the File object
-    } else {
-      // On web, use file input
-      file = event?.target?.files?.[0];
-      if (!file) return;
-    }
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     try {
       // Check if file is HEIC/HEIF
@@ -1111,8 +1099,8 @@ export default function ClientProfile() {
 
       let fileToUse = file;
 
-      // Convert HEIC to JPEG if needed (only on web, Capacitor handles this on native)
-      if (isHeic && !isNative()) {
+      // Convert HEIC to JPEG if needed
+      if (isHeic) {
         try {
           // Dynamically import heic2any only on client side
           if (typeof window === 'undefined') {
@@ -1490,41 +1478,6 @@ export default function ClientProfile() {
     }
   };
 
-  // Handle delete account
-  const handleDeleteAccount = async () => {
-    if (!session?.user?.id) {
-      toast.error('You must be logged in to delete your account');
-      return;
-    }
-
-    try {
-      setDeleting(true);
-      const response = await fetch('/api/user/delete-account', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success('Account deleted successfully');
-        // Sign out and redirect to login
-        setTimeout(() => {
-          signOut({ callbackUrl: '/login' });
-        }, 2000);
-      } else {
-        toast.error(data.error || 'Failed to delete account');
-      }
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   // Get assigned therapist from user data
   const assignedTherapist = userData?.coachId ? {
     name: userData.coachName || "Your Coach", 
@@ -1736,42 +1689,23 @@ export default function ClientProfile() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  {!isNative() && (
-                    <input
-                      type="file"
-                      id="avatar-upload-client"
-                      accept="image/*,.heic,.heif"
-                      capture={false}
-                      className="hidden"
-                      onChange={handleAvatarFileSelect}
-                      disabled={uploadingAvatar}
-                    />
-                  )}
+                  <input
+                    type="file"
+                    id="avatar-upload-client"
+                    accept="image/*,.heic,.heif"
+                    capture={false}
+                    className="hidden"
+                    onChange={handleAvatarFileSelect}
+                    disabled={uploadingAvatar}
+                  />
                   <div className="flex flex-col gap-2">
                     <Button 
                       variant="outline" 
                       size={isMobile ? "sm" : "sm"} 
                       className="w-full"
-                      onClick={async () => {
-                        if (isNative()) {
-                          try {
-                            const file = await selectPhotoFromLibrary();
-                            if (file) {
-                              await handleAvatarFileSelect(file);
-                            }
-                          } catch (error) {
-                            console.error('Error selecting photo:', error);
-                            if (error.message && 
-                                !error.message.includes('cancel') && 
-                                !error.message.includes('User cancelled') &&
-                                !error.message.includes('User canceled')) {
-                              toast.error('Failed to select photo. Please try again.');
-                            }
-                          }
-                        } else {
-                          if (typeof document !== 'undefined') {
-                            document.getElementById('avatar-upload-client')?.click();
-                          }
+                      onClick={() => {
+                        if (typeof document !== 'undefined') {
+                          document.getElementById('avatar-upload-client')?.click();
                         }
                       }}
                       disabled={uploadingAvatar}
@@ -2501,55 +2435,6 @@ export default function ClientProfile() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              </CardContent>
-            </Card>
-
-            {/* Delete Account */}
-            <Card>
-              <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
-                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
-                  <Shield className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                  Delete Account
-                </CardTitle>
-              </CardHeader>
-              <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
-                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Permanently delete your account and all associated data. This action cannot be undone.
-                </p>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="destructive" 
-                      className={`gap-2 ${isMobile ? 'w-full text-sm' : ''}`} 
-                      disabled={deleting}
-                      size={isMobile ? "sm" : "default"}
-                    >
-                      <UserX className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                      Delete Account
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className={isMobile ? 'mx-4' : ''}>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>Delete Account</AlertDialogTitle>
-                      <AlertDialogDescription className={isMobile ? 'text-sm' : ''}>
-                        Are you sure you want to delete your account? This action cannot be undone. All your data, including messages, tasks, sessions, and settings will be permanently deleted.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
-                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDeleteAccount}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        disabled={deleting}
-                      >
-                        {deleting ? 'Deleting...' : 'Delete Account'}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                  This action cannot be undone. All your data will be permanently deleted.
-                </p>
               </CardContent>
             </Card>
 

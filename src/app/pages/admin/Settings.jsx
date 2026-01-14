@@ -31,8 +31,6 @@ import {
 import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
-import { isNative } from "@/lib/capacitor";
-import { selectPhotoFromLibrary } from "@/lib/photoPicker";
 
 function AdminBillingTab() {
   const t = useTranslation();
@@ -453,16 +451,8 @@ export default function AdminSettings() {
 
   // Handle avatar file selection
   const handleAvatarFileSelect = async (event) => {
-    let file = null;
-
-    // On native platforms, event might be a File object from selectPhotoFromLibrary
-    if (isNative() && !event?.target?.files) {
-      file = event; // event is already the File object
-    } else {
-      // On web, use file input
-      file = event?.target?.files?.[0];
-      if (!file) return;
-    }
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     try {
       // Check if file is HEIC/HEIF
@@ -473,8 +463,8 @@ export default function AdminSettings() {
 
       let fileToUse = file;
 
-      // Convert HEIC to JPEG if needed (only on web, Capacitor handles this on native)
-      if (isHeic && !isNative()) {
+      // Convert HEIC to JPEG if needed
+      if (isHeic) {
         try {
           // Dynamically import heic2any only on client side
           if (typeof window === 'undefined') {
@@ -927,39 +917,20 @@ export default function AdminSettings() {
                   </div>
                   <div className={`flex-1 ${isMobile ? 'w-full' : ''}`}>
                     <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
-                      {!isNative() && (
-                        <input
-                          type="file"
-                          id="avatar-upload-admin"
-                          accept="image/*,.heic,.heif"
-                          capture={false}
-                          className="hidden"
-                          onChange={handleAvatarFileSelect}
-                          disabled={uploadingAvatar}
-                        />
-                      )}
+                      <input
+                        type="file"
+                        id="avatar-upload-admin"
+                        accept="image/*,.heic,.heif"
+                        capture={false}
+                        className="hidden"
+                        onChange={handleAvatarFileSelect}
+                        disabled={uploadingAvatar}
+                      />
                       <Button 
                         variant="outline" 
-                        onClick={async () => {
-                          if (isNative()) {
-                            try {
-                              const file = await selectPhotoFromLibrary();
-                              if (file) {
-                                await handleAvatarFileSelect(file);
-                              }
-                            } catch (error) {
-                              console.error('Error selecting photo:', error);
-                              if (error.message && 
-                                  !error.message.includes('cancel') && 
-                                  !error.message.includes('User cancelled') &&
-                                  !error.message.includes('User canceled')) {
-                                toast.error('Failed to select photo. Please try again.');
-                              }
-                            }
-                          } else {
-                            if (typeof document !== 'undefined') {
-                              document.getElementById('avatar-upload-admin')?.click();
-                            }
+                        onClick={() => {
+                          if (typeof document !== 'undefined') {
+                            document.getElementById('avatar-upload-admin')?.click();
                           }
                         }}
                         disabled={uploadingAvatar}
