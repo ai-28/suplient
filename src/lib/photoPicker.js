@@ -1,9 +1,6 @@
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { isNative } from './capacitor';
 
-/**
- * Helper function to convert image dataUrl to File object
- */
 function dataUrlToFile(dataUrl, format = 'jpg') {
     return new Promise(async (resolve, reject) => {
         try {
@@ -26,10 +23,6 @@ function dataUrlToFile(dataUrl, format = 'jpg') {
     });
 }
 
-/**
- * Select a photo from device library (Photo Library option)
- * @returns {Promise<File|null>} - Returns a File object or null if cancelled
- */
 export async function selectPhotoFromLibrary() {
     if (isNative()) {
         try {
@@ -37,7 +30,7 @@ export async function selectPhotoFromLibrary() {
                 quality: 90,
                 allowEditing: true,
                 resultType: CameraResultType.DataUrl,
-                source: CameraSource.Photos, // Photo Library only
+                source: CameraSource.Photos, // Photo Library only - no camera option
             });
 
             if (!image || !image.dataUrl) {
@@ -56,7 +49,7 @@ export async function selectPhotoFromLibrary() {
         }
     }
 
-    // On web, use standard file input
+    // Web fallback - use file input
     return new Promise((resolve) => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -73,24 +66,4 @@ export async function selectPhotoFromLibrary() {
 
         input.click();
     });
-}
-
-/**
- * Select a file from device (Choose File option)
- * On iOS, this uses the same photo picker which allows accessing files from other apps
- * @returns {Promise<File|null>} - Returns a File object or null if cancelled
- */
-export async function selectPhotoFromFiles() {
-    // On iOS, the Photos picker can access files from other apps (Files app, etc.)
-    // For now, we'll use the same implementation as photo library
-    // In the future, you could integrate a document picker plugin if needed
-    return selectPhotoFromLibrary();
-}
-
-/**
- * Select a photo (backward compatibility - defaults to library)
- * @returns {Promise<File|null>} - Returns a File object or null if cancelled
- */
-export async function selectPhoto() {
-    return selectPhotoFromLibrary();
 }

@@ -10,7 +10,6 @@ import { Badge } from "@/app/components/ui/badge";
 import { Switch } from "@/app/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
 import { GroupOverviewModal } from "@/app/components/GroupOverviewModal";
 import { MembershipRequestDialog } from "@/app/components/MembershipRequestDialog";
 import { IconPicker } from "@/app/components/IconPicker";
@@ -40,9 +39,7 @@ import {
   UserX,
   CreditCard,
   CheckCircle,
-  AlertCircle,
-  Image,
-  Folder
+  AlertCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -50,9 +47,8 @@ import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useGroups } from "@/app/hooks/useGroups";
 import { toast } from "sonner";
-import { isIOS } from "@/lib/capacitor";
-import { selectPhotoFromLibrary, selectPhotoFromFiles } from '@/lib/photoPicker';
-import { isNative } from '@/lib/capacitor';
+import { isIOS, isNative } from "@/lib/capacitor";
+import { selectPhotoFromLibrary } from "@/lib/photoPicker";
 
 // Demo data for goals and habits
 const demoGoals = [
@@ -1093,14 +1089,13 @@ export default function ClientProfile() {
     setGroupOverviewOpen(true);
   };
 
-  // Handle avatar file selection - updated to use Capacitor Camera on native
+  // Handle avatar file selection
   const handleAvatarFileSelect = async (event) => {
     let file = null;
 
-    // On native platforms, use Capacitor Camera
+    // On native platforms, event might be a File object from selectPhotoFromLibrary
     if (isNative() && !event?.target?.files) {
-      // This path is for native camera (called directly, not from file input)
-      file = event; // event is already the File object from takePhoto
+      file = event; // event is already the File object
     } else {
       // On web, use file input
       file = event?.target?.files?.[0];
@@ -1753,84 +1748,37 @@ export default function ClientProfile() {
                     />
                   )}
                   <div className="flex flex-col gap-2">
-                    {isNative() ? (
-                      // On native iOS/Android, show dropdown menu with options
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size={isMobile ? "sm" : "sm"} 
-                            className="w-full"
-                            disabled={uploadingAvatar}
-                          >
-                            <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
-                            {avatarPreview ? 'Change Photo' : 'Upload Photo'}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem
-                            onClick={async () => {
-                              try {
-                                const file = await selectPhotoFromLibrary();
-                                if (file) {
-                                  await handleAvatarFileSelect(file);
-                                }
-                              } catch (error) {
-                                console.error('Error selecting photo:', error);
-                                if (error.message && 
-                                    !error.message.includes('cancel') && 
-                                    !error.message.includes('User cancelled') &&
-                                    !error.message.includes('User canceled')) {
-                                  toast.error('Failed to select photo. Please try again.');
-                                }
-                              }
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <Image className="h-4 w-4 mr-2" />
-                            Photo Library
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={async () => {
-                              try {
-                                const file = await selectPhotoFromFiles();
-                                if (file) {
-                                  await handleAvatarFileSelect(file);
-                                }
-                              } catch (error) {
-                                console.error('Error selecting file:', error);
-                                if (error.message && 
-                                    !error.message.includes('cancel') && 
-                                    !error.message.includes('User cancelled') &&
-                                    !error.message.includes('User canceled')) {
-                                  toast.error('Failed to select file. Please try again.');
-                                }
-                              }
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <Folder className="h-4 w-4 mr-2" />
-                            Choose File
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : (
-                      // On web, use file input directly
-                      <Button 
-                        variant="outline" 
-                        size={isMobile ? "sm" : "sm"} 
-                        className="w-full"
-                        onClick={() => {
+                    <Button 
+                      variant="outline" 
+                      size={isMobile ? "sm" : "sm"} 
+                      className="w-full"
+                      onClick={async () => {
+                        if (isNative()) {
+                          try {
+                            const file = await selectPhotoFromLibrary();
+                            if (file) {
+                              await handleAvatarFileSelect(file);
+                            }
+                          } catch (error) {
+                            console.error('Error selecting photo:', error);
+                            if (error.message && 
+                                !error.message.includes('cancel') && 
+                                !error.message.includes('User cancelled') &&
+                                !error.message.includes('User canceled')) {
+                              toast.error('Failed to select photo. Please try again.');
+                            }
+                          }
+                        } else {
                           if (typeof document !== 'undefined') {
                             document.getElementById('avatar-upload-client')?.click();
                           }
-                        }}
-                        disabled={uploadingAvatar}
-                      >
-                        <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
-                        {avatarPreview ? 'Change Photo' : 'Upload Photo'}
-                      </Button>
-                    )}
+                        }
+                      }}
+                      disabled={uploadingAvatar}
+                    >
+                      <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
+                      {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                    </Button>
                     {avatarPreview && (
                       <div className="flex gap-2">
                         <Button 

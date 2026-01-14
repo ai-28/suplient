@@ -16,7 +16,6 @@ import { Separator } from "@/app/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/app/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { 
   Settings as SettingsIcon, 
@@ -43,16 +42,14 @@ import {
   AlertCircle,
   LogOut,
   Copy,
-  Target,
-  Image,
-  Folder
+  Target
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { GoalHabitTemplateManager } from "@/app/components/GoalHabitTemplateManager";
-import { selectPhotoFromLibrary, selectPhotoFromFiles } from '@/lib/photoPicker';
-import { isNative } from '@/lib/capacitor';
+import { isNative } from "@/lib/capacitor";
+import { selectPhotoFromLibrary } from "@/lib/photoPicker";
 
 export default function Settings() {
   const { data: session } = useSession();
@@ -1019,14 +1016,13 @@ export default function Settings() {
     }
   };
 
-  // Handle avatar file selection - updated to use Capacitor Camera on native
+  // Handle avatar file selection
   const handleAvatarFileSelect = async (event) => {
     let file = null;
 
-    // On native platforms, use Capacitor Camera
+    // On native platforms, event might be a File object from selectPhotoFromLibrary
     if (isNative() && !event?.target?.files) {
-      // This path is for native camera (called directly, not from file input)
-      file = event; // event is already the File object from takePhoto
+      file = event; // event is already the File object
     } else {
       // On web, use file input
       file = event?.target?.files?.[0];
@@ -1489,74 +1485,33 @@ export default function Settings() {
                           disabled={uploadingAvatar}
                         />
                       )}
-                      {isNative() ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              disabled={uploadingAvatar}
-                            >
-                              <Camera className="h-4 w-4 mr-2" />
-                              {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              onClick={async () => {
-                                try {
-                                  const file = await selectPhotoFromLibrary();
-                                  if (file) {
-                                    await handleAvatarFileSelect(file);
-                                  }
-                                } catch (error) {
-                                  console.error('Error selecting photo:', error);
-                                  if (error.message && 
-                                      !error.message.includes('cancel') && 
-                                      !error.message.includes('User cancelled') &&
-                                      !error.message.includes('User canceled')) {
-                                    toast.error('Failed to select photo. Please try again.');
-                                  }
-                                }
-                              }}
-                              className="cursor-pointer"
-                            >
-                              <Image className="h-4 w-4 mr-2" />
-                              Photo Library
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={async () => {
-                                try {
-                                  const file = await selectPhotoFromFiles();
-                                  if (file) {
-                                    await handleAvatarFileSelect(file);
-                                  }
-                                } catch (error) {
-                                  console.error('Error selecting file:', error);
-                                  if (error.message && 
-                                      !error.message.includes('cancel') && 
-                                      !error.message.includes('User cancelled') &&
-                                      !error.message.includes('User canceled')) {
-                                    toast.error('Failed to select file. Please try again.');
-                                  }
-                                }
-                              }}
-                              className="cursor-pointer"
-                            >
-                              <Folder className="h-4 w-4 mr-2" />
-                              Choose File
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <Button 
-                          variant="outline" 
-                          onClick={() => document.getElementById('avatar-upload')?.click()}
-                          disabled={uploadingAvatar}
-                        >
-                          <Camera className="h-4 w-4 mr-2" />
-                          {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
-                        </Button>
-                      )}
+                      <Button 
+                        variant="outline" 
+                        onClick={async () => {
+                          if (isNative()) {
+                            try {
+                              const file = await selectPhotoFromLibrary();
+                              if (file) {
+                                await handleAvatarFileSelect(file);
+                              }
+                            } catch (error) {
+                              console.error('Error selecting photo:', error);
+                              if (error.message && 
+                                  !error.message.includes('cancel') && 
+                                  !error.message.includes('User cancelled') &&
+                                  !error.message.includes('User canceled')) {
+                                toast.error('Failed to select photo. Please try again.');
+                              }
+                            }
+                          } else {
+                            document.getElementById('avatar-upload')?.click();
+                          }
+                        }}
+                        disabled={uploadingAvatar}
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        {avatarPreview ? t('settings.profile.changePhoto', 'Change Photo') : t('settings.profile.uploadPhoto', 'Upload Photo')}
+                      </Button>
                       {avatarPreview && (
                         <>
                           <Button 
