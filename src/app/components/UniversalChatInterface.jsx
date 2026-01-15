@@ -453,7 +453,7 @@ export function UniversalChatInterface({
               <div className="flex items-center gap-2">
                 {chatType !== "personal" && (
                   <Badge variant="secondary" className="text-xs">
-                    {chatType === "group" ? `${onlineUsers.length}/${groupMembers} online` : `${activeMembers} active`}
+                    {chatType === "group" ? `${onlineUsers.length}/${typeof groupMembers === 'number' ? groupMembers : (Array.isArray(groupMembers) ? groupMembers.length : 0)} online` : `${activeMembers} active`}
                   </Badge>
                 )}
                 {!isConnected && (
@@ -499,7 +499,7 @@ export function UniversalChatInterface({
               </Button>
             ) : allowScheduling ? <Button variant="ghost" size="sm" className="hover:bg-accent flex items-center gap-2" onClick={() => setIsScheduleDialogOpen(true)}>
               <Calendar className="h-4 w-4" />
-              <span className="text-xs">{t("buttons.bookSession")}</span>
+              <span className="text-xs">Book Session</span>
             </Button> : null}
         </div>
       </div>

@@ -189,6 +189,11 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
     );
   }
   
+  // Calculate total group members count
+  const totalMembersCount = Array.isArray(groupMembers) && groupMembers.length > 0 
+    ? groupMembers.length 
+    : (Array.isArray(members) ? members.length : (typeof members === 'number' ? members : 0));
+  
   return (
     <div className="h-full flex flex-col">
       <UniversalChatInterface
@@ -198,7 +203,7 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
         participantInitials="GC"
         currentUserId={session?.user?.id}
         currentUserRole={session?.user?.role || "client"}
-        groupMembers={groupMembers.length > 0 ? groupMembers : (Array.isArray(members) ? members : [])}
+        groupMembers={totalMembersCount}
         activeMembers={activeMembers}
         title={`${groupName} Chat`}
         className="h-[calc(100vh-100px)] rounded-lg border border-border"
