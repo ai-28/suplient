@@ -453,7 +453,7 @@ export function UniversalChatInterface({
               <div className="flex items-center gap-2">
                 {chatType !== "personal" && (
                   <Badge variant="secondary" className="text-xs">
-                    {chatType === "group" ? `${onlineUsers.length}/${typeof groupMembers === 'number' ? groupMembers : (Array.isArray(groupMembers) ? groupMembers.length : 0)} online` : `${activeMembers} active`}
+                    {chatType === "group" ? `${onlineUsers.length}/${typeof groupMembers === 'number' ? groupMembers+1 : (Array.isArray(groupMembers) ? groupMembers.length+1 : 0)} online` : `${activeMembers} active`}
                   </Badge>
                 )}
                 {!isConnected && (
