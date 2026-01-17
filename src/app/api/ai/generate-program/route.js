@@ -61,7 +61,7 @@ Content Requirements:
 - Tone: ${tonePreference || 'Supportive and warm'}
 - Content Depth: ${contentDepth || 'moderate'}
 - Document Structure: ${documentStructure || 'Moderate (sections + exercises)'}
-- Message Frequency: ${messageFrequency || 'Every 2-3 days'}
+- Message Frequency: ${messageFrequency}
 - Task Types: ${taskTypes?.join(', ') || 'Reflection exercises, Action items'}
 
 Return a JSON object with this exact structure:
