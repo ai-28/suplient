@@ -53,6 +53,15 @@ Key principles:
 - Use emojis sparingly and appropriately (1-2 per message/document, only when they add value and warmth)
 - Emojis should feel natural and not overwhelming
 
+CRITICAL: Create VALUE-BASED, COMPREHENSIVE content that:
+- Explains topics deeply, not just mentions them
+- Helps clients understand the "why" behind challenges and methods
+- Provides context, background, and insights that equip clients with knowledge
+- Explains how challenges manifest and what keeps them going
+- Describes methods and why they work, not just what to do
+- Gives clients understanding and insight they can use throughout their journey
+- Makes content comprehensive, useful, and educational
+
 Always return valid JSON.`;
 
         const userPrompt = `Create a comprehensive ${duration}-week program called "${programName}".
@@ -71,18 +80,31 @@ Content Requirements:
 
 Generate:
 1. **Messages**: Create messages distributed according to frequency (${messageFrequency || 'Every 2-3 days'}). 
-   Each message should be warm, supportive, and include references to documents or exercises.
-   Use 1-2 emojis per message sparingly (like 😊, 💚, 🙌, 💪, ❤️) to add warmth without being excessive.
-   Distribute them across all ${duration} weeks.
+   Each message should be VALUE-BASED and COMPREHENSIVE:
+   - Explain topics deeply: don't just mention them, help clients understand what they are, why they matter, and how they relate to the client's journey
+   - Explain challenges: describe how challenges manifest, what triggers them, what keeps them going, and why they're difficult
+   - Explain methods: describe the methods/tools/approaches, why they work, how they address the challenges, and what clients can expect
+   - Provide insights and knowledge: equip clients with understanding they can use throughout the program
+   - Be warm, supportive, and include references to documents or exercises
+   - Use 1-2 emojis per message sparingly (like 😊, 💚, 🙌, 💪, ❤️) to add warmth without being excessive
+   - Distribute them across all ${duration} weeks
+   - Make each message comprehensive enough that clients feel equipped with insight and knowledge
 
 2. **Tasks**: Create tasks based on selected types: ${taskTypes?.join(', ') || 'Reflection exercises, Action items'}.
-   Use emojis very sparingly in task titles or descriptions (0-1 per task, only when appropriate).
-   Distribute them across weeks, ensuring variety.
+   - Include context and explanation of why the task matters
+   - Provide clear instructions that help clients understand what they're doing and why
+   - Use emojis very sparingly in task titles or descriptions (0-1 per task, only when appropriate)
+   - Distribute them across weeks, ensuring variety
 
 3. **Weekly Documents**: Create one document per week (${duration} documents total).
    Each document should match the structure preference: ${documentStructure || 'Moderate (sections + exercises)'}.
-   Include: week overview, key concepts, exercises, and reflection questions.
-   Use emojis very sparingly (1-2 per document total, only in headings or key sections for emphasis).
+   - Include comprehensive week overview with context and background
+   - Explain key concepts deeply: what they are, why they matter, how they work
+   - Describe challenges and methods thoroughly
+   - Include practical exercises with clear explanations
+   - Add reflection questions that promote deeper understanding
+   - Use emojis very sparingly (1-2 per document total, only in headings or key sections for emphasis)
+   - Make content comprehensive and educational, not just instructional
 
 4. **Messages Document**: Create one compiled document containing all text messages.
 
@@ -130,6 +152,9 @@ Ensure:
 - Documents match structure preference
 - Content depth matches requirement
 - Tone matches preference
+- All content is VALUE-BASED, COMPREHENSIVE, and provides deep understanding
+- Messages explain topics, challenges, and methods thoroughly
+- Clients are equipped with insights and knowledge throughout
 - All content is in ${language === 'da' ? 'Danish' : 'English'}`;
 
         const completion = await openai.chat.completions.create({
