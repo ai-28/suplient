@@ -91,23 +91,26 @@ VALUE-BASED CONTENT STANDARDS (applies to ALL content - messages, documents, and
 
 Generate:
 1. **Messages**: Create messages distributed according to frequency (${messageFrequency || 'Every 2-3 days'}). 
-   CRITICAL: Each message must be VALUE-BASED and COMPREHENSIVE:
-   - Explain topics thoroughly (what they are, why they matter, how they manifest)
-   - Provide understanding of challenges and their root causes
-   - Explain methods and approaches with context
-   - Equip clients with insight and knowledge
-   - Go beyond obvious statements—provide real understanding
-   - Each message should be warm, supportive, and educational with substantial content
+   CRITICAL: Each message must be VALUE-BASED and COMPREHENSIVE with SUBSTANTIAL CONTENT:
+   - Messages should be LONG and DETAILED (typically 200-400 words), not short or superficial
+   - Explain topics thoroughly: What they are, why they matter, how they manifest in real life with specific examples
+   - Provide deep understanding of challenges: What the challenges are, how they show up, why they occur, their root causes
+   - Explain methods and approaches comprehensively: How they work, why they're effective, when to use them, what to expect
+   - Equip clients with insight and knowledge: Give them understanding they can use throughout the program
+   - Go beyond obvious statements—provide real understanding and context
+   - Each message should be warm, supportive, and educational with substantial, meaningful content
    - Include references to documents or exercises when relevant
    - Use 1-2 emojis per message sparingly (like 😊, 💚, 🙌, 💪, ❤️) to add warmth without being excessive
    - Distribute them across all ${duration} weeks
-   - Example: Instead of "Welcome! We'll work on stress management," write "Welcome! Over the next ${duration} weeks, we'll focus on practical, evidence-informed ways to manage stress. Stress often isn't just 'too much to do'—it can show up as a constantly switched-on mind, irritability, poor sleep, tension in the body, low patience, or feeling like you're carrying everything alone. When life is full, the usual advice can feel unrealistic, so this program is designed to work within your real schedule, not against it."
+   - BAD EXAMPLE (too basic): "Welcome to the start of a transformative journey towards better sleep! Over the next 4 weeks, we'll explore sleep in depth, understanding how it affects every aspect of our lives. Sleep isn't just about feeling rested; it's crucial for our mental, emotional, and physical well-being. Many face challenges like insomnia or restless nights, often stemming from stress, lifestyle habits, or even environmental factors. Together, we'll work to identify causes and implement practical solutions that fit into your lifestyle. 🌙"
+   - GOOD EXAMPLE (comprehensive): "Welcome! Over the next ${duration} weeks, we'll focus on practical, evidence-informed ways to manage stress. Stress often isn't just 'too much to do'—it can show up as a constantly switched-on mind, irritability, poor sleep, tension in the body, low patience, or feeling like you're carrying everything alone. When life is full, the usual advice ('just relax' or 'take more time off') can feel unrealistic—so this program is designed to work within your real schedule, not against it. Here's what we'll work on together: Understanding your stress patterns (what triggers you, how stress shows up in your body and behavior, and what keeps the cycle going). Regulating your nervous system quickly (short, effective tools you can use in 2–10 minutes to reduce pressure in the moment, even on busy days). Building sustainable habits (small changes that improve sleep, energy, focus, and recovery without requiring a major lifestyle overhaul). Strengthening boundaries and mindset (practical ways to handle workload, expectations, and self-talk so stress doesn't run the show). By the end, you'll have a clear toolkit you can rely on—methods that are simple, repeatable, and tailored to your life—so you feel more in control, more steady, and better equipped to handle challenges as they come."
 
 2. **Tasks**: Create tasks based on selected types: ${taskTypes?.join(', ') || 'Reflection exercises, Action items'}.
    - Each task should include context and explanation of why it's valuable
    - Provide understanding of what the task will help them learn or achieve
    - Use emojis very sparingly in task titles or descriptions (0-1 per task, only when appropriate)
    - Distribute them across weeks, ensuring variety
+   - IMPORTANT: The same day can have BOTH a message AND a task. You can assign multiple elements to the same day (week and day combination).
 
 3. **Weekly Documents**: Create one document per week (${duration} documents total).
    CRITICAL: Each document must be VALUE-BASED and COMPREHENSIVE, just like messages:
@@ -132,6 +135,8 @@ Generate:
 
 4. **Messages Document**: Create one compiled document containing all text messages with full value-based content.
 
+IMPORTANT DISTRIBUTION NOTE: The same day (same week and day combination) can have MULTIPLE elements. For example, Day 1 of Week 1 can have both a message AND a task. Don't limit yourself to one element per day—create a rich program where days can have both messages and tasks when appropriate.
+
 Return a JSON object with this exact structure:
 {
   "elements": [
@@ -148,7 +153,7 @@ Return a JSON object with this exact structure:
     {
       "type": "task",
       "week": 1,
-      "day": 3,
+      "day": 1,
       "title": "Task Title",
       "data": {
         "title": "Task Title",
@@ -177,7 +182,9 @@ Ensure:
 - Content depth matches requirement
 - Tone matches preference
 - All content is in ${language === 'da' ? 'Danish' : 'English'}
-- ALL content (messages, documents, tasks) is VALUE-BASED, COMPREHENSIVE, and provides genuine insight and understanding`;
+- ALL content (messages, documents, tasks) is VALUE-BASED, COMPREHENSIVE, and provides genuine insight and understanding
+- Messages are SUBSTANTIAL (200-400 words typically) with deep explanations, not short or superficial
+- The same day can have multiple elements (both message and task)`;
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o",
