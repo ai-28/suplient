@@ -3,12 +3,8 @@ import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
 import OpenAI from 'openai';
 
-// Increase timeout for this route (Next.js/Vercel default is often 10-60s)
-export const maxDuration = 300; // 5 minutes (Vercel Pro allows up to 300s)
-
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    timeout: 120000, // 2 minutes timeout
 });
 
 export async function POST(request) {
