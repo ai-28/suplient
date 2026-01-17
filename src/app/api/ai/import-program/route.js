@@ -219,7 +219,10 @@ export async function POST(request) {
     // Add message and task elements, and link PDFs to messages on Day 1 of each week
     for (const element of programData.elements || []) {
       const week = element.week || 1;
-      const day = element.day || 1;
+      // Clamp day to 1-7 per ProgramTemplateElement_day_check (day of week)
+      let day = element.day ?? 1;
+      if (typeof day !== 'number' || day < 1) day = 1;
+      else if (day > 7) day = ((day - 1) % 7) + 1;
 
       // If this is a message on Week N Day 1 (first day of week), and we have a PDF for that week, add the link
       if (element.type === 'message' && day === 1 && weekDocumentMap[week]) {
