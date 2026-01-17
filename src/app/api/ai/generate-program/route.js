@@ -3,8 +3,12 @@ import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
 import OpenAI from 'openai';
 
+// Increase timeout for this route (Next.js/Vercel default is often 10-60s)
+export const maxDuration = 300; // 5 minutes (Vercel Pro allows up to 300s)
+
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    timeout: 120000, // 2 minutes timeout
 });
 
 export async function POST(request) {
@@ -158,13 +162,15 @@ Ensure:
 - All content is in ${language === 'da' ? 'Danish' : 'English'}`;
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-5.2",
+            model: "gpt-4o",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
             ],
             response_format: { type: "json_object" },
             temperature: 0.7,
+            max_tokens: 20000, // Limit response size and speed up generation
+            timeout: 120000, // 2 minutes timeout for the API call
         });
 
         // Debug: Log completion structure
@@ -199,6 +205,12 @@ Ensure:
         try {
             // Clean the response content (remove any markdown code blocks if present)
             let cleanedContent = responseContent.trim();
+
+            // Check if response is HTML (timeout error page)
+            if (cleanedContent.startsWith('<html') || cleanedContent.startsWith('<!DOCTYPE')) {
+                throw new Error('Received HTML response instead of JSON. This usually indicates a timeout or server error.');
+            }
+
             if (cleanedContent.startsWith('```json')) {
                 cleanedContent = cleanedContent.replace(/^```json\n?/, '').replace(/\n?```$/, '');
             } else if (cleanedContent.startsWith('```')) {
@@ -215,6 +227,11 @@ Ensure:
             // If response was truncated, suggest increasing token limit
             if (finishReason === 'length') {
                 throw new Error(`Response was truncated. Try increasing max_completion_tokens. Partial response: ${responseContent.substring(0, 200)}...`);
+            }
+
+            // If HTML response, it's likely a timeout
+            if (responseContent.includes('<html') || responseContent.includes('<!DOCTYPE')) {
+                throw new Error('Request timed out. The server returned an error page instead of JSON.');
             }
 
             throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
@@ -237,6 +254,23 @@ Ensure:
         return NextResponse.json(generatedData);
     } catch (error) {
         console.error('AI generation error:', error);
+
+        // Handle timeout errors specifically
+        if (error.message?.includes('timeout') || error.message?.includes('timed out') || error.code === 'ECONNABORTED' || error.name === 'TimeoutError') {
+            return NextResponse.json(
+                { error: 'Request timed out. The program generation is taking longer than expected. Please try again or reduce the program duration.' },
+                { status: 504 }
+            );
+        }
+
+        // Handle invalid model errors
+        if (error.message?.includes('model') || error.status === 404 || error.message?.includes('Invalid')) {
+            return NextResponse.json(
+                { error: 'Invalid model specified. Please check the model name.' },
+                { status: 400 }
+            );
+        }
+
         return NextResponse.json(
             { error: error.message || 'Failed to generate program' },
             { status: 500 }
