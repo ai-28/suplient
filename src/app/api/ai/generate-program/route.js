@@ -91,6 +91,13 @@ VALUE-BASED CONTENT STANDARDS (applies to ALL content - messages, documents, and
 
 Generate:
 1. **Messages**: Create messages distributed according to frequency (${messageFrequency || 'Every 2-3 days'}). 
+   CRITICAL DISTRIBUTION RULES:
+   - You MUST generate content for ALL ${duration} weeks, not just one week
+   - Messages should be distributed ONE PER DAY according to the frequency (e.g., "Every 2-3 days" means one message every 2-3 days)
+   - DO NOT place multiple messages on the same day - each day should have at most ONE message
+   - Spread messages evenly across all ${duration} weeks (total of ${duration * 7} days)
+   - Example: For a 4-week program with "Every 2-3 days" frequency, you might have messages on days: 1, 3, 6, 8, 11, 13, 16, 18, 21, 23, 26, 28 (approximately 12 messages total)
+   
    CRITICAL: Each message must be VALUE-BASED and COMPREHENSIVE with SUBSTANTIAL CONTENT:
    - Messages should be LONG and DETAILED (typically 200-400 words), not short or superficial
    - Explain topics thoroughly: What they are, why they matter, how they manifest in real life with specific examples
@@ -101,7 +108,6 @@ Generate:
    - Each message should be warm, supportive, and educational with substantial, meaningful content
    - Include references to documents or exercises when relevant
    - Use 1-2 emojis per message sparingly (like 😊, 💚, 🙌, 💪, ❤️) to add warmth without being excessive
-   - Distribute them across all ${duration} weeks
    - BAD EXAMPLE (too basic): "Welcome to the start of a transformative journey towards better sleep! Over the next 4 weeks, we'll explore sleep in depth, understanding how it affects every aspect of our lives. Sleep isn't just about feeling rested; it's crucial for our mental, emotional, and physical well-being. Many face challenges like insomnia or restless nights, often stemming from stress, lifestyle habits, or even environmental factors. Together, we'll work to identify causes and implement practical solutions that fit into your lifestyle. 🌙"
    - GOOD EXAMPLE (comprehensive): "Welcome! Over the next ${duration} weeks, we'll focus on practical, evidence-informed ways to manage stress. Stress often isn't just 'too much to do'—it can show up as a constantly switched-on mind, irritability, poor sleep, tension in the body, low patience, or feeling like you're carrying everything alone. When life is full, the usual advice ('just relax' or 'take more time off') can feel unrealistic—so this program is designed to work within your real schedule, not against it. Here's what we'll work on together: Understanding your stress patterns (what triggers you, how stress shows up in your body and behavior, and what keeps the cycle going). Regulating your nervous system quickly (short, effective tools you can use in 2–10 minutes to reduce pressure in the moment, even on busy days). Building sustainable habits (small changes that improve sleep, energy, focus, and recovery without requiring a major lifestyle overhaul). Strengthening boundaries and mindset (practical ways to handle workload, expectations, and self-talk so stress doesn't run the show). By the end, you'll have a clear toolkit you can rely on—methods that are simple, repeatable, and tailored to your life—so you feel more in control, more steady, and better equipped to handle challenges as they come."
 
@@ -109,8 +115,10 @@ Generate:
    - Each task should include context and explanation of why it's valuable
    - Provide understanding of what the task will help them learn or achieve
    - Use emojis very sparingly in task titles or descriptions (0-1 per task, only when appropriate)
-   - Distribute them across weeks, ensuring variety
-   - IMPORTANT: The same day can have BOTH a message AND a task. You can assign multiple elements to the same day (week and day combination).
+   - Distribute them across all ${duration} weeks, ensuring variety
+   - IMPORTANT: A task can be on the SAME day as a message (e.g., Week 1 Day 1 can have both a message AND a task)
+   - Tasks can also be on days without messages
+   - However, remember: each day should have at most ONE message (messages are distributed one per day)
 
 3. **Weekly Documents**: Create one document per week (${duration} documents total).
    CRITICAL: Each document must be VALUE-BASED and COMPREHENSIVE, just like messages:
@@ -135,9 +143,14 @@ Generate:
 
 4. **Messages Document**: Create one compiled document containing all text messages with full value-based content.
 
-IMPORTANT DISTRIBUTION NOTE: The same day (same week and day combination) can have MULTIPLE elements. For example, Day 1 of Week 1 can have both a message AND a task. Don't limit yourself to one element per day—create a rich program where days can have both messages and tasks when appropriate.
+CRITICAL DISTRIBUTION RULES:
+- You MUST generate content for ALL ${duration} weeks (not just one week)
+- Messages: ONE message per day maximum, distributed according to frequency across all ${duration} weeks
+- Tasks: Can be on the same day as a message OR on separate days
+- Example pattern: Week 1 Day 1 (message), Week 1 Day 1 (task), Week 1 Day 3 (message), Week 1 Day 5 (message + task), Week 2 Day 1 (message), etc.
+- Create a rich program spanning all ${duration} weeks with messages distributed one per day and tasks strategically placed
 
-Return a JSON object with this exact structure:
+Return a JSON object with this exact structure (NOTE: You must include elements for ALL ${duration} weeks, not just week 1):
 {
   "elements": [
     {
@@ -160,14 +173,41 @@ Return a JSON object with this exact structure:
         "description": "Task description...",
         "assignedTo": "client"
       }
+    },
+    {
+      "type": "message",
+      "week": 1,
+      "day": 3,
+      "title": "Next Message Title",
+      "data": {
+        "message": "Full message text...",
+        "isAutomatic": true
+      }
+    },
+    {
+      "type": "message",
+      "week": 2,
+      "day": 1,
+      "title": "Week 2 Message Title",
+      "data": {
+        "message": "Full message text...",
+        "isAutomatic": true
+      }
     }
+    // ... continue for ALL ${duration} weeks with messages distributed one per day
   ],
   "documents": [
     {
       "week": 1,
       "title": "Week 1: [Theme]",
       "content": "Full markdown content for week 1 guide..."
+    },
+    {
+      "week": 2,
+      "title": "Week 2: [Theme]",
+      "content": "Full markdown content for week 2 guide..."
     }
+    // ... continue for ALL ${duration} weeks
   ],
   "messagesDocument": {
     "title": "All Program Messages - ${programName}",
@@ -176,15 +216,17 @@ Return a JSON object with this exact structure:
 }
 
 Ensure:
-- Messages are distributed according to frequency
+- You generate content for ALL ${duration} weeks (not just one week)
+- Messages are distributed ONE PER DAY according to frequency across all ${duration} weeks
+- Each day has at most ONE message (do not place multiple messages on the same day)
+- Tasks can be on the same day as a message OR on separate days
 - Tasks match selected types
-- Documents match structure preference
+- Documents match structure preference (one document per week for all ${duration} weeks)
 - Content depth matches requirement
 - Tone matches preference
 - All content is in ${language === 'da' ? 'Danish' : 'English'}
 - ALL content (messages, documents, tasks) is VALUE-BASED, COMPREHENSIVE, and provides genuine insight and understanding
-- Messages are SUBSTANTIAL (200-400 words typically) with deep explanations, not short or superficial
-- The same day can have multiple elements (both message and task)`;
+- Messages are SUBSTANTIAL (200-400 words typically) with deep explanations, not short or superficial`;
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o",
