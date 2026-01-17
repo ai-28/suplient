@@ -101,7 +101,7 @@ Ensure:
                 { role: 'user', content: userPrompt }
             ],
             temperature: 0.7,
-            max_output_tokens: 12000 // adjust if needed
+            max_output_tokens: 20000 // adjust if needed
         });
 
         // 6️⃣ Extract output text (Responses API uses output_text)
