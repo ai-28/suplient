@@ -64,7 +64,7 @@ ${specialInstructions ? `Special Instructions: ${specialInstructions}` : ''}
 
 Content Requirements:
 - Tone: ${tonePreference || 'Supportive and warm'}
-- Content Depth: ${contentDepth || 'Moderate detail'}
+- Content Depth: Content should be comprehensive and detailed, but not overwhelming.
 - Document Structure: ${documentStructure || 'Moderate (sections + exercises)'}
 - Message Frequency: ${messageFrequency || 'Every 2-3 days'}
 - Task Types: ${taskTypes?.join(', ') || 'Reflection exercises, Action items'}
@@ -132,13 +132,13 @@ Ensure:
 - Tone matches preference
 - All content is in ${language === 'da' ? 'Danish' : 'English'}`;
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
+
+        const completion = await openai.responses.create({
+            model: "gpt-5.2",          
+            input: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt }
             ],
-            response_format: { type: "json_object" },
             temperature: 0.7,
         });
 
