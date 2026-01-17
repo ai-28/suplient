@@ -133,7 +133,7 @@ Ensure:
 - All content is in ${language === 'da' ? 'Danish' : 'English'}`;
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-5.1",
+            model: "gpt-4o",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }
