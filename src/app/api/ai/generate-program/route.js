@@ -53,15 +53,6 @@ Key principles:
 - Use emojis sparingly and appropriately (1-2 per message/document, only when they add value and warmth)
 - Emojis should feel natural and not overwhelming
 
-CRITICAL: Create VALUE-BASED, COMPREHENSIVE content that:
-- Explains topics deeply, not just mentions them
-- Helps clients understand the "why" behind challenges and methods
-- Provides context, background, and insights that equip clients with knowledge
-- Explains how challenges manifest and what keeps them going
-- Describes methods and why they work, not just what to do
-- Gives clients understanding and insight they can use throughout their journey
-- Makes content comprehensive, useful, and educational
-
 Always return valid JSON.`;
 
         const userPrompt = `Create a comprehensive ${duration}-week program called "${programName}".
@@ -80,31 +71,18 @@ Content Requirements:
 
 Generate:
 1. **Messages**: Create messages distributed according to frequency (${messageFrequency || 'Every 2-3 days'}). 
-   Each message should be VALUE-BASED and COMPREHENSIVE:
-   - Explain topics deeply: don't just mention them, help clients understand what they are, why they matter, and how they relate to the client's journey
-   - Explain challenges: describe how challenges manifest, what triggers them, what keeps them going, and why they're difficult
-   - Explain methods: describe the methods/tools/approaches, why they work, how they address the challenges, and what clients can expect
-   - Provide insights and knowledge: equip clients with understanding they can use throughout the program
-   - Be warm, supportive, and include references to documents or exercises
-   - Use 1-2 emojis per message sparingly (like 😊, 💚, 🙌, 💪, ❤️) to add warmth without being excessive
-   - Distribute them across all ${duration} weeks
-   - Make each message comprehensive enough that clients feel equipped with insight and knowledge
+   Each message should be warm, supportive, and include references to documents or exercises.
+   Use 1-2 emojis per message sparingly (like 😊, 💚, 🙌, 💪, ❤️) to add warmth without being excessive.
+   Distribute them across all ${duration} weeks.
 
 2. **Tasks**: Create tasks based on selected types: ${taskTypes?.join(', ') || 'Reflection exercises, Action items'}.
-   - Include context and explanation of why the task matters
-   - Provide clear instructions that help clients understand what they're doing and why
-   - Use emojis very sparingly in task titles or descriptions (0-1 per task, only when appropriate)
-   - Distribute them across weeks, ensuring variety
+   Use emojis very sparingly in task titles or descriptions (0-1 per task, only when appropriate).
+   Distribute them across weeks, ensuring variety.
 
 3. **Weekly Documents**: Create one document per week (${duration} documents total).
    Each document should match the structure preference: ${documentStructure || 'Moderate (sections + exercises)'}.
-   - Include comprehensive week overview with context and background
-   - Explain key concepts deeply: what they are, why they matter, how they work
-   - Describe challenges and methods thoroughly
-   - Include practical exercises with clear explanations
-   - Add reflection questions that promote deeper understanding
-   - Use emojis very sparingly (1-2 per document total, only in headings or key sections for emphasis)
-   - Make content comprehensive and educational, not just instructional
+   Include: week overview, key concepts, exercises, and reflection questions.
+   Use emojis very sparingly (1-2 per document total, only in headings or key sections for emphasis).
 
 4. **Messages Document**: Create one compiled document containing all text messages.
 
@@ -152,9 +130,6 @@ Ensure:
 - Documents match structure preference
 - Content depth matches requirement
 - Tone matches preference
-- All content is VALUE-BASED, COMPREHENSIVE, and provides deep understanding
-- Messages explain topics, challenges, and methods thoroughly
-- Clients are equipped with insights and knowledge throughout
 - All content is in ${language === 'da' ? 'Danish' : 'English'}`;
 
         const completion = await openai.chat.completions.create({
@@ -165,8 +140,6 @@ Ensure:
             ],
             response_format: { type: "json_object" },
             temperature: 0.7,
-            max_tokens: 20000, // Limit response size and speed up generation
-            timeout: 120000, // 2 minutes timeout for the API call
         });
 
         // Debug: Log completion structure
@@ -201,12 +174,6 @@ Ensure:
         try {
             // Clean the response content (remove any markdown code blocks if present)
             let cleanedContent = responseContent.trim();
-
-            // Check if response is HTML (timeout error page)
-            if (cleanedContent.startsWith('<html') || cleanedContent.startsWith('<!DOCTYPE')) {
-                throw new Error('Received HTML response instead of JSON. This usually indicates a timeout or server error.');
-            }
-
             if (cleanedContent.startsWith('```json')) {
                 cleanedContent = cleanedContent.replace(/^```json\n?/, '').replace(/\n?```$/, '');
             } else if (cleanedContent.startsWith('```')) {
@@ -223,11 +190,6 @@ Ensure:
             // If response was truncated, suggest increasing token limit
             if (finishReason === 'length') {
                 throw new Error(`Response was truncated. Try increasing max_completion_tokens. Partial response: ${responseContent.substring(0, 200)}...`);
-            }
-
-            // If HTML response, it's likely a timeout
-            if (responseContent.includes('<html') || responseContent.includes('<!DOCTYPE')) {
-                throw new Error('Request timed out. The server returned an error page instead of JSON.');
             }
 
             throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
@@ -250,23 +212,6 @@ Ensure:
         return NextResponse.json(generatedData);
     } catch (error) {
         console.error('AI generation error:', error);
-
-        // Handle timeout errors specifically
-        if (error.message?.includes('timeout') || error.message?.includes('timed out') || error.code === 'ECONNABORTED' || error.name === 'TimeoutError') {
-            return NextResponse.json(
-                { error: 'Request timed out. The program generation is taking longer than expected. Please try again or reduce the program duration.' },
-                { status: 504 }
-            );
-        }
-
-        // Handle invalid model errors
-        if (error.message?.includes('model') || error.status === 404 || error.message?.includes('Invalid')) {
-            return NextResponse.json(
-                { error: 'Invalid model specified. Please check the model name.' },
-                { status: 400 }
-            );
-        }
-
         return NextResponse.json(
             { error: error.message || 'Failed to generate program' },
             { status: 500 }
