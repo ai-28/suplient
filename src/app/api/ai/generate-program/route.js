@@ -228,15 +228,30 @@ Ensure:
 - ALL content (messages, documents, tasks) is VALUE-BASED, COMPREHENSIVE, and provides genuine insight and understanding
 - Messages are SUBSTANTIAL (200-400 words typically) with deep explanations, not short or superficial`;
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.7,
-        });
+        let completion;
+        try {
+            completion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ],
+                response_format: { type: "json_object" },
+                temperature: 0.7,
+            });
+        } catch (apiError) {
+            console.error('OpenAI API error:', apiError);
+            // Handle specific OpenAI API errors
+            if (apiError.status === 401) {
+                throw new Error('OpenAI API authentication failed. Please check your API key.');
+            } else if (apiError.status === 429) {
+                throw new Error('OpenAI API rate limit exceeded. Please try again later.');
+            } else if (apiError.status === 500 || apiError.status === 503) {
+                throw new Error('OpenAI API service is temporarily unavailable. Please try again later.');
+            } else {
+                throw new Error(`OpenAI API error: ${apiError.message || 'Unknown error'}`);
+            }
+        }
 
         // Debug: Log completion structure
         console.log('Completion object:', JSON.stringify(completion, null, 2));
@@ -253,6 +268,7 @@ Ensure:
         const finishReason = completion.choices[0]?.finish_reason;
         if (finishReason === 'length') {
             console.warn('OpenAI response was truncated due to token limit');
+            throw new Error('Response was too long and got truncated. The program may be incomplete. Try reducing the program duration or simplifying the requirements.');
         }
 
         // Get the response content
@@ -263,6 +279,12 @@ Ensure:
             console.error('Finish reason:', finishReason);
             console.error('Message object:', completion.choices[0]?.message);
             throw new Error(`No content received from OpenAI. Finish reason: ${finishReason || 'unknown'}`);
+        }
+
+        // Check if response is HTML (error page)
+        if (responseContent.trim().startsWith('<') || responseContent.includes('<html>') || responseContent.includes('<!DOCTYPE')) {
+            console.error('Received HTML instead of JSON. Response:', responseContent.substring(0, 500));
+            throw new Error('Received an error page instead of JSON. This may indicate an API error or network issue. Please try again.');
         }
 
         // Try to parse JSON, with better error handling
@@ -283,12 +305,12 @@ Ensure:
             console.error('Response content (first 500 chars):', responseContent.substring(0, 500));
             console.error('Finish reason:', finishReason);
 
-            // If response was truncated, suggest increasing token limit
-            if (finishReason === 'length') {
-                throw new Error(`Response was truncated. Try increasing max_completion_tokens. Partial response: ${responseContent.substring(0, 200)}...`);
+            // Check if it's HTML
+            if (responseContent.includes('<html>') || responseContent.includes('<!DOCTYPE')) {
+                throw new Error('Received HTML error page instead of JSON. Please check your API configuration and try again.');
             }
 
-            throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
+            throw new Error(`Failed to parse AI response as JSON: ${parseError.message}. Response preview: ${responseContent.substring(0, 200)}...`);
         }
 
         // Validate structure
