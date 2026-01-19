@@ -146,10 +146,16 @@ export async function checkElementsDelivered(enrollmentId, elementIds, programDa
  * Format combined message from elements
  * @param {Array} elements - Array of program elements
  * @param {number} programDay - Program day
+ * @param {string} clientName - Client's name
  * @returns {string} Formatted message content
  */
-export function formatCombinedMessage(elements, programDay) {
+export function formatCombinedMessage(elements, programDay, clientName = '') {
     const parts = [];
+
+    // Add greeting with client name
+    if (clientName) {
+        parts.push(`Hi ${clientName},\n\n`);
+    }
 
     // Add day header
     parts.push(`📅 **Day ${programDay} of Your Program**\n`);
@@ -231,11 +237,13 @@ async function createTaskFromElement(clientId, coachId, taskElement) {
  */
 export async function deliverProgramElements(enrollmentId, programDay, deliveryDate) {
     try {
-        // 1. Get enrollment with template
+        // 1. Get enrollment with template and client name
         const enrollmentResult = await sql`
-      SELECT pe.*, pt.duration
+      SELECT pe.*, pt.duration, u.name as "clientName"
       FROM "ProgramEnrollment" pe
       JOIN "ProgramTemplate" pt ON pe."programTemplateId" = pt.id
+      JOIN "Client" c ON pe."clientId" = c.id
+      JOIN "User" u ON c."userId" = u.id
       WHERE pe.id = ${enrollmentId}
     `;
 
@@ -244,6 +252,7 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
         }
 
         const enrollment = enrollmentResult[0];
+        const clientName = enrollment.clientName || '';
 
         // 2. Get elements for this program day
         const elements = await getElementsForProgramDay(enrollment.programTemplateId, programDay);
@@ -278,8 +287,8 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
             clientUserId
         );
 
-        // 6. Format combined message
-        const messageContent = formatCombinedMessage(undeliveredElements, programDay);
+        // 6. Format combined message with client name
+        const messageContent = formatCombinedMessage(undeliveredElements, programDay, clientName);
 
         // 7. Send message via chat system
         const message = await chatRepo.sendMessage(
