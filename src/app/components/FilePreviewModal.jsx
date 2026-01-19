@@ -33,6 +33,18 @@ export function FilePreviewModal({
 
   const previewType = getFileType(fileUrl, fileName);
 
+  // Determine the preview URL - use direct URL if it's already a full URL, otherwise use preview API
+  const getPreviewUrl = (url) => {
+    // If URL is already a full URL (starts with http/https), use it directly
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Otherwise, use the preview API for library paths
+    return `/api/library/preview?path=${encodeURIComponent(url)}`;
+  };
+
+  const previewUrl = getPreviewUrl(fileUrl);
+
   return (
     <div 
       className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2"
@@ -59,7 +71,7 @@ export function FilePreviewModal({
           {previewType === 'images' ? (
             <div>
               <img 
-                src={`/api/library/preview?path=${encodeURIComponent(fileUrl)}`}
+                src={previewUrl}
                 alt="Preview"
                 className="max-w-full max-h-[70vh] object-contain mx-auto"
                 onError={(e) => {
@@ -81,7 +93,7 @@ export function FilePreviewModal({
             </div>
           ) : previewType === 'videos' ? (
             <video 
-              src={`/api/library/preview?path=${encodeURIComponent(fileUrl)}`}
+              src={previewUrl}
               controls
               className="max-w-full max-h-[70vh] mx-auto"
               onError={(e) => {
@@ -102,7 +114,7 @@ export function FilePreviewModal({
             />
           ) : previewType === 'sounds' ? (
             <audio 
-              src={`/api/library/preview?path=${encodeURIComponent(fileUrl)}`}
+              src={previewUrl}
               controls
               className="w-full"
               onError={(e) => {
@@ -125,7 +137,7 @@ export function FilePreviewModal({
             <div>
               <div className={isMobile ? 'mb-2' : 'mb-4'}>
                 <iframe
-                  src={`/api/library/preview?path=${encodeURIComponent(fileUrl)}`}
+                  src={previewUrl}
                   className={`w-full ${isMobile ? 'h-[50vh]' : 'h-[60vh]'} border rounded`}
                   title="PDF Preview"
                 />
@@ -136,8 +148,7 @@ export function FilePreviewModal({
                   className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
                   size={isMobile ? "sm" : "default"}
                   onClick={() => {
-                    const apiUrl = `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
-                    window.open(apiUrl, '_blank');
+                    window.open(previewUrl, '_blank');
                   }}
                 >
                   Open in New Tab
@@ -162,22 +173,23 @@ export function FilePreviewModal({
                   className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
                   size={isMobile ? "sm" : "default"}
                   onClick={() => {
-                    const apiUrl = `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
-                    window.open(apiUrl, '_blank');
+                    window.open(previewUrl, '_blank');
                   }}
                 >
                   Open in New Tab
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
-                  size={isMobile ? "sm" : "default"}
-                  onClick={() => {
-                    window.open(fileUrl, '_blank');
-                  }}
-                >
-                  Open Original URL
-                </Button>
+                {fileUrl.startsWith('http://') || fileUrl.startsWith('https://') ? (
+                  <Button 
+                    variant="outline" 
+                    className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
+                    size={isMobile ? "sm" : "default"}
+                    onClick={() => {
+                      window.open(fileUrl, '_blank');
+                    }}
+                  >
+                    Open Original URL
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : (
