@@ -559,7 +559,7 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
               {progress}
             </p>
             <p className="text-sm text-muted-foreground max-w-md">
-              We're carefully crafting a program tailored specifically for your needs. This thoughtful process ensures the highest quality experience.
+              We're carefully crafting a program tailored specifically for your needs.
             </p>
             <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground mt-4 flex-wrap">
               <span>⏱️ Estimated: ~{formatTime(estimatedTotalTime)}</span>
