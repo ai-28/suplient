@@ -35,7 +35,8 @@ export default withAuth(
             req.nextUrl.pathname.startsWith('/api/stripe/webhook') ||
             req.nextUrl.pathname.startsWith('/api/platform/settings/public') ||
             req.nextUrl.pathname.startsWith('/api/subscription/check') ||
-            req.nextUrl.pathname.startsWith('/api/coach/info')
+            req.nextUrl.pathname.startsWith('/api/coach/info') ||
+            req.nextUrl.pathname.startsWith('/api/cron/')
         )) {
             return NextResponse.next();
         }
@@ -55,7 +56,8 @@ export default withAuth(
                     req.nextUrl.pathname.startsWith('/api/auth/') ||
                     req.nextUrl.pathname.startsWith('/api/platform/settings/public') ||
                     req.nextUrl.pathname.startsWith('/api/subscription/check') ||
-                    req.nextUrl.pathname.startsWith('/api/coach/info')) {
+                    req.nextUrl.pathname.startsWith('/api/coach/info') ||
+                    req.nextUrl.pathname.startsWith('/api/cron/')) {
                     return true;
                 }
 
