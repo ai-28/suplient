@@ -84,6 +84,7 @@ export function FilePreviewModal({
             variant="ghost" 
             size={isMobile ? "sm" : "sm"}
             className={isMobile ? 'h-6 w-6 p-0' : ''}
+            style={{ color: '#1A2D4D' }}
             onClick={() => {
               setPdfError(false);
               onOpenChange(false);
@@ -190,6 +191,7 @@ export function FilePreviewModal({
                     variant="outline" 
                     className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
                     size={isMobile ? "sm" : "default"}
+                    style={{ color: '#1A2D4D' }}
                     onClick={() => {
                       setPdfError(false);
                       // Try preview API as fallback
@@ -204,6 +206,7 @@ export function FilePreviewModal({
                   variant="outline" 
                   className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
                   size={isMobile ? "sm" : "default"}
+                  style={{ color: '#1A2D4D' }}
                   onClick={() => {
                     window.open(previewUrl, '_blank');
                   }}
@@ -229,6 +232,7 @@ export function FilePreviewModal({
                   variant="outline" 
                   className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
                   size={isMobile ? "sm" : "default"}
+                  style={{ color: '#1A2D4D' }}
                   onClick={() => {
                     window.open(previewUrl, '_blank');
                   }}
@@ -240,6 +244,7 @@ export function FilePreviewModal({
                     variant="outline" 
                     className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
                     size={isMobile ? "sm" : "default"}
+                    style={{ color: '#1A2D4D' }}
                     onClick={() => {
                       window.open(fileUrl, '_blank');
                     }}
@@ -258,6 +263,7 @@ export function FilePreviewModal({
                 variant="outline" 
                 className={`mt-4 ${isMobile ? 'text-xs h-8' : ''}`}
                 size={isMobile ? "sm" : "default"}
+                style={{ color: '#1A2D4D' }}
                 onClick={() => window.open(fileUrl, '_blank')}
               >
                 Open in New Tab
