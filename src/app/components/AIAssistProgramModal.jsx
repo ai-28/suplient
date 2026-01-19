@@ -410,11 +410,61 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(loadingMessages[0].text);
   const [progressIndex, setProgressIndex] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [progressPercent, setProgressPercent] = useState(5);
+  const startTimeRef = useRef(Date.now());
+  const apiStartTimeRef = useRef(null);
+
+  // Calculate estimated time based on program complexity
+  const calculateEstimatedTime = () => {
+    const { duration, contentDepth, messageFrequency } = questionnaireData;
+    
+    // Base time: 60 seconds
+    let estimatedSeconds = 60;
+    
+    // Add time based on program duration (more weeks = more content)
+    estimatedSeconds += (duration || 4) * 10; // ~10 seconds per week
+    
+    // Add time based on content depth
+    if (contentDepth === 'comprehensive' || contentDepth === 'detailed') {
+      estimatedSeconds += 30;
+    } else if (contentDepth === 'moderate') {
+      estimatedSeconds += 15;
+    }
+    
+    // Add time based on message frequency (more messages = more content)
+    if (messageFrequency === 'daily') {
+      estimatedSeconds += 20;
+    } else if (messageFrequency === 'every-2-3-days') {
+      estimatedSeconds += 10;
+    }
+    
+    // Clamp between 60-180 seconds (1-3 minutes)
+    return Math.min(180, Math.max(60, estimatedSeconds));
+  };
+
+  const estimatedTotalTime = calculateEstimatedTime();
 
   useEffect(() => {
     generateProgram();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Track elapsed time and update progress
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      setElapsedTime(elapsed);
+      
+      // Progress based on estimated time
+      const calculatedProgress = Math.min(95, 5 + (elapsed / estimatedTotalTime) * 90);
+      setProgressPercent(calculatedProgress);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isGenerating, estimatedTotalTime]);
 
   // Rotate through premium loading messages
   useEffect(() => {
@@ -441,10 +491,14 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
       setError(null);
       setProgressIndex(0);
       setProgress(loadingMessages[0].text);
+      setElapsedTime(0);
+      setProgressPercent(5);
+      startTimeRef.current = Date.now();
       
       // Let the messages rotate for a bit before starting the actual API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      apiStartTimeRef.current = Date.now();
       const response = await fetch('/api/ai/generate-program', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -458,8 +512,16 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
 
       const data = await response.json();
       
+      // Log actual generation time for future improvements
+      if (apiStartTimeRef.current) {
+        const actualTime = Math.floor((Date.now() - apiStartTimeRef.current) / 1000);
+        console.log(`AI generation took ${actualTime} seconds`);
+        // Could store this in localStorage or send to analytics for better future estimates
+      }
+      
       // Final premium message before completion
       setProgress("Finalizing your personalized program...");
+      setProgressPercent(100);
       await new Promise(resolve => setTimeout(resolve, 800));
       
       onComplete(data);
@@ -470,6 +532,17 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
       setIsGenerating(false);
     }
   };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}m ${secs}s`;
+    }
+    return `${secs}s`;
+  };
+
+  const estimatedTimeRemaining = Math.max(0, estimatedTotalTime - elapsedTime);
 
   return (
     <div className="space-y-6 py-8">
@@ -488,15 +561,30 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
             <p className="text-sm text-muted-foreground max-w-md">
               We're carefully crafting a program tailored specifically for your needs. This thoughtful process ensures the highest quality experience.
             </p>
+            <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground mt-4 flex-wrap">
+              <span>⏱️ Estimated: ~{formatTime(estimatedTotalTime)}</span>
+              <span>•</span>
+              <span>Elapsed: {formatTime(elapsedTime)}</span>
+              {estimatedTimeRemaining > 0 && (
+                <>
+                  <span>•</span>
+                  <span>Remaining: ~{formatTime(estimatedTimeRemaining)}</span>
+                </>
+              )}
+            </div>
           </div>
-          <div className="w-full max-w-md">
-            <div className="h-1 bg-muted rounded-full overflow-hidden">
+          <div className="w-full max-w-md space-y-2">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div 
-                className="h-full bg-primary rounded-full transition-all duration-300"
+                className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
                 style={{ 
-                  width: `${Math.min(90, 20 + (progressIndex * 12))}%` 
+                  width: `${progressPercent}%` 
                 }}
               />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{Math.round(progressPercent)}% complete</span>
+              <span>{formatTime(elapsedTime)} / ~{formatTime(estimatedTotalTime)}</span>
             </div>
           </div>
         </div>
