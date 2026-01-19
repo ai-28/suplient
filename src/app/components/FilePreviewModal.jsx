@@ -77,7 +77,7 @@ export function FilePreviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className={`flex items-center justify-between ${isMobile ? 'p-2' : 'p-4'} border-b`}>
-          <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold break-words`}>
+          <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold break-words`} style={{ color: '#1A2D4D' }}>
             {fileName || 'Preview'}
           </h3>
           <Button 
@@ -104,7 +104,7 @@ export function FilePreviewModal({
                   const fallback = document.createElement('div');
                   fallback.className = 'text-center py-8';
                   fallback.innerHTML = `
-                    <p class="text-muted-foreground mb-4">Preview failed to load</p>
+                    <p class="mb-4" style="color: #1A2D4D;">Preview failed to load</p>
                     <button 
                       class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                       onclick="window.open('${fileUrl}', '_blank')"
@@ -126,7 +126,7 @@ export function FilePreviewModal({
                 const fallback = document.createElement('div');
                 fallback.className = 'text-center py-8';
                 fallback.innerHTML = `
-                  <p class="text-muted-foreground mb-4">Video failed to load</p>
+                  <p class="mb-4" style="color: #1A2D4D;">Video failed to load</p>
                   <button 
                     class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                     onclick="window.open('${fileUrl}', '_blank')"
@@ -147,7 +147,7 @@ export function FilePreviewModal({
                 const fallback = document.createElement('div');
                 fallback.className = 'text-center py-8';
                 fallback.innerHTML = `
-                  <p class="text-muted-foreground mb-4">Audio failed to load</p>
+                  <p class="mb-4" style="color: #1A2D4D;">Audio failed to load</p>
                   <button 
                     class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                     onclick="window.open('${fileUrl}', '_blank')"
@@ -163,10 +163,10 @@ export function FilePreviewModal({
               <div className={isMobile ? 'mb-2' : 'mb-4'}>
                 {pdfError ? (
                   <div className="text-center py-8">
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-4`}>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} mb-4`} style={{ color: '#1A2D4D' }}>
                       PDF preview failed to load in iframe
                     </p>
-                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mb-4`}>
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} mb-4`} style={{ color: '#1A2D4D' }}>
                       This may be due to browser security settings. Please use the button below to open in a new tab.
                     </p>
                   </div>
@@ -216,10 +216,10 @@ export function FilePreviewModal({
             <div>
               <div className={isMobile ? 'mb-2' : 'mb-4'}>
                 <div className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 break-words`}>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} mb-2 break-words`} style={{ color: '#1A2D4D' }}>
                     Document preview not available
                   </p>
-                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mb-2 break-words`}>
+                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} mb-2 break-words`} style={{ color: '#1A2D4D' }}>
                     This file type cannot be previewed inline. Please download or open in a new tab.
                   </p>
                 </div>
@@ -251,7 +251,7 @@ export function FilePreviewModal({
             </div>
           ) : (
             <div className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
-              <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 break-words`}>
+              <p className={`${isMobile ? 'text-xs' : 'text-sm'} mb-2 break-words`} style={{ color: '#1A2D4D' }}>
                 Preview not available for this file type
               </p>
               <Button 
