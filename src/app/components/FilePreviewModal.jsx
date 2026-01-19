@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/app/components/ui/button';
 
 export function FilePreviewModal({ 
@@ -10,12 +10,29 @@ export function FilePreviewModal({
   fileName = '',
   isMobile = false 
 }) {
+  const [pdfError, setPdfError] = useState(false);
+
   if (!open || !fileUrl) return null;
 
   // Determine file type based on file extension
   const getFileType = (url, name) => {
-    const fileName = name || url.split('/').pop() || '';
-    const fileExtension = fileName.split('.').pop()?.toLowerCase();
+    // Try to get extension from fileName first, then from URL
+    let fileExtension = '';
+    
+    if (name) {
+      const nameParts = name.split('.');
+      if (nameParts.length > 1) {
+        fileExtension = nameParts.pop()?.toLowerCase() || '';
+      }
+    }
+    
+    // If no extension from name, try URL
+    if (!fileExtension) {
+      const urlParts = url.split('/').pop() || '';
+      const urlExtension = urlParts.split('.').pop()?.toLowerCase() || '';
+      // Remove query params if any
+      fileExtension = urlExtension.split('?')[0];
+    }
     
     if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension)) {
       return 'images';
@@ -44,6 +61,11 @@ export function FilePreviewModal({
   };
 
   const previewUrl = getPreviewUrl(fileUrl);
+  
+  // For PDFs, also try preview API as fallback
+  const pdfPreviewUrl = previewType === 'pdf' && fileUrl.startsWith('http') 
+    ? `/api/library/preview?path=${encodeURIComponent(fileUrl)}`
+    : previewUrl;
 
   return (
     <div 
@@ -62,7 +84,10 @@ export function FilePreviewModal({
             variant="ghost" 
             size={isMobile ? "sm" : "sm"}
             className={isMobile ? 'h-6 w-6 p-0' : ''}
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              setPdfError(false);
+              onOpenChange(false);
+            }}
           >
             ✕
           </Button>
@@ -136,13 +161,45 @@ export function FilePreviewModal({
           ) : previewType === 'pdf' ? (
             <div>
               <div className={isMobile ? 'mb-2' : 'mb-4'}>
-                <iframe
-                  src={previewUrl}
-                  className={`w-full ${isMobile ? 'h-[50vh]' : 'h-[60vh]'} border rounded`}
-                  title="PDF Preview"
-                />
+                {pdfError ? (
+                  <div className="text-center py-8">
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-4`}>
+                      PDF preview failed to load in iframe
+                    </p>
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mb-4`}>
+                      This may be due to browser security settings. Please use the button below to open in a new tab.
+                    </p>
+                  </div>
+                ) : (
+                  <iframe
+                    src={previewUrl}
+                    className={`w-full ${isMobile ? 'h-[50vh]' : 'h-[60vh]'} border rounded`}
+                    title="PDF Preview"
+                    onLoad={() => {
+                      setPdfError(false);
+                    }}
+                    onError={() => {
+                      setPdfError(true);
+                    }}
+                  />
+                )}
               </div>
-              <div className="text-center">
+              <div className="text-center space-y-2">
+                {pdfError && (
+                  <Button 
+                    variant="outline" 
+                    className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
+                    size={isMobile ? "sm" : "default"}
+                    onClick={() => {
+                      setPdfError(false);
+                      // Try preview API as fallback
+                      const fallbackUrl = pdfPreviewUrl !== previewUrl ? pdfPreviewUrl : previewUrl;
+                      window.open(fallbackUrl, '_blank');
+                    }}
+                  >
+                    Try Preview API
+                  </Button>
+                )}
                 <Button 
                   variant="outline" 
                   className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
@@ -163,7 +220,7 @@ export function FilePreviewModal({
                     Document preview not available
                   </p>
                   <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mb-2 break-words`}>
-                    This file type cannot be previewed inline
+                    This file type cannot be previewed inline. Please download or open in a new tab.
                   </p>
                 </div>
               </div>
