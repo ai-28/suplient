@@ -1,14 +1,39 @@
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
+import { FilePreviewModal } from './FilePreviewModal';
 
 // Component to render message text with clickable links
 // Parses markdown-style links: [text](url) and renders only the text as clickable
 export function MessageWithLinks({ messageText, className = "" }) {
+  const [previewFile, setPreviewFile] = useState({ url: null, name: null });
+
   if (!messageText) return null;
   
   // Convert to string if it's not already
   const text = String(messageText);
+  
+  // Check if URL is a file (library file) based on extension or URL pattern
+  const isFileUrl = (url) => {
+    if (!url) return false;
+    
+    // Check if URL contains library path indicators
+    if (url.includes('/library/') || url.includes('library/')) {
+      return true;
+    }
+    
+    // Check file extension
+    const fileName = url.split('/').pop() || '';
+    const fileExtension = fileName.split('.').pop()?.toLowerCase();
+    const fileExtensions = [
+      'pdf', 'doc', 'docx', 'txt', 'rtf',
+      'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg',
+      'mp4', 'avi', 'mov', 'wmv', 'webm',
+      'mp3', 'wav', 'ogg', 'm4a', 'aac'
+    ];
+    
+    return fileExtensions.includes(fileExtension);
+  };
   
   // Match markdown-style links: [text](url)
   // Updated regex to handle URLs with parentheses and special characters
@@ -31,18 +56,27 @@ export function MessageWithLinks({ messageText, className = "" }) {
     const linkUrl = match[2];
     const linkText = match[1];
     
+    // Check if this is a file URL
+    const isFile = isFileUrl(linkUrl);
+    
     // Add clickable link - only show the text part, URL is hidden
     parts.push(
       <a
         key={`link-${keyCounter++}`}
         href={linkUrl}
-        target="_blank"
-        rel="noopener noreferrer"
+        target={isFile ? undefined : "_blank"}
+        rel={isFile ? undefined : "noopener noreferrer"}
         className="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300 font-medium cursor-pointer break-all"
         onClick={(e) => {
           e.preventDefault();
           if (linkUrl) {
-            window.open(linkUrl, '_blank', 'noopener,noreferrer');
+            if (isFile) {
+              // Open in modal for file links
+              setPreviewFile({ url: linkUrl, name: linkText });
+            } else {
+              // Open in new tab for regular links
+              window.open(linkUrl, '_blank', 'noopener,noreferrer');
+            }
           }
         }}
       >
@@ -64,8 +98,20 @@ export function MessageWithLinks({ messageText, className = "" }) {
     return <span className={className}>{text}</span>;
   }
 
-  // Return the parts array wrapped in a span
-  // The parent element's whitespace-pre-wrap will preserve formatting
-  return <span className={className}>{parts}</span>;
+  return (
+    <>
+      <span className={className}>{parts}</span>
+      <FilePreviewModal
+        open={!!previewFile.url}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewFile({ url: null, name: null });
+          }
+        }}
+        fileUrl={previewFile.url}
+        fileName={previewFile.name}
+      />
+    </>
+  );
 }
 
