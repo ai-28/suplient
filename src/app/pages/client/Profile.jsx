@@ -762,6 +762,9 @@ export default function ClientProfile() {
 
   // Deactivate profile state
   const [deactivating, setDeactivating] = useState(false);
+  
+  // Delete account state
+  const [deleting, setDeleting] = useState(false);
 
   // Billing state
   const [billingLoading, setBillingLoading] = useState(false);
@@ -1478,6 +1481,41 @@ export default function ClientProfile() {
       toast.error('Failed to deactivate profile');
     } finally {
       setDeactivating(false);
+    }
+  };
+
+  // Handle delete account
+  const handleDeleteAccount = async () => {
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to delete your account');
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      const response = await fetch('/api/user/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Account deleted successfully');
+        // Sign out after deletion
+        setTimeout(() => {
+          signOut({ callbackUrl: '/login' });
+        }, 2000);
+      } else {
+        toast.error(data.error || 'Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -2390,8 +2428,54 @@ export default function ClientProfile() {
             </Card>
           </div>
 
-          {/* Deactivate Profile and Logout Section */}
+          {/* Delete Account, Deactivate Profile and Logout Section */}
           <div className={`mt-6 pt-6 border-t border-border space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
+            {/* Delete Account */}
+            <Card className="border-destructive/50">
+              <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
+                <CardTitle className={`flex items-center gap-2 text-destructive ${isMobile ? 'text-lg' : ''}`}>
+                  <Trash2 className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+                  Delete Account
+                </CardTitle>
+              </CardHeader>
+              <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="destructive" 
+                      className={`gap-2 ${isMobile ? 'w-full text-sm' : ''}`} 
+                      disabled={deleting}
+                      size={isMobile ? "sm" : "default"}
+                    >
+                      <Trash2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                      Delete Account
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className={isMobile ? 'mx-4' : ''}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>Delete Account</AlertDialogTitle>
+                      <AlertDialogDescription className={isMobile ? 'text-sm' : ''}>
+                        Are you sure you want to permanently delete your account? This will remove all your data, messages, and account information. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
+                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={deleting}
+                      >
+                        {deleting ? 'Deleting...' : 'Delete Permanently'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+
             {/* Deactivate Profile */}
             <Card>
               <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
