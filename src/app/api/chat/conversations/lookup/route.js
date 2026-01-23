@@ -70,24 +70,11 @@ async function handleCoachAdminLookup(coachId, sql) {
             });
         }
 
-        // If no conversation exists, we need to find an admin to create one with
-        // Get the first active admin
-        const admin = await sql`
-            SELECT id FROM "User" 
-            WHERE role = 'admin' AND "isActive" = true 
-            ORDER BY "createdAt" ASC 
-            LIMIT 1
-        `;
-
-        if (admin.length === 0) {
-            return NextResponse.json({
-                success: false,
-                error: 'No admin found'
-            }, { status: 404 });
-        }
-
-        // Create conversation with the first admin
-        const conversationId = await chatRepo.createAdminCoachConversation(admin[0].id, coachId);
+        // If no conversation exists, create one with the specified super admin
+        const SUPER_ADMIN_ID = '1199cf43-47d2-452a-a8d2-baab2dff1d35';
+        
+        // Create conversation with the super admin
+        const conversationId = await chatRepo.createAdminCoachConversation(SUPER_ADMIN_ID, coachId);
 
         return NextResponse.json({
             success: true,
