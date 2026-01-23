@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { ImpersonationBanner } from "@/app/components/ImpersonationBanner";
 import { useTranslation } from "@/app/context/LanguageContext";
 import SubscriptionGuard from "@/app/components/SubscriptionGuard";
+import { useUpdateLastLogin } from "@/app/hooks/useUpdateLastLogin";
 
 const Layout = ({ children }) => {
     const pathname = usePathname();
@@ -25,6 +26,10 @@ const Layout = ({ children }) => {
     // Only show sidebar for coach and admin routes, not for client routes
     const shouldShowSidebar = pathname.startsWith('/coach') || pathname.startsWith('/admin');
     const isClientRoute = pathname.startsWith('/client');
+    const isCoachRoute = pathname.startsWith('/coach');
+    
+    // Update lastLogin for coaches when they access any coach page
+    useUpdateLastLogin();
 
     // Prevent hydration mismatch by only rendering after mount
     useEffect(() => {
