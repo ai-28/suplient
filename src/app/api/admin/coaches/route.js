@@ -153,6 +153,7 @@ export async function GET(request) {
                     u.role, 
                     u."isActive", 
                     u."approvalStatus",
+                    u."lastLogin",
                     u."expectedPlatformBestAt",
                     u."currentClientsPerMonth",
                     u."currentPlatform",
@@ -162,7 +163,7 @@ export async function GET(request) {
                 FROM "User" u
                 LEFT JOIN "User" c ON c."coachId" = u.id AND c.role = 'client'
                 WHERE u.role = 'coach' AND u.id = ${coachId}
-                GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."approvalStatus", u."expectedPlatformBestAt", u."currentClientsPerMonth", u."currentPlatform", u."createdAt", u."updatedAt"
+                GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."approvalStatus", u."lastLogin", u."expectedPlatformBestAt", u."currentClientsPerMonth", u."currentPlatform", u."createdAt", u."updatedAt"
             `;
 
             if (!coach) {
@@ -181,6 +182,7 @@ export async function GET(request) {
                 role: coach.role,
                 isActive: coach.isActive,
                 approvalStatus: coach.approvalStatus || 'approved',
+                lastLogin: coach.lastLogin,
                 expectedPlatformBestAt: coach.expectedPlatformBestAt,
                 currentClientsPerMonth: coach.currentClientsPerMonth,
                 currentPlatform: coach.currentPlatform,
@@ -209,6 +211,7 @@ export async function GET(request) {
                 u.role, 
                 u."isActive", 
                 u."approvalStatus",
+                u."lastLogin",
                 u."expectedPlatformBestAt",
                 u."currentClientsPerMonth",
                 u."currentPlatform",
@@ -218,7 +221,7 @@ export async function GET(request) {
             FROM "User" u
             LEFT JOIN "User" c ON c."coachId" = u.id AND c.role = 'client'
             WHERE u.role = 'coach'
-            GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."approvalStatus", u."expectedPlatformBestAt", u."currentClientsPerMonth", u."currentPlatform", u."createdAt", u."updatedAt"
+            GROUP BY u.id, u.name, u.email, u.phone, u.bio, u.role, u."isActive", u."approvalStatus", u."lastLogin", u."expectedPlatformBestAt", u."currentClientsPerMonth", u."currentPlatform", u."createdAt", u."updatedAt"
             ORDER BY 
                 CASE WHEN u."approvalStatus" = 'pending' THEN 0 ELSE 1 END,
                 u."createdAt" DESC
@@ -234,6 +237,7 @@ export async function GET(request) {
             role: coach.role,
             isActive: coach.isActive,
             approvalStatus: coach.approvalStatus || 'approved',
+            lastLogin: coach.lastLogin,
             expectedPlatformBestAt: coach.expectedPlatformBestAt,
             currentClientsPerMonth: coach.currentClientsPerMonth,
             currentPlatform: coach.currentPlatform,

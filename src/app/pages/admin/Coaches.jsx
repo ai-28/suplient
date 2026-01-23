@@ -164,6 +164,13 @@ export default function AdminCoaches() {
           ? dateA - dateB
           : dateB - dateA;
       
+      case 'lastLogin':
+        const lastLoginA = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+        const lastLoginB = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+        return isAsc
+          ? lastLoginA - lastLoginB
+          : lastLoginB - lastLoginA;
+      
       default:
         return 0;
     }
@@ -402,6 +409,19 @@ export default function AdminCoaches() {
     }
   };
 
+  const formatDateLocal = (dateString) => {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
+    if (diffInHours < 48) return 'Yesterday';
+    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+    return date.toLocaleDateString();
+  };
+
   const getStatusBadge = (coach) => {
     if (coach.approvalStatus === 'pending') {
       return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">Pending Approval</Badge>;
@@ -456,6 +476,8 @@ export default function AdminCoaches() {
             <SelectItem value="email-desc">Email (Z-A)</SelectItem>
             <SelectItem value="status-asc">Status (Active First)</SelectItem>
             <SelectItem value="status-desc">Status (Inactive First)</SelectItem>
+            <SelectItem value="lastLogin-desc">Last Login (Recent First)</SelectItem>
+            <SelectItem value="lastLogin-asc">Last Login (Oldest First)</SelectItem>
             <SelectItem value="joinDate-desc">Newest First</SelectItem>
             <SelectItem value="joinDate-asc">Oldest First</SelectItem>
           </SelectContent>
@@ -489,6 +511,10 @@ export default function AdminCoaches() {
                          <span className="flex items-center break-words">
                            <Users className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
                            {coach.clients} clients
+                         </span>
+                         <span className="flex items-center break-words">
+                           <LogIn className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+                           {formatDateLocal(coach.lastLogin)}
                          </span>
                          <span className="flex items-center break-words">
                            <Calendar className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />

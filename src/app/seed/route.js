@@ -41,6 +41,7 @@ async function seedUser() {
         "twoFactorSetupDate" TIMESTAMP,
         "passwordResetToken" TEXT,
         "passwordResetExpires" TIMESTAMP,
+        "lastLogin" TIMESTAMP,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

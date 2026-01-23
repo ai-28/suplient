@@ -186,6 +186,38 @@ const authOptions = {
                     console.error('Error updating lastActive on signIn:', error);
                 }
             }
+
+            // Update lastLogin for coaches on sign-in
+            if (user?.role === 'coach' && user?.id) {
+                try {
+                    const userResult = await sql`
+                        SELECT "lastLogin" FROM "User" WHERE id = ${user.id}
+                    `;
+                    
+                    if (userResult.length > 0) {
+                        const currentLastLogin = userResult[0]?.lastLogin;
+                        const now = new Date();
+                        
+                        // Only update if lastLogin is NULL or older than 1 hour (server-side throttling)
+                        const shouldUpdate = !currentLastLogin || 
+                            (new Date(currentLastLogin).getTime() < (now.getTime() - 60 * 60 * 1000));
+
+                        if (shouldUpdate) {
+                            // Store as UTC timestamp explicitly
+                            await sql`
+                                UPDATE "User"
+                                SET "lastLogin" = (NOW() AT TIME ZONE 'UTC'),
+                                    "updatedAt" = (NOW() AT TIME ZONE 'UTC')
+                                WHERE id = ${user.id}
+                            `;
+                            console.log('✅ Updated lastLogin for coach on signIn:', user.id);
+                        }
+                    }
+                } catch (error) {
+                    // Don't fail sign-in if lastLogin update fails
+                    console.error('Error updating lastLogin on signIn:', error);
+                }
+            }
             return true; // Allow sign-in to proceed
         },
         async jwt({ token, account, user, trigger, session: jwtSession }) {

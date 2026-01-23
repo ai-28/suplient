@@ -141,6 +141,38 @@ export async function POST(request) {
       }
     }
 
+    // Update lastLogin for coaches (after all checks pass)
+    if (user.role === 'coach') {
+      try {
+        const now = new Date();
+        
+        // Get current lastLogin
+        const userResult = await sql`
+          SELECT "lastLogin" FROM "User" WHERE id = ${user.id}
+        `;
+        
+        const currentLastLogin = userResult[0]?.lastLogin;
+        
+        // Only update if lastLogin is NULL or older than 1 hour (server-side throttling)
+        const shouldUpdate = !currentLastLogin || 
+          (new Date(currentLastLogin).getTime() < (now.getTime() - 60 * 60 * 1000));
+
+        if (shouldUpdate) {
+          // Store as UTC timestamp explicitly
+          await sql`
+            UPDATE "User"
+            SET "lastLogin" = (NOW() AT TIME ZONE 'UTC'),
+                "updatedAt" = (NOW() AT TIME ZONE 'UTC')
+            WHERE id = ${user.id}
+          `;
+          console.log('✅ Updated lastLogin for coach on login:', user.id);
+        }
+      } catch (error) {
+        // Don't fail login if lastLogin update fails
+        console.error('Error updating lastLogin on login:', error);
+      }
+    }
+
     // All checks passed - return user data for session creation
     return NextResponse.json({
       success: true,
