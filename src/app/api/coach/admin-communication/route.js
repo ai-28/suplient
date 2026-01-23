@@ -14,6 +14,40 @@ export async function GET(request) {
     }
 
     const coachId = session.user.id;
+    const SUPER_ADMIN_ID = '1199cf43-47d2-452a-a8d2-baab2dff1d35';
+
+    // Ensure default conversation exists with super admin (only if no conversations exist)
+    try {
+      // Check if coach has any admin conversations
+      const existingConversations = await sql`
+        SELECT c.id
+        FROM "Conversation" c
+        JOIN "ConversationParticipant" cp ON c.id = cp."conversationId" AND cp."userId" = ${coachId} AND cp."isActive" = true
+        JOIN "ConversationParticipant" cp2 ON c.id = cp2."conversationId" AND cp2."isActive" = true AND cp2."userId" != ${coachId}
+        JOIN "User" u ON cp2."userId" = u.id AND u.role = 'admin'
+        WHERE c.type = 'admin_coach'
+        AND c."isActive" = true
+        LIMIT 1
+      `;
+
+      // If no conversations exist, create default one with super admin
+      if (existingConversations.length === 0) {
+        // Verify super admin exists
+        const admin = await sql`
+          SELECT id FROM "User" 
+          WHERE id = ${SUPER_ADMIN_ID} 
+          AND role = 'admin' 
+          AND "isActive" = true
+        `;
+
+        if (admin.length > 0) {
+          await chatRepo.createAdminCoachConversation(SUPER_ADMIN_ID, coachId);
+        }
+      }
+    } catch (error) {
+      console.error('Error ensuring default conversation exists:', error);
+      // Continue even if conversation creation fails
+    }
 
     // Get admin-coach conversations
     const conversations = await sql`
