@@ -33,23 +33,23 @@ export default function ClientLayout({ children }) {
   const isActiveRoute = (path) => pathname === path;
 
   // Conditional styles based on platform
+  // Use 100dvh for iOS to handle dynamic viewport, 100vh for others
   const containerStyle = isIOSNative ? {
     height: '100dvh',
     maxHeight: '100dvh',
-    minHeight: '100dvh',
-    paddingTop: 'env(safe-area-inset-top, 0px)',
-    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     overflow: 'hidden',
   } : {
     height: '100vh',
     maxHeight: '100vh',
   };
 
+  // Content area - add bottom padding to account for sticky bottom nav
+  // Bottom nav is approximately 80px tall (including padding)
   const contentStyle = isIOSNative ? {
     paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
     WebkitOverflowScrolling: 'touch',
   } : {
-    paddingBottom: '80px', // Account for bottom nav on all platforms
+    paddingBottom: '80px', // Account for bottom nav height
   };
 
   const bottomNavStyle = isIOSNative ? {
