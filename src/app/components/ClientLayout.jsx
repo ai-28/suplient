@@ -38,31 +38,42 @@ export default function ClientLayout({ children }) {
     height: '100dvh',
     maxHeight: '100dvh',
     overflow: 'hidden',
+    position: 'relative',
   } : {
     height: '100vh',
     maxHeight: '100vh',
+    position: 'relative',
   };
 
-  // Content area - add bottom padding to account for sticky bottom nav
-  // Bottom nav is approximately 80px tall (including padding)
+  // Content area - add bottom padding to account for fixed bottom nav
+  // Bottom nav: p-3 (12px) + content (~56px) + safe area = ~68px + safe area
   const contentStyle = isIOSNative ? {
-    paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+    paddingBottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
     WebkitOverflowScrolling: 'touch',
+    height: '100%',
+    overflowY: 'auto',
   } : {
-    paddingBottom: '80px', // Account for bottom nav height
+    paddingBottom: '68px', // Account for bottom nav height
+    height: '100%',
+    overflowY: 'auto',
   };
 
+  // Bottom nav should be fixed, not sticky, to prevent movement
   const bottomNavStyle = isIOSNative ? {
-    paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`,
-    position: 'sticky',
+    position: 'fixed',
     bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0px))`,
     zIndex: 50,
-    marginTop: 'auto',
+    backgroundColor: 'hsl(var(--card))',
   } : {
-    position: 'sticky',
+    position: 'fixed',
     bottom: 0,
+    left: 0,
+    right: 0,
     zIndex: 50,
-    marginTop: 'auto',
+    backgroundColor: 'hsl(var(--card))',
   };
 
   return (
@@ -73,7 +84,7 @@ export default function ClientLayout({ children }) {
     >
       {/* Main Content */}
       <div 
-        className="flex-1 overflow-y-auto"
+        className="overflow-y-auto"
         style={contentStyle}
       >
         {children}
@@ -82,9 +93,9 @@ export default function ClientLayout({ children }) {
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - Fixed position to prevent movement */}
       <div 
-        className="bg-card border-t border-border p-4 shadow-lg"
+        className="border-t border-border p-3 shadow-lg"
         style={bottomNavStyle}
       >
         <div className="flex items-center justify-around max-w-md mx-auto">
