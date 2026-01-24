@@ -195,6 +195,28 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* iOS Capacitor viewport fix */
+  @supports (height: 100dvh) {
+    .ios-viewport-fix {
+      height: 100dvh;
+      max-height: 100dvh;
+      min-height: 100dvh;
+    }
+  }
+
+  /* Fallback for older iOS */
+  @supports not (height: 100dvh) {
+    .ios-viewport-fix {
+      height: 100vh;
+      max-height: 100vh;
+      min-height: -webkit-fill-available; /* iOS Safari fallback */
+    }
+  }
+
+  /* Prevent body scroll on iOS Capacitor - only apply when in Capacitor */
+  /* This is handled by the ClientLayout component's overflow: hidden */
+  /* We don't want to break web version, so we'll handle it per-component */
 }
 
 @layer components {

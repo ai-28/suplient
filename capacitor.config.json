@@ -49,7 +49,7 @@
       "backgroundColor": "#ffffff"
     },
     "Keyboard": {
-      "resize": "body",
+      "resize": "native",
       "style": "light",
       "resizeOnFullScreen": true
     }

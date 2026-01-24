@@ -13,34 +13,79 @@ import PWAInstallPrompt from "./PWAInstallPrompt";
 import { useServiceWorker } from "@/app/hooks/useServiceWorker";
 import { useTranslation } from "@/app/context/LanguageContext";
 import SubscriptionGuard from "./SubscriptionGuard";
+import { isIOS } from "@/lib/capacitor";
+import { useEffect, useState } from "react";
 
 export default function ClientLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslation();
+  const [isIOSNative, setIsIOSNative] = useState(false);
   
   // Register service worker for PWA functionality
   useServiceWorker();
 
+  // Check if running on iOS Capacitor (client-side only)
+  useEffect(() => {
+    setIsIOSNative(isIOS());
+  }, []);
+
   const isActiveRoute = (path) => pathname === path;
+
+  // Conditional styles based on platform
+  const containerStyle = isIOSNative ? {
+    height: '100dvh',
+    maxHeight: '100dvh',
+    minHeight: '100dvh',
+    paddingTop: 'env(safe-area-inset-top, 0px)',
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    overflow: 'hidden',
+  } : {
+    height: '100vh',
+    maxHeight: '100vh',
+  };
+
+  const contentStyle = isIOSNative ? {
+    paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+    WebkitOverflowScrolling: 'touch',
+  } : {
+    paddingBottom: '80px', // Account for bottom nav on all platforms
+  };
+
+  const bottomNavStyle = isIOSNative ? {
+    paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`,
+    position: 'sticky',
+    bottom: 0,
+    zIndex: 50,
+    marginTop: 'auto',
+  } : {
+    position: 'sticky',
+    bottom: 0,
+    zIndex: 50,
+    marginTop: 'auto',
+  };
 
   return (
     <SubscriptionGuard>
-    <div className="h-screen max-h-screen bg-background flex flex-col">
+    <div 
+      className="bg-background flex flex-col"
+      style={containerStyle}
+    >
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div 
+        className="flex-1 overflow-y-auto"
+        style={contentStyle}
+      >
         {children}
       </div>
 
       {/* PWA Install Prompt */}
       <PWAInstallPrompt />
 
-      {/* Bottom Navigation - Flexbox with safe area support */}
+      {/* Bottom Navigation */}
       <div 
-        className="bg-card border-t border-border p-4 shadow-lg fixed bottom-0 left-0 right-0"
-        style={{ 
-          paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`,
-        }}
+        className="bg-card border-t border-border p-4 shadow-lg"
+        style={bottomNavStyle}
       >
         <div className="flex items-center justify-around max-w-md mx-auto">
           <Button 
