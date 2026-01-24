@@ -30,18 +30,42 @@ export default function ClientLayout({ children }) {
     setIsIOSNative(isIOS());
   }, []);
 
+  // Prevent body scroll on iOS to keep layout fixed
+  useEffect(() => {
+    if (isIOSNative) {
+      // Lock body scroll
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      
+      return () => {
+        // Restore on unmount
+        document.body.style.overflow = originalStyle;
+        document.documentElement.style.overflow = originalStyle;
+      };
+    }
+  }, [isIOSNative]);
+
   const isActiveRoute = (path) => pathname === path;
 
   // Conditional styles based on platform
   // Use 100dvh for iOS to handle dynamic viewport, 100vh for others
+  // Position absolute to lock it in place and prevent body scroll
   const containerStyle = isIOSNative ? {
     height: '100dvh',
     maxHeight: '100dvh',
+    minHeight: '100dvh',
     overflow: 'hidden',
-    position: 'relative',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
   } : {
     height: '100vh',
     maxHeight: '100vh',
+    overflow: 'hidden',
     position: 'relative',
   };
 
@@ -52,10 +76,13 @@ export default function ClientLayout({ children }) {
     WebkitOverflowScrolling: 'touch',
     height: '100%',
     overflowY: 'auto',
+    overflowX: 'hidden',
+    position: 'relative',
   } : {
     paddingBottom: '68px', // Account for bottom nav height
     height: '100%',
     overflowY: 'auto',
+    overflowX: 'hidden',
   };
 
   // Bottom nav should be fixed, not sticky, to prevent movement
