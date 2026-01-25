@@ -75,13 +75,13 @@ export default function ClientLayout({ children }) {
     paddingBottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
     WebkitOverflowScrolling: 'touch',
     height: '100%',
-    overflowY: 'auto',
+    overflowY: 'hidden',
     overflowX: 'hidden',
     position: 'relative',
   } : {
     paddingBottom: '68px', // Account for bottom nav height
     height: '100%',
-    overflowY: 'auto',
+    overflowY: 'hidden',
     overflowX: 'hidden',
   };
 
