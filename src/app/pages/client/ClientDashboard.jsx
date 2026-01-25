@@ -30,6 +30,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "@/app/hooks/useSocket";
 import { useUpdateLastActive } from "@/app/hooks/useUpdateLastActive";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { isIOS } from "@/lib/capacitor";
 
 // Helper function to format date in local timezone (YYYY-MM-DD)
 // This ensures the date matches what the user selected, regardless of timezone
@@ -153,10 +154,16 @@ export default function ClientDashboard() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [isIOSNative, setIsIOSNative] = useState(false);
 
   const {user}=useAuth();
   
   // Component is now completely client-side, no hydration issues
+  
+  // Check if running on iOS Capacitor (client-side only)
+  useEffect(() => {
+    setIsIOSNative(isIOS());
+  }, []);
   
   // Initialize socket connection for real-time notifications
   useSocket();
@@ -331,7 +338,7 @@ export default function ClientDashboard() {
       </div>
 
       {/* Scrollable Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6" style={{ paddingBottom: '110px' }}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-6" style={{ paddingBottom: isIOSNative ? '178px' : '110px' }}>
         {/* Analytics Chart */}
         {loading ? (
           <Card>
