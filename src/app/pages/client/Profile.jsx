@@ -454,10 +454,10 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 pt-4">
                 {/* Program Subscription */}
                 {getProduct('program') && (
-                  <div className={`p-4 rounded-lg border ${isMobile ? 'p-3' : ''} ${isIOSDevice ? 'pt-6' : ''}`}>
+                  <div className={`p-4 rounded-lg border ${isMobile ? 'p-3' : ''}`}>
                     <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
                       <div className="flex-1">
                         <h4 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>Program</h4>
@@ -762,7 +762,7 @@ export default function ClientProfile() {
 
   // Deactivate profile state
   const [deactivating, setDeactivating] = useState(false);
-  
+
   // Delete account state
   const [deleting, setDeleting] = useState(false);
 
