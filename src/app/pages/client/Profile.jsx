@@ -454,7 +454,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                 </p>
               </div>
             ) : (
-              <div className="space-y-4 pt-4">
+              <div className="space-y-4 pt-6">
                 {/* Program Subscription */}
                 {getProduct('program') && (
                   <div className={`p-4 rounded-lg border ${isMobile ? 'p-3' : ''}`}>
