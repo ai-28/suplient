@@ -7,6 +7,9 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Set max duration to match nginx timeout (600 seconds = 10 minutes)
+export const maxDuration = 600;
+
 export async function POST(request) {
     try {
         // 1️⃣ Auth check
