@@ -410,13 +410,14 @@ export function UniversalChatInterface({
   }
   
   // Calculate top position for sticky header when inside Sessions page
-  // Tab bar is sticky at top: 0 with:
+  // Tab section structure:
+  //   - top: 0 (sticky position)
   //   - paddingTop: calc(1rem + env(safe-area-inset-top, 0px)) = 16px + safe area
-  //   - h-12 = 48px
-  // Total tab bar height: calc(4rem + env(safe-area-inset-top, 0px)) = 64px + safe area
-  // Chat header should be positioned at: tab bar position (0) + tab bar total height
+  //   - TabsList h-12 = 48px (3rem)
+  //   - Total tab section height: 16px + 48px + safe area = 64px + safe area = calc(4rem + env(safe-area-inset-top, 0px))
+  // Chat header top = tab section top (0) + tab section total height
   const stickyTop = isInScrollableContainer && currentUserRole === "client" 
-    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Tab bar height: 48px (h-12) + 16px (1rem padding) + safe area
+    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Tab section: paddingTop (1rem) + height (3rem) + safe area
     : 0;
   
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
@@ -427,6 +428,7 @@ export function UniversalChatInterface({
           top: stickyTop,
           // Safe area insets now work correctly with proper Capacitor/Next.js configuration
           paddingTop: isInScrollableContainer ? '0.75rem' : 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+          marginTop: 0, // Ensure no margin that could cause gaps
         } : {}}
       >
         <div className="flex items-center gap-3">

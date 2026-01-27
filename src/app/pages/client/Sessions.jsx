@@ -216,13 +216,21 @@ export default function ClientSessions() {
           </TabsList>
         </div>
 
-        {/* Tab Content - Natural flow with sticky header */}
+        {/* Tab Content - Natural flow with sticky header, no gaps */}
         <div className="flex-1 overflow-y-auto">
-          <TabsContent value="chat" className="mt-0 h-full">
+          <TabsContent 
+            value="chat" 
+            className="mt-0 h-full m-0 p-0"
+            style={{ marginTop: 0, margin: 0, padding: 0 }}
+          >
             <ChatTab />
           </TabsContent>
           
-          <TabsContent value="groups" className="mt-0 h-full">
+          <TabsContent 
+            value="groups" 
+            className="mt-0 h-full m-0 p-0"
+            style={{ marginTop: 0, margin: 0, padding: 0 }}
+          >
             <GroupsTab />
           </TabsContent>
         </div>
