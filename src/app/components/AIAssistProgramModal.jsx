@@ -419,28 +419,31 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
   const calculateEstimatedTime = () => {
     const { duration, contentDepth, messageFrequency } = questionnaireData;
     
-    // Base time: 60 seconds
-    let estimatedSeconds = 60;
+    // Base time: 90 seconds (increased to better reflect actual API times)
+    let estimatedSeconds = 90;
     
-    // Add time based on program duration (more weeks = more content)
-    estimatedSeconds += (duration || 4) * 10; // ~10 seconds per week
+    // Add time based on program duration (more weeks = exponentially more content)
+    // For longer programs, generation time increases significantly
+    const weekMultiplier = duration || 4;
+    estimatedSeconds += weekMultiplier * 15; // Increased from 10 to 15 per week
     
     // Add time based on content depth
     if (contentDepth === 'comprehensive' || contentDepth === 'detailed') {
-      estimatedSeconds += 30;
+      estimatedSeconds += 60; // Increased from 30
     } else if (contentDepth === 'moderate') {
-      estimatedSeconds += 15;
+      estimatedSeconds += 30; // Increased from 15
     }
     
     // Add time based on message frequency (more messages = more content)
     if (messageFrequency === 'daily') {
-      estimatedSeconds += 20;
+      estimatedSeconds += 40; // Increased from 20
     } else if (messageFrequency === 'every-2-3-days') {
-      estimatedSeconds += 10;
+      estimatedSeconds += 20; // Increased from 10
     }
     
-    // Clamp between 60-180 seconds (1-3 minutes)
-    return Math.min(180, Math.max(60, estimatedSeconds));
+    // Allow estimates up to 10 minutes (600 seconds) to better reflect actual generation times
+    // for large programs with high token output (up to 20,000 tokens)
+    return Math.min(600, Math.max(90, estimatedSeconds));
   };
 
   const estimatedTotalTime = calculateEstimatedTime();
