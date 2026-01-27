@@ -1642,7 +1642,7 @@ export default function ClientProfile() {
           </div>
         </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="personal" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="personal" className="space-y-4 flex flex-col">
         <TabsList className={`w-full ${isMobile ? 'grid grid-cols-2 gap-1 h-auto p-1' : isTablet ? 'grid grid-cols-5 gap-1 h-auto p-2' : 'grid grid-cols-5'}`}>
           <TabsTrigger 
             value="personal" 
@@ -1699,6 +1699,8 @@ export default function ClientProfile() {
           </TabsTrigger>
         </TabsList>
 
+        {/* Scrollable container for tab content */}
+        <div className="flex-1 overflow-y-auto" style={{ maxHeight: isMobile ? 'calc(100vh - 280px)' : 'calc(100vh - 200px)' }}>
         <TabsContent value="personal" className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-2' : 'md:grid-cols-3'}`}>
             {/* Profile Picture */}
@@ -2560,6 +2562,7 @@ export default function ClientProfile() {
             userData={userData}
           />
         </TabsContent>
+        </div>
       </Tabs>
 
       {/* Contact Therapist Dialog */}

@@ -111,7 +111,7 @@ export default function ClientLayout({ children }) {
     >
       {/* Main Content */}
       <div 
-        className="overflow-y-hidden"
+        className="overflow-y-auto"
         style={contentStyle}
       >
         {children}
