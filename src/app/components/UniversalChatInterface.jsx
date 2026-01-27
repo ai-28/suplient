@@ -376,9 +376,16 @@ export function UniversalChatInterface({
     );
   };
 
+  // Check if we're inside a scrollable container (like Sessions page)
+  // If className includes "h-full" or "h-[calc", it's likely in a container
+  const isInScrollableContainer = className?.includes("h-full") || className?.includes("h-[calc");
+  
+  // Remove border on mobile for client views
+  const borderClass = currentUserRole === "client" && isInScrollableContainer ? "" : "border border-border";
+  
   if (loading && messages.length === 0) {
     return (
-      <div className={`flex flex-col bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+      <div className={`flex flex-col bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
         <div className="flex items-center justify-center h-[calc(100vh-100px)]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -391,7 +398,7 @@ export function UniversalChatInterface({
 
   if (error) {
     return (
-      <div className={`flex flex-col  bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+      <div className={`flex flex-col bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <p className="text-destructive mb-4">Error: {error}</p>
@@ -401,9 +408,6 @@ export function UniversalChatInterface({
       </div>
     );
   }
-  // Check if we're inside a scrollable container (like Sessions page)
-  // If className includes "h-full" or "h-[calc", it's likely in a container
-  const isInScrollableContainer = className?.includes("h-full") || className?.includes("h-[calc");
   
   // Calculate top position for sticky header when inside Sessions page
   // Tab bar: h-12 (48px) + paddingTop: calc(1rem + safe-area) = 64px + safe-area
@@ -411,7 +415,7 @@ export function UniversalChatInterface({
     ? 'calc(4rem + env(safe-area-inset-top, 0px))' // 48px (h-12) + 16px (1rem padding) + safe area = 64px + safe area
     : 0;
   
-  return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
+  return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
       {/* Chat Header - Sticky when in Sessions page, positioned below tab bar - Safe area aware */}
       <div 
         className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
