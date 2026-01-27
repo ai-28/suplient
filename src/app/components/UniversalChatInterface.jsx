@@ -410,9 +410,11 @@ export function UniversalChatInterface({
   }
   
   // Calculate top position for sticky header when inside Sessions page
-  // Tab bar: h-12 (48px) + paddingTop: calc(1rem + safe-area) = 64px + safe-area
+  // Tab bar: h-12 (48px) + paddingTop: calc(1rem) = 64px
+  // Safe area is already handled by the tab bar's paddingTop
+  // So chat header should be positioned at just the tab bar height (64px)
   const stickyTop = isInScrollableContainer && currentUserRole === "client" 
-    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // 48px (h-12) + 16px (1rem padding) + safe area = 64px + safe area
+    ? '4rem' // 48px (h-12) + 16px (1rem padding) = 64px (safe area handled by tab bar)
     : 0;
   
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
