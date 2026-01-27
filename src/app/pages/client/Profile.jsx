@@ -2433,51 +2433,28 @@ export default function ClientProfile() {
             </Card>
           </div>
 
-          {/* Delete Account, Deactivate Profile and Logout Section */}
+          {/* Logout, Deactivate Profile and Delete Account Section */}
           <div className={`mt-6 pt-6 border-t border-border space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
-            {/* Delete Account */}
-            <Card className="border-destructive/50">
-              <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
-                <CardTitle className={`flex items-center gap-2 text-destructive ${isMobile ? 'text-lg' : ''}`}>
-                  <Trash2 className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                  Delete Account
-                </CardTitle>
-              </CardHeader>
-              <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
-                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Permanently delete your account and all associated data. This action cannot be undone.
-                </p>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="destructive" 
-                      className={`gap-2 ${isMobile ? 'w-full text-sm' : ''}`} 
-                      disabled={deleting}
-                      size={isMobile ? "sm" : "default"}
-                    >
-                      <Trash2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                      Delete Account
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className={isMobile ? 'mx-4' : ''}>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>Delete Account</AlertDialogTitle>
-                      <AlertDialogDescription className={isMobile ? 'text-sm' : ''}>
-                        Are you sure you want to permanently delete your account? This will remove all your data, messages, and account information. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
-                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDeleteAccount}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        disabled={deleting}
-                      >
-                        {deleting ? 'Deleting...' : 'Delete Permanently'}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+            {/* Logout Section */}
+            <Card>
+              <CardContent className={`pt-6 ${isMobile ? 'p-3' : ''}`}>
+                <div className={`flex items-center justify-between ${isMobile ? 'flex-col gap-4' : ''}`}>
+                  <div>
+                    <h3 className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'}`}>Log Out</h3>
+                    <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      Sign out of your account
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className={`gap-2 ${isMobile ? 'w-full text-sm' : ''}`}
+                    size={isMobile ? "sm" : "default"}
+                  >
+                    <LogOut className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                    Log Out
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -2527,26 +2504,49 @@ export default function ClientProfile() {
               </CardContent>
             </Card>
 
-            {/* Logout Section */}
-            <Card>
-              <CardContent className={`pt-6 ${isMobile ? 'p-3' : ''}`}>
-                <div className={`flex items-center justify-between ${isMobile ? 'flex-col gap-4' : ''}`}>
-                  <div>
-                    <h3 className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'}`}>Log Out</h3>
-                    <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Sign out of your account
-                    </p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    onClick={() => signOut({ callbackUrl: '/login' })}
-                    className={`gap-2 ${isMobile ? 'w-full text-sm' : ''}`}
-                    size={isMobile ? "sm" : "default"}
-                  >
-                    <LogOut className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                    Log Out
-                  </Button>
-                </div>
+            {/* Delete Account */}
+            <Card className="border-destructive/50">
+              <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
+                <CardTitle className={`flex items-center gap-2 text-destructive ${isMobile ? 'text-lg' : ''}`}>
+                  <Trash2 className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+                  Delete Account
+                </CardTitle>
+              </CardHeader>
+              <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="destructive" 
+                      className={`gap-2 ${isMobile ? 'w-full text-sm' : ''}`} 
+                      disabled={deleting}
+                      size={isMobile ? "sm" : "default"}
+                    >
+                      <Trash2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                      Delete Account
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className={isMobile ? 'mx-4' : ''}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>Delete Account</AlertDialogTitle>
+                      <AlertDialogDescription className={isMobile ? 'text-sm' : ''}>
+                        Are you sure you want to permanently delete your account? This will remove all your data, messages, and account information. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
+                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={deleting}
+                      >
+                        {deleting ? 'Deleting...' : 'Delete Permanently'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           </div>
