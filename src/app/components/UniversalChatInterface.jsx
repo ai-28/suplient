@@ -410,11 +410,13 @@ export function UniversalChatInterface({
   }
   
   // Calculate top position for sticky header when inside Sessions page
-  // The chat header is inside a scrollable container that starts below the tab bar
-  // Since the scrollable container is already positioned below the tab bar,
-  // the chat header's sticky top should be 0 relative to the scrollable container
+  // Tab bar is sticky at top: 0 with:
+  //   - paddingTop: calc(1rem + env(safe-area-inset-top, 0px)) = 16px + safe area
+  //   - h-12 = 48px
+  // Total tab bar height: calc(4rem + env(safe-area-inset-top, 0px)) = 64px + safe area
+  // Chat header should be positioned at: tab bar position (0) + tab bar total height
   const stickyTop = isInScrollableContainer && currentUserRole === "client" 
-    ? 0 // Position at top of scrollable container (which is already below the tab bar)
+    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Tab bar height: 48px (h-12) + 16px (1rem padding) + safe area
     : 0;
   
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
@@ -423,9 +425,8 @@ export function UniversalChatInterface({
         className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
         style={currentUserRole === "client" ? {
           top: stickyTop,
-          // When in scrollable container, no extra paddingTop needed (tab bar handles safe area)
-          // When not in scrollable container, add safe area to paddingTop
-          paddingTop: isInScrollableContainer ? '0' : 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+          // Safe area insets now work correctly with proper Capacitor/Next.js configuration
+          paddingTop: isInScrollableContainer ? '0.75rem' : 'calc(0.75rem + env(safe-area-inset-top, 0px))',
         } : {}}
       >
         <div className="flex items-center gap-3">
