@@ -405,14 +405,20 @@ export function UniversalChatInterface({
   // If className includes "h-full" or "h-[calc", it's likely in a container
   const isInScrollableContainer = className?.includes("h-full") || className?.includes("h-[calc");
   
+  // Calculate top position for sticky header when inside Sessions page
+  // Tab bar: h-12 (48px) + paddingTop: calc(1rem + safe-area) = 64px + safe-area
+  const stickyTop = isInScrollableContainer && currentUserRole === "client" 
+    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // 48px (h-12) + 16px (1rem padding) + safe area = 64px + safe area
+    : 0;
+  
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background border border-border rounded-lg overflow-hidden ${className}`}>
-      {/* Chat Header - Sticky only when not in scrollable container, normal for coach - Safe area aware */}
+      {/* Chat Header - Sticky when in Sessions page, positioned below tab bar - Safe area aware */}
       <div 
-        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && !isInScrollableContainer ? `sticky z-40` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
-        style={currentUserRole === "client" && !isInScrollableContainer ? {
-          top: 0,
+        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
+        style={currentUserRole === "client" ? {
+          top: stickyTop,
           // Safe area insets now work correctly with proper Capacitor/Next.js configuration
-          paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+          paddingTop: isInScrollableContainer ? '0.75rem' : 'calc(0.75rem + env(safe-area-inset-top, 0px))',
         } : {}}
       >
         <div className="flex items-center gap-3">
