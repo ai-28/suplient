@@ -63,15 +63,6 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
     getOrCreateGroupConversation();
   }, [groupId, session?.user?.id, members]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen text-muted-foreground">
-        <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p>Loading group chat...</p>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-muted-foreground p-4">
