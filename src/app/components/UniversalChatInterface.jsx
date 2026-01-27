@@ -20,6 +20,9 @@ import { MessageWithLinks } from "@/app/components/MessageWithLinks";
 import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTimestamp } from "@/app/utils/timestampGrouping";
 import { useChat } from "@/app/hooks/useChat";
 import { useSession } from "next-auth/react";
+import { isIOS } from "@/lib/capacitor";
+import { isIOS } from "@/lib/capacitor";
+import { useState, useEffect } from "react";
 
 // Simple function to get response guarantee text
 const getResponseGuaranteeText = (chatType) => {
@@ -60,6 +63,12 @@ export function UniversalChatInterface({
 }) {
   const router = useRouter();
   const { data: session } = useSession();
+  const [isIOSNative, setIsIOSNative] = useState(false);
+  
+  // Check if running on iOS Capacitor (client-side only)
+  useEffect(() => {
+    setIsIOSNative(isIOS());
+  }, []);
   
   // Use the real-time chat hook
   const {
@@ -409,24 +418,24 @@ export function UniversalChatInterface({
     );
   }
   
-  // Calculate top position for sticky header when inside Sessions page
-  // Tab bar is sticky at top: 0 with:
-  //   - paddingTop: calc(1rem + env(safe-area-inset-top, 0px)) = 16px + safe area
-  //   - h-12 = 48px
-  // Total tab bar height: calc(4rem + env(safe-area-inset-top, 0px)) = 64px + safe area
-  // Chat header should be positioned at: tab bar position (0) + tab bar total height
-  const stickyTop = isInScrollableContainer && currentUserRole === "client" 
-    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Tab bar height: 48px (h-12) + 16px (1rem padding) + safe area
-    : 0;
+  // Calculate positioning for chat header when inside Sessions page
+  // For iOS native: Use fixed positioning like text input (above footer)
+  // For web: Use sticky positioning (works fine)
+  // Tab bar: paddingTop calc(1rem + safe-area) + h-12 (48px) = calc(4rem + safe-area)
+  const useFixedPosition = isInScrollableContainer && currentUserRole === "client" && isIOSNative;
+  const headerTop = useFixedPosition 
+    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Fixed position below tab bar (iOS native)
+    : (isInScrollableContainer && currentUserRole === "client" ? 0 : 0); // Sticky at top of container (web)
   
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
-      {/* Chat Header - Sticky when in Sessions page, positioned below tab bar - Safe area aware */}
+      {/* Chat Header - Fixed on iOS native (like text input), sticky on web - Safe area aware */}
       <div 
-        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
+        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && useFixedPosition ? `fixed left-0 right-0 z-30` : currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
         style={currentUserRole === "client" ? {
-          top: stickyTop,
-          // Safe area insets now work correctly with proper Capacitor/Next.js configuration
-          paddingTop: isInScrollableContainer ? '0.75rem' : 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+          top: headerTop,
+          // On iOS native with fixed positioning, no paddingTop needed (tab bar handles safe area)
+          // On web with sticky, keep normal padding
+          paddingTop: useFixedPosition ? '0' : (isInScrollableContainer ? '0.75rem' : 'calc(0.75rem + env(safe-area-inset-top, 0px))'),
         } : {}}
       >
         <div className="flex items-center gap-3">
@@ -518,8 +527,13 @@ export function UniversalChatInterface({
         </div>
       </div>
 
-      {/* Messages Area - Natural flow with sticky header on client */}
-      <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-72" : "pb-40"}` : ""}`}>
+      {/* Messages Area - Add padding-top when header is fixed on iOS native */}
+      <ScrollArea 
+        className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-72" : "pb-40"}` : ""}`}
+        style={useFixedPosition ? {
+          paddingTop: chatType === "personal" ? 'calc(3rem + 0.75rem)' : 'calc(4rem + 1rem)' // Header height + padding
+        } : {}}
+      >
         <TooltipProvider>
           <div className="space-y-1">
             {/* Load More Button */}
