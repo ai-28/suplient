@@ -722,7 +722,7 @@ export function UniversalChatInterface({
       {!showVoiceRecorder && !hideInput && !readOnly && <div 
         className={`p-3 border-t border-border bg-card ${currentUserRole === "client" ? "fixed left-0 right-0 z-40" : ""}`}
         style={currentUserRole === "client" ? {
-          bottom: `calc(93px + env(safe-area-inset-bottom, 0px))`,
+          bottom: `calc(83px + env(safe-area-inset-bottom, 0px))`,
         } : {}}
       >
 
