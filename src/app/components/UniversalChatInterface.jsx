@@ -21,8 +21,6 @@ import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTi
 import { useChat } from "@/app/hooks/useChat";
 import { useSession } from "next-auth/react";
 import { isIOS } from "@/lib/capacitor";
-import { isIOS } from "@/lib/capacitor";
-import { useState, useEffect } from "react";
 
 // Simple function to get response guarantee text
 const getResponseGuaranteeText = (chatType) => {
@@ -63,12 +61,6 @@ export function UniversalChatInterface({
 }) {
   const router = useRouter();
   const { data: session } = useSession();
-  const [isIOSNative, setIsIOSNative] = useState(false);
-  
-  // Check if running on iOS Capacitor (client-side only)
-  useEffect(() => {
-    setIsIOSNative(isIOS());
-  }, []);
   
   // Use the real-time chat hook
   const {
@@ -91,7 +83,13 @@ export function UniversalChatInterface({
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [replyToMessage, setReplyToMessage] = useState(null);
+  const [isIOSNative, setIsIOSNative] = useState(false);
   const inputRef = useRef(null);
+  
+  // Check if running on iOS native (client-side only)
+  useEffect(() => {
+    setIsIOSNative(isIOS());
+  }, []);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth"
@@ -419,23 +417,30 @@ export function UniversalChatInterface({
   }
   
   // Calculate positioning for chat header when inside Sessions page
-  // For iOS native: Use fixed positioning like text input (above footer)
-  // For web: Use sticky positioning (works fine)
-  // Tab bar: paddingTop calc(1rem + safe-area) + h-12 (48px) = calc(4rem + safe-area)
-  const useFixedPosition = isInScrollableContainer && currentUserRole === "client" && isIOSNative;
+  // For iOS native: Use fixed positioning (like text input above footer) to eliminate gap
+  // For web: Use sticky positioning (works fine on web)
+  // Tab bar: h-12 (48px) + paddingTop: calc(1rem + env(safe-area-inset-top, 0px)) = 64px + safe area
+  const isInSessionsPage = isInScrollableContainer && currentUserRole === "client";
+  const useFixedPosition = isInSessionsPage && isIOSNative;
   const headerTop = useFixedPosition 
-    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Fixed position below tab bar (iOS native)
-    : (isInScrollableContainer && currentUserRole === "client" ? 0 : 0); // Sticky at top of container (web)
+    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Fixed position: tab bar height + safe area
+    : (isInSessionsPage ? 0 : 0); // Sticky position: 0 (relative to scroll container)
   
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
       {/* Chat Header - Fixed on iOS native (like text input), sticky on web - Safe area aware */}
       <div 
-        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" && useFixedPosition ? `fixed left-0 right-0 z-30` : currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
+        className={`flex items-center justify-between border-b border-border bg-card ${
+          currentUserRole === "client" 
+            ? (useFixedPosition ? `fixed left-0 right-0 z-30` : `sticky z-30`)
+            : ""
+        } ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
         style={currentUserRole === "client" ? {
           top: headerTop,
-          // On iOS native with fixed positioning, no paddingTop needed (tab bar handles safe area)
-          // On web with sticky, keep normal padding
-          paddingTop: useFixedPosition ? '0' : (isInScrollableContainer ? '0.75rem' : 'calc(0.75rem + env(safe-area-inset-top, 0px))'),
+          // On iOS native in Sessions page: reduce padding to eliminate gap
+          // On web: keep normal padding
+          paddingTop: useFixedPosition 
+            ? '0' // iOS native: no padding (eliminates gap)
+            : (isInScrollableContainer ? '0.75rem' : 'calc(0.75rem + env(safe-area-inset-top, 0px))'),
         } : {}}
       >
         <div className="flex items-center gap-3">
@@ -527,11 +532,12 @@ export function UniversalChatInterface({
         </div>
       </div>
 
-      {/* Messages Area - Add padding-top when header is fixed on iOS native */}
+      {/* Messages Area - Natural flow with sticky header on client, padding for fixed header on iOS */}
       <ScrollArea 
         className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-72" : "pb-40"}` : ""}`}
         style={useFixedPosition ? {
-          paddingTop: chatType === "personal" ? 'calc(3rem + 0.75rem)' : 'calc(4rem + 1rem)' // Header height + padding
+          // Add padding-top to account for fixed header: tab bar (4rem + safe area) + header height (~64px)
+          paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px) + 4rem)' // Tab bar + header height
         } : {}}
       >
         <TooltipProvider>
