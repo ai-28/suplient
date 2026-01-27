@@ -523,9 +523,9 @@ export default function BookSession() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="flex items-center p-4 border-b border-border bg-card">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Header - Sticky */}
+      <div className="flex items-center p-4 border-b border-border bg-card flex-shrink-0" style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' }}>
         <Button variant="ghost" size="icon" onClick={() => router.push('/client')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -535,7 +535,9 @@ export default function BookSession() {
         </h1>
       </div>
 
-      <div className="p-4 space-y-6">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="p-4 space-y-6">
         {/* Coach Info */}
         <Card>
           <CardHeader>
@@ -836,7 +838,7 @@ export default function BookSession() {
         )}
 
         {/* Book Button */}
-        <div style = {{marginBottom: '100px'}}>
+        <div>
           <Button 
             className="w-full" 
             size="lg" 
@@ -865,6 +867,7 @@ export default function BookSession() {
               Please complete payment above to book your session
             </p>
           )}
+        </div>
         </div>
       </div>
     </div>
