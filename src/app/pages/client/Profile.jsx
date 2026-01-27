@@ -1700,7 +1700,10 @@ export default function ClientProfile() {
         </TabsList>
 
         {/* Scrollable container for tab content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" style={{ 
+          maxHeight: isMobile ? 'calc(100vh - 280px)' : 'calc(100vh - 200px)',
+          paddingBottom: isMobile ? '100px' : '80px'
+        }}>
         <TabsContent value="personal" className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-2' : 'md:grid-cols-3'}`}>
             {/* Profile Picture */}
