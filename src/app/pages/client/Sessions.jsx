@@ -204,7 +204,7 @@ export default function ClientSessions() {
   return (
     <div className="h-screen bg-background flex flex-col">
       <Tabs defaultValue="chat" className="h-full flex flex-col">
-        {/* Tab Headers - Sticky with safe area support (like dashboard) */}
+        {/* Tab Headers - Sticky relative to Tabs container */}
         <div 
           className="sticky z-20 border-b border-border bg-card"
           style={{ 
@@ -223,20 +223,16 @@ export default function ClientSessions() {
           </TabsList>
         </div>
 
-        {/* Tab Content - Natural flow with sticky header, no gaps on iOS */}
-        <div 
-          className="flex-1 overflow-y-auto"
-          style={isIOSNative ? { 
-            marginTop: 0, 
-            paddingTop: 0,
-            margin: 0,
-            padding: 0
-          } : {}}
-        >
+        {/* Tab Content - Scrolling container, both sticky elements relative to this */}
+        <div className="flex-1 overflow-y-auto">
           <TabsContent 
             value="chat" 
             className="mt-0 h-full m-0 p-0"
-            style={{ marginTop: 0, margin: 0, padding: 0 }}
+            style={{ 
+              marginTop: 0, 
+              margin: 0, 
+              padding: 0
+            }}
           >
             <ChatTab />
           </TabsContent>
@@ -244,7 +240,11 @@ export default function ClientSessions() {
           <TabsContent 
             value="groups" 
             className="mt-0 h-full m-0 p-0"
-            style={{ marginTop: 0, margin: 0, padding: 0 }}
+            style={{ 
+              marginTop: 0, 
+              margin: 0, 
+              padding: 0
+            }}
           >
             <GroupsTab />
           </TabsContent>
