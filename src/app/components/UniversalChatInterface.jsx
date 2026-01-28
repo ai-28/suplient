@@ -409,18 +409,26 @@ export function UniversalChatInterface({
     );
   }
   
-  // Using flexbox with fixed header instead of sticky positioning
-  // This eliminates gap issues caused by different positioning contexts
-  // Tab section has fixed height: calc(4rem + env(safe-area-inset-top, 0px))
-  // Chat header is now fixed (flex-shrink-0) and messages area is flex-1 (scrollable)
+  // Calculate top position for sticky header when inside Sessions page
+  // Tab section structure:
+  //   - top: 0 (sticky position)
+  //   - paddingTop: calc(1rem + env(safe-area-inset-top, 0px)) = 16px + safe area
+  //   - TabsList h-12 = 48px (3rem)
+  //   - Total tab section height: 16px + 48px + safe area = 64px + safe area = calc(4rem + env(safe-area-inset-top, 0px))
+  // Chat header top = tab section top (0) + tab section total height
+  const stickyTop = isInScrollableContainer && currentUserRole === "client" 
+    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Tab section: paddingTop (1rem) + height (3rem) + safe area
+    : 0;
   
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
-      {/* Chat Header - Fixed with flexbox, no sticky positioning */}
+      {/* Chat Header - Sticky when in Sessions page, positioned below tab bar - Safe area aware */}
       <div 
-        className={`flex items-center justify-between border-b border-border bg-card flex-shrink-0 ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
+        className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
         style={currentUserRole === "client" ? {
+          top: stickyTop,
           // Safe area insets now work correctly with proper Capacitor/Next.js configuration
           paddingTop: isInScrollableContainer ? '0.75rem' : 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+          marginTop: 0, // Ensure no margin that could cause gaps
         } : {}}
       >
         <div className="flex items-center gap-3">

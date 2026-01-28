@@ -197,11 +197,12 @@ export default function ClientSessions() {
   return (
     <div className="h-screen bg-background flex flex-col">
       <Tabs defaultValue="chat" className="h-full flex flex-col">
-        {/* Tab Headers - Fixed height with flexbox, no sticky positioning */}
+        {/* Tab Headers - Sticky with safe area support (like dashboard) */}
         <div 
-          className="border-b border-border bg-card flex-shrink-0 z-20"
+          className="sticky z-20 border-b border-border bg-card"
           style={{ 
-            height: 'calc(4rem + env(safe-area-inset-top, 0px))',
+            top: 0,
+            // Safe area insets now work correctly with proper Capacitor/Next.js configuration
             paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
           }}
         >
@@ -215,8 +216,8 @@ export default function ClientSessions() {
           </TabsList>
         </div>
 
-        {/* Tab Content - Takes remaining space, scrollable */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        {/* Tab Content - Natural flow with sticky header, no gaps */}
+        <div className="flex-1 overflow-y-auto">
           <TabsContent 
             value="chat" 
             className="mt-0 h-full m-0 p-0"
