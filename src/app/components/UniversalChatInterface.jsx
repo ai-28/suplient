@@ -56,7 +56,8 @@ export function UniversalChatInterface({
   className = "",
   showBackButton = false,
   backButtonAction,
-  groupId
+  groupId,
+  hideHeader = false  // New prop to hide header when rendered externally
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -429,7 +430,8 @@ export function UniversalChatInterface({
       paddingTop: 0,
     } : {}}
   >
-      {/* Chat Header - Sticky relative to Tabs container (same as tab bar) */}
+      {/* Chat Header - Conditionally rendered based on hideHeader prop */}
+      {!hideHeader && (
       <div 
         className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
         style={currentUserRole === "client" ? {
@@ -527,6 +529,7 @@ export function UniversalChatInterface({
             </Button> : null}
         </div>
       </div>
+      )}
 
       {/* Messages Area - Natural flow with sticky header on client */}
       <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-72" : "pb-40"}` : ""}`}>

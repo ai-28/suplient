@@ -1,10 +1,10 @@
 "use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
-import { Users, MessageCircle } from "lucide-react";
+import { Users, MessageCircle, Clock, Video } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UniversalChatInterface } from "@/app/components/UniversalChatInterface";
@@ -88,6 +88,7 @@ export default function ClientSessions() {
         allowScheduling={true}
         title={coach.name}
         className="h-[calc(100vh-100px)] rounded-none border-none"
+        hideHeader={true}  // Hide header since we render it separately at same level as tab bar
       />
     );
   };
@@ -201,6 +202,20 @@ export default function ClientSessions() {
     );
   };
 
+  // Helper function for response guarantee text
+  const getResponseGuaranteeText = (chatType) => {
+    switch (chatType) {
+      case 'personal':
+        return 'Response within 24h';
+      case 'light':
+        return 'Response within 7 days';
+      case 'group':
+        return 'Response within 7 days';
+      default:
+        return 'Response within 24h';
+    }
+  };
+
   return (
     <div className="h-screen bg-background flex flex-col">
       <Tabs defaultValue="chat" className="h-full flex flex-col">
@@ -223,7 +238,52 @@ export default function ClientSessions() {
           </TabsList>
         </div>
 
-        {/* Tab Content - Scrolling container, both sticky elements relative to this */}
+        {/* Chat Header - Same level as tab bar, sticky relative to Tabs container */}
+        {conversationId && coach && (
+          <div 
+            className="sticky z-30 border-b border-border bg-card flex items-center justify-between p-3"
+            style={{ 
+              top: 'calc(4rem + env(safe-area-inset-top, 0px))',
+              paddingTop: '0.75rem',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Avatar className="h-9 w-9 bg-primary text-primary-foreground">
+                  {coach.avatar && (
+                    <AvatarImage src={coach.avatar} alt={coach.name} className="object-cover" />
+                  )}
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {coach.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background bg-green-500"></div>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-foreground truncate text-sm">{coach.name}</h3>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>{getResponseGuaranteeText('personal')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="h-8 px-3 text-xs flex items-center gap-1" 
+                onClick={() => router.push('/client/book-session')}
+              >
+                <Video className="h-3 w-3" />
+                <span>1-1</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content - Scrolling container */}
         <div className="flex-1 overflow-y-auto">
           <TabsContent 
             value="chat" 
