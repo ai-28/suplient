@@ -20,6 +20,7 @@ import { MessageWithLinks } from "@/app/components/MessageWithLinks";
 import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTimestamp } from "@/app/utils/timestampGrouping";
 import { useChat } from "@/app/hooks/useChat";
 import { useSession } from "next-auth/react";
+import { isAndroid } from "@/lib/capacitor";
 
 // Simple function to get response guarantee text
 const getResponseGuaranteeText = (chatType) => {
@@ -83,7 +84,13 @@ export function UniversalChatInterface({
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [replyToMessage, setReplyToMessage] = useState(null);
+  const [isAndroidNative, setIsAndroidNative] = useState(false);
   const inputRef = useRef(null);
+  
+  // Check if running on Android Capacitor (client-side only)
+  useEffect(() => {
+    setIsAndroidNative(isAndroid());
+  }, []);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth"
@@ -722,7 +729,10 @@ export function UniversalChatInterface({
       {showVoiceRecorder && allowVoiceMessages && <div 
         className="p-4 border-t border-border bg-card fixed left-0 right-0 z-40"
         style={currentUserRole === "client" ? {
-          bottom: `calc(84px + env(safe-area-inset-bottom, 0px))`,
+          // Footer height: 84px on Android (measured), 84px + safe-area on iOS
+          bottom: isAndroidNative 
+            ? '84px'  // Android: exact footer height, no safe area
+            : 'calc(84px + env(safe-area-inset-bottom, 0px))',  // iOS: footer height + safe area
         } : {}}
       >
           <div className="flex items-center gap-3">
@@ -749,7 +759,10 @@ export function UniversalChatInterface({
       {!showVoiceRecorder && !hideInput && !readOnly && <div 
         className={`p-3 border-t border-border bg-card ${currentUserRole === "client" ? "fixed left-0 right-0 z-40" : ""}`}
         style={currentUserRole === "client" ? {
-          bottom: `calc(83px + env(safe-area-inset-bottom, 0px))`,
+          // Footer height: 84px on Android (measured), 84px + safe-area on iOS
+          bottom: isAndroidNative 
+            ? '84px'  // Android: exact footer height, no safe area
+            : 'calc(84px + env(safe-area-inset-bottom, 0px))',  // iOS: footer height + safe area
         } : {}}
       >
 
