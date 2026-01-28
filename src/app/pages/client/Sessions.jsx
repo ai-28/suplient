@@ -204,31 +204,30 @@ export default function ClientSessions() {
   return (
     <div className="h-screen bg-background flex flex-col">
       <Tabs defaultValue="chat" className="h-full flex flex-col">
-        {/* Scrolling container - both tab bar and content are inside this */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Tab Headers - Sticky relative to scrolling container */}
-          <div 
-            className="sticky z-20 border-b border-border bg-card"
-            style={{ 
-              top: 0,
-              // Safe area insets now work correctly with proper Capacitor/Next.js configuration
-              paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
-            }}
-          >
-            <TabsList className="w-full grid grid-cols-2 h-12 bg-transparent p-0">
-              <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                1-1
-              </TabsTrigger>
-              <TabsTrigger value="groups" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                {t('navigation.groups')}
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        {/* Tab Headers - Sticky relative to Tabs container */}
+        <div 
+          className="sticky z-20 border-b border-border bg-card"
+          style={{ 
+            top: 0,
+            // Safe area insets now work correctly with proper Capacitor/Next.js configuration
+            paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))'
+          }}
+        >
+          <TabsList className="w-full grid grid-cols-2 h-12 bg-transparent p-0">
+            <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+              1-1
+            </TabsTrigger>
+            <TabsTrigger value="groups" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+              {t('navigation.groups')}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-          {/* Tab Content - Now both tab bar and chat header are in same scrolling context */}
+        {/* Tab Content - Scrolling container, both sticky elements relative to this */}
+        <div className="flex-1 overflow-y-auto">
           <TabsContent 
             value="chat" 
-            className="mt-0 m-0 p-0"
+            className="mt-0 h-full m-0 p-0"
             style={{ 
               marginTop: 0, 
               margin: 0, 
@@ -240,7 +239,7 @@ export default function ClientSessions() {
           
           <TabsContent 
             value="groups" 
-            className="mt-0 m-0 p-0"
+            className="mt-0 h-full m-0 p-0"
             style={{ 
               marginTop: 0, 
               margin: 0, 

@@ -418,7 +418,7 @@ export function UniversalChatInterface({
   //   - Total tab section height: 16px + 48px + safe area = 64px + safe area = calc(4rem + env(safe-area-inset-top, 0px))
   // Chat header top = tab section top (0) + tab section total height
   const stickyTop = isInScrollableContainer && currentUserRole === "client" 
-    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Tab section: paddingTop (1rem) + height (3rem) + safe area
+    ? 'calc(78px + env(safe-area-inset-top, 0px))' // Tab section: paddingTop (1rem) + height (3rem) + safe area
     : 0;
   
   return <div 
