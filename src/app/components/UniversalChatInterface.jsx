@@ -417,7 +417,7 @@ export function UniversalChatInterface({
   //   - Total tab section height: 16px + 48px + safe area = 64px + safe area = calc(4rem + env(safe-area-inset-top, 0px))
   // Chat header top = tab section top (0) + tab section total height
   const stickyTop = isInScrollableContainer && currentUserRole === "client" 
-    ? 'calc(3rem + env(safe-area-inset-top, 0px))' // Tab section: paddingTop (1rem) + height (3rem) + safe area
+    ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Tab section: paddingTop (1rem) + height (3rem) + safe area
     : 0;
   
   return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
