@@ -226,7 +226,7 @@ export default function ClientSessions() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         {/* Tab Headers - Sticky relative to Tabs container */}
         <div 
-          className="sticky z-20 border-b border-border bg-card"
+          className="sticky z-40 border-b border-border bg-card"
           style={{ 
             top: 0,
             // Safe area insets now work correctly with proper Capacitor/Next.js configuration
