@@ -725,9 +725,9 @@ export function UniversalChatInterface({
         </TooltipProvider>
       </ScrollArea>
 
-      {/* Voice Recorder - Normal positioning for both client and coach - Safe area aware */}
+      {/* Voice Recorder - Fixed for client (like input), normal for coach - Safe area aware */}
       {showVoiceRecorder && allowVoiceMessages && <div 
-        className="p-4 border-t border-border bg-card fixed left-0 right-0 z-40"
+        className={`p-4 border-t border-border bg-card ${currentUserRole === "client" ? "fixed left-0 right-0 z-40" : ""}`}
         style={currentUserRole === "client" ? {
           // Footer height: 84px on Android (measured), 84px + safe-area on iOS
           bottom: isAndroidNative 
