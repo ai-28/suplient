@@ -532,7 +532,7 @@ export function UniversalChatInterface({
       )}
 
       {/* Messages Area - Natural flow with sticky header on client */}
-      <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-72" : "pb-40"}` : ""}`}>
+      <ScrollArea className={`flex-1 scroll-hidden p-4 pt-24 ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-52" : "pb-20"}` : ""}`}>
         <TooltipProvider>
           <div className="space-y-1">
             {/* Load More Button */}
