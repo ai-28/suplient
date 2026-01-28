@@ -425,7 +425,7 @@ export function UniversalChatInterface({
     className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}
     style={currentUserRole === "client" && isInScrollableContainer ? {
       // No negative margins needed - proper positioning context fixes the gap
-      marginTop: 0,
+      marginTop: '-20px',
       paddingTop: 0,
     } : {}}
   >
