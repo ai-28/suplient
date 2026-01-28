@@ -423,8 +423,9 @@ export function UniversalChatInterface({
   return <div 
     className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}
     style={currentUserRole === "client" && isInScrollableContainer ? {
-      marginTop: '-10px', // Negative margin to pull up and eliminate gap between tab bar and chat header
+      marginTop: 0,
       paddingTop: 0,
+      margin: 0,
       padding: 0
     } : {}}
   >
