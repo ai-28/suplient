@@ -15,11 +15,18 @@ import { useConversationId } from "@/app/hooks/useConversationId";
 import { useGroups } from "@/app/hooks/useGroups";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { isIOS } from "@/lib/capacitor";
 
 export default function ClientSessions() {
   const router = useRouter();
   const { data: session } = useSession();
   const t = useTranslation();
+  const [isIOSNative, setIsIOSNative] = useState(false);
+  
+  // Check if running on iOS Capacitor (client-side only)
+  useEffect(() => {
+    setIsIOSNative(isIOS());
+  }, []);
   
   // Get client's coach and conversation ID
   const { coach, loading: coachLoading, error: coachError } = useClientCoach();
@@ -216,8 +223,16 @@ export default function ClientSessions() {
           </TabsList>
         </div>
 
-        {/* Tab Content - Natural flow with sticky header, no gaps */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Tab Content - Natural flow with sticky header, no gaps on iOS */}
+        <div 
+          className="flex-1 overflow-y-auto"
+          style={isIOSNative ? { 
+            marginTop: 0, 
+            paddingTop: 0,
+            margin: 0,
+            padding: 0
+          } : {}}
+        >
           <TabsContent 
             value="chat" 
             className="mt-0 h-full m-0 p-0"

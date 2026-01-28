@@ -420,7 +420,15 @@ export function UniversalChatInterface({
     ? 'calc(4rem + env(safe-area-inset-top, 0px))' // Tab section: paddingTop (1rem) + height (3rem) + safe area
     : 0;
   
-  return <div className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
+  return <div 
+    className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}
+    style={currentUserRole === "client" && isInScrollableContainer ? {
+      marginTop: 0,
+      paddingTop: 0,
+      margin: 0,
+      padding: 0
+    } : {}}
+  >
       {/* Chat Header - Sticky when in Sessions page, positioned below tab bar - Safe area aware */}
       <div 
         className={`flex items-center justify-between border-b border-border bg-card ${currentUserRole === "client" ? `sticky z-30` : ""} ${currentUserRole === "client" && chatType === "personal" ? "p-3" : "p-4"}`}
