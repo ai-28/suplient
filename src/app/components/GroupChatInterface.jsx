@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
-export function GroupChatInterface({ groupId, groupName, members, activeMembers, showBackButton = false, backButtonAction }) {
+export function GroupChatInterface({ groupId, groupName, members, activeMembers, showBackButton = false, backButtonAction, hideHeader = false }) {
   const { data: session } = useSession();
   const [conversationId, setConversationId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -127,6 +127,7 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
         showBackButton={showBackButton}
         backButtonAction={backButtonAction}
         groupId={groupId}
+        hideHeader={hideHeader}
       />
     </div>
   );

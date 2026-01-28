@@ -22,6 +22,7 @@ export default function ClientSessions() {
   const { data: session } = useSession();
   const t = useTranslation();
   const [isIOSNative, setIsIOSNative] = useState(false);
+  const [activeTab, setActiveTab] = useState("chat");
   
   // Check if running on iOS Capacitor (client-side only)
   useEffect(() => {
@@ -119,6 +120,7 @@ export default function ClientSessions() {
           groupName={group.name}
           members={[]} // Empty array - GroupChatInterface will fetch members with avatars
           activeMembers={group.members} // Use actual member count
+          hideHeader={true}  // Hide header since we render it separately at same level as tab bar
         />
       );
     }
@@ -216,9 +218,12 @@ export default function ClientSessions() {
     }
   };
 
+  // Get the active group when groups tab is selected and there's exactly one group
+  const activeGroup = activeTab === "groups" && joinedGroups.length === 1 ? joinedGroups[0] : null;
+
   return (
     <div className="h-screen bg-background flex flex-col">
-      <Tabs defaultValue="chat" className="h-full flex flex-col">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         {/* Tab Headers - Sticky relative to Tabs container */}
         <div 
           className="sticky z-20 border-b border-border bg-card"
@@ -238,8 +243,9 @@ export default function ClientSessions() {
           </TabsList>
         </div>
 
-        {/* Chat Header - Same level as tab bar, sticky relative to Tabs container */}
-        {conversationId && coach && (
+        {/* Chat Header - Dynamic based on active tab, sticky relative to Tabs container */}
+        {/* Show 1-1 header when chat tab is active */}
+        {activeTab === "chat" && conversationId && coach && (
           <div 
             className="sticky z-30 border-b border-border bg-card flex items-center justify-between p-3"
             style={{ 
@@ -278,6 +284,63 @@ export default function ClientSessions() {
               >
                 <Video className="h-3 w-3" />
                 <span>1-1</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Show group header when groups tab is active and there's exactly one group */}
+        {activeTab === "groups" && activeGroup && (
+          <div 
+            className="sticky z-30 border-b border-border bg-card flex items-center justify-between p-4"
+            style={{ 
+              top: 'calc(4rem + env(safe-area-inset-top, 0px))',
+              paddingTop: '0.75rem',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Avatar className="h-10 w-10 bg-primary text-primary-foreground">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {activeGroup.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-background bg-green-500"></div>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-foreground truncate">{activeGroup.name}</h3>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {activeGroup.members}/{activeGroup.maxMembers || '∞'} members
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="h-8 px-3 text-xs flex items-center gap-1" 
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`/api/groups/${activeGroup.id}/sessions/latest`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.session?.meetingUrl) {
+                      window.open(data.session.meetingUrl, '_blank');
+                    } else {
+                      alert('No active session available. Please contact your coach.');
+                    }
+                  } catch (error) {
+                    console.error('Error joining session:', error);
+                    alert('Unable to join session. Please try again or contact your coach.');
+                  }
+                }}
+              >
+                <Video className="h-3 w-3" />
+                <span>Join Session</span>
               </Button>
             </div>
           </div>
