@@ -9,17 +9,55 @@ import { sql } from '@/app/lib/db/postgresql';
  */
 export async function sendPushNotification(userId, notification) {
     try {
+        console.log(`🔔 Attempting to send push notification to user ${userId} (type: ${typeof userId})`, {
+            notificationId: notification.id,
+            type: notification.type,
+            title: notification.title
+        });
+
         // Get all push subscriptions for the user
         const subscriptions = await sql`
-            SELECT endpoint, "p256dh", auth
+            SELECT endpoint, "p256dh", auth, "userId"
             FROM "PushSubscription"
             WHERE "userId" = ${userId}
         `;
 
         if (subscriptions.length === 0) {
-            console.log(`No push subscriptions found for user ${userId}`);
+            console.log(`⚠️ No push subscriptions found for user ${userId}`);
+            console.log(`🔍 Debug: Querying for userId = ${userId} (type: ${typeof userId})`);
+
+            // Debug: Check all subscriptions to see what userIds exist
+            const allSubscriptions = await sql`
+                SELECT "userId", endpoint, "createdAt"
+                FROM "PushSubscription"
+                ORDER BY "createdAt" DESC
+                LIMIT 10
+            `;
+            console.log(`🔍 Debug: Found ${allSubscriptions.length} total subscriptions in DB:`,
+                allSubscriptions.map(s => ({
+                    userId: s.userId,
+                    userIdType: typeof s.userId,
+                    endpoint: s.endpoint?.substring(0, 50) + '...'
+                }))
+            );
+
+            // Try to find if there's a subscription with a similar userId (case/whitespace issue)
+            const similarSubs = await sql`
+                SELECT "userId", endpoint
+                FROM "PushSubscription"
+                WHERE "userId"::text LIKE ${`%${userId}%`}
+            `;
+            if (similarSubs.length > 0) {
+                console.log(`⚠️ Found similar userIds in DB:`, similarSubs.map(s => ({
+                    userId: s.userId,
+                    userIdType: typeof s.userId
+                })));
+            }
+
             return { sent: 0, failed: 0 };
         }
+
+        console.log(`✅ Found ${subscriptions.length} push subscription(s) for user ${userId}`);
 
         // Get user role for proper URL routing
         const userData = await sql`
@@ -53,7 +91,7 @@ export async function sendPushNotification(userId, notification) {
         const invalidEndpoints = [];
 
         // Send to all subscriptions
-        const promises = subscriptions.map(async (subscription) => {
+        const promises = subscriptions.map(async (subscription, index) => {
             try {
                 const pushSubscription = {
                     endpoint: subscription.endpoint,
@@ -63,10 +101,16 @@ export async function sendPushNotification(userId, notification) {
                     }
                 };
 
+                console.log(`📤 Sending push notification ${index + 1}/${subscriptions.length} to endpoint: ${subscription.endpoint.substring(0, 50)}...`);
                 await webpush.sendNotification(pushSubscription, payload);
                 sent++;
+                console.log(`✅ Successfully sent push notification ${index + 1}/${subscriptions.length}`);
             } catch (error) {
-                console.error('Error sending push notification:', error);
+                console.error(`❌ Error sending push notification ${index + 1}/${subscriptions.length}:`, {
+                    error: error.message,
+                    statusCode: error.statusCode,
+                    endpoint: subscription.endpoint.substring(0, 50) + '...'
+                });
 
                 // If subscription is invalid (410 Gone, 404 Not Found), mark for removal
                 if (error.statusCode === 410 || error.statusCode === 404) {
@@ -88,9 +132,10 @@ export async function sendPushNotification(userId, notification) {
                     WHERE endpoint = ${endpoint}
                 `;
             }
-            console.log(`Removed ${invalidEndpoints.length} invalid push subscriptions`);
+            console.log(`🗑️ Removed ${invalidEndpoints.length} invalid push subscriptions`);
         }
 
+        console.log(`📊 Push notification summary for user ${userId}: ${sent} sent, ${failed} failed`);
         return { sent, failed };
     } catch (error) {
         console.error('Error in sendPushNotification:', error);
