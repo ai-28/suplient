@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { ScrollArea } from '@/app/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { useNotifications } from '@/app/hooks/useNotifications';
+import { usePushNotifications } from '@/app/hooks/usePushNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { MessageWithLinks } from './MessageWithLinks';
@@ -45,6 +46,14 @@ export function NotificationBell({ userRole = 'client' }) {
     markAllAsRead, 
     deleteNotification 
   } = useNotifications({ limit: 50 }); // Fetch all notifications (read and unread)
+
+  const { 
+    isSupported: isPushSupported, 
+    isSubscribed: isPushSubscribed, 
+    isLoading: isPushLoading,
+    subscribe: subscribeToPush, 
+    unsubscribe: unsubscribeFromPush 
+  } = usePushNotifications();
 
   // Check notification preference on mount
   useEffect(() => {
@@ -386,16 +395,30 @@ export function NotificationBell({ userRole = 'client' }) {
               <CardTitle className="text-sm font-medium text-foreground dark:text-foreground">
                 Notifications {filteredUnreadCount > 0 && `(${filteredUnreadCount} unread)`}
               </CardTitle>
-              {filteredNotifications.length > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleClearAll}
-                  className="text-xs text-foreground dark:text-foreground hover:bg-destructive/10 dark:hover:bg-destructive/20 hover:text-destructive"
-                >
-                  Clear all
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {isPushSupported && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={isPushSubscribed ? unsubscribeFromPush : subscribeToPush}
+                    disabled={isPushLoading}
+                    className="text-xs"
+                    title={isPushSubscribed ? 'Disable push notifications' : 'Enable push notifications'}
+                  >
+                    {isPushSubscribed ? '🔔' : '🔕'}
+                  </Button>
+                )}
+                {filteredNotifications.length > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleClearAll}
+                    className="text-xs text-foreground dark:text-foreground hover:bg-destructive/10 dark:hover:bg-destructive/20 hover:text-destructive"
+                  >
+                    Clear all
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">

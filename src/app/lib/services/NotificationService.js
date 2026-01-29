@@ -43,6 +43,15 @@ class NotificationService {
                     console.warn('Socket emission failed, notification saved but not emitted:', socketError.message);
                 }
 
+                // Send push notification
+                try {
+                    const { sendPushNotification } = await import('@/app/lib/push/pushService');
+                    await sendPushNotification(notificationData.userId, result.data);
+                } catch (pushError) {
+                    console.warn('Push notification failed:', pushError.message);
+                    // Don't fail the whole operation if push fails
+                }
+
                 return result.data;
             } else {
                 console.error('Failed to create notification:', result.error);

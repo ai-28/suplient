@@ -35,7 +35,7 @@ const nextConfig = {
                 },
             };
         }
-        
+
         // Server-side configuration
         if (isServer) {
             // Ignore Node.js modules that aren't available in browser
@@ -45,7 +45,7 @@ const nextConfig = {
                 path: false,
             };
         }
-        
+
         return config;
     },
     async headers() {
@@ -75,6 +75,7 @@ const nextConfig = {
 // Initialize next-pwa with optimized settings for health app
 const withPWA = withPWAInit({
     dest: 'public',
+    swSrc: 'public/sw-custom.js', // Custom service worker source with push notification handlers
     register: true,
     skipWaiting: true,
     disable: process.env.NODE_ENV === 'development', // Disable PWA in development
