@@ -552,9 +552,9 @@ export const chatRepo = {
           c.id,
           c.type,
           c.name,
-          c.description,
           c."createdBy",
           c."groupId",
+          c."isActive",
           c."createdAt",
           c."updatedAt",
           g.name as "groupName"
