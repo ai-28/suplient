@@ -5,9 +5,12 @@ import { useEffect } from 'react';
 export function useServiceWorker() {
     useEffect(() => {
         if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-            // Register service worker manually
-            navigator.serviceWorker.register('/sw.js')
+            // next-pwa handles service worker registration automatically
+            // We just need to wait for it to be ready and listen for messages/updates
+
+            navigator.serviceWorker.ready
                 .then((registration) => {
+                    console.log('Service Worker is ready:', registration);
 
                     // Check for updates
                     registration.addEventListener('updatefound', () => {
@@ -23,7 +26,12 @@ export function useServiceWorker() {
                     });
                 })
                 .catch((error) => {
-                    console.log('Service Worker registration failed:', error);
+                    // In development, service worker might not be available (PWA disabled)
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('Service Worker not available in development (PWA disabled)');
+                    } else {
+                        console.log('Service Worker not ready:', error);
+                    }
                 });
 
             // Listen for service worker messages
