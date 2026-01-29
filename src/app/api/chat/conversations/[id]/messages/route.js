@@ -133,9 +133,22 @@ export async function POST(request, { params }) {
       // Get the global socket instance to check if users are in the conversation
       const { globalSocketIO } = global;
 
+      // Get conversation type to filter participants appropriately
+      const conversation = await chatRepo.getConversationById(conversationId);
+      const conversationType = conversation?.type || 'personal';
+
       // Create notifications for all participants except the sender
       for (const participant of participants) {
         if (participant.id !== session.user.id) {
+          // Filter out admins from personal (client-coach) and group conversations
+          // Admins should ONLY receive notifications in admin_coach conversations
+          if (participant.role === 'admin' && conversationType !== 'admin_coach') {
+            console.log(`Skipping notification for admin ${participant.id} in ${conversationType} conversation ${conversationId}`);
+            // Skip both socket and push notifications for admins in personal/group conversations
+            // Unread count update will still be emitted at the end of the loop
+            continue;
+          }
+
           // Check if the participant is currently in this conversation
           let isInConversation = false;
           if (globalSocketIO) {
