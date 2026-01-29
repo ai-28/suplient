@@ -85,6 +85,20 @@ export async function sendPushNotification(userId, notification) {
             requireInteraction: notification.priority === 'urgent',
             timestamp: Date.now()
         });
+        
+        // Log payload for debugging
+        try {
+            const payloadObj = JSON.parse(payload);
+            console.log(`📦 Push payload details:`, {
+                title: payloadObj.title,
+                body: (payloadObj.body || '').substring(0, 80),
+                type: payloadObj.data?.type,
+                hasTitle: !!payloadObj.title,
+                hasBody: !!payloadObj.body
+            });
+        } catch (e) {
+            console.log(`📦 Push payload (raw):`, payload.substring(0, 200));
+        }
 
         let sent = 0;
         let failed = 0;

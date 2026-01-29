@@ -1,6 +1,8 @@
 // Custom service worker with push notification support
 // This file is used as the source for next-pwa to generate the final service worker
-// Version: 2.0 - Enhanced push notification handling
+// Version: 2.1 - Fixed push notification content display
+const SW_VERSION = '2.1';
+console.log(`[SW] Service Worker v${SW_VERSION} loaded - Push notifications enabled`);
 
 import { precacheAndRoute } from 'workbox-precaching';
 import { clientsClaim } from 'workbox-core';
@@ -202,7 +204,13 @@ registerRoute(
 // Push notification handler - SIMPLIFIED VERSION
 self.addEventListener('push', (event) => {
     console.log('[SW] ===== PUSH EVENT RECEIVED =====');
+    console.log('[SW] Service Worker Version:', SW_VERSION);
     console.log('[SW] Time:', new Date().toISOString());
+    console.log('[SW] Event object:', {
+        type: event.type,
+        hasData: !!event.data,
+        dataType: event.data ? typeof event.data : 'none'
+    });
 
     // CRITICAL: We MUST call showNotification to prevent default browser message
     // Parse the push data and show notification
