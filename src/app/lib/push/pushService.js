@@ -21,7 +21,7 @@ export async function sendPushNotification(userId, notification) {
             return { sent: 0, failed: 0 };
         }
 
-        const webpush = configureWebPush();
+        const webpush = await configureWebPush();
         const payload = JSON.stringify({
             title: notification.title,
             body: notification.message,

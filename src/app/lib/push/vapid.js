@@ -1,5 +1,3 @@
-import webpush from 'web-push';
-
 /**
  * Get VAPID keys from environment variables
  * Generate keys using: npx web-push generate-vapid-keys
@@ -18,8 +16,11 @@ export function getVapidKeys() {
 
 /**
  * Configure web-push with VAPID details
+ * Uses dynamic import to ensure web-push is only loaded server-side
  */
-export function configureWebPush() {
+export async function configureWebPush() {
+    // Dynamic import to prevent client-side bundling
+    const webpush = (await import('web-push')).default;
     const { privateKey, subject } = getVapidKeys();
     webpush.setVapidDetails(subject, process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, privateKey);
     return webpush;
