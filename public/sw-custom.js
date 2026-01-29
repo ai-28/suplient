@@ -203,6 +203,7 @@ self.addEventListener('push', (event) => {
         dataType: event.data ? typeof event.data : 'none'
     });
 
+    // Default notification data - will be overridden if push data exists
     let notificationData = {
         title: 'New Notification',
         body: 'You have a new notification',
@@ -214,22 +215,61 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
         try {
-            const dataText = event.data.text();
-            console.log('[SW] Push data (text):', dataText);
-            notificationData = event.data.json();
-            console.log('[SW] Push data (parsed):', notificationData);
-        } catch (e) {
-            console.log('[SW] Failed to parse push data as JSON, using text:', e);
-            notificationData.body = event.data.text();
+            // Try to parse as JSON first
+            const pushPayload = event.data.json();
+            console.log('[SW] Push data (parsed JSON):', pushPayload);
+            
+            // Extract notification data from payload
+            // The payload structure: { title, body, icon, badge, data, tag, ... }
+            notificationData = {
+                title: pushPayload.title || 'New Notification',
+                body: pushPayload.body || 'You have a new notification',
+                icon: pushPayload.icon || '/assets/icons/icon-192x192.svg',
+                badge: pushPayload.badge || '/assets/icons/icon-96x96.svg',
+                tag: pushPayload.tag || 'default',
+                data: pushPayload.data || {},
+                sound: pushPayload.sound || 'default',
+                requireInteraction: pushPayload.requireInteraction || false,
+                timestamp: pushPayload.timestamp || Date.now(),
+                priority: pushPayload.data?.priority || pushPayload.priority || 'normal'
+            };
+            
+            console.log('[SW] Notification data extracted:', {
+                title: notificationData.title,
+                body: notificationData.body,
+                type: notificationData.data?.type
+            });
+        } catch (jsonError) {
+            // If JSON parsing fails, try as text
+            try {
+                const dataText = event.data.text();
+                console.log('[SW] Push data (text):', dataText);
+                
+                // Try to parse text as JSON
+                const textPayload = JSON.parse(dataText);
+                notificationData = {
+                    title: textPayload.title || 'New Notification',
+                    body: textPayload.body || dataText,
+                    icon: textPayload.icon || '/assets/icons/icon-192x192.svg',
+                    badge: textPayload.badge || '/assets/icons/icon-96x96.svg',
+                    tag: textPayload.tag || 'default',
+                    data: textPayload.data || {},
+                    priority: textPayload.data?.priority || textPayload.priority || 'normal'
+                };
+            } catch (textError) {
+                // Last resort: use text as body
+                console.log('[SW] Failed to parse push data, using text as body:', textError);
+                notificationData.body = event.data.text();
+            }
         }
     } else {
-        console.log('[SW] No data in push event');
+        console.log('[SW] No data in push event - using defaults');
     }
 
     // Customize vibration pattern based on priority
     let vibratePattern = [200, 100, 200]; // Default: short-short-long
 
-    const priority = notificationData.data?.priority || notificationData.priority || 'normal';
+    const priority = notificationData.priority || notificationData.data?.priority || 'normal';
     if (priority === 'urgent') {
         vibratePattern = [300, 100, 300, 100, 300]; // Longer pattern for urgent notifications
     } else if (priority === 'high') {
@@ -238,13 +278,17 @@ self.addEventListener('push', (event) => {
         vibratePattern = [100, 50, 100]; // Shorter pattern for low priority
     }
 
+    // Ensure we have valid title and body
+    const notificationTitle = notificationData.title || 'New Notification';
+    const notificationBody = notificationData.body || 'You have a new notification';
+
     const notificationOptions = {
-        body: notificationData.body,
+        body: notificationBody,
         icon: notificationData.icon || '/assets/icons/icon-192x192.svg',
         badge: notificationData.badge || '/assets/icons/icon-96x96.svg',
         sound: notificationData.sound || 'default', // Use system default sound (or custom if provided)
-        tag: notificationData.tag,
-        data: notificationData.data,
+        tag: notificationData.tag || `notification-${Date.now()}`,
+        data: notificationData.data || {},
         requireInteraction: notificationData.requireInteraction || false,
         timestamp: notificationData.timestamp || Date.now(),
         vibrate: vibratePattern, // Dynamic vibration based on priority
@@ -260,9 +304,11 @@ self.addEventListener('push', (event) => {
         ]
     };
 
-    console.log('[SW] Showing notification:', notificationData.title, notificationOptions);
+    console.log('[SW] Showing notification with title:', notificationTitle);
+    console.log('[SW] Notification body:', notificationBody);
+    console.log('[SW] Notification options:', notificationOptions);
 
-    const promiseChain = self.registration.showNotification(notificationData.title, notificationOptions)
+    const promiseChain = self.registration.showNotification(notificationTitle, notificationOptions)
         .then(() => {
             console.log('[SW] Notification displayed successfully');
         })

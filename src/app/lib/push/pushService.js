@@ -102,7 +102,17 @@ export async function sendPushNotification(userId, notification) {
                 };
 
                 console.log(`📤 Sending push notification ${index + 1}/${subscriptions.length} to endpoint: ${subscription.endpoint.substring(0, 50)}...`);
-                await webpush.sendNotification(pushSubscription, payload);
+                
+                // Send with options for better background delivery
+                // TTL: Time to live in seconds (24 hours) - how long the push service should keep the message
+                // urgency: 'very-low' | 'low' | 'normal' | 'high' - priority of the notification
+                const pushOptions = {
+                    TTL: 24 * 60 * 60, // 24 hours - keep message for 24 hours if device is offline
+                    urgency: notification.priority === 'urgent' ? 'high' : 'normal',
+                    headers: {}
+                };
+                
+                await webpush.sendNotification(pushSubscription, payload, pushOptions);
                 sent++;
                 console.log(`✅ Successfully sent push notification ${index + 1}/${subscriptions.length}`);
             } catch (error) {
