@@ -15,13 +15,69 @@ export function usePushNotifications() {
     const [subscription, setSubscription] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Check if push notifications are supported
     useEffect(() => {
         if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
             setIsSupported(true);
             checkPermission();
-            checkSubscription();
         }
-    }, [session]);
+    }, []);
+
+    // Check subscription when session is available and service worker is ready
+    useEffect(() => {
+        if (isSupported && session?.user?.id) {
+            let retryCount = 0;
+            const maxRetries = 5;
+
+            const checkSubscriptionWhenReady = async () => {
+                try {
+                    if ('serviceWorker' in navigator) {
+                        // Wait for service worker with retry mechanism
+                        let registration = null;
+                        for (let i = 0; i < maxRetries; i++) {
+                            try {
+                                // Try to get existing registration first
+                                registration = await navigator.serviceWorker.getRegistration();
+                                if (registration) {
+                                    // Wait for it to be ready
+                                    registration = await navigator.serviceWorker.ready;
+                                    break;
+                                } else {
+                                    // No registration yet, wait and try ready
+                                    await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+                                    registration = await navigator.serviceWorker.ready;
+                                    break;
+                                }
+                            } catch (error) {
+                                if (i < maxRetries - 1) {
+                                    // Wait before retry (exponential backoff)
+                                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                                } else {
+                                    console.error('Failed to get service worker registration after retries:', error);
+                                    throw error;
+                                }
+                            }
+                        }
+
+                        if (registration) {
+                            const sub = await registration.pushManager.getSubscription();
+                            setSubscription(sub);
+                            setIsSubscribed(!!sub);
+                            console.log('Push subscription check completed:', !!sub);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking subscription:', error);
+                    setIsSubscribed(false);
+                }
+            };
+
+            // Small delay to ensure service worker has time to initialize
+            const timeoutId = setTimeout(checkSubscriptionWhenReady, 300);
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [isSupported, session?.user?.id]);
 
     const checkPermission = async () => {
         if ('Notification' in window) {
@@ -39,6 +95,7 @@ export function usePushNotifications() {
             setIsSubscribed(!!sub);
         } catch (error) {
             console.error('Error checking subscription:', error);
+            setIsSubscribed(false);
         }
     }, [isSupported, session?.user?.id]);
 

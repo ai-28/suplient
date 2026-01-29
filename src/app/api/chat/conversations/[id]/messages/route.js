@@ -166,6 +166,20 @@ export async function POST(request, { params }) {
           // Only create notification if user is NOT currently in the conversation
           if (!isInConversation) {
             console.log(`Creating notification for user ${participant.id} - not in conversation ${conversationId}`);
+            
+            // Determine clientId if recipient is a coach receiving message from client
+            let clientIdForNotification = null;
+            if (participant.role === 'coach' && session.user.role === 'client') {
+              // Coach is receiving message from client - get clientId from sender
+              const { sql } = await import('@/app/lib/db/postgresql');
+              const clientData = await sql`
+                SELECT id FROM "Client" WHERE "userId" = ${session.user.id}
+              `;
+              if (clientData.length > 0) {
+                clientIdForNotification = clientData[0].id;
+              }
+            }
+            
             // Use admin info for notifications if impersonating
             const notifSenderId = session.user.isImpersonating && session.user.originalAdminId
               ? session.user.originalAdminId
@@ -184,7 +198,8 @@ export async function POST(request, { params }) {
               notifSenderRole,
               conversationId,
               content,
-              type
+              type,
+              clientIdForNotification // Pass clientId for coach notifications
             );
           } else {
             console.log(`Skipping notification for user ${participant.id} - currently in conversation ${conversationId}`);

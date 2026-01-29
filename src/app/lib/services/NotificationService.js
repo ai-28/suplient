@@ -193,7 +193,7 @@ class NotificationService {
         });
     }
 
-    static async notifyNewMessage(recipientId, senderId, senderName, senderRole, conversationId, messageContent, messageType = 'text') {
+    static async notifyNewMessage(recipientId, senderId, senderName, senderRole, conversationId, messageContent, messageType = 'text', clientId = null) {
         return await this.createAndEmitNotification({
             userId: recipientId,
             type: 'new_message',
@@ -205,7 +205,8 @@ class NotificationService {
                 senderName,
                 senderRole,
                 messageContent,
-                messageType
+                messageType,
+                ...(clientId && { clientId }) // Include clientId if provided
             },
             priority: 'normal'
         });

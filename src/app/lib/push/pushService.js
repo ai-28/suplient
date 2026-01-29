@@ -21,6 +21,12 @@ export async function sendPushNotification(userId, notification) {
             return { sent: 0, failed: 0 };
         }
 
+        // Get user role for proper URL routing
+        const userData = await sql`
+            SELECT role FROM "User" WHERE id = ${userId}
+        `;
+        const userRole = userData.length > 0 ? userData[0].role : 'client';
+
         const webpush = await configureWebPush();
         const payload = JSON.stringify({
             title: notification.title,
@@ -32,7 +38,7 @@ export async function sendPushNotification(userId, notification) {
                 notificationId: notification.id,
                 type: notification.type,
                 priority: notification.priority || 'normal', // Include priority for vibration patterns
-                url: getNotificationUrl(notification),
+                url: getNotificationUrl(notification, userRole), // Pass user role
                 ...(typeof notification.data === 'string'
                     ? JSON.parse(notification.data)
                     : notification.data || {})
@@ -93,36 +99,167 @@ export async function sendPushNotification(userId, notification) {
 }
 
 /**
- * Get notification URL based on notification type and data
+ * Get notification URL based on notification type, data, and user role
+ * Matches the routing logic from NotificationBell component
  */
-function getNotificationUrl(notification) {
+function getNotificationUrl(notification, userRole = 'client') {
     const data = typeof notification.data === 'string'
         ? JSON.parse(notification.data)
         : notification.data || {};
 
-    // Map notification types to URLs (similar to NotificationBell logic)
-    if (data.clientId) {
-        return `/coach/clients/${data.clientId}`;
-    }
-    if (data.groupId) {
-        return `/coach/group/${data.groupId}`;
-    }
-    if (data.conversationId) {
-        return `/client/sessions`;
+    // Get actual notification type (handles system type with notificationType in data)
+    const notificationType = data.notificationType || notification.type;
+
+    // CLIENT ROUTES
+    if (userRole === 'client') {
+        // Check for specific data-based routing first
+        if (data.clientId) {
+            // Shouldn't happen for clients, but fallback
+            return '/client/dashboard';
+        }
+
+        switch (notificationType) {
+            case 'new_message':
+                return '/client/sessions';
+
+            case 'resource_shared':
+                return '/client/resources';
+
+            case 'session_reminder':
+                return '/client/sessions';
+
+            case 'goal_achieved':
+                return '/client/dashboard';
+
+            case 'task_created':
+            case 'task_completed':
+                return '/client/tasks';
+
+            case 'note_created':
+                return '/client/dashboard';
+
+            case 'system':
+                // Handle system notifications with notificationType in data
+                if (data.notificationType === 'resource_shared') {
+                    return '/client/resources';
+                }
+                if (data.notificationType === 'task_created') {
+                    return '/client/tasks';
+                }
+                if (data.notificationType === 'note_created') {
+                    return '/client/dashboard';
+                }
+                return '/client/dashboard';
+
+            default:
+                return '/client/dashboard';
+        }
     }
 
-    // Default routes based on notification type
-    switch (notification.type) {
-        case 'new_message':
-            return '/client/sessions';
-        case 'resource_shared':
-            return '/client/resources';
-        case 'session_reminder':
-            return '/client/sessions';
-        case 'task_completed':
-        case 'task_created':
-            return '/client/tasks';
-        default:
-            return '/client/dashboard';
+    // COACH ROUTES
+    if (userRole === 'coach') {
+        // Check for clientId first (most specific route)
+        if (data.clientId) {
+            switch (notificationType) {
+                case 'client_signup':
+                case 'new_message':
+                case 'goal_achieved':
+                    return `/coach/clients/${data.clientId}`;
+
+                case 'task_completed':
+                    return '/coach/tasks';
+
+                case 'daily_checkin':
+                    return `/coach/clients/${data.clientId}?tab=overview`;
+
+                default:
+                    return `/coach/clients/${data.clientId}`;
+            }
+        }
+
+        // Check for groupId
+        if (data.groupId) {
+            return `/coach/group/${data.groupId}`;
+        }
+
+        // Type-based routing
+        switch (notificationType) {
+            case 'client_signup':
+                return '/coach/clients';
+
+            case 'task_completed':
+                return '/coach/tasks';
+
+            case 'daily_checkin':
+                return '/coach/clients';
+
+            case 'new_message':
+                // For new messages without clientId, try to get from conversationId or senderId
+                if (data.conversationId) {
+                    // Fallback to clients list - notification click handler can fetch client
+                    return '/coach/clients';
+                }
+                if (data.senderId) {
+                    // Fallback to clients list
+                    return '/coach/clients';
+                }
+                return '/coach/clients';
+
+            case 'group_join_request':
+                if (data.groupId) {
+                    return `/coach/group/${data.groupId}`;
+                }
+                return '/coach/groups';
+
+            case 'goal_achieved':
+                if (data.clientId) {
+                    return `/coach/clients/${data.clientId}?tab=progress`;
+                }
+                return '/coach/clients';
+
+            case 'system':
+                // Handle system notifications with notificationType in data
+                if (data.notificationType === 'admin_task_assigned') {
+                    return '/coach/tasks';
+                }
+                if (data.notificationType === 'group_join_request') {
+                    if (data.groupId) {
+                        return `/coach/group/${data.groupId}`;
+                    }
+                    return '/coach/groups';
+                }
+                return '/coach/dashboard';
+
+            default:
+                return '/coach/dashboard';
+        }
     }
+
+    // ADMIN ROUTES
+    if (userRole === 'admin') {
+        // Check for specific IDs
+        if (data.clientId) {
+            return `/admin/clients`;
+        }
+        if (data.coachId) {
+            return `/admin/coaches/${data.coachId}`;
+        }
+        if (data.groupId) {
+            return '/admin/groups';
+        }
+
+        switch (notificationType) {
+            case 'coach_task_completed':
+                return '/admin/tasks';
+
+            case 'new_message':
+                return '/admin/chat';
+
+            default:
+                return '/admin/dashboard';
+        }
+    }
+
+    // Default fallback
+    return '/client/dashboard';
 }
