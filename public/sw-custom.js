@@ -14,6 +14,27 @@ precacheAndRoute(self.__WB_MANIFEST);
 // Take control of clients immediately
 clientsClaim();
 
+// Service worker install event
+self.addEventListener('install', (event) => {
+    console.log('[SW] Service worker installing');
+    // Force the waiting service worker to become the active service worker
+    self.skipWaiting();
+});
+
+// Service worker activate event - ensure it stays active for push notifications
+self.addEventListener('activate', (event) => {
+    console.log('[SW] Service worker activated at:', new Date().toISOString());
+    // Take control of all clients immediately
+    event.waitUntil(
+        self.clients.claim().then(() => {
+            console.log('[SW] Service worker claimed all clients');
+            return self.clients.matchAll().then(clients => {
+                console.log('[SW] Active clients:', clients.length);
+            });
+        })
+    );
+});
+
 // Runtime caching routes (matching next.config.mjs configuration)
 // Google Fonts
 registerRoute(
@@ -176,7 +197,11 @@ registerRoute(
 
 // Push notification handler
 self.addEventListener('push', (event) => {
-    console.log('Push notification received:', event);
+    console.log('[SW] Push event received at:', new Date().toISOString());
+    console.log('[SW] Push event details:', {
+        hasData: !!event.data,
+        dataType: event.data ? typeof event.data : 'none'
+    });
 
     let notificationData = {
         title: 'New Notification',
@@ -189,10 +214,16 @@ self.addEventListener('push', (event) => {
 
     if (event.data) {
         try {
+            const dataText = event.data.text();
+            console.log('[SW] Push data (text):', dataText);
             notificationData = event.data.json();
+            console.log('[SW] Push data (parsed):', notificationData);
         } catch (e) {
+            console.log('[SW] Failed to parse push data as JSON, using text:', e);
             notificationData.body = event.data.text();
         }
+    } else {
+        console.log('[SW] No data in push event');
     }
 
     // Customize vibration pattern based on priority
@@ -207,7 +238,7 @@ self.addEventListener('push', (event) => {
         vibratePattern = [100, 50, 100]; // Shorter pattern for low priority
     }
 
-    const promiseChain = self.registration.showNotification(notificationData.title, {
+    const notificationOptions = {
         body: notificationData.body,
         icon: notificationData.icon || '/assets/icons/icon-192x192.svg',
         badge: notificationData.badge || '/assets/icons/icon-96x96.svg',
@@ -227,35 +258,54 @@ self.addEventListener('push', (event) => {
                 title: 'Close'
             }
         ]
-    });
+    };
+
+    console.log('[SW] Showing notification:', notificationData.title, notificationOptions);
+
+    const promiseChain = self.registration.showNotification(notificationData.title, notificationOptions)
+        .then(() => {
+            console.log('[SW] Notification displayed successfully');
+        })
+        .catch((error) => {
+            console.error('[SW] Error showing notification:', error);
+        });
 
     event.waitUntil(promiseChain);
 });
 
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
-    console.log('Notification clicked:', event);
+    console.log('[SW] Notification clicked at:', new Date().toISOString());
+    console.log('[SW] Notification action:', event.action);
+    console.log('[SW] Notification data:', event.notification.data);
 
     event.notification.close();
 
     const notificationData = event.notification.data || {};
     const urlToOpen = notificationData.url || '/client/dashboard';
+    console.log('[SW] Opening URL:', urlToOpen);
 
     if (event.action === 'open' || !event.action) {
         event.waitUntil(
             clients.matchAll({ type: 'window', includeUncontrolled: true })
                 .then((clientList) => {
+                    console.log('[SW] Found clients:', clientList.length);
                     // Check if there's already a window open
                     for (let i = 0; i < clientList.length; i++) {
                         const client = clientList[i];
                         if (client.url === urlToOpen && 'focus' in client) {
+                            console.log('[SW] Focusing existing window:', client.url);
                             return client.focus();
                         }
                     }
                     // If no window is open, open a new one
                     if (clients.openWindow) {
+                        console.log('[SW] Opening new window:', urlToOpen);
                         return clients.openWindow(urlToOpen);
                     }
+                })
+                .catch((error) => {
+                    console.error('[SW] Error handling notification click:', error);
                 })
         );
     }
