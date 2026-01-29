@@ -199,167 +199,89 @@ registerRoute(
     })
 );
 
-// Push notification handler
+// Push notification handler - SIMPLIFIED VERSION
 self.addEventListener('push', (event) => {
-    // Wrap everything in try-catch to ensure notification is always shown
-    try {
-        console.log('[SW] ===== Push event received =====');
-        console.log('[SW] Time:', new Date().toISOString());
-        console.log('[SW] Has data:', !!event.data);
+    console.log('[SW] ===== PUSH EVENT RECEIVED =====');
+    console.log('[SW] Time:', new Date().toISOString());
 
-        // Default notification data - will be overridden if push data exists
-        let notificationData = {
-            title: 'New Notification',
-            body: 'You have a new notification',
-            icon: '/assets/icons/icon-192x192.svg',
-            badge: '/assets/icons/icon-96x96.svg',
-            tag: 'default',
-            data: {},
-            priority: 'normal'
-        };
+    // CRITICAL: We MUST call showNotification to prevent default browser message
+    // Parse the push data and show notification
+    let title = 'New Notification';
+    let body = 'You have a new notification';
+    let icon = '/assets/icons/icon-192x192.svg';
+    let badge = '/assets/icons/icon-96x96.svg';
+    let tag = 'default';
+    let data = {};
+    let vibratePattern = [200, 100, 200];
 
-        // Try to extract data from push event
-        if (event.data) {
-            try {
-                // Method 1: Try json() first (most common)
-                const pushPayload = event.data.json();
-                console.log('[SW] Push data (JSON):', JSON.stringify(pushPayload));
+    // Try to parse push data
+    if (event.data) {
+        try {
+            // Try JSON first
+            const payload = event.data.json();
+            console.log('[SW] Push payload received:', payload);
 
-                // Extract notification data from payload
-                notificationData = {
-                    title: pushPayload.title || notificationData.title,
-                    body: pushPayload.body || notificationData.body,
-                    icon: pushPayload.icon || notificationData.icon,
-                    badge: pushPayload.badge || notificationData.badge,
-                    tag: pushPayload.tag || notificationData.tag,
-                    data: pushPayload.data || {},
-                    sound: pushPayload.sound || 'default',
-                    requireInteraction: pushPayload.requireInteraction || false,
-                    timestamp: pushPayload.timestamp || Date.now(),
-                    priority: pushPayload.data?.priority || pushPayload.priority || 'normal'
-                };
+            title = payload.title || title;
+            body = payload.body || body;
+            icon = payload.icon || icon;
+            badge = payload.badge || badge;
+            tag = payload.tag || tag;
+            data = payload.data || {};
 
-                console.log('[SW] ✅ Extracted notification:', {
-                    title: notificationData.title,
-                    body: notificationData.body.substring(0, 50),
-                    type: notificationData.data?.type
-                });
-            } catch (jsonError) {
-                console.log('[SW] ⚠️ JSON parse failed, trying text:', jsonError);
-
-                // Method 2: Try text() and parse as JSON
-                try {
-                    const dataText = event.data.text();
-                    console.log('[SW] Push data (text):', dataText);
-
-                    const textPayload = JSON.parse(dataText);
-                    notificationData = {
-                        title: textPayload.title || notificationData.title,
-                        body: textPayload.body || dataText,
-                        icon: textPayload.icon || notificationData.icon,
-                        badge: textPayload.badge || notificationData.badge,
-                        tag: textPayload.tag || notificationData.tag,
-                        data: textPayload.data || {},
-                        priority: textPayload.data?.priority || textPayload.priority || 'normal'
-                    };
-                    console.log('[SW] ✅ Parsed from text:', {
-                        title: notificationData.title,
-                        body: notificationData.body.substring(0, 50)
-                    });
-                } catch (textError) {
-                    // Method 3: Use text as body
-                    console.log('[SW] ⚠️ Text parse failed, using raw text:', textError);
-                    try {
-                        notificationData.body = event.data.text();
-                    } catch (e) {
-                        console.error('[SW] ❌ Could not extract any data from push event');
-                    }
-                }
+            // Set vibration based on priority
+            const priority = payload.data?.priority || payload.priority || 'normal';
+            if (priority === 'urgent') {
+                vibratePattern = [300, 100, 300, 100, 300];
+            } else if (priority === 'high') {
+                vibratePattern = [200, 100, 200, 100, 200];
+            } else if (priority === 'low') {
+                vibratePattern = [100, 50, 100];
             }
-        } else {
-            console.log('[SW] ⚠️ No data in push event - using defaults');
+
+            console.log('[SW] Notification will show:', { title, body: body.substring(0, 50) });
+        } catch (jsonError) {
+            console.log('[SW] JSON parse failed, trying text:', jsonError);
+            try {
+                const textData = event.data.text();
+                console.log('[SW] Push data as text:', textData);
+                const parsed = JSON.parse(textData);
+                title = parsed.title || title;
+                body = parsed.body || textData;
+                data = parsed.data || {};
+            } catch (textError) {
+                console.log('[SW] Text parse failed, using defaults');
+                body = event.data.text() || body;
+            }
         }
-
-        // Customize vibration pattern based on priority
-        let vibratePattern = [200, 100, 200]; // Default: short-short-long
-
-        const priority = notificationData.priority || notificationData.data?.priority || 'normal';
-        if (priority === 'urgent') {
-            vibratePattern = [300, 100, 300, 100, 300]; // Longer pattern for urgent notifications
-        } else if (priority === 'high') {
-            vibratePattern = [200, 100, 200, 100, 200]; // Medium pattern for high priority
-        } else if (priority === 'low') {
-            vibratePattern = [100, 50, 100]; // Shorter pattern for low priority
-        }
-
-        // Ensure we have valid title and body
-        const notificationTitle = notificationData.title || 'New Notification';
-        const notificationBody = notificationData.body || 'You have a new notification';
-
-        const notificationOptions = {
-            body: notificationBody,
-            icon: notificationData.icon || '/assets/icons/icon-192x192.svg',
-            badge: notificationData.badge || '/assets/icons/icon-96x96.svg',
-            sound: notificationData.sound || 'default', // Use system default sound (or custom if provided)
-            tag: notificationData.tag || `notification-${Date.now()}`,
-            data: notificationData.data || {},
-            requireInteraction: notificationData.requireInteraction || false,
-            timestamp: notificationData.timestamp || Date.now(),
-            vibrate: vibratePattern, // Dynamic vibration based on priority
-            actions: [
-                {
-                    action: 'open',
-                    title: 'Open'
-                },
-                {
-                    action: 'close',
-                    title: 'Close'
-                }
-            ]
-        };
-
-        console.log('[SW] 📢 Showing notification:');
-        console.log('[SW]   Title:', notificationTitle);
-        console.log('[SW]   Body:', notificationBody);
-        console.log('[SW]   Type:', notificationData.data?.type || 'unknown');
-
-        // CRITICAL: Always show notification, even if there's an error
-        // This prevents the default "This site has been updated" message
-        const showNotificationPromise = self.registration.showNotification(notificationTitle, notificationOptions)
-            .then(() => {
-                console.log('[SW] ✅ Notification displayed successfully');
-            })
-            .catch((error) => {
-                console.error('[SW] ❌ Error showing notification:', error);
-                // Try to show a basic notification as fallback
-                return self.registration.showNotification(notificationTitle, {
-                    body: notificationBody,
-                    icon: '/assets/icons/icon-192x192.svg',
-                    badge: '/assets/icons/icon-96x96.svg',
-                    tag: notificationData.tag || 'fallback',
-                    data: notificationData.data || {}
-                }).catch((fallbackError) => {
-                    console.error('[SW] ❌ Fallback notification also failed:', fallbackError);
-                });
-            });
-
-        // CRITICAL: Use waitUntil to keep service worker alive
-        event.waitUntil(showNotificationPromise);
-    } catch (error) {
-        // Ultimate fallback: show a basic notification if everything fails
-        console.error('[SW] ❌ CRITICAL ERROR in push handler:', error);
-        event.waitUntil(
-            self.registration.showNotification('New Notification', {
-                body: 'You have a new notification',
-                icon: '/assets/icons/icon-192x192.svg',
-                badge: '/assets/icons/icon-96x96.svg',
-                tag: 'error-fallback',
-                data: { error: true }
-            }).catch((fallbackError) => {
-                console.error('[SW] ❌ Even fallback notification failed:', fallbackError);
-            })
-        );
     }
+
+    // ALWAYS show notification - this prevents the default browser message
+    const notificationPromise = self.registration.showNotification(title, {
+        body: body,
+        icon: icon,
+        badge: badge,
+        tag: tag,
+        data: data,
+        vibrate: vibratePattern,
+        timestamp: Date.now(),
+        requireInteraction: false,
+        actions: [
+            { action: 'open', title: 'Open' },
+            { action: 'close', title: 'Close' }
+        ]
+    }).then(() => {
+        console.log('[SW] ✅ Notification shown:', title);
+    }).catch((error) => {
+        console.error('[SW] ❌ Error showing notification:', error);
+        // Try minimal notification as last resort
+        return self.registration.showNotification(title, {
+            body: body,
+            icon: icon
+        });
+    });
+
+    // CRITICAL: Use waitUntil to keep service worker alive
+    event.waitUntil(notificationPromise);
 });
 
 // Notification click handler
