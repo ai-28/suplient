@@ -935,36 +935,11 @@ async function createChatTables() {
   }
 }
 
-// Create PushSubscription table for web push notifications
-async function createPushSubscriptionTable() {
-  try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS "PushSubscription" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
-        endpoint TEXT NOT NULL,
-        "p256dh" TEXT NOT NULL,
-        auth TEXT NOT NULL,
-        "userAgent" TEXT,
-        "deviceInfo" JSONB,
-        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT uk_push_subscription_endpoint UNIQUE(endpoint)
-      );
-    `;
-
-    // Create indexes for better performance
-    await sql`CREATE INDEX IF NOT EXISTS idx_push_subscription_user ON "PushSubscription"("userId")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_push_subscription_created ON "PushSubscription"("createdAt")`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_push_subscription_endpoint ON "PushSubscription"(endpoint)`;
-    await sql`CREATE INDEX IF NOT EXISTS idx_push_subscription_user_created ON "PushSubscription"("userId", "createdAt")`;
-
-    console.log('✅ PushSubscription table created successfully');
-  } catch (error) {
-    console.error('Error creating PushSubscription table:', error);
-    throw error;
-  }
-}
+// PushSubscription table removed - web push notifications no longer used
+// Native push notifications will use a different table structure (FCM/APNs tokens)
+// async function createPushSubscriptionTable() {
+//   // Removed - web push notifications disabled
+// }
 
 // Create Pipeline Tables
 async function createPipelineTables() {
@@ -1039,7 +1014,7 @@ export async function GET() {
     await createProgramDraftTable(); // Create ProgramDraft table for saving AI program drafts
     await createProgramElementDeliveryTable(); // Create ProgramElementDelivery table for tracking automatic program deliveries
     await createPlatformSettingsTable();
-    await createPushSubscriptionTable(); // Create PushSubscription table for web push notifications
+    // await createPushSubscriptionTable(); // Removed - web push notifications disabled
     await seedDefaultGoalsAndHabits(); // Seed default goals and habits for all clients
     console.log('Database seeded successfully');
 

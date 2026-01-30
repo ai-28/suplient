@@ -43,29 +43,8 @@ class NotificationService {
                     console.warn('Socket emission failed, notification saved but not emitted:', socketError.message);
                 }
 
-                // Send push notification
-                try {
-                    const { sendPushNotification } = await import('@/app/lib/push/pushService');
-                    console.log(`📨 Attempting to send push notification for notification ID: ${result.data.id}`);
-                    const pushResult = await sendPushNotification(notificationData.userId, result.data);
-                    console.log(`📨 Push notification result:`, pushResult);
-                    
-                    if (pushResult.sent === 0 && pushResult.failed === 0) {
-                        console.warn(`⚠️ No push subscriptions found for user ${notificationData.userId} - user may not have enabled push notifications`);
-                    } else if (pushResult.failed > 0) {
-                        console.warn(`⚠️ Some push notifications failed: ${pushResult.failed} failed, ${pushResult.sent} sent`);
-                    } else {
-                        console.log(`✅ Push notification sent successfully: ${pushResult.sent} sent`);
-                    }
-                } catch (pushError) {
-                    console.error('❌ Push notification failed:', {
-                        error: pushError.message,
-                        stack: pushError.stack,
-                        userId: notificationData.userId,
-                        notificationId: result.data?.id
-                    });
-                    // Don't fail the whole operation if push fails
-                }
+                // Note: Push notifications removed - using native push for mobile apps only
+                // Native push notifications will be handled separately via Capacitor
 
                 return result.data;
             } else {

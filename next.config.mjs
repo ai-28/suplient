@@ -72,22 +72,21 @@ const nextConfig = {
     },
 };
 
-// Initialize next-pwa with optimized settings for health app
+// Initialize next-pwa for PWA functionality (installable, offline support)
+// Note: NO push notifications - removed as per requirements
 const withPWA = withPWAInit({
     dest: 'public',
-    swSrc: 'public/sw-custom.js', // Custom service worker source with push notification handlers
+    swSrc: 'public/sw-custom.js', // Minimal service worker (no push notifications)
     register: true,
     skipWaiting: true,
     disable: process.env.NODE_ENV === 'development', // Disable PWA in development
     buildExcludes: [
         /middleware-manifest\.json$/,
         /app-build-manifest\.json$/ // Exclude app-build-manifest as it may not exist in production
-    ], // Exclude middleware and build manifests from service worker
-    // Note: fallbacks removed - causes importScripts error when using swSrc
-    // Offline fallback can be handled in sw-custom.js if needed
+    ],
     publicExcludes: ['!robots.txt', '!sitemap.xml'], // Exclude these from precaching
     reloadOnOnline: true // Reload when back online
-    // Note: runtimeCaching is handled in sw-custom.js when using swSrc
+    // Note: No fallbacks - removed to avoid importScripts errors
 });
 
 // Export the config wrapped with PWA support (only in production)
