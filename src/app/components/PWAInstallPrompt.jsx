@@ -55,6 +55,11 @@ export default function PWAInstallPrompt() {
     // This ensures the modal appears reliably, not just when beforeinstallprompt fires
     const waitForServiceWorker = () => {
       if ('serviceWorker' in navigator) {
+        // Check if document is in valid state
+        if (document.readyState === 'unloading' || document.readyState === 'closed') {
+          return;
+        }
+        
         navigator.serviceWorker.ready.then(() => {          
           // Double-check if app is installed before showing prompt
           const isCurrentlyInstalled = checkIfInstalled();
@@ -68,7 +73,11 @@ export default function PWAInstallPrompt() {
           } else {
             console.log('App is already installed, not showing prompt');
           }
-        }).catch(() => {
+        }).catch((error) => {
+          // Handle InvalidStateError (page unloading)
+          if (error.name === 'InvalidStateError') {
+            return; // Page is unloading, ignore
+          }
           // If service worker fails, still try to show after delay
           const isCurrentlyInstalled = checkIfInstalled();
           if (!isCurrentlyInstalled) {

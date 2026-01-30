@@ -9,7 +9,18 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { RangeRequestsPlugin } from 'workbox-range-requests';
 
 // Precache files (workbox will inject the manifest)
-precacheAndRoute(self.__WB_MANIFEST);
+// Handle case where manifest might not be available
+try {
+    if (self.__WB_MANIFEST && Array.isArray(self.__WB_MANIFEST)) {
+        precacheAndRoute(self.__WB_MANIFEST);
+        console.log('[SW] Precached', self.__WB_MANIFEST.length, 'files');
+    } else {
+        console.warn('[SW] Workbox manifest not available, skipping precache');
+    }
+} catch (error) {
+    console.error('[SW] Error precaching files:', error);
+    // Continue even if precache fails
+}
 
 // Take control of clients immediately
 clientsClaim();
@@ -21,8 +32,18 @@ self.addEventListener('install', (event) => {
     console.log('[SW] Version: 2.0.0 - Push notifications enabled');
     console.log('[SW] Push event listener will be registered');
     console.log('[SW] ========================================');
+    
     // Force the waiting service worker to become the active service worker
-    self.skipWaiting();
+    // Use waitUntil to ensure installation completes
+    event.waitUntil(
+        Promise.resolve().then(() => {
+            console.log('[SW] Skipping waiting - activating immediately');
+            return self.skipWaiting();
+        }).catch(error => {
+            console.error('[SW] Error during install:', error);
+            throw error;
+        })
+    );
 });
 
 // Service worker activate event

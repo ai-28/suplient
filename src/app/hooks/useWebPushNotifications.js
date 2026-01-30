@@ -64,16 +64,25 @@ export function useWebPushNotifications() {
     const checkSubscription = useCallback(async () => {
         if (!isSupported || isNative() || !session?.user) return;
 
+        // Check if document is in valid state
+        if (document.readyState === 'unloading' || document.readyState === 'closed') {
+            return;
+        }
+
         try {
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
-            
+
             if (subscription) {
                 setIsSubscribed(true);
             } else {
                 setIsSubscribed(false);
             }
         } catch (error) {
+            // Handle InvalidStateError (page unloading)
+            if (error.name === 'InvalidStateError') {
+                return; // Page is unloading, ignore
+            }
             console.error('Error checking push subscription:', error);
             setIsSubscribed(false);
         }
@@ -94,6 +103,12 @@ export function useWebPushNotifications() {
         setIsLoading(true);
 
         try {
+            // Check if document is in valid state
+            if (document.readyState === 'unloading' || document.readyState === 'closed') {
+                setIsLoading(false);
+                return false;
+            }
+
             // Request permission first
             const hasPermission = await requestPermission();
             if (!hasPermission) {
@@ -113,6 +128,12 @@ export function useWebPushNotifications() {
                 throw new Error('VAPID public key not available');
             }
 
+            // Check document state again before accessing service worker
+            if (document.readyState === 'unloading' || document.readyState === 'closed') {
+                setIsLoading(false);
+                return false;
+            }
+
             // Get service worker registration
             const registration = await navigator.serviceWorker.ready;
             console.log('[Web Push] Service worker ready:', registration.active?.state);
@@ -129,7 +150,7 @@ export function useWebPushNotifications() {
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(publicKey)
             });
-            
+
             console.log('[Web Push] Push subscription created:', {
                 endpoint: subscription.endpoint.substring(0, 50) + '...',
                 hasKeys: !!subscription.getKey('p256dh')
@@ -158,6 +179,11 @@ export function useWebPushNotifications() {
             setIsLoading(false);
             return true;
         } catch (error) {
+            // Handle InvalidStateError (page unloading)
+            if (error.name === 'InvalidStateError') {
+                setIsLoading(false);
+                return false; // Page is unloading, ignore
+            }
             console.error('Error subscribing to push notifications:', error);
             toast.error('Failed to enable push notifications');
             setIsLoading(false);
@@ -173,6 +199,12 @@ export function useWebPushNotifications() {
         setIsLoading(true);
 
         try {
+            // Check if document is in valid state
+            if (document.readyState === 'unloading' || document.readyState === 'closed') {
+                setIsLoading(false);
+                return false;
+            }
+
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
 
@@ -197,6 +229,11 @@ export function useWebPushNotifications() {
             setIsLoading(false);
             return false;
         } catch (error) {
+            // Handle InvalidStateError (page unloading)
+            if (error.name === 'InvalidStateError') {
+                setIsLoading(false);
+                return false; // Page is unloading, ignore
+            }
             console.error('Error unsubscribing from push notifications:', error);
             toast.error('Failed to disable push notifications');
             setIsLoading(false);
