@@ -2,6 +2,7 @@ import AuthSessionProvider from "@/app/components/providers/SessionProvider";
 import { AuthProvider } from "@/app/context/AuthContext";
 import { LanguageProvider } from "@/app/context/LanguageContext";
 import SocketProvider from "@/app/components/providers/SocketProvider";
+import ServiceWorkerRegistration from "@/app/components/ServiceWorkerRegistration";
 import { Toaster } from "sonner";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -102,6 +103,7 @@ export default function RootLayout({ children }) {
         <meta name="twitter:image" content="/assets/icons/icon-512x512.svg" />
       </head>
       <body className={inter.className}>
+        <ServiceWorkerRegistration />
         <AuthSessionProvider>
           <AuthProvider>
             <LanguageProvider>
