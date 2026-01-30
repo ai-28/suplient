@@ -24,19 +24,53 @@ export function useServiceWorker() {
 
                 // Check if service worker is already registered
                 const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+
+                // Unregister any redundant service workers first
+                for (const reg of existingRegistrations) {
+                    if (reg.active?.state === 'redundant' || reg.waiting?.state === 'redundant') {
+                        console.log('🗑️ Unregistering redundant service worker:', reg.scope);
+                        try {
+                            await reg.unregister();
+                            console.log('✅ Redundant service worker unregistered');
+                        } catch (err) {
+                            console.warn('⚠️ Error unregistering redundant SW:', err);
+                        }
+                    }
+                }
+
+                // Find active service worker registration
                 const existingRegistration = existingRegistrations.find(
-                    reg => reg.active?.scriptURL?.includes('/sw.js') ||
-                        reg.waiting?.scriptURL?.includes('/sw.js') ||
-                        reg.installing?.scriptURL?.includes('/sw.js')
+                    reg => (reg.active?.scriptURL?.includes('/sw.js') && reg.active?.state !== 'redundant') ||
+                        (reg.waiting?.scriptURL?.includes('/sw.js') && reg.waiting?.state !== 'redundant') ||
+                        (reg.installing?.scriptURL?.includes('/sw.js') && reg.installing?.state !== 'redundant')
                 );
 
                 if (existingRegistration) {
                     console.log('✅ Service Worker already registered:', existingRegistration);
+                    console.log('Active state:', existingRegistration.active?.state);
+                    console.log('Waiting state:', existingRegistration.waiting?.state);
+                    console.log('Installing state:', existingRegistration.installing?.state);
+
+                    // If there's a waiting worker, skip waiting to activate it
+                    if (existingRegistration.waiting) {
+                        console.log('⏳ Waiting service worker found, it will activate automatically');
+                        existingRegistration.waiting.addEventListener('statechange', () => {
+                            if (existingRegistration.waiting?.state === 'activated') {
+                                console.log('✅ Waiting service worker activated!');
+                            }
+                        });
+                    }
+
                     // Wait for it to be ready
-                    const registration = await navigator.serviceWorker.ready;
-                    if (!isMounted) return;
-                    setupServiceWorkerListeners(registration);
-                    return;
+                    try {
+                        const registration = await navigator.serviceWorker.ready;
+                        if (!isMounted) return;
+                        setupServiceWorkerListeners(registration);
+                        return;
+                    } catch (err) {
+                        console.warn('⚠️ Service worker not ready, will register new one:', err);
+                        // Continue to register a new one
+                    }
                 }
 
                 // Register service worker if not already registered
@@ -117,6 +151,11 @@ export function useServiceWorker() {
                 console.log('✅✅✅ NOTIFICATION DISPLAYED! ✅✅✅');
                 console.log('✅ Title:', event.data.title);
                 console.log('✅ Body:', event.data.body);
+            }
+
+            if (event.data.type === 'SW_ACTIVATED') {
+                console.log('✅✅✅ SERVICE WORKER ACTIVATED! ✅✅✅');
+                console.log('✅ Timestamp:', event.data.timestamp);
             }
         };
 

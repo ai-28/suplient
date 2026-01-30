@@ -46,22 +46,40 @@ self.addEventListener('activate', (event) => {
     console.log('[SW] Push notification handler is ready');
     console.log('[SW] ========================================');
 
-    // Take control of all clients immediately
+    // Take control of all clients immediately and clean up old service workers
     event.waitUntil(
         Promise.all([
-            self.clients.claim(),
-            // Clean up old caches if needed (optional)
+            // Claim all clients immediately
+            self.clients.claim().then(() => {
+                console.log('[SW] Service worker claimed all clients');
+            }),
+            // Clean up old caches (optional - keep for now)
             caches.keys().then(cacheNames => {
-                // For now, don't delete any caches
-                // You can add logic here to delete old caches if needed
+                console.log('[SW] Available caches:', cacheNames);
+                // Keep all caches for now - you can add cleanup logic here if needed
                 return Promise.resolve();
             })
         ]).then(() => {
-            console.log('[SW] Service worker claimed all clients');
             console.log('[SW] Service worker is now fully active');
+            console.log('[SW] Ready to handle push notifications');
+
+            // Notify all clients that service worker is active
+            return self.clients.matchAll().then(clients => {
+                clients.forEach(client => {
+                    try {
+                        client.postMessage({
+                            type: 'SW_ACTIVATED',
+                            timestamp: new Date().toISOString()
+                        });
+                    } catch (err) {
+                        console.warn('[SW] Could not notify client:', err);
+                    }
+                });
+            });
         }).catch(error => {
             console.error('[SW] Error during activate:', error);
-            // Don't throw - allow activation to complete
+            // Don't throw - allow activation to complete even if some steps fail
+            return Promise.resolve();
         })
     );
 });
