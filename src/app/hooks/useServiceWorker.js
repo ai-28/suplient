@@ -15,33 +15,55 @@ export function useServiceWorker() {
 
         let isMounted = true;
 
-        const initServiceWorker = async () => {
+        const registerServiceWorker = async () => {
             try {
                 // Double-check document state before accessing service worker
                 if (!isMounted || document.readyState === 'unloading' || document.readyState === 'closed') {
                     return;
                 }
 
-                const registration = await navigator.serviceWorker.ready;
+                // Check if service worker is already registered
+                const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+                const existingRegistration = existingRegistrations.find(
+                    reg => reg.active?.scriptURL?.includes('/sw.js') ||
+                        reg.waiting?.scriptURL?.includes('/sw.js') ||
+                        reg.installing?.scriptURL?.includes('/sw.js')
+                );
+
+                if (existingRegistration) {
+                    console.log('✅ Service Worker already registered:', existingRegistration);
+                    // Wait for it to be ready
+                    const registration = await navigator.serviceWorker.ready;
+                    if (!isMounted) return;
+                    setupServiceWorkerListeners(registration);
+                    return;
+                }
+
+                // Register service worker if not already registered
+                console.log('📝 Registering service worker...');
+                const registration = await navigator.serviceWorker.register('/sw.js', {
+                    scope: '/'
+                });
 
                 if (!isMounted) return;
 
-                console.log('Service Worker is ready:', registration);
+                console.log('✅ Service Worker registered successfully!');
+                console.log('Registration:', registration);
+                console.log('State:', registration.installing?.state || registration.waiting?.state || registration.active?.state);
 
-                // Check for updates
-                registration.addEventListener('updatefound', () => {
-                    if (!isMounted) return;
-                    const newWorker = registration.installing;
-                    if (newWorker) {
-                        newWorker.addEventListener('statechange', () => {
-                            if (!isMounted) return;
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                console.log('New content available, please refresh');
-                                // You can show a toast notification here
-                            }
-                        });
-                    }
-                });
+                // Wait for service worker to be ready
+                const readyRegistration = await navigator.serviceWorker.ready;
+                if (!isMounted) return;
+
+                setupServiceWorkerListeners(readyRegistration);
+
+                // Listen for installation state changes
+                if (registration.installing) {
+                    registration.installing.addEventListener('statechange', () => {
+                        if (!isMounted) return;
+                        console.log('Service Worker state changed to:', registration.installing.state);
+                    });
+                }
             } catch (error) {
                 // Handle InvalidStateError (page unloading)
                 if (error.name === 'InvalidStateError') {
@@ -52,12 +74,29 @@ export function useServiceWorker() {
                 if (process.env.NODE_ENV === 'development') {
                     console.log('Service Worker not available in development (PWA disabled)');
                 } else {
-                    console.log('Service Worker not ready:', error);
+                    console.error('Error registering service worker:', error);
                 }
             }
         };
 
-        initServiceWorker();
+        const setupServiceWorkerListeners = (registration) => {
+            // Check for updates
+            registration.addEventListener('updatefound', () => {
+                if (!isMounted) return;
+                const newWorker = registration.installing;
+                if (newWorker) {
+                    newWorker.addEventListener('statechange', () => {
+                        if (!isMounted) return;
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('New content available, please refresh');
+                            // You can show a toast notification here
+                        }
+                    });
+                }
+            });
+        };
+
+        registerServiceWorker();
 
         // Listen for service worker messages
         const handleMessage = (event) => {

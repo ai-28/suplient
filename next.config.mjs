@@ -76,7 +76,7 @@ const nextConfig = {
 // Note: NO push notifications - removed as per requirements
 const withPWA = withPWAInit({
     dest: 'public',
-    swSrc: 'public/sw-custom.js', // Minimal service worker (no push notifications)
+    swSrc: 'public/sw-custom.js', // Custom service worker with push notifications
     register: true,
     skipWaiting: true,
     disable: process.env.NODE_ENV === 'development', // Disable PWA in development
@@ -86,7 +86,7 @@ const withPWA = withPWAInit({
     ],
     publicExcludes: ['!robots.txt', '!sitemap.xml'], // Exclude these from precaching
     reloadOnOnline: true // Reload when back online
-    // Note: No fallbacks - removed to avoid importScripts errors
+    // Note: When using swSrc, next-pwa injects self.__WB_MANIFEST but we call precacheAndRoute ourselves
 });
 
 // Export the config wrapped with PWA support (only in production)

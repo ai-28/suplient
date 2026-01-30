@@ -1,19 +1,19 @@
 // Service worker for PWA functionality with Web Push support
 // This enables PWA installation, offline support, and push notifications
 
-import { precacheAndRoute } from 'workbox-precaching';
-import { clientsClaim } from 'workbox-core';
 import { registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { RangeRequestsPlugin } from 'workbox-range-requests';
 
-// Precache files (workbox will inject the manifest)
-// next-pwa automatically injects self.__WB_MANIFEST - use it only once
-precacheAndRoute(self.__WB_MANIFEST);
+// Precache files
+// next-pwa automatically injects self.__WB_MANIFEST during build
+// We call precacheAndRoute to use the injected manifest
+import { precacheAndRoute } from 'workbox-precaching';
 
-// Take control of clients immediately
-clientsClaim();
+// Call precacheAndRoute - next-pwa will inject self.__WB_MANIFEST at build time
+// This must be called at the top level, not inside a conditional
+precacheAndRoute(self.__WB_MANIFEST);
 
 // Service worker install event
 self.addEventListener('install', (event) => {
@@ -26,23 +26,42 @@ self.addEventListener('install', (event) => {
     // Force the waiting service worker to become the active service worker
     // Use waitUntil to ensure installation completes
     event.waitUntil(
-        Promise.resolve().then(() => {
-            console.log('[SW] Skipping waiting - activating immediately');
-            return self.skipWaiting();
-        }).catch(error => {
-            console.error('[SW] Error during install:', error);
-            throw error;
-        })
+        Promise.resolve()
+            .then(() => {
+                console.log('[SW] Skipping waiting - activating immediately');
+                return self.skipWaiting();
+            })
+            .catch(error => {
+                console.error('[SW] Error during install:', error);
+                // Don't throw - allow activation even if skipWaiting fails
+                return Promise.resolve();
+            })
     );
 });
 
 // Service worker activate event
 self.addEventListener('activate', (event) => {
+    console.log('[SW] ========================================');
     console.log('[SW] Service worker activated');
+    console.log('[SW] Push notification handler is ready');
+    console.log('[SW] ========================================');
+
     // Take control of all clients immediately
     event.waitUntil(
-        self.clients.claim().then(() => {
+        Promise.all([
+            self.clients.claim(),
+            // Clean up old caches if needed (optional)
+            caches.keys().then(cacheNames => {
+                // For now, don't delete any caches
+                // You can add logic here to delete old caches if needed
+                return Promise.resolve();
+            })
+        ]).then(() => {
             console.log('[SW] Service worker claimed all clients');
+            console.log('[SW] Service worker is now fully active');
+        }).catch(error => {
+            console.error('[SW] Error during activate:', error);
+            // Don't throw - allow activation to complete
         })
     );
 });
