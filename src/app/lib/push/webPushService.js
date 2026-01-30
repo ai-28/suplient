@@ -37,9 +37,13 @@ export async function sendWebPushNotification(userId, notification) {
         const userRole = userData.length > 0 ? userData[0].role : 'client';
 
         const webpush = await configureWebPush();
+
+        // Ensure we have a message/body
+        const notificationBody = notification.message || notification.body || 'You have a new notification';
+
         const payload = JSON.stringify({
-            title: notification.title,
-            body: notification.message,
+            title: notification.title || 'New Notification',
+            body: notificationBody,
             icon: '/assets/icons/icon-192x192.svg',
             badge: '/assets/icons/icon-96x96.svg',
             sound: 'default',
@@ -79,12 +83,12 @@ export async function sendWebPushNotification(userId, notification) {
                 };
 
                 console.log(`📤 [Web Push] Sending push notification ${index + 1}/${subscriptions.length}`);
-                
+
                 await webpush.sendNotification(pushSubscription, payload, {
                     TTL: 24 * 60 * 60, // 24 hours
                     urgency: notification.priority === 'urgent' ? 'high' : 'normal'
                 });
-                
+
                 sent++;
                 console.log(`✅ [Web Push] Successfully sent push notification ${index + 1}/${subscriptions.length}`);
             } catch (error) {

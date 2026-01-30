@@ -222,10 +222,14 @@ self.addEventListener('push', (event) => {
             try {
                 const payload = event.data.json();
                 console.log('[SW] ✅ Parsed JSON payload:', JSON.stringify(payload));
+                console.log('[SW] Payload type:', typeof payload);
+                console.log('[SW] Payload keys:', payload ? Object.keys(payload) : 'null');
 
                 if (payload && typeof payload === 'object') {
                     title = payload.title || title;
                     body = payload.body || payload.message || body;
+                    console.log('[SW] Extracted title:', title);
+                    console.log('[SW] Extracted body:', body);
                     icon = payload.icon || icon;
                     badge = payload.badge || badge;
                     // Use unique tag

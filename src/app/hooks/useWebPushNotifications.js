@@ -115,11 +115,24 @@ export function useWebPushNotifications() {
 
             // Get service worker registration
             const registration = await navigator.serviceWorker.ready;
+            console.log('[Web Push] Service worker ready:', registration.active?.state);
+
+            // Check if already subscribed
+            const existingSubscription = await registration.pushManager.getSubscription();
+            if (existingSubscription) {
+                console.log('[Web Push] Already subscribed, using existing subscription');
+                // Still send to server to update
+            }
 
             // Subscribe to push
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(publicKey)
+            });
+            
+            console.log('[Web Push] Push subscription created:', {
+                endpoint: subscription.endpoint.substring(0, 50) + '...',
+                hasKeys: !!subscription.getKey('p256dh')
             });
 
             // Send subscription to server

@@ -953,7 +953,64 @@ async function createPushSubscriptionTable() {
         CONSTRAINT uk_push_subscription_endpoint UNIQUE(endpoint)
       );
     `;
-    console.log('✅ PushSubscription table created');
+
+    // Add missing columns if table already exists (migration)
+    try {
+      // Check if platform column exists, if not add it
+      const columnCheck = await sql`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'PushSubscription' 
+        AND column_name = 'platform'
+      `;
+
+      if (columnCheck.length === 0) {
+        console.log('Adding platform column to PushSubscription table...');
+        await sql`
+          ALTER TABLE "PushSubscription" 
+          ADD COLUMN IF NOT EXISTS platform TEXT DEFAULT 'web'
+        `;
+        console.log('✅ Added platform column');
+      }
+
+      // Check if userAgent column exists, if not add it
+      const userAgentCheck = await sql`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'PushSubscription' 
+        AND column_name = 'userAgent'
+      `;
+
+      if (userAgentCheck.length === 0) {
+        console.log('Adding userAgent column to PushSubscription table...');
+        await sql`
+          ALTER TABLE "PushSubscription" 
+          ADD COLUMN IF NOT EXISTS "userAgent" TEXT
+        `;
+        console.log('✅ Added userAgent column');
+      }
+
+      // Check if updatedAt column exists, if not add it
+      const updatedAtCheck = await sql`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'PushSubscription' 
+        AND column_name = 'updatedAt'
+      `;
+
+      if (updatedAtCheck.length === 0) {
+        console.log('Adding updatedAt column to PushSubscription table...');
+        await sql`
+          ALTER TABLE "PushSubscription" 
+          ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        `;
+        console.log('✅ Added updatedAt column');
+      }
+    } catch (migrationError) {
+      console.warn('Migration check failed (table might be new):', migrationError.message);
+    }
+
+    console.log('✅ PushSubscription table created/updated');
   } catch (error) {
     console.error('Error creating PushSubscription table:', error);
     throw error;
