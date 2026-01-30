@@ -1,6 +1,5 @@
-// Minimal service worker for PWA functionality
-// This enables PWA installation and offline support
-// NO push notifications - removed as per requirements
+// Service worker for PWA functionality with Web Push support
+// This enables PWA installation, offline support, and push notifications
 
 import { precacheAndRoute } from 'workbox-precaching';
 import { clientsClaim } from 'workbox-core';
@@ -17,8 +16,11 @@ clientsClaim();
 
 // Service worker install event
 self.addEventListener('install', (event) => {
+    console.log('[SW] ========================================');
     console.log('[SW] Service worker installing');
-    console.log('[SW] Push event listener registered:', typeof self.addEventListener === 'function');
+    console.log('[SW] Version: 2.0.0 - Push notifications enabled');
+    console.log('[SW] Push event listener will be registered');
+    console.log('[SW] ========================================');
     // Force the waiting service worker to become the active service worker
     self.skipWaiting();
 });
@@ -208,13 +210,17 @@ self.addEventListener('push', (event) => {
     console.log('[SW] Event type:', event.type);
     console.log('[SW] Event:', event);
 
-    // Notify all clients that push was received
+    // Notify all clients that push was received (this will show in main console)
     self.clients.matchAll().then(clients => {
+        console.log('[SW] Notifying', clients.length, 'client(s) about push event');
         clients.forEach(client => {
             client.postMessage({
                 type: 'PUSH_RECEIVED',
                 timestamp: new Date().toISOString(),
-                hasData: !!event.data
+                hasData: !!event.data,
+                message: 'Push event received by service worker!'
+            }).catch(err => {
+                console.error('[SW] Error posting message to client:', err);
             });
         });
     }).catch(err => {

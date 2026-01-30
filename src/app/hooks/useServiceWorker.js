@@ -36,14 +36,23 @@ export function useServiceWorker() {
 
             // Listen for service worker messages
             navigator.serviceWorker.addEventListener('message', (event) => {
-                console.log('📨 Message from service worker:', event.data);
+                console.log('📨 ========================================');
+                console.log('📨 MESSAGE FROM SERVICE WORKER');
+                console.log('📨 ========================================');
+                console.log('📨 Type:', event.data.type);
+                console.log('📨 Data:', event.data);
+                console.log('📨 ========================================');
 
                 if (event.data.type === 'PUSH_RECEIVED') {
-                    console.log('✅ Push event received by service worker!', event.data);
+                    console.log('✅✅✅ PUSH EVENT RECEIVED BY SERVICE WORKER! ✅✅✅');
+                    console.log('✅ Timestamp:', event.data.timestamp);
+                    console.log('✅ Has Data:', event.data.hasData);
                 }
 
                 if (event.data.type === 'NOTIFICATION_SHOWN') {
-                    console.log('✅ Notification displayed:', event.data);
+                    console.log('✅✅✅ NOTIFICATION DISPLAYED! ✅✅✅');
+                    console.log('✅ Title:', event.data.title);
+                    console.log('✅ Body:', event.data.body);
                 }
             });
         }
