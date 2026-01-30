@@ -83,14 +83,16 @@ export async function sendWebPushNotification(userId, notification) {
                 };
 
                 console.log(`📤 [Web Push] Sending push notification ${index + 1}/${subscriptions.length}`);
+                console.log(`📤 [Web Push] Endpoint: ${subscription.endpoint.substring(0, 60)}...`);
 
-                await webpush.sendNotification(pushSubscription, payload, {
+                const result = await webpush.sendNotification(pushSubscription, payload, {
                     TTL: 24 * 60 * 60, // 24 hours
                     urgency: notification.priority === 'urgent' ? 'high' : 'normal'
                 });
 
                 sent++;
                 console.log(`✅ [Web Push] Successfully sent push notification ${index + 1}/${subscriptions.length}`);
+                console.log(`✅ [Web Push] Push service response:`, result?.statusCode || 'OK');
             } catch (error) {
                 console.error(`❌ [Web Push] Error sending push notification ${index + 1}/${subscriptions.length}:`, {
                     error: error.message,

@@ -201,6 +201,12 @@ registerRoute(
 );
 
 // Push notification handler for web (Web Push API)
+// This MUST be at the top level, not inside any function
+console.log('[SW] ========================================');
+console.log('[SW] Registering push event listener at service worker load...');
+console.log('[SW] Push listener will fire when browser receives push from server');
+console.log('[SW] ========================================');
+
 self.addEventListener('push', (event) => {
     console.log('[SW] ========================================');
     console.log('[SW] PUSH EVENT RECEIVED - Web Push Notification');
@@ -214,14 +220,16 @@ self.addEventListener('push', (event) => {
     self.clients.matchAll().then(clients => {
         console.log('[SW] Notifying', clients.length, 'client(s) about push event');
         clients.forEach(client => {
-            client.postMessage({
-                type: 'PUSH_RECEIVED',
-                timestamp: new Date().toISOString(),
-                hasData: !!event.data,
-                message: 'Push event received by service worker!'
-            }).catch(err => {
+            try {
+                client.postMessage({
+                    type: 'PUSH_RECEIVED',
+                    timestamp: new Date().toISOString(),
+                    hasData: !!event.data,
+                    message: 'Push event received by service worker!'
+                });
+            } catch (err) {
                 console.error('[SW] Error posting message to client:', err);
-            });
+            }
         });
     }).catch(err => {
         console.error('[SW] Error notifying clients:', err);
