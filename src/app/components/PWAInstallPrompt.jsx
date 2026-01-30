@@ -44,48 +44,46 @@ export default function PWAInstallPrompt() {
     checkIfInstalled();
 
     // Listen for the beforeinstallprompt event (Android/Desktop)
+    // This allows us to use the native install prompt when available
     const handleBeforeInstallPrompt = (e) => {
-      
       e.preventDefault();
       setDeferredPrompt(e);
-      
-      // Show our custom install prompt after a delay
-      setTimeout(() => {
-        setShowInstallPrompt(true);
-      }, 2000);
+      // Don't show modal here - we'll show it automatically below
     };
 
-    // For iOS Safari - show prompt after delay (no beforeinstallprompt event)
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    
-    // Development mode override - show prompt for testing
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
-    // Wait for service worker to be ready before showing prompt
+    // Show modal automatically for all platforms after service worker is ready
+    // This ensures the modal appears reliably, not just when beforeinstallprompt fires
     const waitForServiceWorker = () => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(() => {          
           // Double-check if app is installed before showing prompt
           const isCurrentlyInstalled = checkIfInstalled();
           
-          // Check if we should show the prompt
-          if (!isCurrentlyInstalled && ((isIOS && isSafari) || isDevelopment)) {
-            const delay = isDevelopment ? 3000 : 5000; // Wait longer for service worker
+          // Show modal automatically for all platforms if not installed
+          if (!isCurrentlyInstalled) {
+            const delay = 5000; // 5 seconds after service worker ready
             setTimeout(() => {
               setShowInstallPrompt(true);
             }, delay);
-          } else if (isCurrentlyInstalled) {
+          } else {
             console.log('App is already installed, not showing prompt');
+          }
+        }).catch(() => {
+          // If service worker fails, still try to show after delay
+          const isCurrentlyInstalled = checkIfInstalled();
+          if (!isCurrentlyInstalled) {
+            setTimeout(() => {
+              setShowInstallPrompt(true);
+            }, 5000);
           }
         });
       } else {
-        // Fallback if no service worker support
+        // Fallback if no service worker support - still show modal
         const isCurrentlyInstalled = checkIfInstalled();
-        if (!isCurrentlyInstalled && ((isIOS && isSafari) || isDevelopment)) {
+        if (!isCurrentlyInstalled) {
           setTimeout(() => {
             setShowInstallPrompt(true);
-          }, 3000);
+          }, 5000);
         }
       }
     };
