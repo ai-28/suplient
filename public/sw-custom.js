@@ -7,15 +7,19 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { RangeRequestsPlugin } from 'workbox-range-requests';
 
 // Precache files
-// next-pwa automatically injects self.__WB_MANIFEST during build
-// We call precacheAndRoute to use the injected manifest
-import { precacheAndRoute } from 'workbox-precaching';
-
-// Call precacheAndRoute - next-pwa will inject self.__WB_MANIFEST at build time
-// This must be called at the top level, not inside a conditional
-precacheAndRoute(self.__WB_MANIFEST);
+// next-pwa automatically injects self.__WB_MANIFEST AND precacheAndRoute during build
+// We should NOT call precacheAndRoute manually - next-pwa handles it automatically
+// Just reference self.__WB_MANIFEST once so next-pwa can inject it
+// The precacheAndRoute call will be auto-injected by next-pwa
+if (typeof self !== 'undefined') {
+    // Reference self.__WB_MANIFEST so next-pwa can inject it
+    // next-pwa will automatically add: precacheAndRoute(self.__WB_MANIFEST);
+    const _manifest = self.__WB_MANIFEST;
+}
 
 // Service worker install event
+// Note: next-pwa auto-injects precacheAndRoute which adds its own install listener
+// Our install listener runs in addition to workbox's, so we can call skipWaiting
 self.addEventListener('install', (event) => {
     console.log('[SW] ========================================');
     console.log('[SW] Service worker installing');
@@ -23,18 +27,20 @@ self.addEventListener('install', (event) => {
     console.log('[SW] Push event listener will be registered');
     console.log('[SW] ========================================');
 
-    // Force the waiting service worker to become the active service worker
-    // Use waitUntil to ensure installation completes
+    // CRITICAL: Skip waiting immediately to activate this service worker
+    // This runs in parallel with workbox's precaching (which has its own install listener)
     event.waitUntil(
         Promise.resolve()
             .then(() => {
                 console.log('[SW] Skipping waiting - activating immediately');
                 return self.skipWaiting();
             })
+            .then(() => {
+                console.log('[SW] skipWaiting() completed - service worker will activate');
+            })
             .catch(error => {
-                console.error('[SW] Error during install:', error);
-                // Don't throw - allow activation even if skipWaiting fails
-                return Promise.resolve();
+                console.error('[SW] Error during skipWaiting:', error);
+                return Promise.resolve(); // Don't throw - allow activation
             })
     );
 });
