@@ -61,7 +61,7 @@ export default function PWAInstallPrompt() {
           
           // Show modal automatically for all platforms if not installed
           if (!isCurrentlyInstalled) {
-            const delay = 5000; // 5 seconds after service worker ready
+            const delay = 3000; // 5 seconds after service worker ready
             setTimeout(() => {
               setShowInstallPrompt(true);
             }, delay);
@@ -74,7 +74,7 @@ export default function PWAInstallPrompt() {
           if (!isCurrentlyInstalled) {
             setTimeout(() => {
               setShowInstallPrompt(true);
-            }, 5000);
+            }, 3000);
           }
         });
       } else {
@@ -83,7 +83,7 @@ export default function PWAInstallPrompt() {
         if (!isCurrentlyInstalled) {
           setTimeout(() => {
             setShowInstallPrompt(true);
-          }, 5000);
+          }, 3000);
         }
       }
     };

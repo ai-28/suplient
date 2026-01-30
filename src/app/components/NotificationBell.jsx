@@ -9,6 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { ScrollArea } from '@/app/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { useNotifications } from '@/app/hooks/useNotifications';
+import { useWebPushNotifications } from '@/app/hooks/useWebPushNotifications';
+import { useNativePushNotifications } from '@/app/hooks/useNativePushNotifications';
+import { isNative } from '@/lib/capacitor';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { MessageWithLinks } from './MessageWithLinks';
@@ -387,6 +390,18 @@ export function NotificationBell({ userRole = 'client' }) {
                 Notifications {filteredUnreadCount > 0 && `(${filteredUnreadCount} unread)`}
               </CardTitle>
               <div className="flex items-center gap-2">
+                {pushSupported && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={pushSubscribed ? unsubscribeFromPush : subscribeToPush}
+                    disabled={pushLoading || !subscribeToPush}
+                    className="text-xs"
+                    title={pushSubscribed ? 'Disable push notifications' : 'Enable push notifications'}
+                  >
+                    {pushSubscribed ? '🔔' : '🔕'}
+                  </Button>
+                )}
                 {filteredNotifications.length > 0 && (
                   <Button 
                     variant="ghost" 

@@ -935,11 +935,53 @@ async function createChatTables() {
   }
 }
 
-// PushSubscription table removed - web push notifications no longer used
-// Native push notifications will use a different table structure (FCM/APNs tokens)
-// async function createPushSubscriptionTable() {
-//   // Removed - web push notifications disabled
-// }
+// PushSubscription table for Web Push API (web platform)
+async function createPushSubscriptionTable() {
+  try {
+    console.log('Creating PushSubscription table...');
+    await sql`
+      CREATE TABLE IF NOT EXISTS "PushSubscription" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL,
+        "p256dh" TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        platform TEXT DEFAULT 'web',
+        "userAgent" TEXT,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uk_push_subscription_endpoint UNIQUE(endpoint)
+      );
+    `;
+    console.log('✅ PushSubscription table created');
+  } catch (error) {
+    console.error('Error creating PushSubscription table:', error);
+    throw error;
+  }
+}
+
+// NativePushToken table for native push notifications (iOS/Android via FCM/APNs)
+async function createNativePushTokenTable() {
+  try {
+    console.log('Creating NativePushToken table...');
+    await sql`
+      CREATE TABLE IF NOT EXISTS "NativePushToken" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId" UUID NOT NULL REFERENCES "User"(id) ON DELETE CASCADE,
+        token TEXT NOT NULL,
+        platform TEXT NOT NULL CHECK (platform IN ('ios', 'android')),
+        "deviceId" TEXT,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uk_native_token UNIQUE(token)
+      );
+    `;
+    console.log('✅ NativePushToken table created');
+  } catch (error) {
+    console.error('Error creating NativePushToken table:', error);
+    throw error;
+  }
+}
 
 // Create Pipeline Tables
 async function createPipelineTables() {
@@ -1014,7 +1056,8 @@ export async function GET() {
     await createProgramDraftTable(); // Create ProgramDraft table for saving AI program drafts
     await createProgramElementDeliveryTable(); // Create ProgramElementDelivery table for tracking automatic program deliveries
     await createPlatformSettingsTable();
-    // await createPushSubscriptionTable(); // Removed - web push notifications disabled
+    await createPushSubscriptionTable(); // Create PushSubscription table for web push notifications
+    await createNativePushTokenTable(); // Create NativePushToken table for native push notifications (iOS/Android)
     await seedDefaultGoalsAndHabits(); // Seed default goals and habits for all clients
     console.log('Database seeded successfully');
 

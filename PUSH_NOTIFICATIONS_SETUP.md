@@ -1,175 +1,243 @@
-# Web Push Notifications Setup Guide
+# Push Notifications Setup Guide
 
-## Overview
-This implementation adds web push notifications for all notification items in the bell icon. The system uses the Web Push API with VAPID keys for secure push notifications.
+This guide explains how to set up both **Web Push Notifications** (like Telegram) and **Native Push Notifications** for your Next.js + Capacitor app.
 
-## What Was Implemented
+## Architecture Overview
 
-### 1. Database
-- ✅ Created `PushSubscription` table with proper indexes
-- ✅ Table stores subscription endpoints and encryption keys per user/device
+- **Web Platform**: Uses Web Push API with service workers (works in browsers and PWA)
+- **Native Apps (iOS/Android)**: Uses Capacitor Push Notifications plugin with FCM (Android) and APNs (iOS)
 
-### 2. Backend
-- ✅ VAPID configuration (`src/app/lib/push/vapid.js`)
-- ✅ Push service (`src/app/lib/push/pushService.js`)
-- ✅ API routes:
-  - `GET /api/push/vapid-public-key` - Returns public key for client subscription
-  - `POST /api/push/subscribe` - Subscribe user to push notifications
-  - `POST /api/push/unsubscribe` - Unsubscribe user from push notifications
-- ✅ Updated `NotificationService` to automatically send push notifications
+## Part 1: Web Push Notifications Setup
 
-### 3. Frontend
-- ✅ `usePushNotifications` hook for managing subscriptions
-- ✅ Push notification button in `NotificationBell` component
-- ✅ Service worker push handler (`public/push-handler.js`)
-
-## Setup Instructions
-
-### Step 1: Generate VAPID Keys
-
-Run this command to generate VAPID keys:
+### 1. Generate VAPID Keys
 
 ```bash
 npx web-push generate-vapid-keys
 ```
 
-This will output something like:
-```
-Public Key: BEl62iUYgUivxIkv69yViEuiBIa40HI...
-Private Key: 8vKDdLUaP4VwWXj...
-```
+This will output:
+- Public Key: `BN...` (starts with BN)
+- Private Key: `...` (long string)
 
-### Step 2: Add Environment Variables
+### 2. Add to `.env` file
 
-Add these to your `.env.local` file:
-
-```bash
-# VAPID Keys for Web Push Notifications
+```env
+# Web Push VAPID Keys
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_public_key_here
 VAPID_PRIVATE_KEY=your_private_key_here
 VAPID_SUBJECT=mailto:admin@suplient.com
 ```
 
-**Important:** 
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` must be prefixed with `NEXT_PUBLIC_` to be accessible in the browser
-- `VAPID_SUBJECT` should be a mailto: URL or a URL to your website
+### 3. Install Dependencies
 
-### Step 3: Run Database Migration
+Already added to `package.json`:
+- `web-push`: ^3.6.7
 
-The `PushSubscription` table will be created automatically when you run the seed:
+## Part 2: Native Push Notifications Setup
 
-```bash
-# Visit or call your seed endpoint
-GET /api/seed
+### For Android (FCM - Firebase Cloud Messaging)
+
+1. **Create Firebase Project**
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project or use existing
+   - Add Android app with package name: `com.suplient.app`
+
+2. **Download `google-services.json`**
+   - Download from Firebase Console
+   - Place in `android/app/` directory
+
+3. **Get Firebase Credentials**
+   - Go to Firebase Console → Project Settings → Service Accounts
+   - Generate new private key
+   - Download JSON file
+
+4. **Add to `.env` file**
+
+```env
+# Firebase (FCM) for Android
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
-Or manually run the migration by calling `createPushSubscriptionTable()`.
+5. **Install Capacitor Push Notifications Plugin**
 
-### Step 4: Service Worker Integration
+```bash
+npm install @capacitor/push-notifications
+npx cap sync
+```
 
-Since you're using `next-pwa`, the service worker is auto-generated. To add push notification handling, you have two options:
+6. **Install Firebase Admin SDK**
 
-#### Option A: Custom Service Worker (Recommended)
-Create a custom service worker file and configure next-pwa to use it. See `public/push-handler.js` for the push event handlers.
+```bash
+npm install firebase-admin
+```
 
-#### Option B: Manual Integration
-Add the push event handlers from `public/push-handler.js` to your service worker after it's generated.
+### For iOS (APNs - Apple Push Notification Service)
 
-### Step 5: Test Push Notifications
+1. **Apple Developer Account Required**
+   - Enroll in Apple Developer Program ($99/year)
+   - Create App ID with Push Notifications capability
 
-1. **Enable push notifications:**
-   - Click the bell icon in the header
-   - Click the push notification button (🔕/🔔)
-   - Grant permission when prompted
+2. **Generate APNs Key**
+   - Go to Apple Developer → Certificates, Identifiers & Profiles
+   - Keys → Create new key
+   - Enable "Apple Push Notifications service (APNs)"
+   - Download `.p8` key file
+   - Note the Key ID and Team ID
 
-2. **Test notification:**
-   - Create a notification through your app (e.g., send a message, complete a task)
-   - You should receive a push notification even when the browser tab is closed
+3. **Add to `.env` file**
 
-## How It Works
+```env
+# APNs for iOS
+APNS_KEY_ID=your-key-id
+APNS_TEAM_ID=your-team-id
+APNS_KEY_PATH=/path/to/AuthKey_XXXXX.p8
+# OR use inline key:
+APNS_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+APNS_BUNDLE_ID=com.suplient.app
+```
 
-1. **User subscribes:**
-   - Frontend requests VAPID public key
-   - Browser creates push subscription
-   - Subscription is sent to server and stored in `PushSubscription` table
+4. **Install APNs Library**
 
-2. **Notification is created:**
-   - `NotificationService.createAndEmitNotification()` is called
-   - Notification is saved to database
-   - Socket.IO emits real-time notification (if user is online)
-   - Push notification is sent to all user's devices (if subscribed)
+```bash
+npm install apn
+```
 
-3. **User receives notification:**
-   - Browser receives push event
-   - Service worker displays notification
-   - User clicks notification → navigates to relevant page
+## Part 3: Database Setup
 
-## Features
+The database tables are automatically created when you run the seed script:
 
-- ✅ Multiple device support (one user can have multiple subscriptions)
-- ✅ Automatic cleanup of invalid subscriptions
-- ✅ Works when browser is closed
-- ✅ Respects user notification preferences
-- ✅ Integrated with existing notification system
-- ✅ All notification types supported
+```bash
+npm run seed
+```
 
-## Troubleshooting
+This creates:
+- `PushSubscription` table (for web push)
+- `NativePushToken` table (for native push)
 
-### Push notifications not working?
+## Part 4: How It Works
 
-1. **Check VAPID keys:**
-   - Ensure keys are set in `.env.local`
-   - Restart your dev server after adding keys
+### Web Platform Flow
 
-2. **Check browser support:**
-   - Push notifications require HTTPS (except localhost)
-   - Check browser console for errors
+1. User visits web app
+2. Service worker registers
+3. User clicks "Enable Push Notifications" in NotificationBell
+4. Browser requests permission
+5. Subscription saved to `PushSubscription` table
+6. When notification is created, `NotificationService` detects web platform
+7. Sends push via Web Push API
+8. Service worker receives push event and displays notification
 
-3. **Check service worker:**
-   - Ensure service worker is registered
-   - Check `Application > Service Workers` in Chrome DevTools
+### Native App Flow
 
-4. **Check permissions:**
-   - User must grant notification permission
-   - Check `Settings > Site Settings > Notifications` in Chrome
+1. User opens native app (iOS/Android)
+2. Capacitor Push Notifications plugin auto-registers
+3. Token received and saved to `NativePushToken` table
+4. When notification is created, `NotificationService` detects native platform
+5. Sends push via FCM (Android) or APNs (iOS)
+6. OS displays notification
 
-### Common Issues
+## Part 5: Testing
 
-**"VAPID keys not configured" error:**
-- Add VAPID keys to `.env.local`
-- Restart dev server
+### Test Web Push
 
-**"Push notifications are not supported" error:**
-- Browser doesn't support Push API
-- Not running on HTTPS (except localhost)
+1. Run in production mode:
+   ```bash
+   npm run build
+   npm start
+   ```
 
-**Notifications not appearing:**
-- Check service worker is active
-- Check browser notification settings
-- Check console for errors
+2. Open browser (Chrome/Edge recommended)
+3. Allow notifications when prompted
+4. Send a test message/notification
+5. Should see desktop notification even when browser is closed
 
-## Production Considerations
+### Test Native Push
 
-1. **HTTPS Required:**
-   - Push notifications only work on HTTPS (except localhost)
-   - Ensure your production site uses HTTPS
+1. Build native app:
+   ```bash
+   npx cap sync
+   npx cap open android  # or ios
+   ```
 
-2. **VAPID Keys:**
-   - Keep private key secure (never commit to git)
-   - Use environment variables in production
+2. Install on device
+3. App will auto-register for push
+4. Send test notification from server
+5. Should see native notification
 
-3. **Service Worker:**
-   - Ensure service worker is properly cached
-   - Test push notifications in production environment
+## Part 6: Files Created/Modified
 
-4. **Monitoring:**
-   - Monitor failed push notifications
-   - Clean up invalid subscriptions regularly
+### New Files
+- `src/app/lib/push/vapid.js` - VAPID key configuration
+- `src/app/lib/push/webPushService.js` - Web push service
+- `src/app/lib/push/nativePushService.js` - Native push service (FCM/APNs)
+- `src/app/hooks/useWebPushNotifications.js` - Web push hook
+- `src/app/hooks/useNativePushNotifications.js` - Native push hook
+- `src/app/api/push/vapid-public-key/route.js` - VAPID public key endpoint
+- `src/app/api/push/subscribe/route.js` - Web push subscription endpoint
+- `src/app/api/push/unsubscribe/route.js` - Web push unsubscribe endpoint
+- `src/app/api/push/register-native/route.js` - Native token registration
+- `src/app/api/push/unregister-native/route.js` - Native token unregistration
 
-## Next Steps
+### Modified Files
+- `public/sw-custom.js` - Added push event handler
+- `src/app/lib/services/NotificationService.js` - Platform detection and push routing
+- `src/app/components/NotificationBell.jsx` - Added push notification controls
+- `src/app/seed/route.js` - Added database table creation
+- `package.json` - Added `web-push` dependency
 
-- [ ] Add notification preferences UI
-- [ ] Add notification sound support
-- [ ] Add notification grouping
-- [ ] Add notification actions (reply, mark as read, etc.)
-- [ ] Add analytics for push notification engagement
+## Part 7: Environment Variables Summary
+
+Add all these to your `.env` file:
+
+```env
+# Web Push (Required for web platform)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_public_key
+VAPID_PRIVATE_KEY=your_private_key
+VAPID_SUBJECT=mailto:admin@suplient.com
+
+# Firebase/FCM (Required for Android native push)
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk@project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# APNs (Required for iOS native push)
+APNS_KEY_ID=your-key-id
+APNS_TEAM_ID=your-team-id
+APNS_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+APNS_BUNDLE_ID=com.suplient.app
+```
+
+## Part 8: Troubleshooting
+
+### Web Push Not Working
+- Check service worker is registered (DevTools → Application → Service Workers)
+- Verify VAPID keys are correct
+- Check browser console for errors
+- Ensure HTTPS (required for push notifications)
+
+### Native Push Not Working
+- Verify Firebase/APNs credentials in `.env`
+- Check device logs for registration errors
+- Ensure app has notification permissions
+- Verify token is saved in database
+
+## Part 9: Next Steps
+
+1. Generate VAPID keys: `npx web-push generate-vapid-keys`
+2. Set up Firebase project for Android
+3. Set up Apple Developer account for iOS
+4. Add all environment variables
+5. Run `npm install` to install new dependencies
+6. Run `npm run seed` to create database tables
+7. Test web push in production mode
+8. Build and test native apps
+
+## Notes
+
+- Web push works in browsers and PWA (like Telegram)
+- Native push only works in Capacitor apps (iOS/Android)
+- Platform is automatically detected
+- Users can enable/disable push in NotificationBell component
+- Invalid tokens/subscriptions are automatically cleaned up
