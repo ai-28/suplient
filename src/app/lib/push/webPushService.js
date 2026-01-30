@@ -44,8 +44,8 @@ export async function sendWebPushNotification(userId, notification) {
         const payload = JSON.stringify({
             title: notification.title || 'New Notification',
             body: notificationBody,
-            icon: '/assets/icons/icon-192x192.svg',
-            badge: '/assets/icons/icon-96x96.svg',
+            icon: '/assets/Suplient-logo.png',
+            badge: '/assets/Suplient-logo.png',
             sound: 'default',
             data: {
                 notificationId: notification.id,

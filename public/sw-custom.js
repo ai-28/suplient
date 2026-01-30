@@ -294,8 +294,8 @@ self.addEventListener('push', (event) => {
         // Default values
         let title = 'New Notification';
         let body = 'You have a new notification';
-        let icon = '/assets/icons/icon-192x192.svg';
-        let badge = '/assets/icons/icon-96x96.svg';
+        let icon = '/assets/Suplient-logo.png';
+        let badge = '/assets/Suplient-logo.png';
         // Generate unique tag to allow multiple notifications
         let tag = 'notification-' + Date.now() + '-' + Math.random().toString(36).substring(7);
         let data = {};
