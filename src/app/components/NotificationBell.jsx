@@ -49,6 +49,31 @@ export function NotificationBell({ userRole = 'client' }) {
     deleteNotification 
   } = useNotifications({ limit: 50 }); // Fetch all notifications (read and unread)
 
+  // Web push notifications (for web platform)
+  const {
+    isSupported: isWebPushSupported,
+    isSubscribed: isWebPushSubscribed,
+    isLoading: isWebPushLoading,
+    subscribe: subscribeToWebPush,
+    unsubscribe: unsubscribeFromWebPush
+  } = useWebPushNotifications();
+
+  // Native push notifications (for iOS/Android apps)
+  const {
+    isSupported: isNativePushSupported,
+    isRegistered: isNativePushRegistered,
+    isLoading: isNativePushLoading,
+    unregister: unregisterNativePush
+  } = useNativePushNotifications();
+
+  // Determine which push system to use
+  const isNativeApp = isNative();
+  const pushSupported = isNativeApp ? isNativePushSupported : isWebPushSupported;
+  const pushSubscribed = isNativeApp ? isNativePushRegistered : isWebPushSubscribed;
+  const pushLoading = isNativeApp ? isNativePushLoading : isWebPushLoading;
+  const subscribeToPush = isNativeApp ? null : subscribeToWebPush; // Native auto-registers
+  const unsubscribeFromPush = isNativeApp ? unregisterNativePush : unsubscribeFromWebPush;
+
   // Check notification preference on mount
   useEffect(() => {
     const checkPreference = async () => {
