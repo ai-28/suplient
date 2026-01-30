@@ -46,9 +46,12 @@ export function useWebPushNotifications() {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
+        let isMounted = true;
+
         // Only for web, not native
         if (isNative()) {
             setIsSupported(false);
+            setIsSubscribed(false);
             return;
         }
 
@@ -56,13 +59,78 @@ export function useWebPushNotifications() {
         const supported = 'serviceWorker' in navigator && 'PushManager' in window;
         setIsSupported(supported);
 
-        if (supported && session?.user) {
-            checkSubscription();
+        if (!supported) {
+            setIsSubscribed(false);
+            return;
         }
+
+        if (!session?.user) {
+            setIsSubscribed(false);
+            return;
+        }
+
+        // Wait for service worker to be ready, then check subscription
+        const checkAfterReady = async () => {
+            try {
+                // Check if document is in valid state
+                if (document.readyState === 'unloading' || document.readyState === 'closed') {
+                    return;
+                }
+
+                // Wait for service worker to be ready
+                const registration = await navigator.serviceWorker.ready;
+                
+                if (!isMounted) return;
+
+                // Small delay to ensure everything is initialized
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                if (!isMounted) return;
+
+                // Get subscription from push manager
+                const subscription = await registration.pushManager.getSubscription();
+
+                if (!isMounted) return;
+
+                if (subscription) {
+                    console.log('[Web Push] ✅ Subscription found on page load:', subscription.endpoint.substring(0, 50) + '...');
+                    setIsSubscribed(true);
+                } else {
+                    console.log('[Web Push] ⚠️ No subscription found on page load');
+                    setIsSubscribed(false);
+                }
+            } catch (error) {
+                if (!isMounted) return;
+                
+                // Handle InvalidStateError (page unloading)
+                if (error.name === 'InvalidStateError') {
+                    console.log('[Web Push] Service worker access blocked (page unloading)');
+                    return;
+                }
+                console.error('[Web Push] Error checking subscription on page load:', error);
+                setIsSubscribed(false);
+            }
+        };
+        
+        checkAfterReady();
+
+        return () => {
+            isMounted = false;
+        };
     }, [session]);
 
     const checkSubscription = useCallback(async () => {
-        if (!isSupported || isNative() || !session?.user) return;
+        // Check native first
+        if (isNative() || !session?.user) {
+            setIsSubscribed(false);
+            return;
+        }
+
+        // Check if browser supports push notifications
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            setIsSubscribed(false);
+            return;
+        }
 
         // Check if document is in valid state
         if (document.readyState === 'unloading' || document.readyState === 'closed') {
@@ -70,23 +138,29 @@ export function useWebPushNotifications() {
         }
 
         try {
+            // Wait for service worker to be ready
             const registration = await navigator.serviceWorker.ready;
+            
+            // Get subscription from push manager
             const subscription = await registration.pushManager.getSubscription();
 
             if (subscription) {
+                console.log('[Web Push] Subscription found:', subscription.endpoint.substring(0, 50) + '...');
                 setIsSubscribed(true);
             } else {
+                console.log('[Web Push] No subscription found');
                 setIsSubscribed(false);
             }
         } catch (error) {
             // Handle InvalidStateError (page unloading)
             if (error.name === 'InvalidStateError') {
+                console.log('[Web Push] Service worker access blocked (page unloading)');
                 return; // Page is unloading, ignore
             }
-            console.error('Error checking push subscription:', error);
+            console.error('[Web Push] Error checking push subscription:', error);
             setIsSubscribed(false);
         }
-    }, [isSupported, session]);
+    }, [session]); // Removed isSupported from dependencies to avoid stale closure
 
     const requestPermission = useCallback(async () => {
         if (!isSupported || isNative()) return false;
