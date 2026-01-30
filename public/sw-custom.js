@@ -1,7 +1,7 @@
 // Custom service worker with push notification support
 // This file is used as the source for next-pwa to generate the final service worker
-// Version: 2.1 - Fixed push notification content display
-const SW_VERSION = '2.1';
+// Version: 2.2 - Fixed unique tags for multiple notifications and improved push handling
+const SW_VERSION = '2.2';
 console.log(`[SW] Service Worker v${SW_VERSION} loaded - Push notifications enabled`);
 
 import { precacheAndRoute } from 'workbox-precaching';
@@ -201,7 +201,7 @@ registerRoute(
     })
 );
 
-// Push notification handler - ULTRA SIMPLIFIED VERSION
+// Push notification handler - IMPROVED VERSION
 // This MUST be registered to prevent default browser message
 self.addEventListener('push', (event) => {
     console.log('[SW] ========================================');
@@ -210,101 +210,107 @@ self.addEventListener('push', (event) => {
     console.log('[SW] Time:', new Date().toISOString());
     console.log('[SW] Event has data:', !!event.data);
 
-    // Default values
-    let title = 'New Notification';
-    let body = 'You have a new notification';
-    let icon = '/assets/icons/icon-192x192.svg';
-    let badge = '/assets/icons/icon-96x96.svg';
-    let tag = 'notification-' + Date.now();
-    let data = {};
-    let vibratePattern = [200, 100, 200];
+    // CRITICAL: Always call waitUntil to prevent default browser message
+    const notificationPromise = (async () => {
+        // Default values
+        let title = 'New Notification';
+        let body = 'You have a new notification';
+        let icon = '/assets/icons/icon-192x192.svg';
+        let badge = '/assets/icons/icon-96x96.svg';
+        // Generate unique tag to allow multiple notifications
+        let tag = 'notification-' + Date.now() + '-' + Math.random().toString(36).substring(7);
+        let data = {};
+        let vibratePattern = [200, 100, 200];
 
-    // Parse push data - try multiple methods
-    if (event.data) {
-        try {
-            // Method 1: Direct JSON
-            const payload = event.data.json();
-            console.log('[SW] ✅ Parsed JSON payload:', JSON.stringify(payload));
-
-            if (payload && typeof payload === 'object') {
-                title = payload.title || title;
-                body = payload.body || payload.message || body;
-                icon = payload.icon || icon;
-                badge = payload.badge || badge;
-                tag = payload.tag || tag;
-                data = payload.data || {};
-
-                const priority = payload.data?.priority || payload.priority || 'normal';
-                if (priority === 'urgent') vibratePattern = [300, 100, 300, 100, 300];
-                else if (priority === 'high') vibratePattern = [200, 100, 200, 100, 200];
-                else if (priority === 'low') vibratePattern = [100, 50, 100];
-            }
-        } catch (jsonError) {
-            console.log('[SW] ⚠️ JSON parse error:', jsonError.message);
+        // Parse push data - try multiple methods
+        if (event.data) {
             try {
-                // Method 2: Text then parse
-                const textData = event.data.text();
-                console.log('[SW] Raw text data:', textData.substring(0, 200));
-                const parsed = JSON.parse(textData);
-                if (parsed && typeof parsed === 'object') {
-                    title = parsed.title || title;
-                    body = parsed.body || parsed.message || textData;
-                    data = parsed.data || {};
-                } else {
-                    body = textData;
+                // Method 1: Direct JSON
+                const payload = event.data.json();
+                console.log('[SW] ✅ Parsed JSON payload:', JSON.stringify(payload));
+
+                if (payload && typeof payload === 'object') {
+                    title = payload.title || title;
+                    body = payload.body || payload.message || body;
+                    icon = payload.icon || icon;
+                    badge = payload.badge || badge;
+                    // Use unique tag - combine notification ID with timestamp to ensure uniqueness
+                    // This allows multiple notifications to show simultaneously
+                    tag = payload.tag ? `${payload.tag}-${Date.now()}-${Math.random().toString(36).substring(7)}` : tag;
+                    data = payload.data || {};
+
+                    const priority = payload.data?.priority || payload.priority || 'normal';
+                    if (priority === 'urgent') vibratePattern = [300, 100, 300, 100, 300];
+                    else if (priority === 'high') vibratePattern = [200, 100, 200, 100, 200];
+                    else if (priority === 'low') vibratePattern = [100, 50, 100];
                 }
-            } catch (textError) {
-                console.log('[SW] ⚠️ Text parse error:', textError.message);
+            } catch (jsonError) {
+                console.log('[SW] ⚠️ JSON parse error:', jsonError.message);
                 try {
-                    body = event.data.text() || body;
-                } catch (e) {
-                    console.error('[SW] ❌ Could not extract any data');
+                    // Method 2: Text then parse
+                    const textData = event.data.text();
+                    console.log('[SW] Raw text data:', textData.substring(0, 200));
+                    const parsed = JSON.parse(textData);
+                    if (parsed && typeof parsed === 'object') {
+                        title = parsed.title || title;
+                        body = parsed.body || parsed.message || textData;
+                        data = parsed.data || {};
+                        tag = parsed.tag ? `${parsed.tag}-${Date.now()}-${Math.random().toString(36).substring(7)}` : tag;
+                    } else {
+                        body = textData;
+                    }
+                } catch (textError) {
+                    console.log('[SW] ⚠️ Text parse error:', textError.message);
+                    try {
+                        body = event.data.text() || body;
+                    } catch (e) {
+                        console.error('[SW] ❌ Could not extract any data');
+                    }
                 }
+            }
+        } else {
+            console.log('[SW] ⚠️ No data in push event');
+        }
+
+        console.log('[SW] Final notification values:');
+        console.log('[SW]   Title:', title);
+        console.log('[SW]   Body:', body.substring(0, 100));
+        console.log('[SW]   Tag:', tag);
+
+        // ALWAYS show notification - this prevents the default browser message
+        try {
+            await self.registration.showNotification(title, {
+                body: body,
+                icon: icon,
+                badge: badge,
+                tag: tag, // Unique tag ensures multiple notifications can show
+                data: data,
+                vibrate: vibratePattern,
+                timestamp: Date.now(),
+                requireInteraction: false,
+                actions: [
+                    { action: 'open', title: 'Open' },
+                    { action: 'close', title: 'Close' }
+                ]
+            });
+            console.log('[SW] ✅ Notification displayed:', title);
+        } catch (error) {
+            console.error('[SW] ❌ Error showing notification:', error);
+            // Try minimal notification as last resort
+            try {
+                await self.registration.showNotification(title, {
+                    body: body,
+                    icon: icon,
+                    tag: tag
+                });
+                console.log('[SW] ✅ Fallback notification displayed');
+            } catch (fallbackError) {
+                console.error('[SW] ❌ Fallback also failed:', fallbackError);
             }
         }
-    } else {
-        console.log('[SW] ⚠️ No data in push event');
-    }
+    })();
 
-    console.log('[SW] Final notification values:');
-    console.log('[SW]   Title:', title);
-    console.log('[SW]   Body:', body.substring(0, 100));
-
-    // CRITICAL: Always show notification to prevent default browser message
-    const showNotif = () => {
-        return self.registration.showNotification(title, {
-            body: body,
-            icon: icon,
-            badge: badge,
-            tag: tag,
-            data: data,
-            vibrate: vibratePattern,
-            timestamp: Date.now(),
-            requireInteraction: false,
-            actions: [
-                { action: 'open', title: 'Open' },
-                { action: 'close', title: 'Close' }
-            ]
-        });
-    };
-
-    // Show notification with error handling
-    const notificationPromise = showNotif()
-        .then(() => {
-            console.log('[SW] ✅ Notification displayed:', title);
-        })
-        .catch((error) => {
-            console.error('[SW] ❌ Error showing notification:', error);
-            // Try absolute minimal notification
-            return self.registration.showNotification(title, {
-                body: body,
-                icon: icon
-            }).catch((fallbackError) => {
-                console.error('[SW] ❌ Fallback also failed:', fallbackError);
-            });
-        });
-
-    // CRITICAL: Use waitUntil - this keeps service worker alive
+    // CRITICAL: Use waitUntil - this keeps service worker alive and prevents default message
     event.waitUntil(notificationPromise);
 });
 

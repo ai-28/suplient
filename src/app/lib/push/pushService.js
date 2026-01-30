@@ -81,11 +81,11 @@ export async function sendPushNotification(userId, notification) {
                     ? JSON.parse(notification.data)
                     : notification.data || {})
             },
-            tag: `notification-${notification.id}`,
+            tag: `notification-${notification.id}-${Date.now()}-${Math.random().toString(36).substring(7)}`,
             requireInteraction: notification.priority === 'urgent',
             timestamp: Date.now()
         });
-        
+
         // Log payload for debugging
         try {
             const payloadObj = JSON.parse(payload);
@@ -116,7 +116,7 @@ export async function sendPushNotification(userId, notification) {
                 };
 
                 console.log(`📤 Sending push notification ${index + 1}/${subscriptions.length} to endpoint: ${subscription.endpoint.substring(0, 50)}...`);
-                
+
                 // Send with options for better background delivery
                 // TTL: Time to live in seconds (24 hours) - how long the push service should keep the message
                 // urgency: 'very-low' | 'low' | 'normal' | 'high' - priority of the notification
@@ -125,7 +125,7 @@ export async function sendPushNotification(userId, notification) {
                     urgency: notification.priority === 'urgent' ? 'high' : 'normal',
                     headers: {}
                 };
-                
+
                 await webpush.sendNotification(pushSubscription, payload, pushOptions);
                 sent++;
                 console.log(`✅ Successfully sent push notification ${index + 1}/${subscriptions.length}`);
