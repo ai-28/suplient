@@ -80,9 +80,8 @@ const withPWA = withPWAInit({
     skipWaiting: true,
     disable: process.env.NODE_ENV === 'development', // Disable PWA in development
     buildExcludes: [/middleware-manifest\.json$/], // Exclude middleware from service worker
-    fallbacks: {
-        document: '/offline', // Fallback page for offline
-    },
+    // Note: fallbacks removed - causes importScripts error when using swSrc
+    // Offline fallback can be handled in sw-custom.js if needed
     publicExcludes: ['!robots.txt', '!sitemap.xml'], // Exclude these from precaching
     reloadOnOnline: true // Reload when back online
     // Note: runtimeCaching is handled in sw-custom.js when using swSrc
