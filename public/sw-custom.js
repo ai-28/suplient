@@ -18,6 +18,7 @@ clientsClaim();
 // Service worker install event
 self.addEventListener('install', (event) => {
     console.log('[SW] Service worker installing');
+    console.log('[SW] Push event listener registered:', typeof self.addEventListener === 'function');
     // Force the waiting service worker to become the active service worker
     self.skipWaiting();
 });
@@ -204,6 +205,21 @@ self.addEventListener('push', (event) => {
     console.log('[SW] ========================================');
     console.log('[SW] Time:', new Date().toISOString());
     console.log('[SW] Event has data:', !!event.data);
+    console.log('[SW] Event type:', event.type);
+    console.log('[SW] Event:', event);
+
+    // Notify all clients that push was received
+    self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+            client.postMessage({
+                type: 'PUSH_RECEIVED',
+                timestamp: new Date().toISOString(),
+                hasData: !!event.data
+            });
+        });
+    }).catch(err => {
+        console.error('[SW] Error notifying clients:', err);
+    });
 
     // CRITICAL: Always call waitUntil to prevent default browser message
     const notificationPromise = (async () => {
@@ -264,7 +280,20 @@ self.addEventListener('push', (event) => {
                 }
             }
         } else {
-            console.log('[SW] ⚠️ No data in push event');
+            console.log('[SW] ⚠️ No data in push event - using defaults');
+            // For DevTools test push, try to get text
+            try {
+                if (event.data && typeof event.data.text === 'function') {
+                    const text = event.data.text();
+                    if (text) {
+                        body = text;
+                        title = 'Test Notification';
+                        console.log('[SW] Using text data as body:', text);
+                    }
+                }
+            } catch (e) {
+                console.log('[SW] Could not read text data:', e);
+            }
         }
 
         console.log('[SW] Final notification values:');
@@ -289,8 +318,27 @@ self.addEventListener('push', (event) => {
                 ]
             });
             console.log('[SW] ✅ Notification displayed:', title);
+
+            // Notify all clients that notification was shown
+            self.clients.matchAll().then(clients => {
+                clients.forEach(client => {
+                    client.postMessage({
+                        type: 'NOTIFICATION_SHOWN',
+                        title: title,
+                        body: body,
+                        timestamp: new Date().toISOString()
+                    });
+                });
+            }).catch(err => {
+                console.error('[SW] Error notifying clients:', err);
+            });
         } catch (error) {
             console.error('[SW] ❌ Error showing notification:', error);
+            console.error('[SW] Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             // Try minimal notification as last resort
             try {
                 await self.registration.showNotification(title, {
