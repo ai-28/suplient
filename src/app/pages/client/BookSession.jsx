@@ -18,6 +18,7 @@ import { useSession } from "next-auth/react";
 import { toast } from 'sonner';
 import { format } from "date-fns";
 import { timezones, getTimezoneOffset } from "@/app/lib/timezones";
+import { isIOS } from "@/lib/capacitor";
 
 // Time slots available (same as coach side)
 // Generate time slots from 01:00 to 23:30 (30-minute intervals)
@@ -73,6 +74,13 @@ export default function BookSession() {
   const t = useTranslation();
   const { data: session } = useSession();
   const { coach, loading: coachLoading, error: coachError } = useClientCoach();
+  
+  // Check if running on iOS native app
+  const [isIOSNative, setIsIOSNative] = useState(false);
+  
+  useEffect(() => {
+    setIsIOSNative(isIOS());
+  }, []);
   
   const [selectedDate, setSelectedDate] = useState();
   const [selectedTime, setSelectedTime] = useState("");
@@ -389,8 +397,15 @@ export default function BookSession() {
   };
 
   const handleBookSession = async () => {
-    if (!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions) {
+    // On iOS native, skip conditions and payment checks
+    if (!isIOSNative && (!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions)) {
       toast.error("Please fill in all required fields and accept the conditions.");
+      return;
+    }
+    
+    // On iOS native, still require basic fields
+    if (isIOSNative && (!selectedDate || !selectedTime || !sessionTopic.trim())) {
+      toast.error("Please fill in all required fields.");
       return;
     }
 
@@ -399,8 +414,8 @@ export default function BookSession() {
       return;
     }
 
-    // Check if payment is required but not completed - redirect to payment instead of showing error
-    if (paymentRequired && !paymentIntentId) {
+    // On iOS native, skip payment check
+    if (!isIOSNative && paymentRequired && !paymentIntentId) {
       if (sessionPrice) {
         toast.info(`Please complete payment of ${sessionPrice.toFixed(2)} DKK to book your session.`);
         await handlePayment();
@@ -744,50 +759,52 @@ export default function BookSession() {
           </CardContent>
         </Card>
 
-        {/* Conditions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('sessions.conditions', 'Session Conditions')}</CardTitle>
-            <CardDescription>{t('sessions.conditionsDescription', 'Please review and accept the terms for your 1-1 video session request.')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm font-medium mb-2">{t('sessions.details', 'Session Details')}:</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• {t('sessions.duration', 'Duration')}: {duration} minutes</li>
-                  <li>• {t('sessions.price', 'Price')}: {sessionPrice ? `${sessionPrice.toFixed(2)} DKK` : (paymentRequired ? 'Price will be shown after loading...' : 'Free')}</li>
-                  <li>• {t('sessions.cancellation', 'Cancellation')}: {t('sessions.cancellationNotice', '24 hours notice required')}</li>
-                </ul>
+        {/* Conditions - Hidden on iOS native */}
+        {!isIOSNative && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('sessions.conditions', 'Session Conditions')}</CardTitle>
+              <CardDescription>{t('sessions.conditionsDescription', 'Please review and accept the terms for your 1-1 video session request.')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium mb-2">{t('sessions.details', 'Session Details')}:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• {t('sessions.duration', 'Duration')}: {duration} minutes</li>
+                    <li>• {t('sessions.price', 'Price')}: {sessionPrice ? `${sessionPrice.toFixed(2)} DKK` : (paymentRequired ? 'Price will be shown after loading...' : 'Free')}</li>
+                    <li>• {t('sessions.cancellation', 'Cancellation')}: {t('sessions.cancellationNotice', '24 hours notice required')}</li>
+                  </ul>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="conditions" 
+                    checked={acceptedConditions} 
+                    onCheckedChange={async (checked) => {
+                      setAcceptedConditions(checked);
+                      // If payment is required and conditions are accepted, redirect to payment
+                      if (checked && paymentRequired && !paymentIntentId && sessionPrice) {
+                        await handlePayment();
+                      }
+                    }} 
+                  />
+                  <Label 
+                    htmlFor="conditions" 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {paymentRequired && sessionPrice 
+                      ? `I accept the conditions for the paid 1-1 session (${sessionPrice.toFixed(2)} DKK)`
+                      : t('sessions.acceptConditions', "I accept the conditions for the paid 1-1 session")}
+                  </Label>
+                </div>
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="conditions" 
-                  checked={acceptedConditions} 
-                  onCheckedChange={async (checked) => {
-                    setAcceptedConditions(checked);
-                    // If payment is required and conditions are accepted, redirect to payment
-                    if (checked && paymentRequired && !paymentIntentId && sessionPrice) {
-                      await handlePayment();
-                    }
-                  }} 
-                />
-                <Label 
-                  htmlFor="conditions" 
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {paymentRequired && sessionPrice 
-                    ? `I accept the conditions for the paid 1-1 session (${sessionPrice.toFixed(2)} DKK)`
-                    : t('sessions.acceptConditions', "I accept the conditions for the paid 1-1 session")}
-                </Label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Payment Section */}
-        {paymentRequired && (
+        {/* Payment Section - Hidden on iOS native */}
+        {!isIOSNative && paymentRequired && (
           <Card className={paymentIntentId ? "border-green-500" : "border-orange-500"}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -847,9 +864,9 @@ export default function BookSession() {
               !selectedDate || 
               !selectedTime || 
               !sessionTopic.trim() || 
-              !acceptedConditions || 
+              (!isIOSNative && !acceptedConditions) || 
               isBooking || 
-              (paymentRequired && !paymentIntentId) ||
+              (!isIOSNative && paymentRequired && !paymentIntentId) ||
               checkingPayment
             }
           >
@@ -862,7 +879,7 @@ export default function BookSession() {
               t('sessions.bookVideoCall', 'Book Video Call')
             )}
           </Button>
-          {paymentRequired && !paymentIntentId && (
+          {!isIOSNative && paymentRequired && !paymentIntentId && (
             <p className="text-sm text-muted-foreground text-center mt-2">
               Please complete payment above to book your session
             </p>

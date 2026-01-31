@@ -772,6 +772,13 @@ export default function ClientProfile() {
   const [payments, setPayments] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [activeTab, setActiveTab] = useState('personal');
+  
+  // Check if running on iOS native app
+  const [isIOSNative, setIsIOSNative] = useState(false);
+  
+  useEffect(() => {
+    setIsIOSNative(isIOS());
+  }, []);
 
   // Fetch billing data
   const fetchBillingData = async () => {
@@ -1643,7 +1650,7 @@ export default function ClientProfile() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="personal" className="space-y-4 flex flex-col">
-        <TabsList className={`w-full ${isMobile ? 'grid grid-cols-2 gap-1 h-auto p-1' : isTablet ? 'grid grid-cols-5 gap-1 h-auto p-2' : 'grid grid-cols-5'}`}>
+        <TabsList className={`w-full ${isMobile ? 'grid grid-cols-2 gap-1 h-auto p-1' : isTablet ? (isIOSNative ? 'grid grid-cols-4 gap-1 h-auto p-2' : 'grid grid-cols-5 gap-1 h-auto p-2') : (isIOSNative ? 'grid grid-cols-4' : 'grid grid-cols-5')}`}>
           <TabsTrigger 
             value="personal" 
             className={`${isMobile ? 'h-14 text-xs px-1 py-2' : isTablet ? 'h-12 text-sm px-2 py-2' : 'flex-1'}`}
@@ -1686,17 +1693,19 @@ export default function ClientProfile() {
               <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Settings</span>
             </div>
           </TabsTrigger>
-          <TabsTrigger 
-            value="billing" 
-            className={`${isMobile ? 'h-14 text-xs px-1 py-2' : isTablet ? 'h-12 text-sm px-2 py-2' : 'flex-1'}`}
-          >
-            <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
-              <CreditCard className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
-                {isIOS() ? 'My Service' : 'Billing'}
-              </span>
-            </div>
-          </TabsTrigger>
+          {!isIOSNative && (
+            <TabsTrigger 
+              value="billing" 
+              className={`${isMobile ? 'h-14 text-xs px-1 py-2' : isTablet ? 'h-12 text-sm px-2 py-2' : 'flex-1'}`}
+            >
+              <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
+                <CreditCard className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Billing
+                </span>
+              </div>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Scrollable container for tab content */}
@@ -2552,19 +2561,21 @@ export default function ClientProfile() {
           </div>
         </TabsContent>
 
-        {/* Billing Tab */}
-        <TabsContent value="billing" className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
-          <ClientBillingTab 
-            loading={billingLoading}
-            subscriptions={subscriptions}
-            payments={payments}
-            paymentMethods={paymentMethods}
-            onCancelSubscription={handleCancelSubscription}
-            onRefresh={fetchBillingData}
-            isMobile={isMobile}
-            userData={userData}
-          />
-        </TabsContent>
+        {/* Billing Tab - Hidden on iOS native */}
+        {!isIOSNative && (
+          <TabsContent value="billing" className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
+            <ClientBillingTab 
+              loading={billingLoading}
+              subscriptions={subscriptions}
+              payments={payments}
+              paymentMethods={paymentMethods}
+              onCancelSubscription={handleCancelSubscription}
+              onRefresh={fetchBillingData}
+              isMobile={isMobile}
+              userData={userData}
+            />
+          </TabsContent>
+        )}
         </div>
       </Tabs>
 
