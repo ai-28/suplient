@@ -2,16 +2,26 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { X, Download, Smartphone } from 'lucide-react';
+import { isNative } from '@/lib/capacitor';
 
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isNativeApp, setIsNativeApp] = useState(false);
 
   useEffect(() => {
     // Set client-side flag
     setIsClient(true);
+    
+    // Check if running on native app (iOS/Android) - don't show PWA prompt on native
+    setIsNativeApp(isNative());
+    
+    // If running on native app, don't show PWA install prompt
+    if (isNative()) {
+      return;
+    }
     
     // Check if app is already installed
     const checkIfInstalled = () => {
@@ -311,6 +321,11 @@ For the best experience, use Chrome, Edge, Safari, or Firefox.`;
     return null;
   }
 
+  // Don't show PWA install prompt on native apps (iOS/Android)
+  if (isNativeApp) {
+    return null;
+  }
+
   // Check if dismissed in this session (client-side only)
   const isDismissed = sessionStorage.getItem('pwa-install-dismissed') === 'true';
   
@@ -322,7 +337,8 @@ For the best experience, use Chrome, Edge, Safari, or Firefox.`;
         isInstalled,
         showInstallPrompt,
         isDismissed,
-        isClient
+        isClient,
+        isNativeApp
       });
     }
     return null;
