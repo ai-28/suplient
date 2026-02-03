@@ -156,15 +156,22 @@ Ensure:
         const cleanMarkdownAsterisks = (text) => {
             if (typeof text !== 'string') return text;
             // Remove markdown bold/emphasis: **text**, *text*, ***text***
+            // Use [\s\S] instead of . to match newlines as well
             return text
-                .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Remove ***text***
-                .replace(/\*\*(.*?)\*\*/g, '$1')     // Remove **text**
-                .replace(/\*(.*?)\*/g, '$1');        // Remove *text* (but be careful with lists)
+                .replace(/\*\*\*([\s\S]*?)\*\*\*/g, '$1') // Remove ***text***
+                .replace(/\*\*([\s\S]*?)\*\*/g, '$1')     // Remove **text**
+                .replace(/\*([\s\S]*?)\*/g, '$1')         // Remove *text* (but be careful with lists)
+                .trim();                                   // Remove leading/trailing whitespace
         };
 
         // Clean elements (messages and tasks)
         if (generatedData.elements) {
             generatedData.elements.forEach(element => {
+                // Clean top-level title
+                if (element.title) {
+                    element.title = cleanMarkdownAsterisks(element.title);
+                }
+                // Clean data fields
                 if (element.data) {
                     if (element.data.message) {
                         element.data.message = cleanMarkdownAsterisks(element.data.message);
@@ -182,6 +189,11 @@ Ensure:
         // Clean documents
         if (generatedData.documents) {
             generatedData.documents.forEach(doc => {
+                // Clean document title
+                if (doc.title) {
+                    doc.title = cleanMarkdownAsterisks(doc.title);
+                }
+                // Clean document content
                 if (doc.content) {
                     doc.content = cleanMarkdownAsterisks(doc.content);
                 }
@@ -189,8 +201,13 @@ Ensure:
         }
 
         // Clean messagesDocument
-        if (generatedData.messagesDocument?.content) {
-            generatedData.messagesDocument.content = cleanMarkdownAsterisks(generatedData.messagesDocument.content);
+        if (generatedData.messagesDocument) {
+            if (generatedData.messagesDocument.title) {
+                generatedData.messagesDocument.title = cleanMarkdownAsterisks(generatedData.messagesDocument.title);
+            }
+            if (generatedData.messagesDocument.content) {
+                generatedData.messagesDocument.content = cleanMarkdownAsterisks(generatedData.messagesDocument.content);
+            }
         }
 
         // 1️⃣1️⃣ Return response

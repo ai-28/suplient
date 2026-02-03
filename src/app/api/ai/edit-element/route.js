@@ -75,10 +75,12 @@ Return the modified content in the same format as the original. If it's a messag
         const cleanMarkdownAsterisks = (text) => {
             if (typeof text !== 'string') return text;
             // Remove markdown bold/emphasis: **text**, *text*, ***text***
+            // Use [\s\S] instead of . to match newlines as well
             return text
-                .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Remove ***text***
-                .replace(/\*\*(.*?)\*\*/g, '$1')     // Remove **text**
-                .replace(/\*(.*?)\*/g, '$1');        // Remove *text*
+                .replace(/\*\*\*([\s\S]*?)\*\*\*/g, '$1') // Remove ***text***
+                .replace(/\*\*([\s\S]*?)\*\*/g, '$1')     // Remove **text**
+                .replace(/\*([\s\S]*?)\*/g, '$1')         // Remove *text*
+                .trim();                                   // Remove leading/trailing whitespace
         };
 
         modifiedContent = cleanMarkdownAsterisks(modifiedContent);
