@@ -37,7 +37,13 @@ export async function POST(request) {
 
         const systemPrompt = `You are a professional coaching content editor. You help coaches refine their program content.
 Your writing style should be warm, supportive, educational, and accessible. You write in ${language === 'da' ? 'Danish' : 'English'}.
-Maintain the original intent while making the requested modifications.`;
+Maintain the original intent while making the requested modifications.
+
+FORMATTING RULES:
+- DO NOT use markdown formatting like asterisks (*, **, ***) for bold or emphasis
+- DO NOT use markdown syntax in content (no **bold**, no *italic*, no # headers in message/task content)
+- Write content in plain text only
+- Use simple line breaks for paragraphs`;
 
         const userPrompt = `Original content:
 ${contentToEdit}
@@ -49,6 +55,7 @@ Please modify the content according to the request while maintaining:
 - Appropriate tone
 - Clear structure
 - Practical value
+- Plain text format (NO markdown formatting like asterisks *, **, ***)
 
 Return the modified content in the same format as the original. If it's a message, return just the message text. If it's a task, return JSON with title and description. If it's a document, return the full document content.`;
 
@@ -63,6 +70,18 @@ Return the modified content in the same format as the original. If it's a messag
         });
 
         let modifiedContent = completion.choices[0].message.content;
+
+        // Clean up markdown asterisks
+        const cleanMarkdownAsterisks = (text) => {
+            if (typeof text !== 'string') return text;
+            // Remove markdown bold/emphasis: **text**, *text*, ***text***
+            return text
+                .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Remove ***text***
+                .replace(/\*\*(.*?)\*\*/g, '$1')     // Remove **text**
+                .replace(/\*(.*?)\*/g, '$1');        // Remove *text*
+        };
+
+        modifiedContent = cleanMarkdownAsterisks(modifiedContent);
 
         // Parse response based on element type
         let result;
@@ -85,11 +104,19 @@ Return the modified content in the same format as the original. If it's a messag
                 };
             }
         } else if (elementType === 'message') {
-            result = { message: modifiedContent };
+            result = { message: cleanMarkdownAsterisks(modifiedContent) };
         } else if (elementType === 'document') {
-            result = { content: modifiedContent };
+            result = { content: cleanMarkdownAsterisks(modifiedContent) };
         } else {
-            result = { content: modifiedContent };
+            result = { content: cleanMarkdownAsterisks(modifiedContent) };
+        }
+
+        // Additional cleanup for task results
+        if (result.title) {
+            result.title = cleanMarkdownAsterisks(result.title);
+        }
+        if (result.description) {
+            result.description = cleanMarkdownAsterisks(result.description);
         }
 
         return NextResponse.json({
