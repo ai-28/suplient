@@ -49,8 +49,8 @@ export function ProgramMessagePreview({ elements, programDay, onClose, isMobile 
   const formatMessage = () => {
     const parts = [];
 
-    // Add day header
-    parts.push(`📅 **Day ${programDay} of Your Program**\n`);
+    // Add day header (no markdown formatting)
+    parts.push(`📅 Day ${programDay} of Your Program\n`);
 
     // Message elements
     const messages = elements.filter(e => e.type === 'message');
@@ -75,7 +75,7 @@ export function ProgramMessagePreview({ elements, programDay, onClose, isMobile 
     // Task elements
     const tasks = elements.filter(e => e.type === 'task');
     if (tasks.length > 0) {
-      parts.push('\n📋 **Your Tasks for Today:**\n');
+      parts.push('\n📋 Your Tasks for Today:\n');
       tasks.forEach(task => {
         let elementData = task.elementData || task.data || {};
         
@@ -88,7 +88,7 @@ export function ProgramMessagePreview({ elements, programDay, onClose, isMobile 
           }
         }
         
-        parts.push(`• **${task.title}**`);
+        parts.push(`• ${task.title}`);
         if (elementData?.description) {
           parts.push(`  ${elementData.description}`);
         }
@@ -117,7 +117,7 @@ export function ProgramMessagePreview({ elements, programDay, onClose, isMobile 
           const url = elementData.url || elementData.fileUrl;
           parts.push(`\n📄 You can find the detailed guide [${fileTitle}](${url}) in your Library.`);
         } else {
-          parts.push(`\n📄 **${fileTitle}**`);
+          parts.push(`\n📄 ${fileTitle}`);
         }
       });
     }

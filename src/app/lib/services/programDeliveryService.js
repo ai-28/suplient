@@ -157,8 +157,8 @@ export function formatCombinedMessage(elements, programDay, clientName = '') {
         parts.push(`Hi ${clientName},\n\n`);
     }
 
-    // Add day header
-    parts.push(`📅 **Day ${programDay} of Your Program**\n`);
+    // Add day header (no markdown formatting)
+    parts.push(`📅 Day ${programDay} of Your Program\n`);
 
     // Message elements
     const messages = elements.filter(e => e.type === 'message');
@@ -172,9 +172,9 @@ export function formatCombinedMessage(elements, programDay, clientName = '') {
     // Task elements
     const tasks = elements.filter(e => e.type === 'task');
     if (tasks.length > 0) {
-        parts.push('\n📋 **Your Tasks for Today:**\n');
+        parts.push('\n📋 Your Tasks for Today:\n');
         tasks.forEach(task => {
-            parts.push(`• **${task.title}**`);
+            parts.push(`• ${task.title}`);
             if (task.elementData?.description) {
                 parts.push(`  ${task.elementData.description}`);
             }
@@ -192,7 +192,7 @@ export function formatCombinedMessage(elements, programDay, clientName = '') {
                 const url = file.elementData.url || file.elementData.fileUrl;
                 parts.push(`\n📄 You can find the detailed guide [${fileTitle}](${url}) in your Library.`);
             } else {
-                parts.push(`\n📄 **${fileTitle}**`);
+                parts.push(`\n📄 ${fileTitle}`);
             }
         });
     }
