@@ -25,8 +25,7 @@ import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 
 const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
 });
 
 export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
@@ -52,7 +51,6 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
       description: "",
     },
   });
@@ -66,7 +64,7 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: data.title,
+          title: "",
           description: data.description,
           clientId: clientId
         }),
@@ -113,31 +111,13 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
           <form onSubmit={form.handleSubmit(onSubmit)} className={isMobile ? 'space-y-3 px-4' : 'space-y-4'}>
             <FormField
               control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className={isMobile ? 'text-xs' : ''}>Title</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Enter note title" 
-                      className={isMobile ? 'text-xs h-8' : ''}
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage className={isMobile ? 'text-xs' : ''} />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className={isMobile ? 'text-xs' : ''}>Description</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter note description (optional)"
+                      placeholder="Enter note description"
                       className={isMobile ? 'min-h-[60px] text-xs' : 'min-h-[100px]'}
                       {...field} 
                     />

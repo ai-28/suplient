@@ -48,46 +48,19 @@ export async function POST(request) {
         const { title, description, clientId } = body;
 
         // Validate required fields
-        if (!title || !clientId) {
+        if (!clientId) {
             return NextResponse.json({
-                error: 'Title and client ID are required'
+                error: 'Client ID is required'
             }, { status: 400 });
         }
 
         const noteData = {
-            title,
+            title: title || '',
             description: description || '',
             clientId
         };
 
         const newNote = await noteRepo.createNote(noteData);
-
-        // Send notification to client about new note
-        try {
-            const { NotificationService } = require('@/app/lib/services/NotificationService');
-            const { sql } = require('@/app/lib/db/postgresql');
-
-            // Get client details for notification
-            const clientDetails = await sql`
-                SELECT c.id, c.name, c."userId"
-                FROM "Client" c
-                WHERE c.id = ${clientId}
-            `;
-
-            if (clientDetails.length > 0) {
-                const client = clientDetails[0];
-                await NotificationService.notifyNoteCreated(
-                    client.userId, // Use userId instead of client.id
-                    session.user.id,
-                    session.user.name,
-                    title
-                );
-                console.log('✅ Note creation notification sent to client:', client.name);
-            }
-        } catch (notificationError) {
-            console.error('❌ Error creating note notification:', notificationError);
-            // Don't fail note creation if notification fails
-        }
 
         return NextResponse.json({
             message: 'Note created successfully',
