@@ -59,6 +59,7 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          title: note.title || '', // Preserve existing title
           description: data.description
         }),
       });

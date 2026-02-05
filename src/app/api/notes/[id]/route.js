@@ -46,16 +46,15 @@ export async function PUT(request, { params }) {
         const body = await request.json();
         const { title, description } = body;
 
-        // Validate required fields
-        if (!title) {
-            return NextResponse.json({
-                error: 'Title is required'
-            }, { status: 400 });
+        // Get existing note to preserve title if not provided
+        const existingNote = await noteRepo.getNoteById(id);
+        if (!existingNote) {
+            return NextResponse.json({ error: 'Note not found' }, { status: 404 });
         }
 
         const noteData = {
-            title,
-            description: description || ''
+            title: title !== undefined ? title : existingNote.title,
+            description: description !== undefined ? description : existingNote.description || ''
         };
 
         const updatedNote = await noteRepo.updateNote(id, noteData);
