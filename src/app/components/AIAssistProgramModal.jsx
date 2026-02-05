@@ -15,7 +15,7 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { QuestionnaireSteps } from "./QuestionnaireSteps";
 import { ProgramReviewScreen } from "./ProgramReviewScreen";
-import { Sparkles, Trash2 } from "lucide-react";
+import { Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 export function AIAssistProgramModal({ open, onOpenChange }) {
@@ -31,6 +31,7 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
   const [draftToDelete, setDraftToDelete] = useState(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const originalProgramRef = useRef(null);
+  const isClosingRef = useRef(false);
 
   // Load drafts when modal opens
   useEffect(() => {
@@ -165,6 +166,8 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
       setShowCloseConfirmation(true);
       return;
     }
+    // Mark that we're intentionally closing
+    isClosingRef.current = true;
     // Reset state when closing
     setStep(1);
     setQuestionnaireData(null);
@@ -174,6 +177,10 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
     originalProgramRef.current = null;
     setPendingClose(false);
     onOpenChange(false);
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      isClosingRef.current = false;
+    }, 100);
   };
 
   const handleConfirmClose = async (saveBeforeClose = false) => {
@@ -238,10 +245,34 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
     <>
       <Dialog open={open} onOpenChange={(isOpen) => {
         if (!isOpen) {
-          handleClose();
+          // Only allow closing if it's an intentional close (from handleClose)
+          // Prevent closing from outside clicks or Escape key
+          if (!isClosingRef.current) {
+            // This is an unintentional close (outside click or Escape), prevent it
+            return;
+          }
+          // Intentional close, allow it
         }
       }}>
-      <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden sm:w-full">
+      <DialogContent 
+        className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden sm:w-full [&>button]:hidden"
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking outside - modal should only close via X button
+          e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          // Prevent closing with Escape key - modal should only close via X button
+          e.preventDefault();
+        }}
+      >
+        {/* Custom close button */}
+        <button
+          onClick={handleClose}
+          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </button>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
