@@ -105,7 +105,7 @@ Ensure:
         // 5️⃣ Generate program using Responses API
         // For large programs, consider weekly chunking to avoid token limits
         const completion = await openai.responses.create({
-            model: 'gpt-5.2',
+            model: 'gpt-4o-mini',
             input: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
