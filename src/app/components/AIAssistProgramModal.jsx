@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/app/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -255,7 +255,7 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
         }
       }}>
       <DialogContent 
-        className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden sm:w-full [&>button]:hidden"
+        className="w-[95vw] max-w-6xl max-h-[90vh] overflow-hidden sm:w-full"
         onInteractOutside={(e) => {
           // Prevent closing when clicking outside - modal should only close via X button
           e.preventDefault();
@@ -267,12 +267,21 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
       >
         {/* Custom close button */}
         <button
+          type="button"
+          data-custom-close="true"
           onClick={handleClose}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-50"
+          className="absolute right-4 top-4 z-[60] rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-background/80 backdrop-blur-sm"
         >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </button>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            [data-radix-dialog-content] > button:not([data-custom-close]) {
+              display: none !important;
+            }
+          `
+        }} />
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
