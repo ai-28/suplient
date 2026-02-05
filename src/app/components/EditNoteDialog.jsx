@@ -26,7 +26,6 @@ import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 
 const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
 });
 
@@ -36,7 +35,6 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
       description: "",
     },
   });
@@ -45,7 +43,6 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
   useEffect(() => {
     if (note && open) {
       form.reset({
-        title: note.title || "",
         description: note.description || "",
       });
     }
@@ -62,7 +59,6 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: data.title,
           description: data.description
         }),
       });
@@ -102,24 +98,6 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Enter note title" 
-                      {...field} 
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="description"
