@@ -456,34 +456,37 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
   const apiStartTimeRef = useRef(null);
 
   // Calculate estimated time based on program complexity
+  // Based on actual test data:
+  // - Moderate: 1 week = 67s, 4 weeks = 120s, 8 weeks = 182s
+  // - Comprehensive: 1 week = 103s
   const calculateEstimatedTime = () => {
     const { duration, contentDepth, messageFrequency } = questionnaireData;
     
-    // Base time: 90 seconds (increased to better reflect actual API times)
-    let estimatedSeconds = 90;
+    // Base time: 50 seconds
+    let estimatedSeconds = 50;
     
-    // Add time based on program duration (more weeks = exponentially more content)
-    // For longer programs, generation time increases significantly
+    // Add time based on program duration
+    // Average: ~17 seconds per week
     const weekMultiplier = duration || 4;
-    estimatedSeconds += weekMultiplier * 15; // Increased from 10 to 15 per week
+    estimatedSeconds += weekMultiplier * 17;
     
     // Add time based on content depth
+    // Comprehensive adds ~36 seconds compared to moderate
     if (contentDepth === 'comprehensive' || contentDepth === 'detailed') {
-      estimatedSeconds += 60; // Increased from 30
+      estimatedSeconds += 36;
     } else if (contentDepth === 'moderate') {
-      estimatedSeconds += 30; // Increased from 15
+      estimatedSeconds += 0; // Already accounted for in base
     }
     
-    // Add time based on message frequency (more messages = more content)
+    // Add time based on message frequency (small adjustments)
     if (messageFrequency === 'daily') {
-      estimatedSeconds += 40; // Increased from 20
+      estimatedSeconds += 5; // More messages = slightly more time
     } else if (messageFrequency === 'every-2-3-days') {
-      estimatedSeconds += 20; // Increased from 10
+      estimatedSeconds += 0; // Already accounted for in base
     }
     
-    // Allow estimates up to 10 minutes (600 seconds) to better reflect actual generation times
-    // for large programs with high token output (up to 20,000 tokens)
-    return Math.min(600, Math.max(90, estimatedSeconds));
+    // Allow estimates up to 10 minutes (600 seconds) for very large programs
+    return Math.min(600, Math.max(30, estimatedSeconds));
   };
 
   const estimatedTotalTime = calculateEstimatedTime();
