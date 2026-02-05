@@ -13,7 +13,7 @@ import { useTranslation } from "@/app/context/LanguageContext";
 // Categories will be translated inline
 
 // Real useResources hook with API calls
-const useResources = () => {
+const useResources = (t) => {
   const [resources, setResources] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -147,7 +147,7 @@ export default function ClientResources() {
     setPreviewType, 
     handleResourcePreview, 
     handleResourceDownload 
-  } = useResources();
+  } = useResources(t);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -444,13 +444,14 @@ export default function ClientResources() {
                       e.target.style.display = 'none';
                       const fallback = document.createElement('div');
                       fallback.className = 'text-center py-8';
+                      const openText = t('resources.openInNewTab', 'Open in New Tab');
                       fallback.innerHTML = `
                         <p class="text-muted-foreground mb-4">Preview failed to load</p>
                         <button 
                           class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                           onclick="window.open('${previewUrl}', '_blank')"
                         >
-                          {t('resources.openInNewTab', 'Open in New Tab')}
+                          ${openText}
                         </button>
                       `;
                       e.target.parentNode.appendChild(fallback);
@@ -467,13 +468,14 @@ export default function ClientResources() {
                     e.target.style.display = 'none';
                     const fallback = document.createElement('div');
                     fallback.className = 'text-center py-8';
+                    const openText = t('resources.openInNewTab', 'Open in New Tab');
                     fallback.innerHTML = `
                       <p class="text-muted-foreground mb-4">Video failed to load</p>
                       <button 
                         class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                         onclick="window.open('${previewUrl}', '_blank')"
                       >
-                        {t('resources.openInNewTab', 'Open in New Tab')}
+                        ${openText}
                       </button>
                     `;
                     e.target.parentNode.appendChild(fallback);
@@ -489,13 +491,14 @@ export default function ClientResources() {
                     e.target.style.display = 'none';
                     const fallback = document.createElement('div');
                     fallback.className = 'text-center py-8';
+                    const openText = t('resources.openInNewTab', 'Open in New Tab');
                     fallback.innerHTML = `
                       <p class="text-muted-foreground mb-4">Audio failed to load</p>
                       <button 
                         class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                         onclick="window.open('${previewUrl}', '_blank')"
                       >
-                        {t('resources.openInNewTab', 'Open in New Tab')}
+                        ${openText}
                       </button>
                     `;
                     e.target.parentNode.appendChild(fallback);
