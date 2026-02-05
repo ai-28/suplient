@@ -160,12 +160,7 @@ export function ProgramTimelineView({
               setIsLoading(true);
               try {
                 await onPauseResume();
-                toast.success(
-                  clientProgram?.status === 'active' ? 'Program Paused' : 'Program Resumed',
-                  {
-                    description: `${clientProgram?.name} has been ${clientProgram?.status === 'active' ? 'paused' : 'resumed'} successfully.`,
-                  }
-                );
+                // Toast is handled by parent component (ClientProfile.jsx)
               } catch (error) {
                 toast.error('Error', {
                   description: 'Failed to update program status. Please try again.',

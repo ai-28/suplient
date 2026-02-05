@@ -15,6 +15,7 @@ import { useTranslation } from "@/app/context/LanguageContext";
 import SubscriptionGuard from "./SubscriptionGuard";
 import { isIOS } from "@/lib/capacitor";
 import { useEffect, useState } from "react";
+import { GlobalNotificationListener } from "./GlobalNotificationListener";
 
 export default function ClientLayout({ children }) {
   const router = useRouter();
@@ -109,6 +110,9 @@ export default function ClientLayout({ children }) {
       className="bg-background flex flex-col"
       style={containerStyle}
     >
+      {/* Global notification listener - shows toasts on all client pages */}
+      <GlobalNotificationListener />
+      
       {/* Main Content */}
       <div 
         className="overflow-y-auto"

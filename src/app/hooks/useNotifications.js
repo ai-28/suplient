@@ -76,11 +76,29 @@ export function useNotifications(options = {}) {
                 return newNotifications;
             });
 
-            // Show toast notification
-            toast.success(notification.title, {
-                description: notification.message,
-                duration: 5000,
-            });
+            // Check if GlobalNotificationListener already showed this toast
+            // Use a shared mechanism to prevent duplicate toasts
+            const recentNotifications = window.__recentNotifications || new Set();
+            if (!recentNotifications.has(notification.id)) {
+                // Mark as shown
+                recentNotifications.add(notification.id);
+                window.__recentNotifications = recentNotifications;
+                
+                // Clean up after 5 seconds
+                setTimeout(() => {
+                    recentNotifications.delete(notification.id);
+                }, 5000);
+
+                // Show toast notification only if not already shown by GlobalNotificationListener
+                // Use a unique key to prevent duplicate toasts from sonner
+                toast.success(notification.title, {
+                    description: notification.message,
+                    duration: 5000,
+                    id: `notification-${notification.id}`, // Unique ID prevents duplicate toasts
+                });
+            } else {
+                console.log('Toast already shown by GlobalNotificationListener, skipping:', notification.id);
+            }
         };
 
         // Add event listener for real-time notifications
