@@ -457,30 +457,28 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
 
   // Calculate estimated time based on program complexity
   // Based on actual test data:
-  // - Moderate: 1 week = 67s, 4 weeks = 120s, 8 weeks = 182s
-  // - Comprehensive: 1 week = 103s
+  // - Moderate: 1 week = 46s, 4 weeks = 82s (1 min 22s)
+  // - Comprehensive: 1 week = 48s, 4 weeks = 90s (1 min 30s)
+g  // Added 6s buffer to each estimate
   const calculateEstimatedTime = () => {
     const { duration, contentDepth, messageFrequency } = questionnaireData;
     
-    // Base time: 50 seconds
-    let estimatedSeconds = 50;
+    // Base time: 40 seconds (34 + 6 buffer)
+    let estimatedSeconds = 40;
     
     // Add time based on program duration
-    // Average: ~17 seconds per week
+    // Moderate: 12 seconds per week, Comprehensive: 14 seconds per week
     const weekMultiplier = duration || 4;
-    estimatedSeconds += weekMultiplier * 17;
+    const perWeekTime = (contentDepth === 'comprehensive' || contentDepth === 'detailed') ? 14 : 12;
+    estimatedSeconds += weekMultiplier * perWeekTime;
     
     // Add time based on content depth
-    // Comprehensive adds ~36 seconds compared to moderate
-    if (contentDepth === 'comprehensive' || contentDepth === 'detailed') {
-      estimatedSeconds += 36;
-    } else if (contentDepth === 'moderate') {
-      estimatedSeconds += 0; // Already accounted for in base
-    }
+    // Comprehensive adds 2 seconds compared to moderate (already in perWeekTime calculation)
+    // No additional adjustment needed as it's handled by perWeekTime
     
     // Add time based on message frequency (small adjustments)
     if (messageFrequency === 'daily') {
-      estimatedSeconds += 5; // More messages = slightly more time
+      estimatedSeconds += 2; // More messages = slightly more time
     } else if (messageFrequency === 'every-2-3-days') {
       estimatedSeconds += 0; // Already accounted for in base
     }
