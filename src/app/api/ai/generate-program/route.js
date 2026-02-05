@@ -100,12 +100,13 @@ Ensure:
 - Content depth matches requirement
 - Tone matches preference
 - All content is in ${language === 'da' ? 'Danish' : 'English'}
-- NO markdown formatting (no asterisks *, **, ***) - use plain text only`;
+- NO markdown formatting (no asterisks *, **, ***) - use plain text only
+- reduce large content texts by 25% for the messages and tasks.`;
 
         // 5️⃣ Generate program using Responses API
         // For large programs, consider weekly chunking to avoid token limits
         const completion = await openai.responses.create({
-            model: 'gpt-4o-mini',
+            model: 'gpt-5.2',
             input: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
