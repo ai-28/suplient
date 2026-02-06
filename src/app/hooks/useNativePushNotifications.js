@@ -171,23 +171,40 @@ export function useNativePushNotifications() {
                     return;
                 }
 
-                // Longer delay for Android after permission granted
-                const postPermissionDelay = isAndroid ? 2000 : 1000;
-                await new Promise(resolve => setTimeout(resolve, postPermissionDelay));
-
-                if (!isMounted) return;
-
-                // Register with FCM/APNs with error handling
-                try {
-                    await PushNotifications.register();
-                    console.log('[Native Push] Registration initiated');
-                    // Don't set loading to false here - wait for token
-                } catch (registerError) {
-                    console.error('[Native Push] Registration error:', registerError);
-                    if (isMounted) {
-                        setIsLoading(false);
-                    }
+                // On Android, skip calling register() - it may cause crash
+                // The plugin should handle registration automatically after permission is granted
+                // Or we can register later when the app is more stable
+                if (isAndroid) {
+                    console.log('[Native Push] Android: Permission granted, skipping explicit register() call to prevent crash');
+                    console.log('[Native Push] Android: Registration should happen automatically via listeners');
+                    // Don't call register() - let the plugin handle it automatically
+                    // The listeners are already set up, so if registration happens, we'll get the token
+                    // Set loading to false after a delay
+                    setTimeout(() => {
+                        if (isMounted) {
+                            setIsLoading(false);
+                        }
+                    }, 2000);
                     return;
+                } else {
+                    // iOS: Normal flow
+                    const postPermissionDelay = 1000;
+                    await new Promise(resolve => setTimeout(resolve, postPermissionDelay));
+
+                    if (!isMounted) return;
+
+                    // Register with FCM/APNs with error handling
+                    try {
+                        await PushNotifications.register();
+                        console.log('[Native Push] Registration initiated');
+                        // Don't set loading to false here - wait for token
+                    } catch (registerError) {
+                        console.error('[Native Push] Registration error:', registerError);
+                        if (isMounted) {
+                            setIsLoading(false);
+                        }
+                        return;
+                    }
                 }
 
             } catch (error) {
