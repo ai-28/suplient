@@ -36,20 +36,31 @@ export function useNativePushNotifications() {
 
     // Register for push when session is available
     useEffect(() => {
+        // Temporary: Skip notification registration on Android to prevent crashes
+        // TODO: Re-enable after fixing the crash issue
+        if (getPlatform() === 'android') {
+            console.log('[Native Push] Skipping registration on Android to prevent crashes');
+            return;
+        }
+        
         if (!isSupported || !session?.user || hasRegisteredRef.current) return;
         hasRegisteredRef.current = true;
 
         let isMounted = true;
+        let timeoutId = null;
 
         const registerForPush = async () => {
             try {
-                // Add delay to ensure app is fully loaded after login
+                // Add longer delay to ensure app is fully loaded after login
                 // This prevents crashes when permission is granted
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
                 if (!isMounted) return;
 
-                setIsLoading(true);
+                // Safe state update
+                if (isMounted) {
+                    setIsLoading(true);
+                }
 
                 // Dynamic import to prevent errors on web
                 const { PushNotifications } = await import('@capacitor/push-notifications');
@@ -57,7 +68,9 @@ export function useNativePushNotifications() {
                 // Check if plugin is available
                 if (!PushNotifications) {
                     console.warn('[Native Push] PushNotifications plugin not available');
-                    setIsLoading(false);
+                    if (isMounted) {
+                        setIsLoading(false);
+                    }
                     return;
                 }
 
@@ -72,7 +85,9 @@ export function useNativePushNotifications() {
                     }
                 } catch (permError) {
                     console.error('[Native Push] Permission request error:', permError);
-                    setIsLoading(false);
+                    if (isMounted) {
+                        setIsLoading(false);
+                    }
                     return;
                 }
 
@@ -80,7 +95,9 @@ export function useNativePushNotifications() {
 
                 if (permStatus.receive !== 'granted') {
                     console.log('[Native Push] Permission denied');
-                    setIsLoading(false);
+                    if (isMounted) {
+                        setIsLoading(false);
+                    }
                     return;
                 }
 
@@ -95,13 +112,11 @@ export function useNativePushNotifications() {
                 } catch (registerError) {
                     console.error('[Native Push] Registration error:', registerError);
                     // Don't crash - just log and continue
-                    setIsLoading(false);
-                    // Delay toast to prevent UI issues
-                    setTimeout(() => {
-                        if (isMounted) {
-                            toast.error('Failed to register for notifications. Please try again later.');
-                        }
-                    }, 1000);
+                    if (isMounted) {
+                        setIsLoading(false);
+                    }
+                    // Don't show toast on Android - might cause crash
+                    // Just log the error
                     return;
                 }
 
@@ -111,9 +126,11 @@ export function useNativePushNotifications() {
 
                     try {
                         console.log('[Native Push] Registration token received:', tokenData.value);
-                        setToken(tokenData.value);
-                        setIsRegistered(true);
-                        setIsLoading(false);
+                        if (isMounted) {
+                            setToken(tokenData.value);
+                            setIsRegistered(true);
+                            setIsLoading(false);
+                        }
 
                         // Send token to server with error handling
                         try {
@@ -145,13 +162,11 @@ export function useNativePushNotifications() {
                 const registrationErrorListener = PushNotifications.addListener('registrationError', (error) => {
                     if (!isMounted) return;
                     console.error('[Native Push] Registration error:', error);
-                    setIsLoading(false);
-                    // Don't show toast immediately - might be too early
-                    setTimeout(() => {
-                        if (isMounted) {
-                            toast.error('Failed to register for push notifications');
-                        }
-                    }, 1000);
+                    if (isMounted) {
+                        setIsLoading(false);
+                    }
+                    // Don't show toast on Android - might cause crash
+                    // Just log the error
                 });
                 listenersRef.current.push(registrationErrorListener);
 
@@ -174,25 +189,34 @@ export function useNativePushNotifications() {
             } catch (error) {
                 console.error('[Native Push] Error registering for push:', error);
                 // Don't crash the app - just disable push notifications
-                setIsSupported(false);
-                setIsLoading(false);
-                // Don't show error toast immediately - might cause issues
+                if (isMounted) {
+                    setIsSupported(false);
+                    setIsLoading(false);
+                }
+                // Don't show error toast - might cause crash
             }
         };
 
         // Delay registration to ensure app is stable after login
-        const timeoutId = setTimeout(() => {
-            registerForPush();
-        }, 2000); // 2 second delay after login
+        // Increased delay to 3 seconds for Android stability
+        timeoutId = setTimeout(() => {
+            if (isMounted) {
+                registerForPush();
+            }
+        }, 3000); // 3 second delay after login
 
         // Cleanup function
         return () => {
-            clearTimeout(timeoutId);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
             isMounted = false;
-            // Remove all listeners
+            // Remove all listeners safely
             listenersRef.current.forEach(listener => {
                 try {
-                    listener.remove();
+                    if (listener && typeof listener.remove === 'function') {
+                        listener.remove();
+                    }
                 } catch (e) {
                     console.warn('[Native Push] Error removing listener:', e);
                 }
