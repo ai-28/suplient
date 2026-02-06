@@ -52,6 +52,9 @@
       "resize": "native",
       "style": "light",
       "resizeOnFullScreen": true
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
     }
   }
 }

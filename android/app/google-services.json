@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "708529223301",
+    "project_id": "suplient-f0e98",
+    "storage_bucket": "suplient-f0e98.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:708529223301:android:14ccfa3a4f4fecbad51bec",
+        "android_client_info": {
+          "package_name": "com.suplient.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkDwMGQCLm1w8NJ7AWdn56EGbIK2UBS2A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
