@@ -459,7 +459,7 @@ function ProgramGenerationStep({ questionnaireData, onComplete, onBack }) {
   // Based on actual test data:
   // - Moderate: 1 week = 46s, 4 weeks = 82s (1 min 22s)
   // - Comprehensive: 1 week = 48s, 4 weeks = 90s (1 min 30s)
-g  // Added 6s buffer to each estimate
+ // Added 6s buffer to each estimate
   const calculateEstimatedTime = () => {
     const { duration, contentDepth, messageFrequency } = questionnaireData;
     
