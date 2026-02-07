@@ -70,7 +70,7 @@ android {
         }
         debug {
             // Debug builds don't need signing
-            applicationIdSuffix ".debug"
+            // Removed applicationIdSuffix to use same package name as release (for Firebase compatibility)
             versionNameSuffix "-debug"
         }
     }
