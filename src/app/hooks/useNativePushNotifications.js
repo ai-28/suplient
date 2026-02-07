@@ -17,6 +17,7 @@ export function useNativePushNotifications() {
     const [token, setToken] = useState(null);
     const listenersRef = useRef([]);
     const hasRegisteredRef = useRef(false);
+    const lastUserIdRef = useRef(null);
 
     // Check support on mount
     useEffect(() => {
@@ -33,6 +34,23 @@ export function useNativePushNotifications() {
             setIsSupported(true);
         }
     }, []);
+
+    // Reset registration flag when user logs out or changes
+    useEffect(() => {
+        if (!session?.user) {
+            // User logged out - reset registration flag
+            hasRegisteredRef.current = false;
+            lastUserIdRef.current = null;
+            setIsRegistered(false);
+            setToken(null);
+        } else if (session.user.id !== lastUserIdRef.current) {
+            // Different user logged in - reset registration flag
+            hasRegisteredRef.current = false;
+            lastUserIdRef.current = session.user.id;
+            setIsRegistered(false);
+            setToken(null);
+        }
+    }, [session?.user?.id]);
 
     // Register for push when session is available
     useEffect(() => {
