@@ -1,0 +1,20 @@
+{
+  "Simulator Target Bundle": "com.suplient.app",
+  "aps": {
+    "alert": {
+      "title": "New Message",
+      "body": "demo: hi"
+    },
+    "sound": "default",
+    "badge": 1
+  },
+  "notificationId": "c0de4576-2017-4121-81d3-08bf1b5761dc",
+  "type": "new_message",
+  "conversationId": "43c6706f-e072-4d42-bc70-74262b680d07",
+  "senderId": "d99b9df9-1905-451f-a797-2cbdd8299b10",
+  "senderName": "demo",
+  "senderRole": "coach",
+  "messageContent": "hi",
+  "messageType": "text",
+  "priority": "normal"
+}
