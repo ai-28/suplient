@@ -1,5 +1,8 @@
 package com.suplient.app;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.os.Build;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -7,10 +10,33 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     private WebViewClient originalWebViewClient;
+    private static final String CHANNEL_ID = "high_importance_channel";
 
     @Override
     public void onCreate(android.os.Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Create notification channel for Android 8.0+ (API 26+)
+        createNotificationChannel();
+    }
+    
+    private void createNotificationChannel() {
+        // Notification channels are only required for Android 8.0 and higher
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "High Importance Notifications";
+            String description = "Notifications for messages and important updates";
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            channel.enableVibration(true);
+            channel.setShowBadge(true);
+            
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
     }
 
     @Override
