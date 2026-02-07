@@ -319,7 +319,7 @@
 				);
 				MARKETING_VERSION = 1.8.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
-				PRODUCT_BUNDLE_IDENTIFIER = com.suplient.suplient;
+				PRODUCT_BUNDLE_IDENTIFIER = com.suplient.user;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -343,7 +343,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.8.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.suplient.suplient;
+				PRODUCT_BUNDLE_IDENTIFIER = com.suplient.user;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";

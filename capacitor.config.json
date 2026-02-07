@@ -1,5 +1,5 @@
 {
-  "appId": "com.suplient.app",
+  "appId": "com.suplient.user",
   "appName": "Suplient",
   "webDir": "www",
   "server": {
@@ -54,7 +54,11 @@
       "resizeOnFullScreen": true
     },
     "PushNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     }
   }
 }
