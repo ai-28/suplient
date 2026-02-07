@@ -92,10 +92,20 @@ export function useNativePushNotifications() {
                                 try {
                                     const { Device } = await import('@capacitor/device');
                                     const deviceInfo = await Device.getId();
-                                    deviceId = deviceInfo.identifier || deviceInfo.uuid || null;
+                                    console.log('[Native Push] Device info:', deviceInfo);
+                                    // Try different possible property names
+                                    deviceId = deviceInfo.identifier ||
+                                        deviceInfo.uuid ||
+                                        deviceInfo.id ||
+                                        null;
+                                    if (deviceId) {
+                                        console.log('[Native Push] Device ID captured:', deviceId);
+                                    } else {
+                                        console.warn('[Native Push] Device ID not found in deviceInfo:', deviceInfo);
+                                    }
                                 } catch (deviceError) {
-                                    console.warn('[Native Push] Could not get device ID:', deviceError);
-                                    // Continue without device ID
+                                    console.error('[Native Push] Error getting device ID:', deviceError);
+                                    // Continue without device ID - push notifications will still work
                                 }
 
                                 const response = await fetch('/api/push/register-native', {
