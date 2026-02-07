@@ -89,7 +89,9 @@ export function useNativePushNotifications() {
 
                 // Set up listeners FIRST before requesting permissions
                 // This ensures listeners are ready when registration completes
+                console.log('[Native Push] Setting up registration listener...');
                 const registrationListener = PushNotifications.addListener('registration', async (tokenData) => {
+                    console.log('[Native Push] ✅ Registration event FIRED!');
                     if (!isMounted) return;
 
                     try {
@@ -160,12 +162,14 @@ export function useNativePushNotifications() {
                 // Listen for registration errors
                 const registrationErrorListener = PushNotifications.addListener('registrationError', (error) => {
                     if (!isMounted) return;
-                    console.error('[Native Push] Registration error:', error);
+                    console.error('[Native Push] Registration error event received:', error);
+                    console.error('[Native Push] Registration error details:', JSON.stringify(error, null, 2));
                     if (isMounted) {
                         setIsLoading(false);
                     }
                 });
                 listenersRef.current.push(registrationErrorListener);
+                console.log('[Native Push] Registration error listener added');
 
                 // Listen for push notifications received (when app is in foreground)
                 const pushReceivedListener = PushNotifications.addListener('pushNotificationReceived', (notification) => {
@@ -222,11 +226,23 @@ export function useNativePushNotifications() {
 
                 // Register with FCM/APNs with error handling
                 try {
+                    console.log(`[Native Push] About to call PushNotifications.register() for ${platform}`);
                     await PushNotifications.register();
                     console.log(`[Native Push] Registration initiated for ${platform}`);
+                    console.log(`[Native Push] Waiting for registration event... (listeners are set up)`);
+
+                    // Add a timeout to detect if event never fires
+                    setTimeout(() => {
+                        if (isMounted && !token) {
+                            console.warn('[Native Push] ⚠️ Registration event not received after 30 seconds');
+                            console.warn('[Native Push] This might indicate the simulator is not generating tokens');
+                        }
+                    }, 30000);
+
                     // Don't set loading to false here - wait for token in registration listener
                 } catch (registerError) {
                     console.error('[Native Push] Registration error:', registerError);
+                    console.error('[Native Push] Registration error details:', JSON.stringify(registerError, null, 2));
                     if (isMounted) {
                         setIsLoading(false);
                     }
