@@ -46,8 +46,8 @@ export function useNativePushNotifications() {
 
         const registerForPush = async () => {
             try {
-                // Short delay to ensure app is ready (reduced from 5s/3s to 1s for better UX)
-                const initialDelay = 1000;
+                // Longer delay for Android to ensure app is fully stable
+                const initialDelay = isAndroid ? 5000 : 3000;
                 await new Promise(resolve => setTimeout(resolve, initialDelay));
 
                 if (!isMounted) return;
@@ -155,14 +155,14 @@ export function useNativePushNotifications() {
                 let permStatus;
                 try {
                     permStatus = await PushNotifications.checkPermissions();
-                    
+
                     if (permStatus.receive !== 'granted') {
                         // Longer delay for Android before requesting permission
                         const permissionDelay = isAndroid ? 1000 : 500;
                         await new Promise(resolve => setTimeout(resolve, permissionDelay));
-                        
+
                         if (!isMounted) return;
-                        
+
                         permStatus = await PushNotifications.requestPermissions();
                     }
                 } catch (permError) {
