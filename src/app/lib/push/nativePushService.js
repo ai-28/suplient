@@ -86,7 +86,7 @@ async function sendFCMNotification(tokens, notification) {
                 priority: notification.priority === 'urgent' ? 'high' : 'normal',
                 notification: {
                     sound: 'default',
-                    channelId: 'default'
+                    channelId: 'high_importance_channel'
                 }
             },
             tokens: tokens.map(t => t.token)

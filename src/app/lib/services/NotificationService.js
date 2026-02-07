@@ -43,28 +43,46 @@ class NotificationService {
                     console.warn('Socket emission failed, notification saved but not emitted:', socketError.message);
                 }
 
-                // Send push notification (web or native based on platform)
+                // Send push notification (web and/or native based on user's tokens)
                 try {
-                    // Dynamic import to check platform
-                    const { isNative, getPlatform } = await import('@/lib/capacitor');
+                    const { sql } = await import('@/app/lib/db/postgresql');
 
-                    if (isNative()) {
-                        // Native push (FCM for Android, APNs for iOS)
+                    // Check what push tokens the user has
+                    const nativeTokens = await sql`
+                        SELECT DISTINCT platform 
+                        FROM "NativePushToken" 
+                        WHERE "userId" = ${notificationData.userId}
+                    `;
+
+                    const webSubscriptions = await sql`
+                        SELECT id 
+                        FROM "PushSubscription" 
+                        WHERE "userId" = ${notificationData.userId}
+                        LIMIT 1
+                    `;
+
+                    // Send native push notifications for each platform the user has tokens for
+                    if (nativeTokens.length > 0) {
                         const { sendNativePushNotification } = await import('@/app/lib/push/nativePushService');
-                        const platform = getPlatform(); // 'ios' or 'android'
-                        console.log(`📨 [Native Push] Attempting to send ${platform} push notification for notification ID: ${result.data.id}`);
-                        const pushResult = await sendNativePushNotification(notificationData.userId, result.data, platform);
-                        console.log(`📨 [Native Push] Push notification result:`, pushResult);
 
-                        if (pushResult.sent === 0 && pushResult.failed === 0) {
-                            console.warn(`⚠️ [Native Push] No ${platform} push tokens found for user ${notificationData.userId}`);
-                        } else if (pushResult.failed > 0) {
-                            console.warn(`⚠️ [Native Push] Some push notifications failed: ${pushResult.failed} failed, ${pushResult.sent} sent`);
-                        } else {
-                            console.log(`✅ [Native Push] Push notification sent successfully: ${pushResult.sent} sent`);
+                        for (const token of nativeTokens) {
+                            const platform = token.platform; // 'ios' or 'android'
+                            console.log(`📨 [Native Push] Attempting to send ${platform} push notification for notification ID: ${result.data.id}`);
+                            const pushResult = await sendNativePushNotification(notificationData.userId, result.data, platform);
+                            console.log(`📨 [Native Push] ${platform} push notification result:`, pushResult);
+
+                            if (pushResult.sent === 0 && pushResult.failed === 0) {
+                                console.warn(`⚠️ [Native Push] No ${platform} push tokens found for user ${notificationData.userId}`);
+                            } else if (pushResult.failed > 0) {
+                                console.warn(`⚠️ [Native Push] Some ${platform} push notifications failed: ${pushResult.failed} failed, ${pushResult.sent} sent`);
+                            } else {
+                                console.log(`✅ [Native Push] ${platform} push notification sent successfully: ${pushResult.sent} sent`);
+                            }
                         }
-                    } else {
-                        // Web push (Web Push API)
+                    }
+
+                    // Send web push notification if user has web subscriptions
+                    if (webSubscriptions.length > 0) {
                         const { sendWebPushNotification } = await import('@/app/lib/push/webPushService');
                         console.log(`📨 [Web Push] Attempting to send web push notification for notification ID: ${result.data.id}`);
                         const pushResult = await sendWebPushNotification(notificationData.userId, result.data);
