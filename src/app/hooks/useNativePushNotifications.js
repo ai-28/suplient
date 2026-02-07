@@ -46,8 +46,8 @@ export function useNativePushNotifications() {
 
         const registerForPush = async () => {
             try {
-                // Longer delay for Android to ensure app is fully stable
-                const initialDelay = isAndroid ? 5000 : 3000;
+                // Short delay to ensure app is ready (reduced from 5s/3s to 1s for better UX)
+                const initialDelay = 1000;
                 await new Promise(resolve => setTimeout(resolve, initialDelay));
 
                 if (!isMounted) return;
@@ -87,12 +87,24 @@ export function useNativePushNotifications() {
                         setTimeout(async () => {
                             if (!isMounted) return;
                             try {
+                                // Get device ID
+                                let deviceId = null;
+                                try {
+                                    const { Device } = await import('@capacitor/device');
+                                    const deviceInfo = await Device.getId();
+                                    deviceId = deviceInfo.identifier || deviceInfo.uuid || null;
+                                } catch (deviceError) {
+                                    console.warn('[Native Push] Could not get device ID:', deviceError);
+                                    // Continue without device ID
+                                }
+
                                 const response = await fetch('/api/push/register-native', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                         token: tokenData.value,
-                                        platform: platform
+                                        platform: platform,
+                                        deviceId: deviceId
                                     })
                                 });
 
