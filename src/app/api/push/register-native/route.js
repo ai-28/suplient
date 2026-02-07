@@ -48,6 +48,7 @@ export async function POST(request) {
                     "updatedAt" = CURRENT_TIMESTAMP
                 WHERE token = ${token}
             `;
+            console.log(`[API] Updated existing native push token for user ${session.user.id}, platform ${platform}`);
         } else {
             // Insert new token
             await sql`
@@ -68,9 +69,10 @@ export async function POST(request) {
                     CURRENT_TIMESTAMP
                 )
             `;
+            console.log(`[API] Inserted new native push token for user ${session.user.id}, platform ${platform}, deviceId: ${deviceId || 'null'}`);
         }
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, message: 'Token registered successfully' });
     } catch (error) {
         console.error('Error registering native push token:', error);
         return NextResponse.json(

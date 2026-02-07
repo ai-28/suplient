@@ -46,8 +46,8 @@ export function useNativePushNotifications() {
 
         const registerForPush = async () => {
             try {
-                // Longer delay for Android to ensure app is fully stable
-                const initialDelay = isAndroid ? 5000 : 3000;
+                // Short delay to ensure app is ready (safe minimum)
+                const initialDelay = 800;
                 await new Promise(resolve => setTimeout(resolve, initialDelay));
 
                 if (!isMounted) return;
@@ -109,9 +109,11 @@ export function useNativePushNotifications() {
                                 });
 
                                 if (response.ok) {
-                                    console.log('[Native Push] Token registered successfully');
+                                    const result = await response.json();
+                                    console.log('[Native Push] Token registered successfully:', result);
                                 } else {
-                                    console.error('[Native Push] Failed to register token');
+                                    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                                    console.error('[Native Push] Failed to register token:', response.status, errorData);
                                 }
                             } catch (error) {
                                 console.error('[Native Push] Error registering token:', error);
@@ -157,8 +159,8 @@ export function useNativePushNotifications() {
                     permStatus = await PushNotifications.checkPermissions();
 
                     if (permStatus.receive !== 'granted') {
-                        // Longer delay for Android before requesting permission
-                        const permissionDelay = isAndroid ? 1000 : 500;
+                        // Small delay before requesting permission (safe minimum)
+                        const permissionDelay = 1000;
                         await new Promise(resolve => setTimeout(resolve, permissionDelay));
 
                         if (!isMounted) return;
@@ -228,9 +230,8 @@ export function useNativePushNotifications() {
             }
         };
 
-        // Delay registration to ensure app is stable after login
-        // Longer delay for Android (5 seconds) vs iOS (3 seconds)
-        const registrationDelay = isAndroid ? 5000 : 3000;
+        // Short delay to ensure app is stable after login (safe minimum)
+        const registrationDelay = 1500;
         timeoutId = setTimeout(() => {
             if (isMounted) {
                 registerForPush();
