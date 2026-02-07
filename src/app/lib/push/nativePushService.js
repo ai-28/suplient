@@ -93,15 +93,15 @@ async function sendFCMNotification(tokens, notification) {
         };
 
         const response = await admin.messaging().sendEachForMulticast(message);
-        
+
         console.log(`📊 [FCM] Push notification summary: ${response.successCount} sent, ${response.failureCount} failed`);
 
         // Remove invalid tokens
         if (response.responses) {
             const invalidTokens = [];
             response.responses.forEach((resp, idx) => {
-                if (!resp.success && (resp.error?.code === 'messaging/invalid-registration-token' || 
-                                     resp.error?.code === 'messaging/registration-token-not-registered')) {
+                if (!resp.success && (resp.error?.code === 'messaging/invalid-registration-token' ||
+                    resp.error?.code === 'messaging/registration-token-not-registered')) {
                     invalidTokens.push(tokens[idx].token);
                 }
             });
@@ -131,21 +131,44 @@ async function sendAPNsNotification(tokens, notification) {
     try {
         // Dynamic import
         const apn = (await import('apn')).default;
+        const fs = (await import('fs')).default;
+        const path = (await import('path')).default;
+
+        // Validate required credentials
+        if (!process.env.APNS_KEY_ID || !process.env.APNS_TEAM_ID) {
+            console.error('❌ [APNs] APNs credentials not configured - missing APNS_KEY_ID or APNS_TEAM_ID');
+            return { sent: 0, failed: tokens.length, error: 'APNs credentials not configured' };
+        }
+
+        // Get the APNs key (either from file path or environment variable)
+        let apnsKey;
+        if (process.env.APNS_KEY_PATH) {
+            // Use key file path
+            const keyPath = path.resolve(process.env.APNS_KEY_PATH);
+            if (!fs.existsSync(keyPath)) {
+                console.error(`❌ [APNs] APNs key file not found at: ${keyPath}`);
+                return { sent: 0, failed: tokens.length, error: 'APNs key file not found' };
+            }
+            apnsKey = keyPath;
+        } else if (process.env.APNS_KEY) {
+            // Use key content from environment variable
+            apnsKey = process.env.APNS_KEY.replace(/\\n/g, '\n');
+        } else {
+            console.error('❌ [APNs] APNs key not configured - provide either APNS_KEY_PATH or APNS_KEY');
+            return { sent: 0, failed: tokens.length, error: 'APNs key not configured' };
+        }
 
         // Initialize APNs provider
         const apnProvider = new apn.Provider({
             token: {
-                key: process.env.APNS_KEY_PATH || process.env.APNS_KEY?.replace(/\\n/g, '\n'),
+                key: apnsKey,
                 keyId: process.env.APNS_KEY_ID,
                 teamId: process.env.APNS_TEAM_ID
             },
             production: process.env.NODE_ENV === 'production'
         });
 
-        if (!process.env.APNS_KEY_ID || !process.env.APNS_TEAM_ID) {
-            console.error('❌ [APNs] APNs credentials not configured');
-            return { sent: 0, failed: tokens.length };
-        }
+        console.log(`✅ [APNs] APNs provider initialized (${process.env.NODE_ENV === 'production' ? 'production' : 'development'})`);
 
         const apnNotification = new apn.Notification();
         apnNotification.alert = {
@@ -165,7 +188,7 @@ async function sendAPNsNotification(tokens, notification) {
         apnNotification.priority = notification.priority === 'urgent' ? 10 : 5;
 
         const results = await apnProvider.send(apnNotification, tokens.map(t => t.token));
-        
+
         let sent = 0;
         let failed = 0;
         const invalidTokens = [];
