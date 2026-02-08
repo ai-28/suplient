@@ -147,6 +147,27 @@ async function sendFCMNotification(tokens, notification) {
  */
 async function sendAPNsNotification(tokens, notification) {
     try {
+        // Validate notification object
+        if (!notification) {
+            console.error('[APNs] ❌ Notification object is undefined or null');
+            return { sent: 0, failed: tokens.length, error: 'Notification object is undefined' };
+        }
+        if (!notification.title || !notification.message) {
+            console.error('[APNs] ❌ Notification object missing required fields:', {
+                hasTitle: !!notification.title,
+                hasMessage: !!notification.message,
+                notification: JSON.stringify(notification, null, 2)
+            });
+            return { sent: 0, failed: tokens.length, error: 'Notification object missing required fields' };
+        }
+
+        console.log('[APNs] ✅ Notification object validated:', {
+            id: notification.id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type
+        });
+
         // Dynamic import
         const apn = (await import('apn')).default;
         const fs = (await import('fs')).default;
