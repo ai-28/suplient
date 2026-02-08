@@ -21,18 +21,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let token = tokenParts.joined()
         print("📱 [AppDelegate] Device token received: \(token)")
         
-        // Forward to Capacitor's PushNotifications plugin via NotificationCenter
+        // Forward to Capacitor's PushNotifications plugin
+        // The plugin listens for this notification and will fire the 'registration' event in JavaScript
         NotificationCenter.default.post(
             name: NSNotification.Name("CAPDidRegisterForRemoteNotificationsWithDeviceToken"),
             object: deviceToken
         )
+        print("📤 [AppDelegate] Posted token to NotificationCenter for Capacitor plugin")
     }
     
     // Handle failure to register for remote notifications
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("❌ [AppDelegate] Failed to register for remote notifications: \(error.localizedDescription)")
         
-        // Forward to Capacitor's PushNotifications plugin via NotificationCenter
+        // Forward error to Capacitor's PushNotifications plugin
         NotificationCenter.default.post(
             name: NSNotification.Name("CAPDidFailToRegisterForRemoteNotificationsWithError"),
             object: error
