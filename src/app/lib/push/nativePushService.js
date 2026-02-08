@@ -274,9 +274,14 @@ async function sendAPNsNotification(tokens, notification) {
         });
 
         const apnNotification = new apn.Notification();
+
+        // Safely construct alert object
+        const alertTitle = notification.title || 'Notification';
+        const alertBody = notification.message || 'You have a new notification';
+
         apnNotification.alert = {
-            title: notification.title,
-            body: notification.message
+            title: alertTitle,
+            body: alertBody
         };
         apnNotification.sound = 'default';
         apnNotification.badge = 1;
@@ -284,11 +289,12 @@ async function sendAPNsNotification(tokens, notification) {
 
         console.log(`📦 [APNs] Notification payload:`, {
             topic: apnNotification.topic,
-            title: apnNotification.alert.title,
-            body: apnNotification.alert.body,
+            title: apnNotification.alert?.title || alertTitle,
+            body: apnNotification.alert?.body || alertBody,
             sound: apnNotification.sound,
             badge: apnNotification.badge,
-            tokenCount: tokens.length
+            tokenCount: tokens.length,
+            hasAlert: !!apnNotification.alert
         });
         apnNotification.payload = {
             notificationId: notification.id,
