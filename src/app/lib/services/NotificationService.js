@@ -45,14 +45,20 @@ class NotificationService {
 
                 // Send push notification (web and/or native based on user's tokens)
                 try {
+                    console.log(`📨 [Notification Service] Checking push tokens for user ${notificationData.userId}`);
                     const { sql } = await import('@/app/lib/db/postgresql');
 
                     // Check what push tokens the user has
+                    console.log(`📨 [Notification Service] Querying native tokens for user ${notificationData.userId}...`);
                     const nativeTokens = await sql`
                         SELECT DISTINCT platform 
                         FROM "NativePushToken" 
                         WHERE "userId" = ${notificationData.userId}
                     `;
+                    console.log(`📨 [Notification Service] Native tokens query result:`, {
+                        count: nativeTokens.length,
+                        platforms: nativeTokens.map(t => t.platform)
+                    });
 
                     const webSubscriptions = await sql`
                         SELECT id 
@@ -60,16 +66,21 @@ class NotificationService {
                         WHERE "userId" = ${notificationData.userId}
                         LIMIT 1
                     `;
+                    console.log(`📨 [Notification Service] Web subscriptions query result:`, {
+                        count: webSubscriptions.length
+                    });
 
                     // Send native push notifications for each platform the user has tokens for
                     if (nativeTokens.length > 0) {
+                        console.log(`📨 [Notification Service] ✅ Found ${nativeTokens.length} native token platform(s), will send native push`);
                         const { sendNativePushNotification } = await import('@/app/lib/push/nativePushService');
 
                         for (const token of nativeTokens) {
                             const platform = token.platform; // 'ios' or 'android'
+                            console.log(`📨 [Notification Service] Processing ${platform} push notification for notification ID: ${result.data.id}`);
                             console.log(`📨 [Native Push] Attempting to send ${platform} push notification for notification ID: ${result.data.id}`);
                             const pushResult = await sendNativePushNotification(notificationData.userId, result.data, platform);
-                            console.log(`📨 [Native Push] ${platform} push notification result:`, pushResult);
+                            console.log(`📨 [Native Push] ${platform} push notification result:`, JSON.stringify(pushResult, null, 2));
 
                             if (pushResult.sent === 0 && pushResult.failed === 0) {
                                 console.warn(`⚠️ [Native Push] No ${platform} push tokens found for user ${notificationData.userId}`);
@@ -79,6 +90,8 @@ class NotificationService {
                                 console.log(`✅ [Native Push] ${platform} push notification sent successfully: ${pushResult.sent} sent`);
                             }
                         }
+                    } else {
+                        console.log(`📨 [Notification Service] ⚠️ No native tokens found for user ${notificationData.userId}, skipping native push`);
                     }
 
                     // Send web push notification if user has web subscriptions
