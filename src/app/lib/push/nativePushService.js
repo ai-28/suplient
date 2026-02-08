@@ -209,14 +209,15 @@ async function sendAPNsNotification(tokens, notification) {
         console.log('[APNs] 🔧 Initializing APNs provider...');
         const providerConfig = {
             token: {
-                key: typeof apnsKey === 'string' && apnsKey.length > 100 ? apnsKey.substring(0, 50) + '...' : 'file path',
+                key: apnsKey, // Pass the actual path or key content directly
                 keyId: process.env.APNS_KEY_ID,
                 teamId: process.env.APNS_TEAM_ID
             },
             production: process.env.NODE_ENV === 'production'
         };
         console.log('[APNs] 🔧 Provider config:', {
-            keyType: typeof apnsKey === 'string' ? 'string (from env)' : 'file path',
+            keyType: typeof apnsKey === 'string' && apnsKey.length > 100 ? 'string (key content)' : 'file path',
+            keyPath: typeof apnsKey === 'string' && apnsKey.length < 200 ? apnsKey : 'key content (hidden)',
             keyId: providerConfig.token.keyId,
             teamId: providerConfig.token.teamId,
             production: providerConfig.production,
