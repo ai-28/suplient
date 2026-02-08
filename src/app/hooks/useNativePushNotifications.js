@@ -231,11 +231,34 @@ export function useNativePushNotifications() {
                     console.log(`[Native Push] Registration initiated for ${platform}`);
                     console.log(`[Native Push] Waiting for registration event... (listeners are set up)`);
 
+                    // For iOS, add a fallback: check if token is already available
+                    if (platform === 'ios') {
+                        // Sometimes iOS provides the token immediately, check after a short delay
+                        setTimeout(async () => {
+                            try {
+                                console.log('[Native Push] iOS fallback: Checking if token was received...');
+                                // Note: Capacitor doesn't have a direct getToken method, but we can check
+                                // if the registration event fired by checking if we have a token
+                                if (!token && isMounted) {
+                                    console.warn('[Native Push] iOS: Token not received yet, registration event may be delayed');
+                                }
+                            } catch (e) {
+                                console.warn('[Native Push] iOS fallback check failed:', e);
+                            }
+                        }, 2000);
+                    }
+
                     // Add a timeout to detect if event never fires
                     setTimeout(() => {
                         if (isMounted && !token) {
                             console.warn('[Native Push] ⚠️ Registration event not received after 30 seconds');
                             console.warn('[Native Push] This might indicate the simulator is not generating tokens');
+                            console.warn('[Native Push] For iOS, ensure:');
+                            console.warn('[Native Push] 1. App is signed with your development team');
+                            console.warn('[Native Push] 2. Push Notifications capability is enabled');
+                            console.warn('[Native Push] 3. App.entitlements has aps-environment set');
+                            console.warn('[Native Push] 4. You are testing on a real device (not simulator)');
+                            console.warn('[Native Push] 5. AppDelegate.swift has push notification delegate methods');
                         }
                     }, 30000);
 

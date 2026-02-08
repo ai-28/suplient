@@ -9,7 +9,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        // Note: Capacitor PushNotifications plugin will handle UNUserNotificationCenter delegate
         return true
+    }
+    
+    // Handle successful registration for remote notifications
+    // This is called by iOS when device token is received
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        // Convert device token to string for logging
+        let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
+        let token = tokenParts.joined()
+        print("📱 [AppDelegate] Device token received: \(token)")
+        
+        // Forward to Capacitor's ApplicationDelegateProxy so plugins can receive it
+        ApplicationDelegateProxy.shared.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+    }
+    
+    // Handle failure to register for remote notifications
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("❌ [AppDelegate] Failed to register for remote notifications: \(error.localizedDescription)")
+        
+        // Forward to Capacitor's ApplicationDelegateProxy so plugins can receive it
+        ApplicationDelegateProxy.shared.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
     }
     
     func applicationDidBecomeActive(_ application: UIApplication) {
