@@ -18,6 +18,7 @@ export function useNativePushNotifications() {
     const listenersRef = useRef([]);
     const hasRegisteredRef = useRef(false);
     const lastUserIdRef = useRef(null);
+    const directTokenHandlerRef = useRef(null);
 
     // Check support on mount
     useEffect(() => {
@@ -90,8 +91,27 @@ export function useNativePushNotifications() {
                 // Set up listeners FIRST before requesting permissions
                 // This ensures listeners are ready when registration completes
                 console.log('[Native Push] Setting up registration listener...');
-                const registrationListener = PushNotifications.addListener('registration', async (tokenData) => {
-                    console.log('[Native Push] ✅ Registration event FIRED!');
+
+                // Fallback: Listen for direct JavaScript event from AppDelegate
+                const handleDirectToken = (event) => {
+                    if (!isMounted) return;
+                    console.log('[Native Push] ✅ Direct token event received from AppDelegate!');
+                    const tokenData = { value: event.detail?.value || event.detail };
+                    if (tokenData.value) {
+                        // Process the token the same way as the plugin event
+                        handleTokenRegistration(tokenData);
+                    }
+                };
+
+                // Store handler in ref for cleanup
+                directTokenHandlerRef.current = handleDirectToken;
+
+                // Add listener for direct token event (fallback)
+                window.addEventListener('pushNotificationRegistration', handleDirectToken);
+                console.log('[Native Push] Added fallback listener for direct token event');
+
+                // Helper function to handle token registration (used by both plugin and direct event)
+                const handleTokenRegistration = async (tokenData) => {
                     if (!isMounted) return;
 
                     try {
@@ -151,11 +171,16 @@ export function useNativePushNotifications() {
                             }
                         }, 1000);
                     } catch (error) {
-                        console.error('[Native Push] Error in registration listener:', error);
+                        console.error('[Native Push] Error in registration handler:', error);
                         if (isMounted) {
                             setIsLoading(false);
                         }
                     }
+                };
+
+                const registrationListener = PushNotifications.addListener('registration', async (tokenData) => {
+                    console.log('[Native Push] ✅ Registration event FIRED!');
+                    await handleTokenRegistration(tokenData);
                 });
                 listenersRef.current.push(registrationListener);
 
@@ -306,6 +331,12 @@ export function useNativePushNotifications() {
                 }
             });
             listenersRef.current = [];
+
+            // Remove direct token event listener
+            if (directTokenHandlerRef.current) {
+                window.removeEventListener('pushNotificationRegistration', directTokenHandlerRef.current);
+                directTokenHandlerRef.current = null;
+            }
         };
     }, [isSupported, session?.user]);
 
