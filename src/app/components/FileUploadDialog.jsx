@@ -209,37 +209,40 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
 
   // Upload a single chunk directly to DigitalOcean Spaces using presigned URL
   // Direct upload bypasses Next.js body size limits (industry standard approach)
-  const uploadChunk = async (chunk, partNumber, filePath, uploadId, onChunkProgress, abortSignal) => {
+  // If presignedUrl is provided, uses it; otherwise fetches it (backward compatibility)
+  const uploadChunk = async (chunk, partNumber, filePath, uploadId, onChunkProgress, abortSignal, presignedUrl = null) => {
     return new Promise(async (resolve, reject) => {
-      // Get presigned URL from server
-      let presignedUrl;
-      try {
-        const partUrlResponse = await fetch('/api/library/upload/part-url', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            filePath,
-            uploadId,
-            partNumber,
-          }),
-          signal: abortSignal,
-        });
+      // Get presigned URL from server if not provided
+      let urlToUse = presignedUrl;
+      if (!urlToUse) {
+        try {
+          const partUrlResponse = await fetch('/api/library/upload/part-url', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filePath,
+              uploadId,
+              partNumber,
+            }),
+            signal: abortSignal,
+          });
 
-        if (!partUrlResponse.ok) {
-          throw new Error(`Failed to get presigned URL for part ${partNumber}`);
+          if (!partUrlResponse.ok) {
+            throw new Error(`Failed to get presigned URL for part ${partNumber}`);
+          }
+
+          const partUrlResult = await partUrlResponse.json();
+          if (!partUrlResult.success) {
+            throw new Error(partUrlResult.error || `Failed to get presigned URL for part ${partNumber}`);
+          }
+
+          urlToUse = partUrlResult.presignedUrl;
+        } catch (error) {
+          reject(new Error(`Failed to get presigned URL: ${error.message}`));
+          return;
         }
-
-        const partUrlResult = await partUrlResponse.json();
-        if (!partUrlResult.success) {
-          throw new Error(partUrlResult.error || `Failed to get presigned URL for part ${partNumber}`);
-        }
-
-        presignedUrl = partUrlResult.presignedUrl;
-      } catch (error) {
-        reject(new Error(`Failed to get presigned URL: ${error.message}`));
-        return;
       }
 
       const xhr = new XMLHttpRequest();
@@ -300,10 +303,55 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       console.log(`[Client] Uploading part ${partNumber} directly to DigitalOcean Spaces (chunk size: ${chunk.size} bytes)`);
 
       // Upload directly to DigitalOcean Spaces (bypasses Next.js body size limit)
-      xhr.open('PUT', presignedUrl);
+      xhr.open('PUT', urlToUse);
       xhr.setRequestHeader('Content-Type', 'application/octet-stream');
       xhr.send(chunk);
     });
+  };
+
+  // Pre-fetch presigned URLs in batches to avoid overwhelming the server
+  const preFetchPresignedUrls = async (filePath, uploadId, totalChunks, abortSignal, batchSize = 10) => {
+    const urlMap = new Map();
+    const chunks = Array.from({ length: totalChunks }, (_, i) => i + 1);
+    
+    // Fetch URLs in batches to avoid overwhelming server
+    for (let i = 0; i < chunks.length; i += batchSize) {
+      const batch = chunks.slice(i, i + batchSize);
+      const batchPromises = batch.map(async (partNumber) => {
+        try {
+          const response = await fetch('/api/library/upload/part-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filePath, uploadId, partNumber }),
+            signal: abortSignal,
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to get presigned URL for part ${partNumber}`);
+          }
+          
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(result.error || `Failed to get presigned URL for part ${partNumber}`);
+          }
+          
+          return { partNumber, url: result.presignedUrl };
+        } catch (error) {
+          // If aborted, throw immediately
+          if (error.name === 'AbortError' || abortSignal?.aborted) {
+            throw error;
+          }
+          throw new Error(`Failed to fetch URL for part ${partNumber}: ${error.message}`);
+        }
+      });
+      
+      const results = await Promise.all(batchPromises);
+      results.forEach(({ partNumber, url }) => {
+        urlMap.set(partNumber, url);
+      });
+    }
+    
+    return urlMap;
   };
 
   // Upload chunks in parallel with progress tracking
@@ -315,7 +363,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     totalChunks,
     onProgress,
     abortSignal,
-    maxParallel = 3
+    maxParallel = 8 // Increased from 3 to 8 for better performance (realistic balance)
   ) => {
     const uploadedParts = [];
     const chunkProgress = new Map(); // Track progress of each chunk
@@ -330,15 +378,28 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       onProgress(overallProgress);
     };
 
+    // Pre-fetch all presigned URLs upfront (optimization: reduces latency)
+    console.log(`🔗 Pre-fetching ${totalChunks} presigned URLs...`);
+    let presignedUrlMap;
+    try {
+      presignedUrlMap = await preFetchPresignedUrls(filePath, uploadId, totalChunks, abortSignal);
+      console.log(`✅ All ${totalChunks} presigned URLs fetched successfully`);
+    } catch (error) {
+      // If pre-fetch fails, fall back to fetching URLs on-demand
+      console.warn(`⚠️ Pre-fetch failed, falling back to on-demand URL fetching: ${error.message}`);
+      presignedUrlMap = null;
+    }
+
     // Function to upload a single chunk with retry
     const uploadChunkWithRetry = async (chunkIndex) => {
       const start = chunkIndex * chunkSize;
       const end = Math.min(start + chunkSize, file.size);
       const chunk = file.slice(start, end);
       const partNumber = chunkIndex + 1;
+      
+      // Use pre-fetched URL if available, otherwise uploadChunk will fetch it
+      const presignedUrl = presignedUrlMap?.get(partNumber) || null;
 
-      // Upload chunk through server proxy (no need to get presigned URL separately)
-      // Server handles getting presigned URL and reading ETag header
       return await retryWithBackoff(async () => {
         return await uploadChunk(
           chunk,
@@ -349,21 +410,46 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
             chunkProgress.set(partNum, progress);
             updateOverallProgress();
           },
-          abortSignal
+          abortSignal,
+          presignedUrl // Pass pre-fetched URL if available
         );
       });
     };
 
-    // Upload chunks in batches (maxParallel at a time)
+    // Upload chunks with controlled concurrency (respects maxParallel limit)
+    // This balances speed with network stability
     const chunks = Array.from({ length: totalChunks }, (_, i) => i);
+    const results = [];
     
+    // Process chunks in batches with controlled concurrency
     for (let i = 0; i < chunks.length; i += maxParallel) {
       const batch = chunks.slice(i, i + maxParallel);
       const batchPromises = batch.map(chunkIndex => uploadChunkWithRetry(chunkIndex));
       
-      const batchResults = await Promise.all(batchPromises);
-      uploadedParts.push(...batchResults);
+      // Wait for batch to complete before starting next batch
+      // This respects maxParallel while still being fast
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      // Process batch results
+      for (let j = 0; j < batchResults.length; j++) {
+        const result = batchResults[j];
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          // If aborted, throw immediately
+          if (abortSignal?.aborted) {
+            throw new Error('Upload cancelled');
+          }
+          // Log error and re-throw to trigger retry mechanism
+          const chunkNum = batch[j] + 1;
+          console.error(`Chunk ${chunkNum} upload failed:`, result.reason);
+          throw new Error(`Failed to upload chunk ${chunkNum}: ${result.reason.message || result.reason}`);
+        }
+      }
     }
+    
+    // All chunks uploaded successfully
+    uploadedParts.push(...results);
 
     // Sort by part number
     uploadedParts.sort((a, b) => a.partNumber - b.partNumber);
@@ -485,7 +571,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           initiateResult.totalChunks,
           (progress) => setUploadProgress(progress), // progress is already 0-100, no need to multiply
           abortController.signal,
-          3 // Max 3 parallel uploads
+          8 // Max 8 parallel uploads (optimized for performance)
         );
       } else {
         // Single PUT upload for smaller files
