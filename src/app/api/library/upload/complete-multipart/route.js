@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import authOptions from "@/app/lib/authoption";
-import { completeMultipartUpload, abortMultipartUpload, getCdnUrl, setFilePublic } from "@/app/lib/s3Client";
+import { completeMultipartUpload, abortMultipartUpload, getCdnUrl, setFilePublic, listUploadedParts } from "@/app/lib/s3Client";
 import { userRepo } from "@/app/lib/db/userRepo";
 import { saveVideo, saveImage, savePDF, saveSound } from "@/app/lib/db/resourceRepo.js";
 
@@ -57,10 +57,42 @@ export async function POST(request) {
         }
 
         // Format parts for S3 (must have PartNumber and ETag)
-        const formattedParts = parts.map(part => ({
+        // If any parts are missing ETags (due to CORS), list them from S3
+        let formattedParts = parts.map(part => ({
             PartNumber: part.partNumber,
             ETag: part.etag,
         }));
+
+        // Check if any parts are missing ETags (null or undefined)
+        const missingEtags = formattedParts.filter(part => !part.ETag);
+        if (missingEtags.length > 0) {
+            console.log(`⚠️ ${missingEtags.length} parts missing ETags, listing from DigitalOcean Spaces...`);
+            // List all uploaded parts from S3 to get ETags
+            const uploadedParts = await listUploadedParts(filePath, uploadId);
+            
+            // Create a map of part numbers to ETags
+            const etagMap = new Map();
+            uploadedParts.forEach(part => {
+                etagMap.set(part.PartNumber, part.ETag);
+            });
+
+            // Fill in missing ETags
+            formattedParts = formattedParts.map(part => {
+                if (!part.ETag && etagMap.has(part.PartNumber)) {
+                    return {
+                        PartNumber: part.PartNumber,
+                        ETag: etagMap.get(part.PartNumber),
+                    };
+                }
+                return part;
+            });
+
+            // Verify all parts now have ETags
+            const stillMissing = formattedParts.filter(part => !part.ETag);
+            if (stillMissing.length > 0) {
+                throw new Error(`Missing ETags for parts: ${stillMissing.map(p => p.PartNumber).join(', ')}`);
+            }
+        }
 
         // Complete multipart upload
         let completeResult;

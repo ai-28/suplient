@@ -15,9 +15,23 @@ const FILE_SIZE_LIMITS = {
     sounds: 200 * 1024 * 1024,    // 200MB
 };
 
-// Chunk size for multipart uploads (5MB)
-// 5MB is optimal for Next.js body size limits and matches AWS/DigitalOcean best practices
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+// Function to calculate optimal chunk size based on file size
+// Best practices: 10MB for 100MB-1GB, 25MB for 1GB-5GB, 100MB for >5GB
+function getOptimalChunkSize(fileSize) {
+    const ONE_GB = 1024 * 1024 * 1024; // 1GB
+    const FIVE_GB = 5 * 1024 * 1024 * 1024; // 5GB
+
+    if (fileSize < ONE_GB) {
+        // 100MB - 1GB: Use 10MB chunks (optimal for most videos)
+        return 10 * 1024 * 1024; // 10MB
+    } else if (fileSize < FIVE_GB) {
+        // 1GB - 5GB: Use 25MB chunks
+        return 25 * 1024 * 1024; // 25MB
+    } else {
+        // > 5GB: Use 100MB chunks
+        return 100 * 1024 * 1024; // 100MB
+    }
+}
 
 // Threshold for using multipart upload (files larger than this use multipart)
 const MULTIPART_THRESHOLD = 100 * 1024 * 1024; // 100MB
@@ -90,8 +104,13 @@ export async function POST(request) {
             // Initiate multipart upload
             const uploadId = await createMultipartUpload(filePath, fileType);
 
+            // Calculate optimal chunk size based on file size
+            const chunkSize = getOptimalChunkSize(fileSize);
+
             // Calculate number of chunks
-            const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+            const totalChunks = Math.ceil(fileSize / chunkSize);
+
+            console.log(`📦 Multipart upload initiated: fileSize=${(fileSize / 1024 / 1024).toFixed(2)}MB, chunkSize=${(chunkSize / 1024 / 1024).toFixed(2)}MB, totalChunks=${totalChunks}`);
 
             return NextResponse.json({
                 success: true,
@@ -100,7 +119,7 @@ export async function POST(request) {
                 filePath,
                 fileName: uniqueFileName,
                 publicUrl: getCdnUrl(filePath),
-                chunkSize: CHUNK_SIZE,
+                chunkSize: chunkSize, // Dynamic chunk size based on file size
                 totalChunks,
                 expiresIn: 3600, // 1 hour
             });

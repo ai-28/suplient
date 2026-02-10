@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand, PutBucketCorsCommand, PutObjectAclCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, HeadObjectCommand, PutBucketCorsCommand, PutObjectAclCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, DeleteObjectCommand, ListPartsCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import https from 'https';
 
@@ -187,6 +187,22 @@ export async function abortMultipartUpload(filePath, uploadId) {
         console.log(`✅ Aborted multipart upload: ${filePath}`);
     } catch (error) {
         console.error(`❌ Error aborting multipart upload: ${filePath}`, error);
+    }
+}
+
+// List uploaded parts for a multipart upload (used when ETags are not available from browser)
+export async function listUploadedParts(filePath, uploadId) {
+    try {
+        const command = new ListPartsCommand({
+            Bucket: process.env.DO_SPACES_BUCKET,
+            Key: filePath,
+            UploadId: uploadId,
+        });
+        const response = await s3Client.send(command);
+        return response.Parts || [];
+    } catch (error) {
+        console.error('Error listing uploaded parts:', error);
+        throw error;
     }
 }
 

@@ -207,10 +207,41 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     });
   };
 
-  // Upload a single chunk with progress tracking via server proxy
-  // Server-side proxy allows reading ETag header (CORS-safe approach)
+  // Upload a single chunk directly to DigitalOcean Spaces using presigned URL
+  // Direct upload bypasses Next.js body size limits (industry standard approach)
   const uploadChunk = async (chunk, partNumber, filePath, uploadId, onChunkProgress, abortSignal) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      // Get presigned URL from server
+      let presignedUrl;
+      try {
+        const partUrlResponse = await fetch('/api/library/upload/part-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filePath,
+            uploadId,
+            partNumber,
+          }),
+          signal: abortSignal,
+        });
+
+        if (!partUrlResponse.ok) {
+          throw new Error(`Failed to get presigned URL for part ${partNumber}`);
+        }
+
+        const partUrlResult = await partUrlResponse.json();
+        if (!partUrlResult.success) {
+          throw new Error(partUrlResult.error || `Failed to get presigned URL for part ${partNumber}`);
+        }
+
+        presignedUrl = partUrlResult.presignedUrl;
+      } catch (error) {
+        reject(new Error(`Failed to get presigned URL: ${error.message}`));
+        return;
+      }
+
       const xhr = new XMLHttpRequest();
 
       // Handle abort
@@ -232,23 +263,20 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       // Handle completion
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            if (response.success) {
-              resolve({ partNumber, etag: response.etag });
-            } else {
-              reject(new Error(response.error || `Failed to upload part ${partNumber}`));
-            }
-          } catch (error) {
-            reject(new Error(`Failed to parse response for part ${partNumber}: ${error.message}`));
+          // Try to read ETag from response headers
+          // Note: This may fail due to CORS, but we'll handle that server-side
+          let etag = xhr.getResponseHeader('ETag') || xhr.getResponseHeader('etag');
+          
+          if (etag) {
+            // Successfully got ETag from browser
+            resolve({ partNumber, etag: etag.replace(/"/g, '') });
+          } else {
+            // ETag not accessible due to CORS - server will handle this
+            // Return partNumber, server will list parts to get ETag
+            resolve({ partNumber, etag: null });
           }
         } else {
-          try {
-            const errorResponse = JSON.parse(xhr.responseText);
-            reject(new Error(errorResponse.error || `Chunk ${partNumber} upload failed with status ${xhr.status}`));
-          } catch {
-            reject(new Error(`Chunk ${partNumber} upload failed with status ${xhr.status}: ${xhr.statusText}`));
-          }
+          reject(new Error(`Chunk ${partNumber} upload failed with status ${xhr.status}: ${xhr.statusText}`));
         }
       });
 
@@ -269,18 +297,12 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       // Set timeout (10 minutes per chunk)
       xhr.timeout = 10 * 60 * 1000;
 
-      // Create FormData for server-side proxy upload
-      const formData = new FormData();
-      formData.append('filePath', filePath);
-      formData.append('uploadId', uploadId);
-      formData.append('partNumber', partNumber.toString());
-      formData.append('chunk', chunk);
+      console.log(`[Client] Uploading part ${partNumber} directly to DigitalOcean Spaces (chunk size: ${chunk.size} bytes)`);
 
-      console.log(`[Client] Uploading part ${partNumber} through server proxy (chunk size: ${chunk.size} bytes)`);
-
-      // Upload through server proxy (server can read ETag from S3)
-      xhr.open('POST', '/api/library/upload/upload-part');
-      xhr.send(formData);
+      // Upload directly to DigitalOcean Spaces (bypasses Next.js body size limit)
+      xhr.open('PUT', presignedUrl);
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      xhr.send(chunk);
     });
   };
 
