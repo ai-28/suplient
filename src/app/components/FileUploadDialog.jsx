@@ -379,11 +379,11 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     };
 
     // Pre-fetch all presigned URLs upfront (optimization: reduces latency)
-    console.log(`🔗 Pre-fetching ${totalChunks} presigned URLs...`);
+    console.log(`🔗 [OPTIMIZED] Pre-fetching ${totalChunks} presigned URLs (maxParallel: ${maxParallel})...`);
     let presignedUrlMap;
     try {
       presignedUrlMap = await preFetchPresignedUrls(filePath, uploadId, totalChunks, abortSignal);
-      console.log(`✅ All ${totalChunks} presigned URLs fetched successfully`);
+      console.log(`✅ [OPTIMIZED] All ${totalChunks} presigned URLs fetched successfully, starting ${maxParallel} parallel uploads`);
     } catch (error) {
       // If pre-fetch fails, fall back to fetching URLs on-demand
       console.warn(`⚠️ Pre-fetch failed, falling back to on-demand URL fetching: ${error.message}`);
@@ -424,11 +424,16 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     // Process chunks in batches with controlled concurrency
     for (let i = 0; i < chunks.length; i += maxParallel) {
       const batch = chunks.slice(i, i + maxParallel);
+      const batchPartNumbers = batch.map(idx => idx + 1);
+      console.log(`📤 [BATCH ${Math.floor(i / maxParallel) + 1}] Starting ${batch.length} parallel uploads: parts ${batchPartNumbers.join(', ')}`);
+      
       const batchPromises = batch.map(chunkIndex => uploadChunkWithRetry(chunkIndex));
       
       // Wait for batch to complete before starting next batch
       // This respects maxParallel while still being fast
       const batchResults = await Promise.allSettled(batchPromises);
+      
+      console.log(`✅ [BATCH ${Math.floor(i / maxParallel) + 1}] Completed ${batch.length} uploads`);
       
       // Process batch results
       for (let j = 0; j < batchResults.length; j++) {
