@@ -207,8 +207,9 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     });
   };
 
-  // Upload a single chunk with progress tracking
-  const uploadChunk = async (presignedUrl, chunk, partNumber, onChunkProgress, abortSignal) => {
+  // Upload a single chunk with progress tracking via server proxy
+  // Server-side proxy allows reading ETag header (CORS-safe approach)
+  const uploadChunk = async (chunk, partNumber, filePath, uploadId, onChunkProgress, abortSignal) => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
@@ -231,15 +232,23 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       // Handle completion
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          // Extract ETag from response headers (required for multipart completion)
-          const etag = xhr.getResponseHeader('ETag') || xhr.getResponseHeader('etag');
-          if (!etag) {
-            reject(new Error(`Missing ETag in response for part ${partNumber}`));
-            return;
+          try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.success) {
+              resolve({ partNumber, etag: response.etag });
+            } else {
+              reject(new Error(response.error || `Failed to upload part ${partNumber}`));
+            }
+          } catch (error) {
+            reject(new Error(`Failed to parse response for part ${partNumber}: ${error.message}`));
           }
-          resolve({ partNumber, etag: etag.replace(/"/g, '') }); // Remove quotes from ETag
         } else {
-          reject(new Error(`Chunk ${partNumber} upload failed with status ${xhr.status}: ${xhr.statusText}`));
+          try {
+            const errorResponse = JSON.parse(xhr.responseText);
+            reject(new Error(errorResponse.error || `Chunk ${partNumber} upload failed with status ${xhr.status}`));
+          } catch {
+            reject(new Error(`Chunk ${partNumber} upload failed with status ${xhr.status}: ${xhr.statusText}`));
+          }
         }
       });
 
@@ -260,9 +269,18 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       // Set timeout (10 minutes per chunk)
       xhr.timeout = 10 * 60 * 1000;
 
-      // Start upload
-      xhr.open('PUT', presignedUrl);
-      xhr.send(chunk);
+      // Create FormData for server-side proxy upload
+      const formData = new FormData();
+      formData.append('filePath', filePath);
+      formData.append('uploadId', uploadId);
+      formData.append('partNumber', partNumber.toString());
+      formData.append('chunk', chunk);
+
+      console.log(`[Client] Uploading part ${partNumber} through server proxy (chunk size: ${chunk.size} bytes)`);
+
+      // Upload through server proxy (server can read ETag from S3)
+      xhr.open('POST', '/api/library/upload/upload-part');
+      xhr.send(formData);
     });
   };
 
@@ -297,35 +315,14 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       const chunk = file.slice(start, end);
       const partNumber = chunkIndex + 1;
 
-      // Get presigned URL for this chunk
-      const partUrlResponse = await fetch('/api/library/upload/part-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filePath,
-          uploadId,
-          partNumber,
-        }),
-        signal: abortSignal,
-      });
-
-      if (!partUrlResponse.ok) {
-        throw new Error(`Failed to get presigned URL for part ${partNumber}`);
-      }
-
-      const partUrlResult = await partUrlResponse.json();
-      if (!partUrlResult.success) {
-        throw new Error(partUrlResult.error || `Failed to get presigned URL for part ${partNumber}`);
-      }
-
-      // Upload chunk with retry
+      // Upload chunk through server proxy (no need to get presigned URL separately)
+      // Server handles getting presigned URL and reading ETag header
       return await retryWithBackoff(async () => {
         return await uploadChunk(
-          partUrlResult.presignedUrl,
           chunk,
           partNumber,
+          filePath,
+          uploadId,
           (partNum, progress) => {
             chunkProgress.set(partNum, progress);
             updateOverallProgress();
@@ -464,7 +461,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           initiateResult.uploadId,
           initiateResult.chunkSize,
           initiateResult.totalChunks,
-          (progress) => setUploadProgress(progress * 100),
+          (progress) => setUploadProgress(progress), // progress is already 0-100, no need to multiply
           abortController.signal,
           3 // Max 3 parallel uploads
         );
