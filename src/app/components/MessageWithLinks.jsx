@@ -66,7 +66,14 @@ export function MessageWithLinks({ messageText, className = "" }) {
         href={linkUrl}
         target={isFile ? undefined : "_blank"}
         rel={isFile ? undefined : "noopener noreferrer"}
-        className="text-blue-500 dark:text-blue-400 underline hover:text-blue-600 dark:hover:text-blue-300 font-medium cursor-pointer break-all"
+        className="underline font-medium cursor-pointer break-all"
+        style={{ color: '#001583' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '0.8';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '1';
+        }}
         onClick={(e) => {
           e.preventDefault();
           if (linkUrl) {
