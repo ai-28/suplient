@@ -247,10 +247,33 @@ export async function POST(request) {
 
         // Add PDF reference to message data
         const messageData = element.data || {};
-        const messageText = messageData.message || '';
+        let messageText = messageData.message || '';
 
         // Get PDF URL from the resource
         const pdfUrl = docResource.url || '';
+
+        // Remove any existing markdown links or references that contain the document title
+        // This prevents showing the document name twice (once in old format, once in new format)
+        const docTitle = docResource.title || '';
+        if (docTitle && messageText) {
+          // Escape special regex characters in the document title
+          const titleEscaped = docTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+          // Remove markdown links that contain the document title: [document title](url) or [text with document title](url)
+          const linkPattern = new RegExp(`\\[([^\\]]*${titleEscaped}[^\\]]*)\\]\\([^\\)]+\\)`, 'gi');
+          messageText = messageText.replace(linkPattern, '').trim();
+
+          // Remove any lines containing "You can find" or "detailed guide" with the document title
+          const guidePattern = new RegExp(`[^\\n]*You can find[^\\n]*${titleEscaped}[^\\n]*`, 'gi');
+          messageText = messageText.replace(guidePattern, '').trim();
+
+          // Remove any lines containing "in your Library" with the document title
+          const libraryPattern = new RegExp(`[^\\n]*${titleEscaped}[^\\n]*in your Library[^\\n]*`, 'gi');
+          messageText = messageText.replace(libraryPattern, '').trim();
+
+          // Clean up multiple consecutive newlines
+          messageText = messageText.replace(/\n{3,}/g, '\n\n').trim();
+        }
 
         // Append PDF reference with clickable link format
         // Using markdown-style link format: [text](url) - URL is hidden, only text is shown and clickable
