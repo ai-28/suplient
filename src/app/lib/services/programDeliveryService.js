@@ -143,6 +143,28 @@ export async function checkElementsDelivered(enrollmentId, elementIds, programDa
 }
 
 /**
+ * Get file type link text based on file extension
+ * @param {string} url - File URL
+ * @returns {string} Link text based on file type
+ */
+function getFileTypeLinkText(url) {
+    if (!url) return 'Go to your document';
+
+    const fileName = url.split('/').pop() || '';
+    const fileExtension = fileName.split('.').pop()?.toLowerCase()?.split('?')[0] || '';
+
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension)) {
+        return 'Go to your image';
+    } else if (['mp4', 'avi', 'mov', 'wmv', 'webm'].includes(fileExtension)) {
+        return 'Go to your video';
+    } else if (['mp3', 'wav', 'ogg', 'm4a', 'aac'].includes(fileExtension)) {
+        return 'Go to your voice file';
+    } else {
+        return 'Go to your document';
+    }
+}
+
+/**
  * Format combined message from elements
  * @param {Array} elements - Array of program elements
  * @param {number} programDay - Program day
@@ -190,7 +212,8 @@ export function formatCombinedMessage(elements, programDay, clientName = '') {
 
             if (file.elementData?.url || file.elementData?.fileUrl) {
                 const url = file.elementData.url || file.elementData.fileUrl;
-                parts.push(`\n📄 You can find the detailed guide [${fileTitle}](${url}) in your Library.`);
+                const linkText = getFileTypeLinkText(url);
+                parts.push(`\n📄 You can find the detailed guide in the library. [${linkText}](${url})`);
             } else {
                 parts.push(`\n📄 ${fileTitle}`);
             }

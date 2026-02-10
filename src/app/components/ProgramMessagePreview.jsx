@@ -7,6 +7,28 @@ import { X } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 
 /**
+ * Get file type link text based on file extension
+ * @param {string} url - File URL
+ * @returns {string} Link text based on file type
+ */
+function getFileTypeLinkText(url) {
+  if (!url) return 'Go to your document';
+  
+  const fileName = url.split('/').pop() || '';
+  const fileExtension = fileName.split('.').pop()?.toLowerCase()?.split('?')[0] || '';
+  
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension)) {
+    return 'Go to your image';
+  } else if (['mp4', 'avi', 'mov', 'wmv', 'webm'].includes(fileExtension)) {
+    return 'Go to your video';
+  } else if (['mp3', 'wav', 'ogg', 'm4a', 'aac'].includes(fileExtension)) {
+    return 'Go to your voice file';
+  } else {
+    return 'Go to your document';
+  }
+}
+
+/**
  * Preview component that shows how the program message will appear to clients
  * Matches the exact styling of the chat interface
  */
@@ -115,7 +137,8 @@ export function ProgramMessagePreview({ elements, programDay, onClose, isMobile 
         
         if (elementData?.url || elementData?.fileUrl) {
           const url = elementData.url || elementData.fileUrl;
-          parts.push(`\n📄 You can find the detailed guide [${fileTitle}](${url}) in your Library.`);
+          const linkText = getFileTypeLinkText(url);
+          parts.push(`\n📄 You can find the detailed guide in the library. [${linkText}](${url})`);
         } else {
           parts.push(`\n📄 ${fileTitle}`);
         }
