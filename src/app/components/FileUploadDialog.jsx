@@ -363,7 +363,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     totalChunks,
     onProgress,
     abortSignal,
-    maxParallel = 8 // Increased from 3 to 8 for better performance (realistic balance)
+    maxParallel = 6 // Optimal balance: fast uploads + safe for multiple concurrent users
   ) => {
     const uploadedParts = [];
     const chunkProgress = new Map(); // Track progress of each chunk
@@ -416,48 +416,72 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       });
     };
 
-    // Upload chunks with controlled concurrency (respects maxParallel limit)
-    // This balances speed with network stability
+    // Progressive concurrency: Maintains constant pool of active uploads
+    // Starts next chunk immediately when one completes (faster than sequential batching)
+    // Safer than starting all at once (respects maxConcurrent limit)
     const chunks = Array.from({ length: totalChunks }, (_, i) => i);
     const results = [];
+    const maxConcurrent = Math.min(maxParallel, 6); // Cap at 6 for safety with multiple users
     
-    // Process chunks in batches with controlled concurrency
-    for (let i = 0; i < chunks.length; i += maxParallel) {
-      const batch = chunks.slice(i, i + maxParallel);
-      const batchPartNumbers = batch.map(idx => idx + 1);
-      console.log(`📤 [BATCH ${Math.floor(i / maxParallel) + 1}] Starting ${batch.length} parallel uploads: parts ${batchPartNumbers.join(', ')}`);
+    console.log(`🚀 Starting progressive upload: ${totalChunks} chunks, max ${maxConcurrent} concurrent`);
+    
+    // Queue-based approach: maintain active pool, start next when one completes
+    const uploadPromises = [];
+    let nextChunkIndex = 0;
+    
+    // Process all chunks with progressive concurrency
+    while (nextChunkIndex < chunks.length || uploadPromises.length > 0) {
+      // Start new uploads up to maxConcurrent limit
+      while (uploadPromises.length < maxConcurrent && nextChunkIndex < chunks.length) {
+        const chunkIndex = nextChunkIndex++;
+        const partNumber = chunkIndex + 1;
+        
+        const uploadPromise = uploadChunkWithRetry(chunkIndex)
+          .then((result) => {
+            // Remove from active pool when done
+            const index = uploadPromises.indexOf(uploadPromise);
+            if (index > -1) {
+              uploadPromises.splice(index, 1);
+            }
+            results.push(result);
+            return result;
+          })
+          .catch((error) => {
+            // Remove from active pool on error
+            const index = uploadPromises.indexOf(uploadPromise);
+            if (index > -1) {
+              uploadPromises.splice(index, 1);
+            }
+            
+            // If aborted, throw immediately
+            if (abortSignal?.aborted || error.message?.includes('cancelled')) {
+              throw new Error('Upload cancelled');
+            }
+            
+            // Re-throw to trigger retry mechanism
+            console.error(`Chunk ${partNumber} upload failed:`, error);
+            throw error;
+          });
+        
+        uploadPromises.push(uploadPromise);
+      }
       
-      const batchPromises = batch.map(chunkIndex => uploadChunkWithRetry(chunkIndex));
+      // Wait for at least one upload to complete before starting next
+      if (uploadPromises.length > 0) {
+        await Promise.race(uploadPromises);
+      }
       
-      // Wait for batch to complete before starting next batch
-      // This respects maxParallel while still being fast
-      const batchResults = await Promise.allSettled(batchPromises);
-      
-      console.log(`✅ [BATCH ${Math.floor(i / maxParallel) + 1}] Completed ${batch.length} uploads`);
-      
-      // Process batch results
-      for (let j = 0; j < batchResults.length; j++) {
-        const result = batchResults[j];
-        if (result.status === 'fulfilled') {
-          results.push(result.value);
-        } else {
-          // If aborted, throw immediately
-          if (abortSignal?.aborted) {
-            throw new Error('Upload cancelled');
-          }
-          // Log error and re-throw to trigger retry mechanism
-          const chunkNum = batch[j] + 1;
-          console.error(`Chunk ${chunkNum} upload failed:`, result.reason);
-          throw new Error(`Failed to upload chunk ${chunkNum}: ${result.reason.message || result.reason}`);
-        }
+      // Check for abort
+      if (abortSignal?.aborted) {
+        throw new Error('Upload cancelled');
       }
     }
     
-    // All chunks uploaded successfully
+    console.log(`✅ All ${totalChunks} chunks uploaded successfully`);
+    
+    // Sort results by part number before adding to uploadedParts
+    results.sort((a, b) => a.partNumber - b.partNumber);
     uploadedParts.push(...results);
-
-    // Sort by part number
-    uploadedParts.sort((a, b) => a.partNumber - b.partNumber);
     
     return uploadedParts;
   };
@@ -576,7 +600,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           initiateResult.totalChunks,
           (progress) => setUploadProgress(progress), // progress is already 0-100, no need to multiply
           abortController.signal,
-          8 // Max 8 parallel uploads (optimized for performance)
+          6 // Max 6 concurrent uploads (optimal balance: speed + multi-user safety)
         );
       } else {
         // Single PUT upload for smaller files
