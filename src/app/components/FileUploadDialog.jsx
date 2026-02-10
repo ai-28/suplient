@@ -363,7 +363,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     totalChunks,
     onProgress,
     abortSignal,
-    maxParallel = 6 // Increased from 3 to 8 for better performance (realistic balance)
+    maxParallel = 6 // Default to 6 concurrent uploads per coach (good balance of speed & stability)
   ) => {
     const uploadedParts = [];
     const chunkProgress = new Map(); // Track progress of each chunk
@@ -416,43 +416,43 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       });
     };
 
-    // Upload chunks with controlled concurrency (respects maxParallel limit)
-    // This balances speed with network stability
+    // Progressive concurrency: keep up to maxParallel uploads running until all chunks are done
+    // This is more efficient than strict batching but still caps per-coach load
     const chunks = Array.from({ length: totalChunks }, (_, i) => i);
     const results = [];
-    
-    // Process chunks in batches with controlled concurrency
-    for (let i = 0; i < chunks.length; i += maxParallel) {
-      const batch = chunks.slice(i, i + maxParallel);
-      const batchPartNumbers = batch.map(idx => idx + 1);
-      console.log(`📤 [BATCH ${Math.floor(i / maxParallel) + 1}] Starting ${batch.length} parallel uploads: parts ${batchPartNumbers.join(', ')}`);
-      
-      const batchPromises = batch.map(chunkIndex => uploadChunkWithRetry(chunkIndex));
-      
-      // Wait for batch to complete before starting next batch
-      // This respects maxParallel while still being fast
-      const batchResults = await Promise.allSettled(batchPromises);
-      
-      console.log(`✅ [BATCH ${Math.floor(i / maxParallel) + 1}] Completed ${batch.length} uploads`);
-      
-      // Process batch results
-      for (let j = 0; j < batchResults.length; j++) {
-        const result = batchResults[j];
-        if (result.status === 'fulfilled') {
-          results.push(result.value);
-        } else {
-          // If aborted, throw immediately
-          if (abortSignal?.aborted) {
-            throw new Error('Upload cancelled');
-          }
-          // Log error and re-throw to trigger retry mechanism
-          const chunkNum = batch[j] + 1;
-          console.error(`Chunk ${chunkNum} upload failed:`, result.reason);
-          throw new Error(`Failed to upload chunk ${chunkNum}: ${result.reason.message || result.reason}`);
+    let nextIndex = 0;
+
+    const workerCount = Math.min(maxParallel, chunks.length);
+
+    const runWorker = async (workerId) => {
+      while (true) {
+        if (abortSignal?.aborted) {
+          throw new Error('Upload cancelled');
         }
+
+        const currentIndex = nextIndex++;
+        if (currentIndex >= chunks.length) {
+          // No more chunks to process
+          return;
+        }
+
+        const partNumber = currentIndex + 1;
+        console.log(`📤 [WORKER ${workerId}] Uploading part ${partNumber}`);
+
+        const result = await uploadChunkWithRetry(currentIndex);
+        results.push(result);
       }
+    };
+
+    // Start workers (each maintains up to one active upload, total capped by workerCount)
+    const workers = [];
+    for (let i = 0; i < workerCount; i++) {
+      workers.push(runWorker(i + 1));
     }
-    
+
+    // Wait for all workers to finish
+    await Promise.all(workers);
+
     // All chunks uploaded successfully
     uploadedParts.push(...results);
 
