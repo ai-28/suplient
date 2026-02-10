@@ -3,6 +3,11 @@ import { getServerSession } from "next-auth";
 import authOptions from "@/app/lib/authoption";
 import { generatePartPresignedUrl } from "@/app/lib/s3Client";
 
+// Configure route to handle large file uploads (up to 50MB chunks)
+// This allows the route to accept larger request bodies
+export const runtime = 'nodejs';
+export const maxDuration = 600; // 10 minutes timeout for large uploads
+
 export async function POST(request) {
     try {
         const session = await getServerSession(authOptions);
@@ -39,10 +44,12 @@ export async function POST(request) {
         console.log(`✅ Presigned URL generated for part ${partNumber}`);
 
         // Convert chunk to ArrayBuffer for upload
+        // Using arrayBuffer() handles large files efficiently
         const chunkBuffer = await chunk.arrayBuffer();
-        console.log(`📦 Uploading chunk ${partNumber} to S3 (${chunkBuffer.byteLength} bytes)...`);
+        console.log(`📦 Uploading chunk ${partNumber} to DigitalOcean Spaces (${chunkBuffer.byteLength} bytes)...`);
 
-        // Upload chunk to S3 server-side (server can read ETag header)
+        // Upload chunk to DigitalOcean Spaces server-side (server can read ETag header)
+        // Server-to-server communication has no CORS restrictions
         const uploadResponse = await fetch(presignedUrl, {
             method: 'PUT',
             body: chunkBuffer,

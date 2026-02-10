@@ -15,8 +15,9 @@ const FILE_SIZE_LIMITS = {
     sounds: 200 * 1024 * 1024,    // 200MB
 };
 
-// Chunk size for multipart uploads (20MB)
-const CHUNK_SIZE = 20 * 1024 * 1024; // 20MB
+// Chunk size for multipart uploads (5MB)
+// 5MB is optimal for Next.js body size limits and matches AWS/DigitalOcean best practices
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 
 // Threshold for using multipart upload (files larger than this use multipart)
 const MULTIPART_THRESHOLD = 100 * 1024 * 1024; // 100MB
