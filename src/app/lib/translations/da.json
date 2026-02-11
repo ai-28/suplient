@@ -96,6 +96,17 @@
             "at": "kl.",
             "minutes": "minutter"
         },
+        "days": {
+            "monday": "Mandag",
+            "tuesday": "Tirsdag",
+            "wednesday": "Onsdag",
+            "thursday": "Torsdag",
+            "friday": "Fredag",
+            "saturday": "Lørdag",
+            "sunday": "Søndag"
+        },
+        "note": "Bemærk",
+        "preview": "Forhåndsvisning",
         "notSpecified": "Ikke angivet",
         "total": "I alt",
         "noDescription": "Ingen beskrivelse"
@@ -379,6 +390,12 @@
         "noDueDate": "Ingen forfaldsdato",
         "daysAgo": "dage siden",
         "loading": "Indlæser opgaver...",
+        "taskTitle": "Opgavetitel",
+        "enterTaskTitle": "Indtast opgavetitel...",
+        "describeWhatNeedsToBeDone": "Beskriv hvad der skal gøres...",
+        "assignTo": "Tildel Til",
+        "assignToClient": "Tildel til Klient",
+        "assignToMeCoach": "Tildel til Mig (Træner)",
         "errorLoading": "Fejl ved indlæsning af opgaver",
         "noTasks": "Ingen opgaver fundet",
         "noCompleted": "Du har ikke fuldført nogen opgaver endnu.",
@@ -1242,7 +1259,19 @@
         "shareMessageOptional": "Del Besked (Valgfri)",
         "addPersonalMessage": "Tilføj en personlig besked til at ledsage disse filer...",
         "filesSelected": "filer valgt",
-        "fileSelected": "fil valgt"
+        "fileSelected": "fil valgt",
+        "loading": "Indlæser bibliotek...",
+        "error": "Fejl",
+        "loadingFiles": "Indlæser filer...",
+        "selectedFiles": "Valgte filer",
+        "fileType": {
+            "video": "video",
+            "image": "billede",
+            "pdf": "pdf",
+            "audio": "lyd",
+            "document": "dokument",
+            "file": "fil"
+        }
     },
     "programs": {
         "title": "Forløb",
@@ -1377,8 +1406,20 @@
         "basicInfo": "Grundlæggende Information",
         "nextMonth": "Næste Måned",
         "shareFile": "Del Fil",
+        "shareFileDescription": "Del en fil fra dit bibliotek med klienten",
         "createTask": "Opret Opgave",
+        "createTaskDescription": "Opret en opgave til klienten eller dig selv",
         "sendMessage": "Send Besked",
+        "sendMessageDescription": "Send en automatiseret besked til klienten",
+        "addElement": "Tilføj Element",
+        "addElementDescription": "Tilføj et nyt element til programmet",
+        "newTask": "Ny Opgave",
+        "newElement": "Nyt Element",
+        "selectWeek": "Vælg uge",
+        "selectDay": "Vælg dag",
+        "dayOfWeek": "Ugedag",
+        "enterMessageToClient": "Indtast beskeden, der skal sendes til klienten...",
+        "messageWillBeSentAutomatically": "Denne besked sendes automatisk på den planlagte dag og tid.",
         "elementTypes": {
             "content": "Indhold",
             "task": "Opgave",

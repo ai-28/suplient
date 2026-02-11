@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Label } from "@/app/components/ui/label";
@@ -22,6 +23,7 @@ export function AddElementDialog({
   preselectedWeek,
   onAddElement
 }) {
+  const t = useTranslation();
   const [selectedWeek, setSelectedWeek] = useState(preselectedWeek || defaultWeek);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(preselectedDay || 1);
   const [selectedTime, setSelectedTime] = useState('09:00');
@@ -54,37 +56,37 @@ export function AddElementDialog({
     switch (type) {
       case 'content':
         return {
-          title: 'Share File from Library',
+          title: t('programs.shareFile', 'Share File from Library'),
           icon: <Upload className="h-5 w-5" />,
-          description: 'Share a file from your library with the client'
+          description: t('programs.shareFileDescription', 'Share a file from your library with the client')
         };
       case 'task':
         return {
-          title: 'Create Task',
+          title: t('programs.createTask', 'Create Task'),
           icon: <CheckSquare className="h-5 w-5" />,
-          description: 'Create a task for the client or yourself'
+          description: t('programs.createTaskDescription', 'Create a task for the client or yourself')
         };
       case 'message':
         return {
-          title: 'Send Message',
+          title: t('programs.sendMessage', 'Send Message'),
           icon: <MessageSquare className="h-5 w-5" />,
-          description: 'Send an automated message to the client'
+          description: t('programs.sendMessageDescription', 'Send an automated message to the client')
         };
       default:
         return {
-          title: 'Add Element',
+          title: t('programs.addElement', 'Add Element'),
           icon: null,
-          description: 'Add a new element to the program'
+          description: t('programs.addElementDescription', 'Add a new element to the program')
         };
     }
   };
 
   // Library data
   const categories = [
-    { id: 'articles', name: 'Articles', icon: FileText, color: 'bg-blue-500' },
-    { id: 'images', name: 'Images', icon: Image, color: 'bg-green-500' },
-    { id: 'videos', name: 'Videos', icon: Video, color: 'bg-purple-500' },
-    { id: 'sounds', name: 'Audio', icon: Music, color: 'bg-orange-500' }
+    { id: 'articles', name: t('library.articles', 'Articles'), icon: FileText, color: 'bg-blue-500' },
+    { id: 'images', name: t('library.images', 'Images'), icon: Image, color: 'bg-green-500' },
+    { id: 'videos', name: t('library.videos', 'Videos'), icon: Video, color: 'bg-purple-500' },
+    { id: 'sounds', name: t('library.sounds', 'Audio'), icon: Music, color: 'bg-orange-500' }
   ];
 
   // Fetch library files from API
@@ -186,13 +188,13 @@ export function AddElementDialog({
   const getElementTitle = () => {
     switch (elementType) {
       case 'content':
-        return selectedFiles[0]?.name || 'Share File';
+        return selectedFiles[0]?.name || t('programs.shareFile', 'Share File');
       case 'task':
-        return taskTitle || 'New Task';
+        return taskTitle || t('programs.newTask', 'New Task');
       case 'message':
-        return messageText.slice(0, 50) + (messageText.length > 50 ? '...' : '') || 'Send Message';
+        return messageText.slice(0, 50) + (messageText.length > 50 ? '...' : '') || t('programs.sendMessage', 'Send Message');
       default:
-        return 'New Element';
+        return t('programs.newElement', 'New Element');
     }
   };
 
@@ -221,7 +223,7 @@ export function AddElementDialog({
     for (let i = 1; i <= programDuration; i++) {
       weeks.push({
         value: i.toString(),
-        label: `Week ${i}`
+        label: `${t('programs.week', 'Week')} ${i}`
       });
     }
     return weeks;
@@ -230,18 +232,26 @@ export function AddElementDialog({
   if (!elementType) return null;
 
   const elementInfo = getElementInfo(elementType);
-  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const previewText = `${getElementTitle()} - Week ${selectedWeek}, ${dayNames[selectedDayOfWeek - 1]}`;
+  const dayNames = [
+    t('common.days.monday', 'Monday'),
+    t('common.days.tuesday', 'Tuesday'),
+    t('common.days.wednesday', 'Wednesday'),
+    t('common.days.thursday', 'Thursday'),
+    t('common.days.friday', 'Friday'),
+    t('common.days.saturday', 'Saturday'),
+    t('common.days.sunday', 'Sunday')
+  ];
+  const previewText = `${getElementTitle()} - ${t('programs.week', 'Week')} ${selectedWeek}, ${dayNames[selectedDayOfWeek - 1]}`;
 
   const renderTimeSelector = () => (
     <div className="space-y-4 border-b pb-4">
       {!(preselectedDay && preselectedWeek) && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="week">Week</Label>
+            <Label htmlFor="week">{t('programs.week', 'Week')}</Label>
             <Select value={selectedWeek.toString()} onValueChange={(value) => setSelectedWeek(parseInt(value))}>
               <SelectTrigger>
-                <SelectValue placeholder="Select week" />
+                <SelectValue placeholder={t('programs.selectWeek', 'Select week')} />
               </SelectTrigger>
               <SelectContent>
                 {generateWeekOptions().map(week => (
@@ -254,19 +264,19 @@ export function AddElementDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="dayOfWeek">Day of Week</Label>
+            <Label htmlFor="dayOfWeek">{t('programs.dayOfWeek', 'Day of Week')}</Label>
             <Select value={selectedDayOfWeek.toString()} onValueChange={(value) => setSelectedDayOfWeek(parseInt(value))}>
               <SelectTrigger>
-                <SelectValue placeholder="Select day" />
+                <SelectValue placeholder={t('programs.selectDay', 'Select day')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Monday</SelectItem>
-                <SelectItem value="2">Tuesday</SelectItem>
-                <SelectItem value="3">Wednesday</SelectItem>
-                <SelectItem value="4">Thursday</SelectItem>
-                <SelectItem value="5">Friday</SelectItem>
-                <SelectItem value="6">Saturday</SelectItem>
-                <SelectItem value="7">Sunday</SelectItem>
+                <SelectItem value="1">{t('common.days.monday', 'Monday')}</SelectItem>
+                <SelectItem value="2">{t('common.days.tuesday', 'Tuesday')}</SelectItem>
+                <SelectItem value="3">{t('common.days.wednesday', 'Wednesday')}</SelectItem>
+                <SelectItem value="4">{t('common.days.thursday', 'Thursday')}</SelectItem>
+                <SelectItem value="5">{t('common.days.friday', 'Friday')}</SelectItem>
+                <SelectItem value="6">{t('common.days.saturday', 'Saturday')}</SelectItem>
+                <SelectItem value="7">{t('common.days.sunday', 'Sunday')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -301,7 +311,7 @@ export function AddElementDialog({
                   <div className="flex items-center justify-center h-32">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                      <p className="text-sm text-muted-foreground">Loading files...</p>
+                      <p className="text-sm text-muted-foreground">{t('library.loadingFiles', 'Loading files...')}</p>
                     </div>
                   </div>
                 ) : libraryFiles
@@ -310,7 +320,7 @@ export function AddElementDialog({
                   <div className="flex items-center justify-center h-32">
                     <div className="text-center">
                       <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">No files found in this category</p>
+                      <p className="text-sm text-muted-foreground">{t('library.noFilesInCategory', 'No files found in this category')}</p>
                     </div>
                   </div>
                 ) : (
@@ -344,7 +354,7 @@ export function AddElementDialog({
             
             {selectedFiles.length > 0 && (
               <div className="bg-muted p-3 rounded-lg">
-                <p className="text-sm font-medium">Selected files:</p>
+                <p className="text-sm font-medium">{t('library.selectedFiles', 'Selected files')}:</p>
                 <div className="mt-1 space-y-1">
                   {selectedFiles.map(file => (
                     <p key={file.id} className="text-xs text-muted-foreground">• {file.name}</p>
@@ -359,28 +369,28 @@ export function AddElementDialog({
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="taskTitle">Task Title</Label>
+              <Label htmlFor="taskTitle">{t('tasks.taskTitle', 'Task Title')}</Label>
               <Input
                 id="taskTitle"
                 value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
-                placeholder="Enter task title..."
+                placeholder={t('tasks.enterTaskTitle', 'Enter task title...')}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="taskDescription">Description</Label>
+              <Label htmlFor="taskDescription">{t('common.labels.description', 'Description')}</Label>
               <Textarea
                 id="taskDescription"
                 value={taskDescription}
                 onChange={(e) => setTaskDescription(e.target.value)}
-                placeholder="Describe what needs to be done..."
+                placeholder={t('tasks.describeWhatNeedsToBeDone', 'Describe what needs to be done...')}
                 rows={4}
               />
             </div>
             
             <div className="space-y-2">
-              <Label>Assign To</Label>
+              <Label>{t('tasks.assignTo', 'Assign To')}</Label>
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
                   <input
@@ -392,7 +402,7 @@ export function AddElementDialog({
                     onChange={(e) => setTaskAssignedTo(e.target.value)}
                     className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
                   />
-                  <Label htmlFor="assign-client" className="text-sm font-normal">Assign to Client</Label>
+                  <Label htmlFor="assign-client" className="text-sm font-normal">{t('tasks.assignToClient', 'Assign to Client')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <input
@@ -404,7 +414,7 @@ export function AddElementDialog({
                     onChange={(e) => setTaskAssignedTo(e.target.value)}
                     className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
                   />
-                  <Label htmlFor="assign-coach" className="text-sm font-normal">Assign to Me (Coach)</Label>
+                  <Label htmlFor="assign-coach" className="text-sm font-normal">{t('tasks.assignToMeCoach', 'Assign to Me (Coach)')}</Label>
                 </div>
               </div>
             </div>
@@ -415,19 +425,19 @@ export function AddElementDialog({
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="messageText">Message</Label>
+              <Label htmlFor="messageText">{t('common.labels.message', 'Message')}</Label>
               <Textarea
                 id="messageText"
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Enter the message to send to the client..."
+                placeholder={t('programs.enterMessageToClient', 'Enter the message to send to the client...')}
                 rows={4}
               />
             </div>
             
             <div className="bg-muted p-3 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                <strong>Note:</strong> This message will be sent automatically on the scheduled day and time.
+                <strong>{t('common.note', 'Note')}:</strong> {t('programs.messageWillBeSentAutomatically', 'This message will be sent automatically on the scheduled day and time.')}
               </p>
             </div>
           </div>
@@ -442,7 +452,7 @@ export function AddElementDialog({
     <div className="border-t pt-4">
       <div className="bg-muted p-3 rounded-lg">
         <p className="text-sm text-muted-foreground">
-          <strong>Preview:</strong> {previewText}
+          <strong>{t('common.preview', 'Preview')}:</strong> {previewText}
         </p>
       </div>
     </div>
@@ -468,10 +478,10 @@ export function AddElementDialog({
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={handleCancel}>
-              Cancel
+              {t('common.buttons.cancel', 'Cancel')}
             </Button>
             <Button onClick={handleAddElement} disabled={!isFormValid()}>
-              Add Element
+              {t('programs.addElement', 'Add Element')}
             </Button>
           </div>
         </div>

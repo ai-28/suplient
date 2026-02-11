@@ -111,6 +111,14 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
     }
   };
 
+  const getFileTypeLabel = (type) => {
+    if (!type) return t('library.fileType.file', 'file');
+    const typeLower = type.toLowerCase();
+    const typeKey = `library.fileType.${typeLower}`;
+    const defaultLabel = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+    return t(typeKey, defaultLabel);
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col">
@@ -155,15 +163,15 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
                 <div className="flex items-center justify-center h-32">
                   <div className="text-center">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Loading library...</p>
+                    <p className="text-sm text-muted-foreground">{t('library.loading', 'Loading library...')}</p>
                   </div>
                 </div>
               ) : error ? (
                 <div className="flex items-center justify-center h-32">
                   <div className="text-center">
-                    <p className="text-sm text-destructive mb-2">Error: {error}</p>
+                    <p className="text-sm text-destructive mb-2">{t('library.error', 'Error')}: {error}</p>
                     <Button size="sm" variant="outline" onClick={fetchLibraryResources}>
-                      Try Again
+                      {t('common.buttons.tryAgain', 'Try Again')}
                     </Button>
                   </div>
                 </div>
@@ -187,7 +195,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
                       {getFileIcon(file.type)}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">{file.type} • {file.size}</p>
+                        <p className="text-xs text-muted-foreground">{getFileTypeLabel(file.type)} • {file.size}</p>
                       </div>
                       <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
                         <Eye className="h-3 w-3" />
