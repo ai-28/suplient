@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -296,7 +296,8 @@ console.log(groupProgressData)
   };
 
   // Tooltip content callback for progress chart
-  const tooltipContent = useCallback(({ active, payload, label }) => {
+  // Define as regular function to avoid useCallback dependency issues
+  const tooltipContent = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
@@ -315,7 +316,7 @@ console.log(groupProgressData)
       );
     }
     return null;
-  }, [t, isMobile]);
+  };
 
   return (
     <div className={`flex flex-col bg-background ${isMobile ? 'pb-24' : ''}`}>

@@ -1048,7 +1048,8 @@ export default function ClientProfile() {
   };
 
   // Tooltip content callback for progress chart
-  const tooltipContent = useCallback(({ active, payload, label }) => {
+  // Define as regular function to avoid useCallback dependency issues
+  const tooltipContent = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
         <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
@@ -1063,7 +1064,7 @@ export default function ClientProfile() {
       );
     }
     return null;
-  }, [t, isMobile]);
+  };
 
   return (
     <div className={`max-h-screen ${isMobile ? 'p-4 pb-24' : 'p-6'}`}>

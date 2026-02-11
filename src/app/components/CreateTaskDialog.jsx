@@ -96,6 +96,8 @@ export function CreateTaskDialog({
     }
   }, []);
   
+  const t = useTranslation();
+  
   // Fetch real data from database
   const { availableClients, loading: clientsLoading, error: clientsError } = useClients();
   const { groups, loading: groupsLoading, error: groupsError } = useGroupsForTasks();
