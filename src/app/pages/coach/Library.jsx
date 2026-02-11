@@ -194,7 +194,7 @@ export default function Library() {
             <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-1.5'} text-muted-foreground`}>
               <Files className={isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
               <span className="font-medium text-foreground">{libraryItems.reduce((sum, item) => sum + item.count, 0)}</span>
-              {!isMobile && <span>resources</span>}
+              {!isMobile && <span>{t('library.resources')}</span>}
             </div>
             <div className={`w-px ${isMobile ? 'h-3' : 'h-4'} bg-border`}></div>
             <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-1.5'} text-muted-foreground`}>
@@ -214,7 +214,7 @@ export default function Library() {
           </div>
             <Button onClick={() => router.push('/coach/library/upload')} className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
             <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-[#1A2D4D]`} />
-            {isMobile ? 'Upload' : 'Upload Files'}
+            {isMobile ? t('library.upload', 'Upload') : t('library.uploadFiles', 'Upload Files')}
           </Button>
         </div>
       </div>
@@ -276,7 +276,7 @@ export default function Library() {
                   className={`${isMobile ? 'text-[10px] h-6 w-full' : 'text-xs h-7'}`}
                 >
                   <Eye className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'mr-0.5' : 'mr-1'}`} />
-                  Browse
+                  {t('library.browse', 'Browse')}
                 </Button>
               </div>
             </CardContent>

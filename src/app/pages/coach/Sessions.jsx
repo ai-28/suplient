@@ -546,7 +546,7 @@ export default function Sessions() {
       {/* Page Header */}
       <PageHeader 
         title={t('navigation.sessions')} 
-        subtitle={"Manage your sessions"}
+        subtitle={t('sessions.manageSessions', 'Manage your sessions')}
       >
         <Button 
           className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all ${isMobile ? 'text-xs px-2 h-8' : ''}`}
@@ -554,7 +554,7 @@ export default function Sessions() {
           size={isMobile ? "sm" : "default"}
         >
           <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
-          {isMobile ? 'Schedule' : 'Schedule Session'}
+          {isMobile ? t('sessions.scheduleShort', 'Schedule') : t('sessions.createSession')}
         </Button>
       </PageHeader>
 
@@ -564,7 +564,7 @@ export default function Sessions() {
           <div className={`flex items-center justify-between`}>
                 <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
                   <Calendar className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
-                  Sessions
+                  {t('navigation.sessions')}
                 </CardTitle>
             <div className={`flex items-center ${isMobile ? 'w-full justify-center flex-wrap gap-2' : 'gap-2'}`}>
               <div className={`flex items-center bg-muted rounded-lg ${isMobile ? 'p-0.5' : 'p-1'}`}>
@@ -575,7 +575,7 @@ export default function Sessions() {
                   className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                 >
                   <List className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? '' : 'mr-1'}`} />
-                  {!isMobile && "List"}
+                  {!isMobile && t('common.labels.list', 'List')}
                 </Button>
                 <Button
                   size={isMobile ? "sm" : "sm"}
@@ -584,7 +584,7 @@ export default function Sessions() {
                   className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                 >
                   <CalendarDays className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? '' : 'mr-1'}`} />
-                  {!isMobile && "Calendar"}
+                  {!isMobile && t('sessions.calendar', 'Calendar')}
                 </Button>
               </div>
               {viewMode === 'calendar' && (
@@ -595,7 +595,7 @@ export default function Sessions() {
                     onClick={() => setCalendarView('month')}
                     className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
-                    Month
+                    {t('sessions.month', 'Month')}
                   </Button>
                   <Button
                     size={isMobile ? "sm" : "sm"}
@@ -603,7 +603,7 @@ export default function Sessions() {
                     onClick={() => setCalendarView('week')}
                     className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
-                    Week
+                    {t('sessions.week', 'Week')}
                   </Button>
                   <Button
                     size={isMobile ? "sm" : "sm"}
@@ -611,7 +611,7 @@ export default function Sessions() {
                     onClick={() => setCalendarView('day')}
                     className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
-                    Day
+                    {t('sessions.day', 'Day')}
                   </Button>
                 </div>
               )}
@@ -624,14 +624,14 @@ export default function Sessions() {
               <div className={`space-y-4 ${isMobile ? 'space-y-2' : ''}`}>
                 {/* Sort Controls */}
                 <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1 p-2' : 'gap-2 p-3'} bg-muted/30 rounded-lg`}>
-                  <span className={`${isMobile ? 'text-xs w-full mb-1' : 'text-sm'} font-medium text-muted-foreground`}>Sort By:</span>
+                  <span className={`${isMobile ? 'text-xs w-full mb-1' : 'text-sm'} font-medium text-muted-foreground`}>{t('clients.sortBy', 'Sort By')}:</span>
                   <Button
                     size={isMobile ? "sm" : "sm"}
                     variant={sortBy === 'date' ? 'default' : 'ghost'}
                     onClick={() => handleSort('date')}
                     className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
-                    Date
+                    {t('common.labels.date')}
                     {sortBy === 'date' && (
                       sortOrder === 'asc' ? <ArrowUp className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'ml-0.5' : 'ml-1'}`} /> : <ArrowDown className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'ml-0.5' : 'ml-1'}`} />
                     )}
@@ -642,7 +642,7 @@ export default function Sessions() {
                     onClick={() => handleSort('client')}
                     className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
                   >
-                    {isMobile ? 'Client' : 'Client/Group'}
+                    {isMobile ? t('navigation.clients') : t('sessions.clientGroup', 'Client/Group')}
                     {sortBy === 'client' && (
                       sortOrder === 'asc' ? <ArrowUp className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'ml-0.5' : 'ml-1'}`} /> : <ArrowDown className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'ml-0.5' : 'ml-1'}`} />
                     )}
@@ -653,7 +653,7 @@ export default function Sessions() {
                     onClick={() => handleSort('type')}
                     className="h-8 px-3"
                   >
-                      Type
+                      {t('clients.type', 'Type')}
                     {sortBy === 'type' && (
                       sortOrder === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />
                     )}
@@ -664,15 +664,15 @@ export default function Sessions() {
                 <div className="space-y-4">
                   {loading ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">Loading sessions...</div>
+                      <div className="text-muted-foreground">{t('sessions.loading', 'Loading sessions...')}</div>
                     </div>
                   ) : error ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-destructive">Error loading sessions: {error}</div>
+                      <div className="text-destructive">{t('sessions.errorLoading', 'Error loading sessions')}: {error}</div>
                     </div>
                   ) : sortedSessions.length === 0 ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">No sessions found</div>
+                      <div className="text-muted-foreground">{t('sessions.noSessions')}</div>
                     </div>
                   ) : (
                     sortedSessions.map((session) => (
@@ -719,7 +719,7 @@ export default function Sessions() {
                             </Avatar>
                             <div>
                               <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground block`}>{session.client || 'Unknown Client'}</span>
-                              {!isMobile && <span className="text-xs text-muted-foreground">Individual Session</span>}
+                              {!isMobile && <span className="text-xs text-muted-foreground">{t('sessions.individualSession', 'Individual Session')}</span>}
                             </div>
                           </div>
                         )}
@@ -750,7 +750,7 @@ export default function Sessions() {
                         onClick={() => handleJoinSession(session)}
                       >
                         <Video className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
-                          {isMobile ? 'Join' : 'Join'}
+                          {isMobile ? t('sessions.join', 'Join') : t('sessions.join')}
                       </Button>
                       <Button 
                         size={isMobile ? "sm" : "sm"} 
@@ -822,7 +822,7 @@ export default function Sessions() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              Session Details - {selectedSessionDetail?.date}
+              {t('sessions.sessionDetails')} - {selectedSessionDetail?.date}
             </DialogTitle>
           </DialogHeader>
           
@@ -852,7 +852,7 @@ export default function Sessions() {
               {/* Show all sessions for this day if multiple */}
               {selectedSessionDetail.allSessions && selectedSessionDetail.allSessions.length > 1 && (
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm text-muted-foreground">All Sessions Today:</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground">{t('sessions.allSessionsToday', 'All Sessions Today')}:</h4>
                   {selectedSessionDetail.allSessions.map((session, index) => {
                     const end = session.duration ? getEndTime(session.time, session.duration) : '';
                     return (
@@ -881,7 +881,7 @@ export default function Sessions() {
                   }}
                 >
                   <Video className="h-4 w-4 mr-2" />
-                  Join Session
+                  {t('sessions.joinSession', 'Join Session')}
                 </Button>
               </div>
             </div>

@@ -215,7 +215,7 @@ export default function Groups() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuLabel className="text-xs">Move To Stage</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-xs">{t('groups.moveToStage', 'Move To Stage')}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {groupPipelineStages.map((stageOption) => (
                       <DropdownMenuItem
@@ -240,7 +240,7 @@ export default function Groups() {
                       }}
                     >
                       <Settings className="h-3 w-3 mr-2" />
-                      Settings
+                      {t('navigation.settings')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -276,7 +276,7 @@ export default function Groups() {
                       {group.lastComment.split(' ').length > 15 && '...'}
                     </>
                   ) : (
-                    'No recent messages'
+                    t('chat.noMessages')
                   )}
                 </p>
               </TooltipContent>
@@ -303,7 +303,7 @@ export default function Groups() {
                       {group.lastComment.split(' ').length > 15 && '...'}
                     </>
                   ) : (
-                    'No recent messages'
+                    t('chat.noMessages')
                   )}
                 </p>
               </TooltipContent>
@@ -340,7 +340,7 @@ export default function Groups() {
             className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
           >
             <List className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? '' : 'mr-1'}`} />
-            {!isMobile && "List"}
+            {!isMobile && t('common.labels.list', 'List')}
           </Button>
           <Button
             variant={viewMode === 'cards' ? 'default' : 'ghost'}
@@ -349,7 +349,7 @@ export default function Groups() {
             className={`${isMobile ? 'h-7 px-2 text-xs' : 'h-8 px-3'}`}
           >
             <LayoutGrid className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? '' : 'mr-1'}`} />
-            {!isMobile && "Cards"}
+            {!isMobile && t('common.labels.cards', 'Cards')}
           </Button>
         </div>
         
@@ -359,7 +359,7 @@ export default function Groups() {
           size={isMobile ? "sm" : "default"}
         >
           <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
-          {isMobile ? "New" : "Create New Group"}
+          {isMobile ? t('groups.new', 'New') : t('groups.createGroup')}
         </Button>
       </PageHeader>
 
@@ -368,7 +368,7 @@ export default function Groups() {
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading groups...</p>
+            <p className="text-muted-foreground">{t('groups.loading', 'Loading groups...')}</p>
           </div>
         </div>
       )}
@@ -377,9 +377,9 @@ export default function Groups() {
       {error && (
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
-            <p className="text-destructive mb-4">Error loading groups: {error}</p>
+            <p className="text-destructive mb-4">{t('groups.errorLoading', 'Error loading groups')}: {error}</p>
             <Button onClick={refetchGroups} variant="outline">
-              Try Again
+              {t('common.buttons.tryAgain')}
             </Button>
           </div>
         </div>
@@ -390,11 +390,11 @@ export default function Groups() {
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <Users2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No groups yet</h3>
-            <p className="text-muted-foreground mb-4">Create your first group to get started</p>
+            <h3 className="text-lg font-semibold mb-2">{t('groups.noGroups')}</h3>
+            <p className="text-muted-foreground mb-4">{t('groups.createFirstGroup', 'Create your first group to get started')}</p>
             <Button onClick={() => setCreateGroupOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Group
+              {t('groups.createGroup')}
             </Button>
           </div>
         </div>
@@ -410,35 +410,35 @@ export default function Groups() {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className={`${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
               <Filter className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-              {isMobile ? "Filter" : "Filter and Columns"}
+              {isMobile ? t('common.buttons.filter') : t('groups.filterAndColumns', 'Filter and Columns')}
               <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Filter Groups</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('groups.filterGroups', 'Filter Groups')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuCheckboxItem
               checked={filterBy === 'all'}
               onCheckedChange={() => setFilterBy('all')}
             >
-              Show All
+              {t('groups.showAll', 'Show All')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               checked={filterBy === 'active'}
               onCheckedChange={() => setFilterBy('active')}
             >
-              Active
+              {t('common.status.active')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               checked={filterBy === 'inactive'}
               onCheckedChange={() => setFilterBy('inactive')}
             >
-              Inactive
+              {t('common.status.inactive')}
             </DropdownMenuCheckboxItem>
             {viewMode === 'cards' && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>Show Columns</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('groups.showColumns', 'Show Columns')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {groupPipelineStages.map((stage) => (
                   <DropdownMenuCheckboxItem
@@ -467,29 +467,29 @@ export default function Groups() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Sort Options</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('groups.sortOptions', 'Sort Options')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuCheckboxItem
               checked={sortBy === 'name'}
               onCheckedChange={() => setSortBy('name')}
             >
-              Sort By Name
+              {t('groups.sortByName', 'Sort By Name')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               checked={sortBy === 'members'}
               onCheckedChange={() => setSortBy('members')}
             >
-              Sort By Members
+              {t('groups.sortByMembers', 'Sort By Members')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               checked={sortBy === 'nextSession'}
               onCheckedChange={() => setSortBy('nextSession')}
             >
-              Sort By Next Session
+              {t('groups.sortByNextSession', 'Sort By Next Session')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
-              {sortOrder === 'asc' ? "Descending" : "Ascending"}
+              {sortOrder === 'asc' ? t('groups.descending', 'Descending') : t('groups.ascending', 'Ascending')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -525,7 +525,7 @@ export default function Groups() {
                         {stageGroups.map((group) => renderGroupCard(group))}
                         {stageGroups.length === 0 && (
                           <div className={`text-center py-12 text-muted-foreground ${isMobile ? 'text-xs py-8' : 'text-sm'}`}>
-                            No Groups In Stage
+                            {t('groups.noGroupsInStage', 'No Groups In Stage')}
                           </div>
                         )}
                       </div>
@@ -563,7 +563,7 @@ export default function Groups() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuLabel className={isMobile ? 'text-xs' : ''}>Move To Stage</DropdownMenuLabel>
+                          <DropdownMenuLabel className={isMobile ? 'text-xs' : ''}>{t('groups.moveToStage', 'Move To Stage')}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           {groupPipelineStages.map((stageOption) => (
                             <DropdownMenuItem
@@ -588,24 +588,24 @@ export default function Groups() {
                             }}
                           >
                             <Settings className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
-                            Settings
+                            {t('navigation.settings')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                       <div>
-                        <span className="font-medium">Stage: </span>
+                        <span className="font-medium">{t('groups.stage', 'Stage')}: </span>
                         <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1 py-0' : ''}>
                           {group.stage}
                         </Badge>
                       </div>
                       <div>
-                        <span className="font-medium">Members: </span>
+                        <span className="font-medium">{t('groups.members')}: </span>
                         <span>{group.members}</span>
                       </div>
                       <div className="col-span-2">
-                        <span className="font-medium">Next Session: </span>
+                        <span className="font-medium">{t('groups.nextSession', 'Next Session')}: </span>
                         <span>{group.nextSession}</span>
                       </div>
                     </div>
@@ -641,11 +641,11 @@ export default function Groups() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Group</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Members</TableHead>
-                  <TableHead>Next Session</TableHead>
-                  <TableHead className="w-[200px]">Actions</TableHead>
+                  <TableHead>{t('groups.title')}</TableHead>
+                  <TableHead>{t('groups.stage', 'Stage')}</TableHead>
+                  <TableHead>{t('groups.members')}</TableHead>
+                  <TableHead>{t('groups.nextSession', 'Next Session')}</TableHead>
+                  <TableHead className="w-[200px]">{t('common.labels.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -713,7 +713,7 @@ export default function Groups() {
                           }}
                         >
                           <Calendar className="h-3 w-3 mr-1" />
-                          Schedule
+                          {t('sessions.scheduleShort', 'Schedule')}
                         </Button>
                         <Button 
                           size="sm" 
@@ -738,7 +738,7 @@ export default function Groups() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Move To Stage</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t('groups.moveToStage', 'Move To Stage')}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {groupPipelineStages.map((stageOption) => (
                               <DropdownMenuItem
@@ -759,7 +759,7 @@ export default function Groups() {
                               handleSettingsClick(group);
                             }}>
                               <Settings className="h-4 w-4 mr-2" />
-                              Settings
+                              {t('navigation.settings')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

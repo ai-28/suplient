@@ -46,7 +46,9 @@
             "characters": "tegn",
             "show": "Vis",
             "hide": "Skjul",
-            "selectAll": "Vælg Alle"
+            "selectAll": "Vælg Alle",
+            "list": "Liste",
+            "cards": "Kort"
         },
         "greeting": "Hej",
         "messages": {
@@ -83,7 +85,8 @@
             "daysAgo": "{count} dage siden",
             "inDays": "Om {count} dage",
             "daysFromNow": "dage fra nu",
-            "noDate": "Ingen dato"
+            "noDate": "Ingen dato",
+            "month": "Måned"
         }
     },
     "navigation": {
@@ -204,7 +207,31 @@
         "clientUpdated": "Klient opdateret med succes",
         "clientDeleted": "Klient slettet med succes",
         "loadingClients": "Indlæser klienter...",
-        "errorLoadingClients": "Fejl ved indlæsning af klienter"
+        "errorLoadingClients": "Fejl ved indlæsning af klienter",
+        "filterAndColumns": "Filtrer og Kolonner",
+        "visibleColumns": "Synlige Kolonner",
+        "sortBy": "Sorter Efter",
+        "latestActivity": "Seneste Aktivitet",
+        "nameAZ": "Navn A-Z",
+        "createdDate": "Oprettelsesdato",
+        "unreadMessages": "Ulæste Beskeder",
+        "nextSession": "Næste Session",
+        "lastLogin": "Sidste Login",
+        "type": "Type",
+        "noClientsInStage": "Ingen klienter i dette trin",
+        "clientList": "Klientliste",
+        "mood": "Humør",
+        "created": "Oprettet",
+        "moveToStage": "Flyt til Trin",
+        "deactivate": "Deaktiver",
+        "activate": "Aktiver",
+        "stageUpdated": "Klienttrin opdateret med succes",
+        "stageUpdateFailed": "Kunne ikke opdatere klienttrin",
+        "clientUpdateFailed": "Kunne ikke opdatere klient",
+        "stageLight": "Let",
+        "stagePersonal": "Personlig",
+        "unknownClient": "Ukendt Klient",
+        "individualSession": "Individuel Session"
     },
     "tasks": {
         "title": "Opgaver",
@@ -268,7 +295,35 @@
             "completed": "Fuldført",
             "overdue": "Overskredet",
             "dueToday": "Forfalder I Dag"
-        }
+        },
+        "manageTasks": "Administrer dine opgaver",
+        "myTasksShort": "Mine",
+        "clientTasksShort": "Klient",
+        "groupTasksShort": "Gruppe",
+        "adminTasksShort": "Admin",
+        "searchTasks": "Søg efter opgaver...",
+        "open": "Åben",
+        "noClientTasks": "Ingen klientopgaver fundet",
+        "clientTask": "Klientopgave",
+        "dueToday": "Forfalder I Dag",
+        "upcoming": "Kommende",
+        "activeTasks": "Aktive opgaver",
+        "greatProgress": "God fremgang!",
+        "needsAttention": "Kræver opmærksomhed",
+        "noPersonalTasks": "Ingen personlige opgaver fundet",
+        "noGroupTasks": "Ingen gruppeopgaver fundet",
+        "noAdminTasks": "Ingen admin-tildelte opgaver fundet",
+        "groupTask": "Gruppeopgave",
+        "adminTask": "Adminopgave",
+        "pending": "Afventer",
+        "clientTaskTrends": "Klientopgave Tendenser",
+        "personalTaskTrends": "Personlige Opgave Tendenser",
+        "groupTaskTrends": "Gruppeopgave Tendenser",
+        "overallTaskTrends": "Samlede Opgave Tendenser",
+        "clientTaskTrendsDesc": "Opgaver tildelt fra klientprogrammer",
+        "personalTaskTrendsDesc": "Dine personlige opgaver og anmodninger",
+        "groupTaskTrendsDesc": "Opgaver på tværs af alle administrerede grupper",
+        "overallTaskTrendsDesc": "Kombineret visning af alle dine administrerede opgaver"
     },
     "sessions": {
         "title": "Sessioner",
@@ -315,7 +370,18 @@
         "rescheduleSession": "Flyt Session",
         "sessionCreated": "Session oprettet med succes",
         "sessionUpdated": "Session opdateret med succes",
-        "sessionCancelled": "Session annulleret med succes"
+        "sessionCancelled": "Session annulleret med succes",
+        "manageSessions": "Administrer dine sessioner",
+        "scheduleShort": "Planlæg",
+        "calendar": "Kalender",
+        "month": "Måned",
+        "week": "Uge",
+        "day": "Dag",
+        "clientGroup": "Klient/Gruppe",
+        "loading": "Indlæser sessioner...",
+        "errorLoading": "Fejl ved indlæsning af sessioner",
+        "join": "Deltag",
+        "allSessionsToday": "Alle Sessioner I Dag"
     },
     "groups": {
         "title": "Grupper",
@@ -375,7 +441,24 @@
             "relationships": "Relationsproblemer",
             "mindfulness": "Opmærksomhed & Meditation",
             "anger": "Vredestyring"
-        }
+        },
+        "new": "Ny",
+        "loading": "Indlæser grupper...",
+        "errorLoading": "Fejl ved indlæsning af grupper",
+        "createFirstGroup": "Opret din første gruppe for at komme i gang",
+        "filterAndColumns": "Filtrer og Kolonner",
+        "filterGroups": "Filtrer Grupper",
+        "showAll": "Vis Alle",
+        "showColumns": "Vis Kolonner",
+        "sortOptions": "Sorteringsmuligheder",
+        "sortByName": "Sorter Efter Navn",
+        "sortByMembers": "Sorter Efter Medlemmer",
+        "sortByNextSession": "Sorter Efter Næste Session",
+        "descending": "Faldende",
+        "ascending": "Stigende",
+        "noGroupsInStage": "Ingen Grupper I Trin",
+        "moveToStage": "Flyt til Trin",
+        "stage": "Trin"
     },
     "settings": {
         "title": "Indstillinger",
@@ -494,7 +577,9 @@
         "noResourcesYet": "Din træner har ikke delt noget bibliotek endnu",
         "new": "Ny",
         "sharedBy": "Delt af",
-        "view": "Vis"
+        "view": "Vis",
+        "uploadFiles": "Upload Filer",
+        "browse": "Gennemse"
     },
     "resources": {
         "title": "Bibliotek",
@@ -588,7 +673,11 @@
         "editProgramTemplate": "Rediger Programskabelon",
         "activeProgramInstance": "Aktiv Programinstans",
         "updateProgram": "Opdater Program",
-        "saveTemplate": "Gem Skabelon"
+        "saveTemplate": "Gem Skabelon",
+        "aiAssist": "AI Assistent Program",
+        "aiAssistShort": "AI Assistent",
+        "duplicateShort": "Kopier",
+        "copy": "(Kopi)"
     },
     "notes": {
         "title": "Noter",

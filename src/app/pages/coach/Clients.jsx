@@ -49,7 +49,7 @@ import { useTranslation } from "@/app/context/LanguageContext";
 // Helper function to format date in local timezone
 // Expects ISO string (UTC) from API and converts to local time for display
 const formatDateLocal = (dateString) => {
-  if (!dateString) return 'Never';
+  if (!dateString) return t('common.time.noDate');
   
   // Parse UTC timestamp (ISO string with 'Z' or explicit UTC)
   // JavaScript's Date automatically converts UTC to local timezone
@@ -84,7 +84,7 @@ const formatDateLocal = (dateString) => {
     });
   } else if (diffInHours < 48) {
     // Yesterday
-    return 'Yesterday ' + date.toLocaleTimeString([], { 
+    return t('common.time.yesterday') + ' ' + date.toLocaleTimeString([], { 
       hour: '2-digit', 
       minute: '2-digit',
       hour12: true 
@@ -258,10 +258,10 @@ export default function Clients() {
       // Refresh clients list to show updated stage
       await fetchClients();
       
-      toast.success('Client stage updated successfully');
+      toast.success(t('clients.stageUpdated', 'Client stage updated successfully'));
     } catch (error) {
       console.error('Error updating client stage:', error);
-      toast.error('Failed to update client stage');
+      toast.error(t('clients.stageUpdateFailed', 'Failed to update client stage'));
     }
   };
 
@@ -292,8 +292,8 @@ export default function Clients() {
         setClients(clients.map(client => 
           client.id === clientId ? { ...client, status: newStatus === 'active' ? 'Active' : 'Inactive' } : client
         ));
-        toast.success(`Client ${action}ed successfully!`, {
-          description: `Client status changed to ${newStatus}.`
+        toast.success(t('clients.clientUpdated'), {
+          description: `${t('common.labels.status')} ${t('common.messages.updateSuccess')}`
         });
         // Refresh clients to ensure consistency
         await fetchClients();
@@ -391,7 +391,7 @@ export default function Clients() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className={`animate-spin rounded-full ${isMobile ? 'h-6 w-6' : 'h-8 w-8'} border-b-2 border-primary mx-auto mb-4`}></div>
-            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>Loading clients...</p>
+            <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>{t('clients.loadingClients')}</p>
           </div>
         </div>
       </div>
@@ -415,7 +415,7 @@ export default function Clients() {
               className={`${isMobile ? 'gap-1 px-2 text-xs' : 'gap-2'}`}
             >
               <List className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-              {!isMobile && "List"}
+              {!isMobile && t('common.labels.list', 'List')}
             </Button>
             <Button
               variant={viewMode === "funnel" ? "default" : "ghost"}
@@ -424,7 +424,7 @@ export default function Clients() {
               className={`${isMobile ? 'gap-1 px-2 text-xs' : 'gap-2'}`}
             >
               <LayoutGrid className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-              {!isMobile && "Cards"}
+              {!isMobile && t('common.labels.cards', 'Cards')}
             </Button>
           </div>
           <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
@@ -440,35 +440,35 @@ export default function Clients() {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className={`${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
               <Filter className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-              {isMobile ? "Filter" : "Filter and Columns"}
+              {isMobile ? t('common.buttons.filter') : t('clients.filterAndColumns', 'Filter and Columns')}
               <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>{"Status"}</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('common.labels.status')}</DropdownMenuLabel>
             <DropdownMenuCheckboxItem 
               checked={filter === "status.active"}
               onCheckedChange={() => setFilter("status.active")}
             >
-              {"Active"}
+              {t('common.status.active')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={filter === "status.inactive"}
               onCheckedChange={() => setFilter("status.inactive")}
             >
-                {"Inactive"}
+                {t('common.status.inactive')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={filter === "clients.all"}
               onCheckedChange={() => setFilter("clients.all")}
             >
-              {"All"}
+              {t('common.labels.all')}
             </DropdownMenuCheckboxItem>
             
             {viewMode === "funnel" && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>{"Visible Columns"}</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('clients.visibleColumns', 'Visible Columns')}</DropdownMenuLabel>
                 {funnelStages.map((stage) => (
                   <DropdownMenuCheckboxItem
                     key={stage.id}
@@ -488,53 +488,53 @@ export default function Clients() {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className={`${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
               <ArrowUpDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-              {"Sort By"}
+              {t('clients.sortBy', 'Sort By')}
               <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>{"Sort By"}</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('clients.sortBy', 'Sort By')}</DropdownMenuLabel>
             <DropdownMenuCheckboxItem 
               checked={sortBy === "activity"}
               onCheckedChange={() => setSortBy("activity")}
             >
-              {"Latest Activity"}
+              {t('clients.latestActivity', 'Latest Activity')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={sortBy === "name"}
               onCheckedChange={() => setSortBy("name")}
             >
-              {"Name A-Z"}
+              {t('clients.nameAZ', 'Name A-Z')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={sortBy === "created"}
               onCheckedChange={() => setSortBy("created")}
             >
-              {"Created Date"}
+              {t('clients.createdDate', 'Created Date')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={sortBy === "unread"}
               onCheckedChange={() => setSortBy("unread")}
             >
-              {"Unread Messages"}
+              {t('clients.unreadMessages', 'Unread Messages')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={sortBy === "session"}
               onCheckedChange={() => setSortBy("session")}
             >
-              {"Next Session"}
+              {t('clients.nextSession', 'Next Session')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={sortBy === "oldest"}
               onCheckedChange={() => setSortBy("oldest")}
             >
-              {"Last Login"}
+              {t('clients.lastLogin', 'Last Login')}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem 
               checked={sortBy === "type"}
               onCheckedChange={() => setSortBy("type")}
             >
-              {"Type"}
+              {t('clients.type', 'Type')}
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -586,7 +586,7 @@ export default function Clients() {
                              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} text-foreground`}>{client.name}</span>
                              {(client.status === "Inactive" || client.status === "inactive") && (
                                <Badge variant="outline" className={`${isMobile ? 'text-[10px] px-1 py-0' : 'text-xs'} bg-orange-100 text-orange-700 border-orange-300`}>
-                                 Inactive
+                                 {t('common.status.inactive')}
                                </Badge>
                              )}
                            </div>
@@ -603,7 +603,7 @@ export default function Clients() {
                                </Button>
                              </DropdownMenuTrigger>
                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                               <DropdownMenuLabel>Move to Stage</DropdownMenuLabel>
+                               <DropdownMenuLabel>{t('clients.moveToStage', 'Move to Stage')}</DropdownMenuLabel>
                                <DropdownMenuSeparator />
                                {funnelStages.map((stageOption) => (
                                  <DropdownMenuItem
@@ -634,7 +634,7 @@ export default function Clients() {
                                  ) : (
                                    <Ban className="h-4 w-4 mr-2" />
                                  )}
-                                 {client.status === "Active" ? "Deactivate" : "Activate"}
+                                 {client.status === "Active" ? t('clients.deactivate', 'Deactivate') : t('clients.activate', 'Activate')}
                                </DropdownMenuItem>
                              </DropdownMenuContent>
                            </DropdownMenu>
@@ -661,9 +661,9 @@ export default function Clients() {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
-                                  {client.lastMessage && client.lastMessage !== 'No recent messages' 
+                                  {client.lastMessage && client.lastMessage !== t('chat.noMessages') 
                                     ? `${client.lastMessage.split(' ').slice(0, 15).join(' ')}${client.lastMessage.split(' ').length > 15 ? '...' : ''}`
-                                    : 'No recent messages'
+                                    : t('chat.noMessages')
                                   }
                                 </p>
                               </TooltipContent>
@@ -684,9 +684,9 @@ export default function Clients() {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
-                                  {client.lastNote && client.lastNote !== 'No recent notes' 
+                                  {client.lastNote && client.lastNote !== t('notes.noNotes') 
                                     ? `${client.lastNote.split(' ').slice(0, 15).join(' ')}${client.lastNote.split(' ').length > 15 ? '...' : ''}`
-                                    : 'No recent notes'
+                                    : t('notes.noNotes')
                                   }
                                 </p>
                               </TooltipContent>
@@ -706,7 +706,7 @@ export default function Clients() {
                     ))}
                     {stageClients.length === 0 && (
                       <div className="text-center py-8 text-muted-foreground text-sm">
-                        {"No clients in this stage"}
+                        {t('clients.noClientsInStage', 'No clients in this stage')}
                       </div>
                     )}
                   </CardContent>
@@ -723,7 +723,7 @@ export default function Clients() {
            <CardHeader className={isMobile ? 'px-0 pb-3' : ''}>
              <CardTitle className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                <Users className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
-               {"Client List"} ({sortedClients.length})
+               {t('clients.clientList', 'Client List')} ({sortedClients.length})
              </CardTitle>
            </CardHeader>
           <CardContent className={`${isMobile ? 'px-0' : ''} overflow-x-auto max-w-full`}>
@@ -731,14 +731,14 @@ export default function Clients() {
               {/* Header Row - Hidden on mobile */}
               {!isMobile && (
                 <div className="grid grid-cols-8 gap-4 p-4 text-sm font-medium text-muted-foreground bg-muted/30 rounded-lg min-w-[800px]">
-                  <div>Name</div>
-                  <div>Type</div>
-                  <div>Status</div>
-                  <div>Mood</div>
-                  <div>Last Login</div>
-                  <div>Created</div>
-                  <div>Session</div>
-                  <div>Actions</div>
+                  <div>{t('common.labels.name')}</div>
+                  <div>{t('clients.type', 'Type')}</div>
+                  <div>{t('common.labels.status')}</div>
+                  <div>{t('clients.mood', 'Mood')}</div>
+                  <div>{t('clients.lastLogin', 'Last Login')}</div>
+                  <div>{t('clients.created', 'Created')}</div>
+                  <div>{t('sessions.title')}</div>
+                  <div>{t('common.labels.actions')}</div>
                 </div>
               )}
 
@@ -746,11 +746,11 @@ export default function Clients() {
               {sortedClients.map((client) => {
                 const getStageDisplayName = (stage) => {
                   switch (stage) {
-                    case 'light': return 'Light';
-                    case 'group': return 'Group';
-                    case 'personal': return 'Personal';
-                    case 'completed': return 'Completed';
-                    case 'inactive': return 'Inactive';
+                    case 'light': return t('clients.stageLight', 'Light');
+                    case 'group': return t('groups.title');
+                    case 'personal': return t('clients.stagePersonal', 'Personal');
+                    case 'completed': return t('common.status.completed');
+                    case 'inactive': return t('common.status.inactive');
                     default: return stage;
                   }
                 };
@@ -802,16 +802,16 @@ export default function Clients() {
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div>
-                            <span className="text-muted-foreground">Last Login: </span>
+                            <span className="text-muted-foreground">{t('clients.lastLogin', 'Last Login')}: </span>
                             <span className="text-foreground">{formatDateLocal(client.lastActive)}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Created: </span>
+                            <span className="text-muted-foreground">{t('clients.created', 'Created')}: </span>
                             <span className="text-foreground">{formatDateLocal(client.created)}</span>
                           </div>
                           <div className="col-span-2">
-                            <span className="text-muted-foreground">Session: </span>
-                            <span className="text-foreground">{client.scheduledSession || "No Session"}</span>
+                            <span className="text-muted-foreground">{t('sessions.title')}: </span>
+                            <span className="text-foreground">{client.scheduledSession || t('sessions.noSessions')}</span>
                           </div>
                         </div>
                         <div className="flex gap-2 items-center justify-end">
@@ -830,7 +830,7 @@ export default function Clients() {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Message</p>
+                          <p>{t('chat.messages')}</p>
                         </TooltipContent>
                       </Tooltip>
                       <Tooltip>
@@ -848,7 +848,7 @@ export default function Clients() {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Settings</p>
+                          <p>{t('navigation.settings')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -889,7 +889,7 @@ export default function Clients() {
                     <div className="text-sm text-foreground">{formatDateLocal(client.lastActive)}</div>
                     <div className="text-sm text-muted-foreground">{formatDateLocal(client.created)}</div>
                     <div className="text-sm text-muted-foreground">
-                      {client.scheduledSession || "No Session"}
+                      {client.scheduledSession || t('sessions.noSessions')}
                     </div>
                     <div className="flex gap-2 items-center">
                       <Tooltip>
@@ -913,9 +913,9 @@ export default function Clients() {
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
-                            {client.lastMessage && client.lastMessage !== 'No recent messages' 
+                            {client.lastMessage && client.lastMessage !== t('chat.noMessages') 
                               ? `${client.lastMessage.split(' ').slice(0, 15).join(' ')}${client.lastMessage.split(' ').length > 15 ? '...' : ''}`
-                              : 'No recent messages'
+                              : t('chat.noMessages')
                             }
                           </p>
                         </TooltipContent>
@@ -935,7 +935,7 @@ export default function Clients() {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Settings</p>
+                          <p>{t('navigation.settings')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>

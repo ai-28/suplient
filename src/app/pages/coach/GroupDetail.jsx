@@ -321,7 +321,7 @@ console.log(groupProgressData)
           </Button>
           <Button onClick={handleGroupSettings} variant="outline" size={isMobile ? "sm" : "sm"} className={isMobile ? 'text-xs px-2 h-8 flex-1' : ''}>
             <Settings className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} ${isMobile ? 'mr-1' : 'mr-2'}`} />
-            {isMobile ? 'Settings' : t('groups.groupSettings', 'Group Settings')}
+            {isMobile ? t('navigation.settings') : t('groups.groupSettings', 'Group Settings')}
           </Button>
         </div>
       </div>

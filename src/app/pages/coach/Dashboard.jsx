@@ -390,8 +390,8 @@ export default function Dashboard() {
                       borderRadius: '8px',
                       boxShadow: 'var(--shadow-medium)'
                     }}
-                    formatter={(value) => [`${(value / 1000).toFixed(0)}k`, 'Earnings']}
-                    labelFormatter={(label) => `Month: ${label}`}
+                    formatter={(value) => [`${(value / 1000).toFixed(0)}k`, t('dashboard.coach.earnings')]}
+                    labelFormatter={(label) => `${t('common.time.month')}: ${label}`}
                   />
                   <Area
                     type="monotone"
@@ -445,7 +445,7 @@ export default function Dashboard() {
                           </h4>
                           {activity.pointsEarned > 0 && (
                             <Badge variant="secondary" className={`${isMobile ? 'ml-1 text-xs px-1 py-0' : 'ml-2'}`}>
-                              +{activity.pointsEarned} pts
+                              +{activity.pointsEarned} {t('streak.points')}
                             </Badge>
                           )}
                         </div>

@@ -241,7 +241,7 @@ export default function Programs() {
             size={isMobile ? "sm" : "default"}
           >
             <Sparkles className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`}/>
-            {isMobile ? 'AI Assist' : 'AI Assist Program'}
+            {isMobile ? t('programs.aiAssistShort', 'AI Assist') : t('programs.aiAssist', 'AI Assist Program')}
           </Button>
         </div>
       </PageHeader>
@@ -359,7 +359,7 @@ export default function Programs() {
                     ) : (
                       <>
                         <Edit className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-                        {isMobile ? 'Edit' : t('programs.editProgram')}
+                        {isMobile ? t('common.buttons.edit') : t('programs.editProgram')}
                       </>
                     )}
                   </Button>
@@ -377,7 +377,7 @@ export default function Programs() {
                   >
                     <Users className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
                     {loadingClients[program.id] && <span className={isMobile ? 'ml-0.5' : 'ml-1'}>...</span>}
-                    {isMobile && <span className="ml-1">Members</span>}
+                    {isMobile && <span className="ml-1">{t('groups.members')}</span>}
                   </Button>
                   
                   <Dialog>
@@ -388,12 +388,12 @@ export default function Programs() {
                         className={`${isMobile ? 'w-full text-xs h-8' : 'shrink-0'}`}
                         onClick={() => {
                           setSelectedProgram(program);
-                          setNewProgramName(`${program.name} (Copy)`);
+                          setNewProgramName(`${program.name} ${t('programs.copy', '(Copy)')}`);
                           setDuplicateDialogOpen(true);
                         }}
                       >
                         <Copy className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-                        {isMobile && <span className="ml-1">Duplicate</span>}
+                        {isMobile && <span className="ml-1">{t('programs.duplicateShort', 'Duplicate')}</span>}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">

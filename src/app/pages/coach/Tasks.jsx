@@ -41,41 +41,41 @@ import {useTranslation} from "@/app/context/LanguageContext"
 
 // Helper function to format task due date
 const formatTaskDueDate = (dueDate) => {
-  if (!dueDate) return 'No due date';
+  if (!dueDate) return t('tasks.noDueDate');
   const date = new Date(dueDate);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  if (date.toDateString() === today.toDateString()) return 'Today';
-  if (date < today) return `${Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))} days ago`;
+  if (date.toDateString() === today.toDateString()) return t('common.time.today');
+  if (date < today) return t('common.time.daysAgo', {count: Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))});
   
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 // Helper functions
-const getTaskStatus = (task) => {
-  if (task.status === 'completed') return { label: 'Completed', variant: 'success' };
+const getTaskStatus = (task, t) => {
+  if (task.status === 'completed') return { label: t('common.status.completed'), variant: 'success' };
   
-  if (!task.dueDate) return { label: 'No due date', variant: 'secondary' };
+  if (!task.dueDate) return { label: t('tasks.noDueDate'), variant: 'secondary' };
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dueDate = new Date(task.dueDate);
   dueDate.setHours(0, 0, 0, 0);
   
-  if (dueDate < today) return { label: 'Overdue', variant: 'destructive' };
-  if (dueDate.toDateString() === today.toDateString()) return { label: 'Due Today', variant: 'info' };
-  return { label: 'Upcoming', variant: 'secondary' };
+  if (dueDate < today) return { label: t('tasks.overdue'), variant: 'destructive' };
+  if (dueDate.toDateString() === today.toDateString()) return { label: t('tasks.dueToday', 'Due Today'), variant: 'info' };
+  return { label: t('tasks.upcoming', 'Upcoming'), variant: 'secondary' };
 };
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return 'No due date';
+  if (!dateStr) return t('tasks.noDueDate');
   const date = new Date(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  if (date.toDateString() === today.toDateString()) return "Today";
-  if (date < today) return `${Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))} days ago`;
+  if (date.toDateString() === today.toDateString()) return t('common.time.today');
+  if (date < today) return t('common.time.daysAgo', {count: Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))});
   
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
@@ -123,8 +123,8 @@ export default function Tasks() {
 
   const filterClientTasks = (tasks) => {
     if (clientFilter === "all") return tasks;
-    if (clientFilter === "today") return tasks.filter(task => getTaskStatus(task).label === "Due Today");
-    if (clientFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
+    if (clientFilter === "today") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.dueToday', 'Due Today'));
+    if (clientFilter === "overdue") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue'));
     if (clientFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (clientFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
@@ -132,8 +132,8 @@ export default function Tasks() {
 
   const filterMyTasks = (tasks) => {
     if (myTaskFilter === "all") return tasks;
-    if (myTaskFilter === "today") return tasks.filter(task => getTaskStatus(task).label === "Due Today");
-    if (myTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
+    if (myTaskFilter === "today") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.dueToday', 'Due Today'));
+    if (myTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue'));
     if (myTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (myTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
@@ -141,8 +141,8 @@ export default function Tasks() {
 
   const filterGroupTasks = (tasks) => {
     if (groupTaskFilter === "all") return tasks;
-    if (groupTaskFilter === "today") return tasks.filter(task => getTaskStatus(task).label === "Due Today");
-    if (groupTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
+    if (groupTaskFilter === "today") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.dueToday', 'Due Today'));
+    if (groupTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue'));
     if (groupTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (groupTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
@@ -150,8 +150,8 @@ export default function Tasks() {
 
   const filterAdminTasks = (tasks) => {
     if (adminTaskFilter === "all") return tasks;
-    if (adminTaskFilter === "today") return tasks.filter(task => getTaskStatus(task).label === "Due Today");
-    if (adminTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task).label === "Overdue");
+    if (adminTaskFilter === "today") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.dueToday', 'Due Today'));
+    if (adminTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue'));
     if (adminTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (adminTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
@@ -162,7 +162,7 @@ export default function Tasks() {
     return {
       totalTasks: clientTasks.length,
       totalCompleted: clientTasks.filter(task => task.status === "completed").length,
-      overdueTasks: clientTasks.filter(task => getTaskStatus(task).label === "Overdue").length
+      overdueTasks: clientTasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue')).length
     };
   };
 
@@ -170,7 +170,7 @@ export default function Tasks() {
     return {
       totalTasks: personalTasks.length,
       totalCompleted: personalTasks.filter(task => task.status === "completed").length,
-      overdueTasks: personalTasks.filter(task => getTaskStatus(task).label === "Overdue").length
+      overdueTasks: personalTasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue')).length
     };
   };
 
@@ -178,7 +178,7 @@ export default function Tasks() {
     return {
       totalTasks: groupTasks.length,
       totalCompleted: groupTasks.filter(task => task.status === "completed").length,
-      overdueTasks: groupTasks.filter(task => getTaskStatus(task).label === "Overdue").length
+      overdueTasks: groupTasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue')).length
     };
   };
 
@@ -190,7 +190,7 @@ export default function Tasks() {
     return {
       totalTasks: allTasks.length,
       totalCompleted: allTasks.filter(task => task.status === "completed").length,
-      overdueTasks: allTasks.filter(task => getTaskStatus(task).label === "Overdue").length
+      overdueTasks: allTasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue')).length
     };
   }, [personalTasks, clientTasks, groupTasks]);
 
@@ -224,11 +224,11 @@ export default function Tasks() {
       
       if (monthIndex === -1) return;
       
-      const taskStatus = getTaskStatus(task);
+      const taskStatus = getTaskStatus(task, t);
       
       if (task.status === 'completed') {
         months[monthIndex].completed++;
-      } else if (taskStatus.label === 'Overdue') {
+      } else if (taskStatus.label === t('tasks.overdue')) {
         months[monthIndex].overdue++;
       } else {
         months[monthIndex].pending++;
@@ -264,26 +264,26 @@ export default function Tasks() {
   const getChartTitle = () => {
     switch (activeTab) {
       case 'client-tasks':
-        return 'Client Task Trends';
+        return t('tasks.clientTaskTrends', 'Client Task Trends');
       case 'my-tasks':
-        return 'Personal Task Trends';
+        return t('tasks.personalTaskTrends', 'Personal Task Trends');
       case 'group-tasks':
-        return 'Group Task Trends';
+        return t('tasks.groupTaskTrends', 'Group Task Trends');
       default:
-        return 'Overall Task Trends';
+        return t('tasks.overallTaskTrends', 'Overall Task Trends');
     }
   };
 
   const getChartSubtitle = () => {
     switch (activeTab) {
       case 'client-tasks':
-        return 'Tasks assigned from client programs';
+        return t('tasks.clientTaskTrendsDesc', 'Tasks assigned from client programs');
       case 'my-tasks':
-        return 'Your personal tasks and requests';
+        return t('tasks.personalTaskTrendsDesc', 'Your personal tasks and requests');
       case 'group-tasks':
-        return 'Tasks across all managed groups';
+        return t('tasks.groupTaskTrendsDesc', 'Tasks across all managed groups');
       default:
-        return 'Combined view of all your managed tasks';
+        return t('tasks.overallTaskTrendsDesc', 'Combined view of all your managed tasks');
     }
   };
 
@@ -359,8 +359,8 @@ export default function Tasks() {
     <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>
       {/* Page Header */}
       <PageHeader 
-        title={"Tasks"} 
-        subtitle={"Manage your tasks"}
+        title={t('tasks.title')} 
+        subtitle={t('tasks.manageTasks', 'Manage your tasks')}
       >
         <CreateTaskDialog onTaskCreated={refetchTasks} />
       </PageHeader>
@@ -368,35 +368,35 @@ export default function Tasks() {
       {/* Simplified KPI Statistics - Only 3 Essential Cards */}
       <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-6'}`}>
         <StatsCard
-          title={"Total Tasks"}
+          title={t('tasks.stats.total')}
           value={kpiStats.totalTasks}
           icon={ClipboardList}
           iconColor="bg-gradient-primary"
           trend={{
             icon: TrendingUp,
-            text: "Active tasks",
+            text: t('tasks.activeTasks', 'Active tasks'),
             color: "text-success"
           }}
         />
         <StatsCard
-          title={"Completed Tasks"}
+          title={t('tasks.stats.completed')}
           value={kpiStats.totalCompleted}
           icon={CheckCircle}
           iconColor="bg-primary"
           trend={{
             icon: TrendingUp,
-            text: "Great progress!",
+            text: t('tasks.greatProgress', 'Great progress!'),
             color: "text-success"
           }}
         />
         <StatsCard
-          title="Overdue Tasks"
+          title={t('tasks.stats.overdue')}
           value={kpiStats.overdueTasks}
           icon={AlertTriangle}
           iconColor="bg-destructive"
           trend={{
             icon: AlertTriangle,
-            text: "Needs attention",
+            text: t('tasks.needsAttention', 'Needs attention'),
             color: "text-destructive"
           }}
         />
@@ -411,16 +411,16 @@ export default function Tasks() {
               <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-4'}`}>
                 <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2 gap-1 h-auto p-1' : 'grid-cols-4 bg-muted'}`}>
                   <TabsTrigger value="my-tasks" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-1 py-1.5' : ''}`}>
-                    {isMobile ? "My" : "My Tasks"}
+                    {isMobile ? t('tasks.myTasksShort', 'My') : t('tasks.myTasks')}
                   </TabsTrigger>
                   <TabsTrigger value="client-tasks" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-1 py-1.5' : ''}`}>
-                    {isMobile ? "Client" : "Client Tasks"}
+                    {isMobile ? t('tasks.clientTasksShort', 'Client') : t('tasks.clientTasks')}
                   </TabsTrigger>
                   <TabsTrigger value="group-tasks" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-1 py-1.5' : ''}`}>
-                    {isMobile ? "Group" : "Group Tasks"}
+                    {isMobile ? t('tasks.groupTasksShort', 'Group') : t('tasks.groupTasks')}
                   </TabsTrigger>
                   <TabsTrigger value="admin-tasks" className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-1 py-1.5' : ''}`}>
-                    {isMobile ? "Admin" : "Admin Tasks"}
+                    {isMobile ? t('tasks.adminTasksShort', 'Admin') : t('tasks.adminTasks')}
                     {adminAssignedTasks.length > 0 && (
                       <Badge variant="default" className={`ml-2 ${isMobile ? 'h-4 px-1 text-[10px]' : 'h-5 px-1.5'}`}>
                         {adminAssignedTasks.filter(t => t.status !== 'completed').length}
@@ -434,7 +434,7 @@ export default function Tasks() {
               <div className="relative">
                 <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
                 <Input
-                  placeholder="Search tasks..."
+                  placeholder={t('tasks.searchTasks', 'Search tasks...')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className={`${isMobile ? 'pl-8 h-9 text-sm' : 'pl-10'}`}
@@ -452,7 +452,7 @@ export default function Tasks() {
                     onClick={() => setClientFilter("all")}
                     className={`${isMobile ? 'h-7 text-xs px-2' : 'h-8'} hover-scale`}
                   >
-                    All
+                    {t('common.labels.all')}
                   </Button>
                   <Button
                     size="sm"
@@ -461,7 +461,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <Calendar className="h-3 w-3 mr-1" />
-                    Today
+                    {t('common.time.today')}
                   </Button>
                   <Button
                     size="sm"
@@ -470,7 +470,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <Clock className="h-3 w-3 mr-1" />
-                    Open
+                    {t('tasks.open')}
                   </Button>
                   <Button
                     size="sm"
@@ -479,7 +479,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <AlertTriangle className="h-3 w-3 mr-1" />
-                    Overdue
+                    {t('tasks.overdue')}
                   </Button>
                   <Button
                     size="sm"
@@ -488,7 +488,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <CheckCircle className="h-3 w-3 mr-1" />
-                    Completed
+                    {t('common.status.completed')}
                   </Button>
                 </div>
 
@@ -496,19 +496,19 @@ export default function Tasks() {
                 <div className="max-h-[32rem] overflow-y-auto space-y-3">
                   {loading ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">Loading tasks...</div>
+                      <div className="text-muted-foreground">{t('tasks.loading')}</div>
                     </div>
                   ) : error ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-destructive">Error loading tasks: {error}</div>
+                      <div className="text-destructive">{t('tasks.errorLoading')}: {error}</div>
                     </div>
                   ) : filteredClientTasks.length === 0 ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">No client tasks found</div>
+                      <div className="text-muted-foreground">{t('tasks.noClientTasks', 'No client tasks found')}</div>
                     </div>
                   ) : (
                     filteredClientTasks.map((task) => {
-                      const status = getTaskStatus(task);
+                      const status = getTaskStatus(task, t);
                       console.log('📋 Rendering client task:', { id: task.id, title: task.title, status: task.status, completed: task.status === 'completed' });
                       
                       return (
@@ -535,7 +535,7 @@ export default function Tasks() {
                                   task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
                                 }`}
                               >
-                                Client Task
+                                {t('tasks.clientTask', 'Client Task')}
                               </label>
                             </div>
                             <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
@@ -618,19 +618,19 @@ export default function Tasks() {
                 <div className="max-h-[32rem] overflow-y-auto space-y-3">
                   {loading ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">Loading tasks...</div>
+                      <div className="text-muted-foreground">{t('tasks.loading')}</div>
                     </div>
                   ) : error ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-destructive">Error loading tasks: {error}</div>
+                      <div className="text-destructive">{t('tasks.errorLoading')}: {error}</div>
                     </div>
                   ) : filteredMyTasks.length === 0 ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">No personal tasks found</div>
+                      <div className="text-muted-foreground">{t('tasks.noPersonalTasks', 'No personal tasks found')}</div>
                     </div>
                   ) : (
                     filteredMyTasks.map((task) => {
-                      const status = getTaskStatus(task);
+                      const status = getTaskStatus(task, t);
                       console.log('📋 Rendering task:', { id: task.id, title: task.title, status: task.status, completed: task.status === 'completed' });
                       
                       return (
@@ -732,19 +732,19 @@ export default function Tasks() {
                 <div className="max-h-[32rem] overflow-y-auto space-y-3">
                   {loading ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">Loading tasks...</div>
+                      <div className="text-muted-foreground">{t('tasks.loading')}</div>
                     </div>
                   ) : error ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-destructive">Error loading tasks: {error}</div>
+                      <div className="text-destructive">{t('tasks.errorLoading')}: {error}</div>
                     </div>
                   ) : filteredGroupTasks.length === 0 ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">No group tasks found</div>
+                      <div className="text-muted-foreground">{t('tasks.noGroupTasks', 'No group tasks found')}</div>
                     </div>
                   ) : (
                     filteredGroupTasks.map((task) => {
-                      const status = getTaskStatus(task);
+                      const status = getTaskStatus(task, t);
                       console.log('📋 Rendering group task:', { id: task.id, title: task.title, status: task.status, completed: task.status === 'completed' });
                       
                       return (
@@ -769,7 +769,7 @@ export default function Tasks() {
                                   task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
                                 }`}
                               >
-                                Group Task
+                                {t('tasks.groupTask', 'Group Task')}
                               </label>
                             </div>
                             <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
@@ -852,19 +852,19 @@ export default function Tasks() {
                 <div className="max-h-[32rem] overflow-y-auto space-y-3">
                   {loading ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">Loading tasks...</div>
+                      <div className="text-muted-foreground">{t('tasks.loading')}</div>
                     </div>
                   ) : error ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-destructive">Error loading tasks: {error}</div>
+                      <div className="text-destructive">{t('tasks.errorLoading')}: {error}</div>
                     </div>
                   ) : filteredAdminTasks.length === 0 ? (
                     <div className="flex items-center justify-center p-8">
-                      <div className="text-muted-foreground">No admin-assigned tasks found</div>
+                      <div className="text-muted-foreground">{t('tasks.noAdminTasks', 'No admin-assigned tasks found')}</div>
                     </div>
                   ) : (
                     filteredAdminTasks.map((task) => {
-                      const status = getTaskStatus(task);
+                      const status = getTaskStatus(task, t);
                       
                       return (
                         <div 
@@ -888,7 +888,7 @@ export default function Tasks() {
                                   task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
                                 }`}
                               >
-                                Admin Task
+                                {t('tasks.adminTask', 'Admin Task')}
                               </label>
                             </div>
                             <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
@@ -980,15 +980,15 @@ export default function Tasks() {
               <div className="flex justify-center gap-4 mt-4 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <span className="text-muted-foreground">Completed</span>
+                  <span className="text-muted-foreground">{t('common.status.completed')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-accent rounded-full"></div>
-                  <span className="text-muted-foreground">Pending</span>
+                  <span className="text-muted-foreground">{t('tasks.pending', 'Pending')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-destructive rounded-full"></div>
-                  <span className="text-muted-foreground">Overdue</span>
+                  <span className="text-muted-foreground">{t('tasks.overdue')}</span>
                 </div>
               </div>
             </CardContent>
