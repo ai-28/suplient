@@ -79,7 +79,7 @@ export function GroupFilesPanel({ groupId }) {
     }
   }, [groupId]);
 
-  const handleShareFiles = async (selectedFiles) => {
+  const handleShareFiles = async (selectedFiles, message = "") => {
     try {
       // Share each selected file with the group
       for (const file of selectedFiles) {
@@ -90,7 +90,8 @@ export function GroupFilesPanel({ groupId }) {
           },
           body: JSON.stringify({
             resourceId: file.id,
-            groupIds: [groupId]
+            groupIds: [groupId],
+            message: message
           }),
         });
 

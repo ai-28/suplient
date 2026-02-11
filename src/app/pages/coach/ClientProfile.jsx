@@ -812,7 +812,7 @@ export default function ClientProfile() {
     }
   };
 
-  const handleShareFiles = async (selectedFiles) => {
+  const handleShareFiles = async (selectedFiles, message = "") => {
     try {
       // Share each selected file with the client
       for (const file of selectedFiles) {
@@ -823,7 +823,8 @@ export default function ClientProfile() {
           },
           body: JSON.stringify({
             resourceId: file.id,
-            clientIds: [id] // Use the current client ID
+            clientIds: [id], // Use the current client ID
+            message: message
           }),
         });
 

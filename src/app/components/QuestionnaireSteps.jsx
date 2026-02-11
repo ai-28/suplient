@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -11,6 +12,7 @@ import { ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function QuestionnaireSteps({ onComplete, onCancel }) {
+  const t = useTranslation();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Step 1: Basic Information
@@ -66,7 +68,7 @@ export function QuestionnaireSteps({ onComplete, onCancel }) {
 
   const handleNext = () => {
     if (!validateStep(currentStep)) {
-      toast.error("Please fill in all required fields");
+      toast.error(t('programs.fillRequiredFields', 'Please fill in all required fields'));
       return;
     }
     if (currentStep < totalSteps) {
@@ -84,7 +86,7 @@ export function QuestionnaireSteps({ onComplete, onCancel }) {
 
   const handleComplete = () => {
     if (!validateStep(currentStep)) {
-      toast.error("Please fill in all required fields");
+      toast.error(t('programs.fillRequiredFields', 'Please fill in all required fields'));
       return;
     }
     onComplete(formData);
@@ -110,7 +112,7 @@ export function QuestionnaireSteps({ onComplete, onCancel }) {
       {/* Progress Indicator */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Step {currentStep} of {totalSteps}</span>
+          <span className="text-muted-foreground">{t('programs.stepOf', 'Step {current} of {total}').replace('{current}', currentStep).replace('{total}', totalSteps)}</span>
           <span className="text-muted-foreground">{Math.round((currentStep / totalSteps) * 100)}%</span>
         </div>
         <div className="w-full bg-muted rounded-full h-2">
@@ -134,7 +136,7 @@ export function QuestionnaireSteps({ onComplete, onCancel }) {
           className="w-full sm:w-auto"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {currentStep === 1 ? "Cancel" : "Back"}
+          {currentStep === 1 ? t('common.buttons.cancel', 'Cancel') : t('common.buttons.back', 'Back')}
         </Button>
         <Button
           onClick={handleNext}
@@ -143,12 +145,12 @@ export function QuestionnaireSteps({ onComplete, onCancel }) {
         >
           {currentStep === totalSteps ? (
             <>
-              Generate Program
+              {t('programs.generateProgram', 'Generate Program')}
               <CheckCircle2 className="h-4 w-4 ml-2" />
             </>
           ) : (
             <>
-              Next
+              {t('common.buttons.next', 'Next')}
               <ArrowRight className="h-4 w-4 ml-2" />
             </>
           )}
@@ -160,40 +162,41 @@ export function QuestionnaireSteps({ onComplete, onCancel }) {
 
 // Step 1: Basic Information
 function Step1BasicInfo({ formData, updateFormData }) {
+  const t = useTranslation();
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Basic Information</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('programs.basicInformation', 'Basic Information')}</h3>
         <p className="text-sm text-muted-foreground">
-          Tell us about your program
+          {t('programs.tellUsAboutProgram', 'Tell us about your program')}
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="programName">Program Name *</Label>
+          <Label htmlFor="programName">{t('programs.programName', 'Program Name')} *</Label>
           <Input
             id="programName"
             value={formData.programName}
             onChange={(e) => updateFormData("programName", e.target.value)}
-            placeholder="e.g., Anxiety Management Program"
+            placeholder={t('programs.programNamePlaceholder', 'e.g., Anxiety Management Program')}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="programDescription">Program Description</Label>
+          <Label htmlFor="programDescription">{t('programs.programDescription', 'Program Description')}</Label>
           <Textarea
             id="programDescription"
             value={formData.programDescription}
             onChange={(e) => updateFormData("programDescription", e.target.value)}
-            placeholder="Describe what this program helps with, the goals, target audience..."
+            placeholder={t('programs.programDescriptionPlaceholder', 'Describe what this program helps with, the goals, target audience...')}
             rows={5}
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="duration">Duration (Weeks) *</Label>
+            <Label htmlFor="duration">{t('programs.durationWeeks', 'Duration (Weeks)')} *</Label>
             <Input
               id="duration"
               type="number"
@@ -205,12 +208,12 @@ function Step1BasicInfo({ formData, updateFormData }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="targetAudience">Target Audience</Label>
+            <Label htmlFor="targetAudience">{t('programs.targetAudience', 'Target Audience')}</Label>
             <Input
               id="targetAudience"
               value={formData.targetAudience}
               onChange={(e) => updateFormData("targetAudience", e.target.value)}
-              placeholder="e.g., Individual clients, Groups"
+              placeholder={t('programs.targetAudiencePlaceholder', 'e.g., Individual clients, Groups')}
             />
           </div>
         </div>
@@ -221,18 +224,19 @@ function Step1BasicInfo({ formData, updateFormData }) {
 
 // Step 2: Content Preferences
 function Step2ContentPreferences({ formData, updateFormData }) {
+  const t = useTranslation();
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Content Preferences</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('programs.contentPreferences', 'Content Preferences')}</h3>
         <p className="text-sm text-muted-foreground">
-          How should the content be written?
+          {t('programs.howShouldContentBeWritten', 'How should the content be written?')}
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="tonePreference">Tone Preference</Label>
+          <Label htmlFor="tonePreference">{t('programs.tonePreference', 'Tone Preference')}</Label>
           <Select
             value={formData.tonePreference}
             onValueChange={(value) => updateFormData("tonePreference", value)}
@@ -241,16 +245,16 @@ function Step2ContentPreferences({ formData, updateFormData }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="supportive">Supportive and Warm</SelectItem>
-              <SelectItem value="professional">Professional and Clinical</SelectItem>
-              <SelectItem value="motivational">Motivational and Energetic</SelectItem>
-              <SelectItem value="educational">Educational and Informative</SelectItem>
+              <SelectItem value="supportive">{t('programs.toneSupportive', 'Supportive and Warm')}</SelectItem>
+              <SelectItem value="professional">{t('programs.toneProfessional', 'Professional and Clinical')}</SelectItem>
+              <SelectItem value="motivational">{t('programs.toneMotivational', 'Motivational and Energetic')}</SelectItem>
+              <SelectItem value="educational">{t('programs.toneEducational', 'Educational and Informative')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="contentDepth">Content Depth</Label>
+          <Label htmlFor="contentDepth">{t('programs.contentDepth', 'Content Depth')}</Label>
           <Select
             value={formData.contentDepth}
             onValueChange={(value) => updateFormData("contentDepth", value)}
@@ -259,15 +263,15 @@ function Step2ContentPreferences({ formData, updateFormData }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="brief">Brief Overviews</SelectItem>
-              <SelectItem value="moderate">Moderate Detail</SelectItem>
-              <SelectItem value="comprehensive">Comprehensive Guides</SelectItem>
+              <SelectItem value="brief">{t('programs.depthBrief', 'Brief Overviews')}</SelectItem>
+              <SelectItem value="moderate">{t('programs.depthModerate', 'Moderate Detail')}</SelectItem>
+              <SelectItem value="comprehensive">{t('programs.depthComprehensive', 'Comprehensive Guides')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="language">Language</Label>
+          <Label htmlFor="language">{t('programs.language', 'Language')}</Label>
           <Select
             value={formData.language}
             onValueChange={(value) => updateFormData("language", value)}
@@ -276,8 +280,8 @@ function Step2ContentPreferences({ formData, updateFormData }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="da">Danish</SelectItem>
+              <SelectItem value="en">{t('programs.languageEnglish', 'English')}</SelectItem>
+              <SelectItem value="da">{t('programs.languageDanish', 'Danish')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -288,26 +292,27 @@ function Step2ContentPreferences({ formData, updateFormData }) {
 
 // Step 3: Structure Preferences
 function Step3StructurePreferences({ formData, updateFormData, toggleTaskType }) {
+  const t = useTranslation();
   const taskTypeOptions = [
-    { id: "reflection", label: "Reflection Exercises" },
-    { id: "action", label: "Action Items" },
-    { id: "journaling", label: "Journaling Prompts" },
-    { id: "assessment", label: "Assessment Questions" },
-    { id: "homework", label: "Homework Assignments" }
+    { id: "reflection", label: t('programs.taskTypeReflection', 'Reflection Exercises') },
+    { id: "action", label: t('programs.taskTypeAction', 'Action Items') },
+    { id: "journaling", label: t('programs.taskTypeJournaling', 'Journaling Prompts') },
+    { id: "assessment", label: t('programs.taskTypeAssessment', 'Assessment Questions') },
+    { id: "homework", label: t('programs.taskTypeHomework', 'Homework Assignments') }
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Structure Preferences</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('programs.structurePreferences', 'Structure Preferences')}</h3>
         <p className="text-sm text-muted-foreground">
-          How should the program be structured?
+          {t('programs.howShouldProgramBeStructured', 'How should the program be structured?')}
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="messageFrequency">Message Frequency</Label>
+          <Label htmlFor="messageFrequency">{t('programs.messageFrequency', 'Message Frequency')}</Label>
           <Select
             value={formData.messageFrequency}
             onValueChange={(value) => updateFormData("messageFrequency", value)}
@@ -316,15 +321,15 @@ function Step3StructurePreferences({ formData, updateFormData, toggleTaskType })
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="every-2-3-days">Every 2-3 Days</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="daily">{t('programs.frequencyDaily', 'Daily')}</SelectItem>
+              <SelectItem value="every-2-3-days">{t('programs.frequencyEvery2To3Days', 'Every 2-3 Days')}</SelectItem>
+              <SelectItem value="weekly">{t('programs.frequencyWeekly', 'Weekly')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label>Task Types</Label>
+          <Label>{t('programs.taskTypes', 'Task Types')}</Label>
           <div className="space-y-2 border rounded-md p-4">
             {taskTypeOptions.map((option) => (
               <div key={option.id} className="flex items-center space-x-2">
@@ -345,7 +350,7 @@ function Step3StructurePreferences({ formData, updateFormData, toggleTaskType })
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="documentStructure">Document Structure</Label>
+          <Label htmlFor="documentStructure">{t('programs.documentStructure', 'Document Structure')}</Label>
           <Select
             value={formData.documentStructure}
             onValueChange={(value) => updateFormData("documentStructure", value)}
@@ -354,9 +359,9 @@ function Step3StructurePreferences({ formData, updateFormData, toggleTaskType })
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="simple">Simple (Overview Only)</SelectItem>
-              <SelectItem value="moderate">Moderate (Sections + Exercises)</SelectItem>
-              <SelectItem value="comprehensive">Comprehensive (Detailed Guides)</SelectItem>
+              <SelectItem value="simple">{t('programs.structureSimple', 'Simple (Overview Only)')}</SelectItem>
+              <SelectItem value="moderate">{t('programs.structureModerate', 'Moderate (Sections + Exercises)')}</SelectItem>
+              <SelectItem value="comprehensive">{t('programs.structureComprehensive', 'Comprehensive (Detailed Guides)')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -367,34 +372,35 @@ function Step3StructurePreferences({ formData, updateFormData, toggleTaskType })
 
 // Step 4: Customization
 function Step4Customization({ formData, updateFormData }) {
+  const t = useTranslation();
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Additional Customization</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('programs.additionalCustomization', 'Additional Customization')}</h3>
         <p className="text-sm text-muted-foreground">
-          Add any specific requirements (optional)
+          {t('programs.addSpecificRequirementsOptional', 'Add any specific requirements (optional)')}
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="specificTopics">Specific Topics/Techniques to Include</Label>
+          <Label htmlFor="specificTopics">{t('programs.specificTopicsTechniques', 'Specific Topics/Techniques to Include')}</Label>
           <Textarea
             id="specificTopics"
             value={formData.specificTopics}
             onChange={(e) => updateFormData("specificTopics", e.target.value)}
-            placeholder="e.g., Include mindfulness exercises, Use CBT framework, Focus on breathing techniques"
+            placeholder={t('programs.specificTopicsPlaceholder', 'e.g., Include mindfulness exercises, Use CBT framework, Focus on breathing techniques')}
             rows={4}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="specialInstructions">Special Instructions</Label>
+          <Label htmlFor="specialInstructions">{t('programs.specialInstructions', 'Special Instructions')}</Label>
           <Textarea
             id="specialInstructions"
             value={formData.specialInstructions}
             onChange={(e) => updateFormData("specialInstructions", e.target.value)}
-            placeholder="e.g., Keep language simple, Include video references, Add progress tracking"
+            placeholder={t('programs.specialInstructionsPlaceholder', 'e.g., Keep language simple, Include video references, Add progress tracking')}
             rows={4}
           />
         </div>

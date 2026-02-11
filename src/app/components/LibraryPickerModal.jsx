@@ -17,6 +17,8 @@ import {
   Share2,
   Loader2
 } from "lucide-react";
+import { Textarea } from "@/app/components/ui/textarea";
+import { Label } from "@/app/components/ui/label";
 
 export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
   const t = useTranslation();
@@ -34,6 +36,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState(null);
+  const [shareMessage, setShareMessage] = useState("");
 
   const fetchLibraryResources = async () => {
     try {
@@ -77,8 +80,9 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
   const handleShare = async () => {
     try {
       setSharing(true);
-      await onShareFiles(selectedFiles);
+      await onShareFiles(selectedFiles, shareMessage);
       setSelectedFiles([]);
+      setShareMessage("");
       onOpenChange(false);
     } catch (error) {
       console.error('Error sharing files:', error);
@@ -90,6 +94,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
 
   const handleClose = () => {
     setSelectedFiles([]);
+    setShareMessage("");
     setError(null);
     setSharing(false);
     onOpenChange(false);
@@ -108,12 +113,13 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl h-[600px]">
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t('library.shareFilesFromLibrary', 'Share Files from Library')}</DialogTitle>
         </DialogHeader>
         
-        <div className="flex h-full gap-4">
+        {/* Main content area */}
+        <div className="flex-1 flex gap-4 overflow-hidden mt-2">
           {/* Categories Sidebar */}
           <div className="w-48 border-r border-border pr-4">
             <ScrollArea className="h-full">
@@ -143,8 +149,8 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
           </div>
 
           {/* Files Grid */}
-          <div className="flex-1">
-            <ScrollArea className="h-full">
+          <div className="flex-1 min-w-0">
+            <ScrollArea className="h-full pr-1">
               {loading ? (
                 <div className="flex items-center justify-center h-32">
                   <div className="text-center">
@@ -168,7 +174,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {filteredFiles.map((file) => (
                     <div 
                       key={file.id} 
@@ -194,12 +200,25 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
           </div>
         </div>
 
+        {/* Message Input */}
+        <div className="space-y-2 border-t border-border pt-4 mt-2">
+          <Label htmlFor="shareMessage">{t('library.shareMessageOptional', 'Share Message (Optional)')}</Label>
+          <Textarea
+            id="shareMessage"
+            value={shareMessage}
+            onChange={(e) => setShareMessage(e.target.value)}
+            placeholder={t('library.addPersonalMessage', 'Add a personal message to accompany these files...')}
+            rows={3}
+            className="resize-none"
+          />
+        </div>
+
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-border pt-4">
           <div className="flex items-center gap-2">
             {selectedFiles.length > 0 && (
               <Badge variant="secondary">
-                {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected
+                {selectedFiles.length} {selectedFiles.length > 1 ? t('library.filesSelected', 'files selected') : t('library.fileSelected', 'file selected')}
               </Badge>
             )}
           </div>

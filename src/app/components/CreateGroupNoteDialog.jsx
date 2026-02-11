@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { FileText, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -24,17 +25,18 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 
-const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+const formSchema = (t) => z.object({
+  title: z.string().min(1, t('notes.titleRequired', 'Title is required')),
   description: z.string().optional(),
 });
 
 export function CreateGroupNoteDialog({ groupId, onNoteCreated, children }) {
+  const t = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema(t)),
     defaultValues: {
       title: "",
       description: "",
@@ -88,7 +90,7 @@ export function CreateGroupNoteDialog({ groupId, onNoteCreated, children }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Create Group Note
+            {t('notes.createGroupNote', 'Create Group Note')}
           </DialogTitle>
         </DialogHeader>
 
@@ -99,10 +101,10 @@ export function CreateGroupNoteDialog({ groupId, onNoteCreated, children }) {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>{t('common.labels.title', 'Title')}</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Enter note title" 
+                      placeholder={t('notes.enterNoteTitle', 'Enter note title')} 
                       {...field} 
                     />
                   </FormControl>
@@ -116,10 +118,10 @@ export function CreateGroupNoteDialog({ groupId, onNoteCreated, children }) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t('common.labels.description', 'Description')}</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter note description (optional)"
+                      placeholder={t('notes.enterNoteDescriptionOptional', 'Enter note description (optional)')}
                       className="min-h-[100px]"
                       {...field} 
                     />
@@ -136,7 +138,7 @@ export function CreateGroupNoteDialog({ groupId, onNoteCreated, children }) {
                 onClick={() => setIsOpen(false)}
                 disabled={isLoading}
               >
-                Cancel
+                {t('common.buttons.cancel', 'Cancel')}
               </Button>
               <Button 
                 type="submit" 
@@ -145,12 +147,12 @@ export function CreateGroupNoteDialog({ groupId, onNoteCreated, children }) {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
+                    {t('notes.creating', 'Creating...')}
                   </>
                 ) : (
                   <>
                     <FileText className="h-4 w-4 mr-2" />
-                    Create Note
+                    {t('notes.createNote', 'Create Note')}
                   </>
                 )}
               </Button>
