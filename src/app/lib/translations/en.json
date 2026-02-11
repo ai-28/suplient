@@ -51,7 +51,8 @@
             "hide": "Hide",
             "selectAll": "Select All",
             "required": "Required",
-            "overview": "Overview"
+            "overview": "Overview",
+            "fullName": "Full Name"
         },
         "greeting": "Hi",
         "messages": {
@@ -1230,8 +1231,23 @@
         "noEnrolledClientsDescription": "This program doesn't have any enrolled clients yet.",
         "progress": "Progress",
         "elements": "elements",
+        "element": "element",
         "day": "Day",
         "complete": "complete",
+        "programFlowOverview": "Program Flow Overview",
+        "week": "Week",
+        "clickToPreview": "click to preview",
+        "previousMonth": "Previous Month",
+        "nextMonth": "Next Month",
+        "shareFile": "Share File",
+        "createTask": "Create Task",
+        "sendMessage": "Send Message",
+        "elementTypes": {
+            "content": "Content",
+            "task": "Task",
+            "message": "Message",
+            "checkin": "Check-in"
+        },
         "enrolledOn": "Enrolled on",
         "unknownDate": "Unknown date",
         "opening": "Opening...",

@@ -53,7 +53,8 @@
             "list": "Liste",
             "cards": "Kort",
             "required": "Påkrævet",
-            "overview": "Oversigt"
+            "overview": "Oversigt",
+            "fullName": "Fulde navn"
         },
         "greeting": "Hej",
         "messages": {
@@ -1299,8 +1300,23 @@
         "noEnrolledClientsDescription": "Dette program har ingen tilmeldte klienter endnu.",
         "progress": "Fremgang",
         "elements": "elementer",
+        "element": "element",
         "day": "Dag",
         "complete": "fuldført",
+        "programFlowOverview": "Program Flow Oversigt",
+        "week": "Uge",
+        "clickToPreview": "klik for at forhåndsvise",
+        "previousMonth": "Forrige Måned",
+        "nextMonth": "Næste Måned",
+        "shareFile": "Del Fil",
+        "createTask": "Opret Opgave",
+        "sendMessage": "Send Besked",
+        "elementTypes": {
+            "content": "Indhold",
+            "task": "Opgave",
+            "message": "Besked",
+            "checkin": "Tjek-ind"
+        },
         "enrolledOn": "Tilmeldt den",
         "unknownDate": "Ukendt dato",
         "viewMembers": "Vis Medlemmer",

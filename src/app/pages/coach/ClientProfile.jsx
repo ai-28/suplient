@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/app/context/LanguageContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -189,7 +189,7 @@ export default function ClientProfile() {
   };
 
   // Helper function to translate activity titles and descriptions
-  const translateActivity = (activity) => {
+  const translateActivity = useCallback((activity) => {
     // Extract client name from description or activityData
     let displayName = 'User';
     if (activity.activityData?.clientName) {
@@ -247,10 +247,10 @@ export default function ClientProfile() {
         }
         return activity;
     }
-  };
+  }, [t]);
 
   // Fetch client activities
-  const fetchClientActivities = async () => {
+  const fetchClientActivities = useCallback(async () => {
     try {
       setActivitiesLoading(true);
       const response = await fetch(`/api/activities?clientId=${id}&limit=10`);
@@ -269,7 +269,7 @@ export default function ClientProfile() {
     } finally {
       setActivitiesLoading(false);
     }
-  };
+  }, [id, translateActivity]);
 
   // Fetch client data on component mount
   useEffect(() => {
@@ -316,7 +316,7 @@ export default function ClientProfile() {
     fetchProgramTemplates();
     fetchClientEnrolledPrograms();
     fetchClientActivities();
-  }, [id]);
+  }, [id, fetchClientActivities]);
   
   // Fetch client notes
   const fetchClientNotes = async (clientId) => {
@@ -1771,7 +1771,7 @@ export default function ClientProfile() {
                                 dataKey="performance" 
                                 stroke="#3b82f6" 
                                 strokeWidth={isMobile ? 2 : 2}
-                                name="Performance"
+                                name={t('clients.performance', 'Performance')}
                                 dot={!isMobile ? { fill: '#3b82f6', strokeWidth: 2, r: 4 } : false}
                               />
                               <Line 
@@ -1779,7 +1779,7 @@ export default function ClientProfile() {
                                 dataKey="wellbeing" 
                                 stroke="#10b981" 
                                 strokeWidth={isMobile ? 2 : 2}
-                                name="Wellbeing"
+                                name={t('clients.wellbeing', 'Wellbeing')}
                                 dot={!isMobile ? { fill: '#10b981', strokeWidth: 2, r: 4 } : false}
                               />
                             </LineChart>

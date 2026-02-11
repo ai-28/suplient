@@ -30,7 +30,7 @@ import {
   Search,
   Shield
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { CreateTaskDialog } from "@/app/components/CreateTaskDialog";
 import { EditTaskDialog } from "@/app/components/EditTaskDialog";
@@ -129,41 +129,41 @@ export default function Tasks() {
     updateTaskStatus
   } = useTasks();
 
-  const filterClientTasks = (tasks) => {
+  const filterClientTasks = useCallback((tasks) => {
     if (clientFilter === "all") return tasks;
     if (clientFilter === "today") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.dueToday', 'Due Today'));
     if (clientFilter === "overdue") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue'));
     if (clientFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (clientFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
-  };
+  }, [clientFilter, t]);
 
-  const filterMyTasks = (tasks) => {
+  const filterMyTasks = useCallback((tasks) => {
     if (myTaskFilter === "all") return tasks;
     if (myTaskFilter === "today") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.dueToday', 'Due Today'));
     if (myTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue'));
     if (myTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (myTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
-  };
+  }, [myTaskFilter, t]);
 
-  const filterGroupTasks = (tasks) => {
+  const filterGroupTasks = useCallback((tasks) => {
     if (groupTaskFilter === "all") return tasks;
     if (groupTaskFilter === "today") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.dueToday', 'Due Today'));
     if (groupTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue'));
     if (groupTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (groupTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
-  };
+  }, [groupTaskFilter, t]);
 
-  const filterAdminTasks = (tasks) => {
+  const filterAdminTasks = useCallback((tasks) => {
     if (adminTaskFilter === "all") return tasks;
     if (adminTaskFilter === "today") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.dueToday', 'Due Today'));
     if (adminTaskFilter === "overdue") return tasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue'));
     if (adminTaskFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (adminTaskFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
-  };
+  }, [adminTaskFilter, t]);
 
   // Tab-specific stats calculators
   const getClientTaskStats = () => {
@@ -200,10 +200,10 @@ export default function Tasks() {
       totalCompleted: allTasks.filter(task => task.status === "completed").length,
       overdueTasks: allTasks.filter(task => getTaskStatus(task, t).label === t('tasks.overdue')).length
     };
-  }, [personalTasks, clientTasks, groupTasks]);
+  }, [personalTasks, clientTasks, groupTasks, t]);
 
   // Generate real chart data based on actual tasks
-  const generateChartData = (tasks) => {
+  const generateChartData = useCallback((tasks) => {
     const today = new Date();
     const months = [];
     
@@ -244,7 +244,7 @@ export default function Tasks() {
     });
 
     return months;
-  };
+  }, [t]);
 
   // Dynamic chart data based on active tab using real data
   const getChartData = () => {
@@ -329,7 +329,7 @@ export default function Tasks() {
       );
     }
     return tasks;
-  }, [clientTasks, clientFilter, searchTerm]);
+  }, [clientTasks, clientFilter, searchTerm, filterClientTasks]);
 
   const filteredMyTasks = useMemo(() => {
     let tasks = filterMyTasks(personalTasks);
@@ -339,7 +339,7 @@ export default function Tasks() {
       );
     }
     return tasks;
-  }, [personalTasks, myTaskFilter, searchTerm]);
+  }, [personalTasks, myTaskFilter, searchTerm, filterMyTasks]);
 
   const filteredGroupTasks = useMemo(() => {
     let tasks = filterGroupTasks(groupTasks);
@@ -350,7 +350,7 @@ export default function Tasks() {
       );
     }
     return tasks;
-  }, [groupTasks, groupTaskFilter, searchTerm]);
+  }, [groupTasks, groupTaskFilter, searchTerm, filterGroupTasks]);
 
   const filteredAdminTasks = useMemo(() => {
     let tasks = filterAdminTasks(adminAssignedTasks);
@@ -361,7 +361,7 @@ export default function Tasks() {
       );
     }
     return tasks;
-  }, [adminAssignedTasks, adminTaskFilter, searchTerm]);
+  }, [adminAssignedTasks, adminTaskFilter, searchTerm, filterAdminTasks]);
 
   return (
     <div className={`page-container ${isMobile ? 'px-4 pb-24' : ''}`}>

@@ -6,19 +6,13 @@ import { Badge } from '@/app/components/ui/badge';
 import { ChevronLeft, ChevronRight, FileText, CheckSquare, MessageSquare, ClipboardCheck, Plus, Upload } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/ui/dropdown-menu';
+import { useTranslation } from '@/app/context/LanguageContext';
 
 const ELEMENT_COLORS = {
   content: 'bg-blue-500',
   task: 'bg-green-500',
   message: 'bg-orange-500',
   checkin: 'bg-purple-500'
-};
-
-const ELEMENT_TYPES = {
-  content: 'Content',
-  task: 'Task',
-  message: 'Message',
-  checkin: 'Check-in'
 };
 
 const ELEMENT_ICONS = {
@@ -111,8 +105,8 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
           <div className="flex-1 min-w-0">
             <CardTitle className={`${isMobile ? 'text-sm' : 'text-lg'} break-words`}>Program Flow Overview</CardTitle>
             <CardDescription className={isMobile ? 'text-xs mt-0.5' : ''}>
-              <span className="break-words">Weeks {currentWeekStart}-{currentWeekEnd} of {duration}</span>
-              <span className={isMobile ? 'block' : ''}> • {currentViewElements} of {totalElements} elements</span>
+              <span className="break-words">{t('programs.weeks', 'Weeks')} {currentWeekStart}-{currentWeekEnd} {t('common.of', 'of')} {duration}</span>
+              <span className={isMobile ? 'block' : ''}> • {currentViewElements} {t('common.of', 'of')} {totalElements} {t('programs.elements', 'elements')}</span>
             </CardDescription>
           </div>
           {duration > 4 && (
@@ -125,7 +119,7 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                 className={isMobile ? 'flex-1 text-xs h-7' : ''}
               >
                 <ChevronLeft className={isMobile ? 'h-3 w-3 mr-0.5' : 'h-4 w-4 mr-1'} />
-                {isMobile ? 'Prev' : 'Previous Month'}
+                {isMobile ? t('common.buttons.prev', 'Prev') : t('programs.previousMonth', 'Previous Month')}
               </Button>
               <Button 
                 variant="outline" 
@@ -134,7 +128,7 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                 disabled={!canGoNext}
                 className={isMobile ? 'flex-1 text-xs h-7' : ''}
               >
-                {isMobile ? 'Next' : 'Next Month'}
+                {isMobile ? t('common.buttons.next', 'Next') : t('programs.nextMonth', 'Next Month')}
                 <ChevronRight className={isMobile ? 'h-3 w-3 ml-0.5' : 'h-4 w-4 ml-1'} />
               </Button>
             </div>
@@ -168,10 +162,10 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
               {/* Week Header */}
               <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'}`}>
                 <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-foreground break-words`}>
-                  Week {week}
+                  {t('programs.week', 'Week')} {week}
                 </h3>
                 <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>
-                  {elementCount} {elementCount === 1 ? 'element' : 'elements'}
+                  {elementCount} {elementCount === 1 ? t('programs.element', 'element') : t('programs.elements', 'elements')}
                 </Badge>
               </div>
               
@@ -200,9 +194,9 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                         isMobile ? 'text-[9px]' : 'text-[10px]',
                         onDayClick && dayElements.length > 0 && "text-primary font-semibold"
                       )}>
-                        Day {day}
+                        {t('programs.day', 'Day')} {day}
                         {onDayClick && dayElements.length > 0 && (
-                          <span className="ml-1 text-[8px] opacity-70">(click to preview)</span>
+                          <span className="ml-1 text-[8px] opacity-70">({t('programs.clickToPreview', 'click to preview')})</span>
                         )}
                       </div>
                     </div>
@@ -226,15 +220,15 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                           <DropdownMenuContent align="end" className={isMobile ? 'w-36' : 'w-40'}>
                             <DropdownMenuItem onClick={() => onAddElementToDay(dayOfWeek + 1, week, 'content')} className={isMobile ? 'text-xs' : ''}>
                               <Upload className={isMobile ? 'h-3 w-3 mr-1.5' : 'h-4 w-4 mr-2'} />
-                              Share File
+                              {t('programs.shareFile', 'Share File')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onAddElementToDay(dayOfWeek + 1, week, 'task')} className={isMobile ? 'text-xs' : ''}>
                               <CheckSquare className={isMobile ? 'h-3 w-3 mr-1.5' : 'h-4 w-4 mr-2'} />
-                              Create Task
+                              {t('programs.createTask', 'Create Task')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onAddElementToDay(dayOfWeek + 1, week, 'message')} className={isMobile ? 'text-xs' : ''}>
                               <MessageSquare className={isMobile ? 'h-3 w-3 mr-1.5' : 'h-4 w-4 mr-2'} />
-                              Send Message
+                              {t('programs.sendMessage', 'Send Message')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
