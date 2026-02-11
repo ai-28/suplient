@@ -29,7 +29,7 @@ import { DailyNotes } from "@/app/components/DailyNotes";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "@/app/hooks/useSocket";
 import { useUpdateLastActive } from "@/app/hooks/useUpdateLastActive";
-import { useTranslation } from "@/app/context/LanguageContext";
+import { useTranslation, useLanguage } from "@/app/context/LanguageContext";
 import { isIOS } from "@/lib/capacitor";
 
 // Helper function to format date in local timezone (YYYY-MM-DD)
