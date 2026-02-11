@@ -620,6 +620,7 @@
         "groupSettings": "Gruppeindstillinger",
         "analytics": "Analytik",
         "analyticsDescription": "Se gruppefremgang og aktivitet",
+        "progressActivity": "Fremgang & Aktivitet",
         "supportCircles": "Støttecirkler",
         "connectionError": "Forbindelsesfejl",
         "unableToLoad": "Kunne ikke indlæse grupper. Dette kan være et midlertidigt netværksproblem.",

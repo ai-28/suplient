@@ -136,7 +136,8 @@ export default function Tasks() {
     if (clientFilter === "completed") return tasks.filter(task => task.status === "completed");
     if (clientFilter === "open") return tasks.filter(task => task.status !== "completed");
     return tasks;
-  }, [clientFilter, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientFilter]); // t is stable, no need to include in deps
 
   const filterMyTasks = useCallback((tasks) => {
     if (myTaskFilter === "all") return tasks;

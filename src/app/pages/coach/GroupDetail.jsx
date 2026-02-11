@@ -356,7 +356,7 @@ console.log(groupProgressData)
             <TabsList className={`w-full ${isMobile ? 'grid grid-cols-3 gap-1 h-auto p-1' : ''}`}>
               <TabsTrigger value="overview" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{t('common.labels.overview', 'Overview')}</TabsTrigger>
               <TabsTrigger value="members" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{t('groups.members', 'Members')}</TabsTrigger>
-              <TabsTrigger value="analytics" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{isMobile ? 'Progress' : t('groups.progressActivity', 'Progress Activity')}</TabsTrigger>
+              <TabsTrigger value="analytics" className={`${isMobile ? 'text-xs px-1 py-1.5' : 'flex-1'}`}>{t('groups.progressActivity', 'Progress Activity')}</TabsTrigger>
             </TabsList>
           </div>
 

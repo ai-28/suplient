@@ -562,6 +562,7 @@
         "groupSettings": "Group Settings",
         "analytics": "Analytics",
         "analyticsDescription": "View group progress and activity",
+        "progressActivity": "Progress & Activity",
         "supportCircles": "Support Circles",
         "connectionError": "Connection Error",
         "unableToLoad": "Unable to load groups. This might be a temporary network issue.",
