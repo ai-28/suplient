@@ -349,7 +349,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                       </div>
                       <div className={`flex items-center gap-2 ${isMobile ? 'w-full justify-end' : ''}`}>
                         <Badge variant={member.status === "active" ? "success" : member.status === "pending" ? "warning" : "secondary"} className={isMobile ? 'text-xs' : ''}>
-                          {member.status}
+                          {member.status === "active" ? t('common.status.active', 'Active') : member.status === "pending" ? t('common.status.pending', 'Pending') : member.status}
                         </Badge>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -441,7 +441,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                 size={isMobile ? "sm" : "default"}
               >
                 <Trash2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                Delete Group
+                {t('groups.deleteGroup', 'Delete Group')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent className={isMobile ? 'mx-2 max-w-[calc(100vw-1rem)]' : ''}>

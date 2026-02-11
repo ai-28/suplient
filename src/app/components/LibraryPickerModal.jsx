@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
@@ -17,14 +18,15 @@ import {
   Loader2
 } from "lucide-react";
 
-const categories = [
-  { id: "videos", name: "Videos", icon: Video, color: "text-blue-500" },
-  { id: "images", name: "Images", icon: Image, color: "text-green-500" },
-  { id: "articles", name: "Articles", icon: FileText, color: "text-purple-500" },
-  { id: "sounds", name: "Sounds", icon: Volume2, color: "text-orange-500" },
-];
-
 export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
+  const t = useTranslation();
+  
+  const categories = [
+    { id: "videos", name: t('library.videos', 'Videos'), icon: Video, color: "text-blue-500" },
+    { id: "images", name: t('library.images', 'Images'), icon: Image, color: "text-green-500" },
+    { id: "articles", name: t('library.articles', 'Articles'), icon: FileText, color: "text-purple-500" },
+    { id: "sounds", name: t('library.sounds', 'Sounds'), icon: Volume2, color: "text-orange-500" },
+  ];
   const [selectedCategory, setSelectedCategory] = useState("videos");
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [allFiles, setAllFiles] = useState([]);
@@ -108,7 +110,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl h-[600px]">
         <DialogHeader>
-          <DialogTitle>Share Files from Library</DialogTitle>
+          <DialogTitle>{t('library.shareFilesFromLibrary', 'Share Files from Library')}</DialogTitle>
         </DialogHeader>
         
         <div className="flex h-full gap-4">
@@ -162,7 +164,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
               ) : filteredFiles.length === 0 ? (
                 <div className="flex items-center justify-center h-32">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">No files in this category</p>
+                    <p className="text-sm text-muted-foreground">{t('library.noFilesInCategory', 'No files in this category')}</p>
                   </div>
                 </div>
               ) : (
@@ -203,7 +205,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleClose}>
-              Cancel
+              {t('common.buttons.cancel', 'Cancel')}
             </Button>
             <Button 
               onClick={handleShare}
@@ -212,12 +214,12 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
               {sharing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sharing...
+                  {t('library.sharing', 'Sharing...')}
                 </>
               ) : (
                 <>
                   <Share2 className="h-4 w-4 mr-2" />
-                  Share Selected Files
+                  {t('library.shareSelectedFiles', 'Share Selected Files')}
                 </>
               )}
             </Button>

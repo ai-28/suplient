@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { FileText, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -29,6 +30,7 @@ const formSchema = z.object({
 });
 
 export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
+  const t = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -103,7 +105,7 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
         <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
           <DialogTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
             <FileText className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary`} />
-            Create New Note
+            {t('notes.createNewNote', 'Create New Note')}
           </DialogTitle>
         </DialogHeader>
 
@@ -114,10 +116,10 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className={isMobile ? 'text-xs' : ''}>Description</FormLabel>
+                  <FormLabel className={isMobile ? 'text-xs' : ''}>{t('common.labels.description', 'Description')}</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter note description"
+                      placeholder={t('notes.enterNoteDescription', 'Enter note description')}
                       className={isMobile ? 'min-h-[60px] text-xs' : 'min-h-[100px]'}
                       {...field} 
                     />
@@ -136,7 +138,7 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
                 className={isMobile ? 'w-full text-xs h-8' : ''}
                 size={isMobile ? "sm" : "default"}
               >
-                Cancel
+                {t('common.buttons.cancel', 'Cancel')}
               </Button>
               <Button 
                 type="submit" 
@@ -147,12 +149,12 @@ export function CreateNoteDialog({ clientId, onNoteCreated, children }) {
                 {isLoading ? (
                   <>
                     <Loader2 className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} animate-spin`} />
-                    Creating...
+                    {t('notes.creating', 'Creating...')}
                   </>
                 ) : (
                   <>
                     <FileText className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-                    Create Note
+                    {t('notes.createNote', 'Create Note')}
                   </>
                 )}
               </Button>

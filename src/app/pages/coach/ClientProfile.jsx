@@ -1125,7 +1125,17 @@ export default function ClientProfile() {
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <User className="h-4 w-4 text-gray-400" />
-                          <span>{t('clients.type', 'Type')}: {clientData.type ? t(`clients.pipelineStages.${clientData.type.toLowerCase()}`, clientData.type) : t('clients.pipelineStages.personal', 'Personal')}</span>
+                          <span>{t('clients.type', 'Type')}: {clientData.type ? (() => {
+                            const typeLower = clientData.type.toLowerCase();
+                            switch (typeLower) {
+                              case 'light': return t('clients.stageLight', 'Light');
+                              case 'group': return t('clients.stageGroup', 'Group');
+                              case 'personal': return t('clients.stagePersonal', 'Personal');
+                              case 'completed': return t('common.status.completed', 'Completed');
+                              case 'inactive': return t('common.status.inactive', 'Inactive');
+                              default: return clientData.type;
+                            }
+                          })() : t('clients.stagePersonal', 'Personal')}</span>
                         </div>
                         {clientData.nextSession && (
                           <div className="flex items-center gap-2 text-sm">
@@ -1970,7 +1980,7 @@ export default function ClientProfile() {
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="bg-background rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b">
-                <h3 className="text-lg font-semibold">Preview</h3>
+                <h3 className="text-lg font-semibold">{t('library.preview', 'Preview')}</h3>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -2089,14 +2099,14 @@ export default function ClientProfile() {
                           window.open(apiUrl, '_blank');
                         }}
                       >
-                        Open in New Tab
+                        {t('library.openInNewTab', 'Open in New Tab')}
                       </Button>
                     </div>
                   </div>
                 ) : previewType === 'document' ? (
                   <div>
                     <div className="mb-4">
-                      <h4 className="text-sm font-medium mb-2">Document Preview</h4>
+                      <h4 className="text-sm font-medium mb-2">{t('library.documentPreview', 'Document Preview')}</h4>
                       <div className="w-full h-[60vh] border rounded bg-gray-50 flex items-center justify-center">
                         <div className="text-center p-8">
                           <div className="mb-4">
@@ -2104,10 +2114,9 @@ export default function ClientProfile() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           </div>
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">Document Preview</h3>
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('library.documentPreview', 'Document Preview')}</h3>
                           <p className="text-sm text-gray-500 mb-6">
-                            This document type cannot be previewed directly in the browser. 
-                            Please download the file to view it in a compatible application.
+                            {t('library.documentPreviewUnavailable', 'This document type cannot be previewed directly in the browser. Please download the file to view it in a compatible application.')}
                           </p>
                           <div className="space-y-3">
                             <Button 
@@ -2118,7 +2127,7 @@ export default function ClientProfile() {
                                 window.open(apiUrl, '_blank');
                               }}
                             >
-                              Open in New Tab
+                              {t('library.openInNewTab', 'Open in New Tab')}
                             </Button>
                             <Button 
                               variant="outline" 
@@ -2127,7 +2136,7 @@ export default function ClientProfile() {
                                 window.open(previewUrl, '_blank');
                               }}
                             >
-                              Open Original URL
+                              {t('library.openOriginalUrl', 'Open Original URL')}
                             </Button>
                           </div>
                         </div>
@@ -2136,14 +2145,14 @@ export default function ClientProfile() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">Preview not available for this file type</p>
+                    <p className="text-muted-foreground mb-4">{t('library.previewNotAvailable', 'Preview not available for this file type')}</p>
                     <Button 
                       variant="outline" 
                       onClick={() => {
                         window.open(previewUrl, '_blank');
                       }}
                     >
-                      Open in New Tab
+                      {t('library.openInNewTab', 'Open in New Tab')}
                     </Button>
                   </div>
                 )}

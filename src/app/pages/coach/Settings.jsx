@@ -74,6 +74,18 @@ export default function Settings() {
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
 
+  // Helper function to get translated stage name
+  const getStageDisplayName = (stageId) => {
+    const stageNames = {
+      'light': t('settings.pipeline.stageLight', 'Light'),
+      'group': t('settings.pipeline.stageGroup', 'Group'),
+      'personal': t('settings.pipeline.stagePersonal', 'Personal'),
+      'completed': t('settings.pipeline.stageCompleted', 'Completed'),
+      'inactive': t('settings.pipeline.stageInactive', 'Inactive')
+    };
+    return stageNames[stageId] || stageId;
+  };
+
   const [pipelineStages, setPipelineStages] = useState([
     { id: "light", name: "Light", color: "bg-blue-500", isVisible: false },
     { id: "group", name: "Group", color: "bg-yellow-500", isVisible: false },
@@ -1771,7 +1783,7 @@ export default function Settings() {
                       <div key={stage.id} className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                         <div className="flex items-center gap-3">
                           <div className={`w-4 h-4 rounded-full ${stage.color}`} />
-                          <span className="font-medium">{stage.name}</span>
+                          <span className="font-medium">{getStageDisplayName(stage.id)}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -1875,7 +1887,7 @@ export default function Settings() {
                         <div className="flex items-center gap-3">
                           <div className={`w-4 h-4 rounded-full ${stage.color}`} />
                           <div>
-                            <span className="font-medium">{stage.name}</span>
+                            <span className="font-medium">{getStageDisplayName(stage.id)}</span>
                             <p className="text-xs text-muted-foreground">
                               {stage.id === 'upcoming' ? t('settings.pipeline.groupStageUpcoming', 'Groups scheduled to start') :
                                stage.id === 'ongoing' ? t('settings.pipeline.groupStageOngoing', 'Active groups') :

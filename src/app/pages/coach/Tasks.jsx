@@ -47,7 +47,11 @@ const formatTaskDueDate = (dueDate, t) => {
   today.setHours(0, 0, 0, 0);
   
   if (date.toDateString() === today.toDateString()) return t('common.time.today');
-  if (date < today) return t('common.time.daysAgo', {count: Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))});
+  if (date < today) {
+    const days = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    const daysAgoText = t('common.time.daysAgo', '{count} days ago');
+    return daysAgoText.replace('{count}', days);
+  }
   
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
@@ -75,7 +79,11 @@ const formatDate = (dateStr, t) => {
   today.setHours(0, 0, 0, 0);
   
   if (date.toDateString() === today.toDateString()) return t('common.time.today');
-  if (date < today) return t('common.time.daysAgo', {count: Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))});
+  if (date < today) {
+    const days = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    const daysAgoText = t('common.time.daysAgo', '{count} days ago');
+    return daysAgoText.replace('{count}', days);
+  }
   
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };

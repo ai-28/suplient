@@ -1,4 +1,5 @@
 "use client"
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
@@ -9,6 +10,7 @@ import { Check, X, Clock, MessageSquare, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export function MembershipRequestsPanel({ groupId, showAllRequests = false }) {
+  const t = useTranslation();
   // Mock functions for membership requests
   const getPendingRequests = () => {
     return [
@@ -41,17 +43,17 @@ export function MembershipRequestsPanel({ groupId, showAllRequests = false }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Membership Requests
+            {t('groups.membershipRequests', 'Membership Requests')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Pending Requests</h3>
+            <h3 className="text-lg font-medium mb-2">{t('groups.noPendingRequests', 'No Pending Requests')}</h3>
             <p className="text-muted-foreground">
               {showAllRequests 
-                ? "There are no pending membership requests at the moment."
-                : "This group has no pending membership requests."
+                ? t('groups.noPendingRequestsAtMoment', 'There are no pending membership requests at the moment.')
+                : t('groups.noPendingRequestsForGroup', 'This group has no pending membership requests.')
               }
             </p>
           </div>
@@ -65,7 +67,7 @@ export function MembershipRequestsPanel({ groupId, showAllRequests = false }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <User className="h-5 w-5" />
-          Membership Requests ({requests.length})
+          {t('groups.membershipRequests', 'Membership Requests')} ({requests.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -90,7 +92,7 @@ export function MembershipRequestsPanel({ groupId, showAllRequests = false }) {
                   </div>
                   <Badge variant="secondary" className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    Pending
+                    {t('common.status.pending', 'Pending')}
                   </Badge>
                 </div>
 
@@ -118,21 +120,20 @@ export function MembershipRequestsPanel({ groupId, showAllRequests = false }) {
                     <AlertDialogTrigger asChild>
                       <Button size="sm" className="flex-1">
                         <Check className="h-4 w-4 mr-2" />
-                        Approve
+                        {t('groups.approve', 'Approve')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Approve Membership Request</AlertDialogTitle>
+                        <AlertDialogTitle>{t('groups.approveMembershipRequest', 'Approve Membership Request')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to approve {request.clientName}'s request to join the group? 
-                          They will be added as an active member and notified of their acceptance.
+                          {t('groups.confirmApproveMembership', "Are you sure you want to approve {name}'s request to join the group? They will be added as an active member and notified of their acceptance.", { name: request.clientName }).replace('{name}', request.clientName)}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.buttons.cancel', 'Cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => approveRequest(request.id)}>
-                          Approve Request
+                          {t('groups.approveRequest', 'Approve Request')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -142,24 +143,23 @@ export function MembershipRequestsPanel({ groupId, showAllRequests = false }) {
                     <AlertDialogTrigger asChild>
                       <Button size="sm" variant="outline" className="flex-1">
                         <X className="h-4 w-4 mr-2" />
-                        Decline
+                        {t('groups.decline', 'Decline')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Decline Membership Request</AlertDialogTitle>
+                        <AlertDialogTitle>{t('groups.declineMembershipRequest', 'Decline Membership Request')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to decline {request.clientName}'s request to join the group? 
-                          They will be notified that their request was not approved.
+                          {t('groups.confirmDeclineMembership', "Are you sure you want to decline {name}'s request to join the group? They will be notified that their request was not approved.", { name: request.clientName }).replace('{name}', request.clientName)}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.buttons.cancel', 'Cancel')}</AlertDialogCancel>
                         <AlertDialogAction 
                           onClick={() => declineRequest(request.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          Decline Request
+                          {t('groups.declineRequest', 'Decline Request')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

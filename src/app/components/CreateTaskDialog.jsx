@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format, addDays, addWeeks, addMonths } from "date-fns";
 import { CalendarIcon, Plus, User, Users, X, Search } from "lucide-react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { useClients } from "@/app/hooks/useClients";
 import { useGroupsForTasks } from "@/app/hooks/useGroupsForTasks";
 
@@ -279,11 +280,11 @@ export function CreateTaskDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
-                      Task Title
+                      {t('tasks.taskTitle', 'Task Title')}
                     </FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Enter task title..." 
+                        placeholder={t('tasks.enterTaskTitle', 'Enter task title...')} 
                         className={`bg-background border-border focus:border-primary ${isMobile ? 'text-xs h-8' : ''}`}
                         {...field} 
                       />
@@ -299,11 +300,11 @@ export function CreateTaskDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
-                      Description
+                      {t('common.labels.description', 'Description')}
                     </FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Add task description..." 
+                        placeholder={t('tasks.addTaskDescription', 'Add task description...')} 
                         className={`bg-background border-border focus:border-primary ${isMobile ? 'min-h-[60px] text-xs' : 'min-h-[100px]'}`}
                         {...field} 
                       />
@@ -327,10 +328,10 @@ export function CreateTaskDialog({
                     </FormControl>
                     <div className={`${isMobile ? 'space-y-0.5' : 'space-y-1'} leading-none flex-1 min-w-0`}>
                       <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>
-                        Repetitive Task
+                        {t('tasks.repetitiveTask', 'Repetitive Task')}
                       </FormLabel>
                       <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
-                        Automatically create future tasks when this one is completed or becomes overdue
+                        {t('tasks.repetitiveTaskDescription', 'Automatically create future tasks when this one is completed or becomes overdue')}
                       </p>
                     </div>
                   </FormItem>
@@ -345,18 +346,18 @@ export function CreateTaskDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
-                          Frequency
+                          {t('tasks.frequency', 'Frequency')}
                         </FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className={`bg-background border-border ${isMobile ? 'text-xs h-8' : ''}`}>
-                              <SelectValue placeholder="Select frequency" />
+                              <SelectValue placeholder={t('tasks.selectFrequency', 'Select frequency')} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="daily">Daily</SelectItem>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="daily">{t('tasks.daily', 'Daily')}</SelectItem>
+                            <SelectItem value="weekly">{t('tasks.weekly', 'Weekly')}</SelectItem>
+                            <SelectItem value="monthly">{t('tasks.monthly', 'Monthly')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className={isMobile ? 'text-xs' : ''} />
@@ -370,21 +371,21 @@ export function CreateTaskDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
-                          Number of Repetitions
+                          {t('tasks.numberOfRepetitions', 'Number of Repetitions')}
                         </FormLabel>
                         <FormControl>
                           <Input 
                             type="number"
                             min="1"
                             max="50"
-                            placeholder="Enter number of repetitions..." 
+                            placeholder={t('tasks.enterNumberOfRepetitions', 'Enter number of repetitions...')} 
                             className={`bg-background border-border focus:border-primary ${isMobile ? 'text-xs h-8' : ''}`}
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                           />
                         </FormControl>
                         <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
-                          How many times should this task be repeated? (1-50)
+                          {t('tasks.howManyTimesRepeated', 'How many times should this task be repeated? (1-50)')}
                         </p>
                         <FormMessage className={isMobile ? 'text-xs' : ''} />
                       </FormItem>
@@ -392,7 +393,7 @@ export function CreateTaskDialog({
                   />
 
                   <div className={`bg-muted/50 ${isMobile ? 'p-2' : 'p-3'} rounded-lg`}>
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>Next Due Date</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{t('tasks.nextDueDate', 'Next Due Date')}</p>
                     <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>
                       {format(getNextDueDate(), "PPP")}
                     </p>
@@ -407,7 +408,7 @@ export function CreateTaskDialog({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
-                        Due Date
+                        {t('tasks.dueDate', 'Due Date')}
                       </FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -423,7 +424,7 @@ export function CreateTaskDialog({
                               {field.value ? (
                                 format(field.value, "PPP")
                               ) : (
-                                <span>Pick a date</span>
+                                <span>{t('tasks.pickDate', 'Pick a date')}</span>
                               )}
                               <CalendarIcon className={`ml-auto ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} opacity-50`} />
                             </Button>
@@ -457,14 +458,14 @@ export function CreateTaskDialog({
             size={isMobile ? "sm" : "default"}
             >
               <Plus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-              Create Task
+              {t('tasks.createTask', 'Create Task')}
             </Button>
           )}
         </DialogTrigger>
         <DialogContent className={`${isMobile ? 'max-w-full mx-2' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto`}>
           <DialogHeader className={isMobile ? 'pb-2' : ''}>
             <DialogTitle className={`${isMobile ? 'text-base' : 'text-xl'} font-semibold text-foreground break-words`}>
-            Create New Task
+            {t('tasks.createNewTask', 'Create New Task')}
             </DialogTitle>
           </DialogHeader>
 
@@ -473,7 +474,7 @@ export function CreateTaskDialog({
             {/* Task Type Selection - hide when in client context or group mode */}
             {!hideGroupTasks && mode !== "group" && (
               <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
-                <label className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>Task Type</label>
+                <label className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>{t('tasks.taskType', 'Task Type')}</label>
                 <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-3 gap-3'}`}>
                   <Button
                     type="button"
@@ -483,7 +484,7 @@ export function CreateTaskDialog({
                     size={isMobile ? "sm" : "default"}
                   >
                     <User className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-                    My Tasks
+                    {t('tasks.myTasks', 'My Tasks')}
                   </Button>
                   <Button 
                     type="button" 
@@ -493,7 +494,7 @@ export function CreateTaskDialog({
                     size={isMobile ? "sm" : "default"}
                   >
                     <Users className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-                    Client Task
+                    {t('tasks.clientTask', 'Client Task')}
                   </Button>
                   <Button 
                     type="button"
@@ -503,7 +504,7 @@ export function CreateTaskDialog({
                     size={isMobile ? "sm" : "default"}
                   >
                     <Users className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-                    Group Task
+                    {t('tasks.groupTask', 'Group Task')}
                   </Button>
                 </div>
               </div>
@@ -517,7 +518,7 @@ export function CreateTaskDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
-                        Assign to Clients
+                        {t('tasks.assignToClients', 'Assign to Clients')}
                       </FormLabel>
                       <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                         {selectedClients.length > 0 && (
@@ -554,8 +555,8 @@ export function CreateTaskDialog({
                                 <Search className={isMobile ? 'h-3 w-3 flex-shrink-0' : 'h-4 w-4 flex-shrink-0'} />
                                 <span className="truncate">
                                   {selectedClients.length === 0 
-                                    ? "Search and select clients..." 
-                                    : `${selectedClients.length} client${selectedClients.length > 1 ? 's' : ''} selected`
+                                    ? t('tasks.searchAndSelectClients', 'Search and select clients...') 
+                                    : `${selectedClients.length} ${selectedClients.length === 1 ? t('tasks.client', 'client') : t('tasks.clients', 'clients')} ${t('tasks.selected', 'selected')}`
                                   }
                                 </span>
                               </div>
@@ -589,7 +590,7 @@ export function CreateTaskDialog({
                               <div className="relative">
                                 <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
                                 <Input
-                                  placeholder="Search clients..."
+                                  placeholder={t('tasks.searchClients', 'Search clients...')}
                                   value={clientSearchQuery}
                                   onChange={(e) => {
                                     setClientSearchQuery(e.target.value);
@@ -600,15 +601,15 @@ export function CreateTaskDialog({
                               <div className={`max-h-[200px] overflow-y-auto ${isMobile ? 'space-y-1' : 'space-y-1'}`}>
                                 {clientsLoading ? (
                                   <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'p-1.5' : 'p-2'} text-center`}>
-                                    Loading clients...
+                                    {t('tasks.loadingClients', 'Loading clients...')}
                                   </div>
                                 ) : clientsError ? (
                                   <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive ${isMobile ? 'p-1.5' : 'p-2'} text-center break-words`}>
-                                    Error loading clients: {clientsError}
+                                    {t('tasks.errorLoadingClients', 'Error loading clients')}: {clientsError}
                                   </div>
                                 ) : filteredClients.length === 0 ? (
                                   <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'p-1.5' : 'p-2'} text-center`}>
-                                    No clients found
+                                    {t('tasks.noClientsFound', 'No clients found')}
                                   </div>
                                 ) : (
                                   filteredClients.map((client) => (
@@ -648,7 +649,7 @@ export function CreateTaskDialog({
                         </Popover>
                       </div>
                       <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
-                        You can select multiple clients for the same task
+                        {t('tasks.selectMultipleClients', 'You can select multiple clients for the same task')}
                       </p>
                       <FormMessage className={isMobile ? 'text-xs' : ''} />
                     </FormItem>
@@ -660,7 +661,7 @@ export function CreateTaskDialog({
             {hideGroupTasks && clientId && (
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                 <label className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>
-                  Assign to Client
+                  {t('tasks.assignToClient', 'Assign to Client')}
                 </label>
                 <div className={`flex items-center gap-2 ${isMobile ? 'p-2' : 'p-3'} border rounded-lg bg-muted/50`}>
                   <div className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} rounded-full bg-primary/10 flex items-center justify-center ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-primary flex-shrink-0`}>
@@ -679,7 +680,7 @@ export function CreateTaskDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>
-                      {mode === "group" ? "Selected Group" : "Select Group"}
+                      {mode === "group" ? t('tasks.selectedGroup', 'Selected Group') : t('tasks.selectGroup', 'Select Group')}
                       </FormLabel>
                     <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                       {selectedGroup && (
@@ -689,7 +690,7 @@ export function CreateTaskDialog({
                       </div>
                           <div className="flex-1 min-w-0">
                             <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground break-words`}>{selectedGroup.name}</p>
-                            <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{selectedGroup.memberCount} members</p>
+                            <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{selectedGroup.memberCount} {t('groups.members', 'members')}</p>
                           </div>
                           {mode !== "group" && (
                             <X 
@@ -717,7 +718,7 @@ export function CreateTaskDialog({
                               <Search className={isMobile ? 'h-3 w-3 flex-shrink-0' : 'h-4 w-4 flex-shrink-0'} />
                               <span className="truncate">
                                 {!selectedGroup 
-                                  ? "Search and select a group..." 
+                                  ? t('tasks.searchAndSelectGroup', 'Search and select a group...') 
                                   : selectedGroup.name
                                 }
                               </span>
@@ -745,7 +746,7 @@ export function CreateTaskDialog({
                             <div className="relative">
                               <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
                         <Input 
-                                placeholder="Search groups..."
+                                placeholder={t('tasks.searchGroups', 'Search groups...')}
                                 value={groupSearchQuery}
                                 onChange={(e) => setGroupSearchQuery(e.target.value)}
                                 className={`pl-9 ${isMobile ? 'text-xs h-8' : ''}`}
@@ -754,15 +755,15 @@ export function CreateTaskDialog({
                             <div className={`max-h-[200px] overflow-y-auto ${isMobile ? 'space-y-1' : 'space-y-1'}`}>
                               {groupsLoading ? (
                                 <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'p-1.5' : 'p-2'} text-center`}>
-                                  Loading groups...
+                                  {t('tasks.loadingGroups', 'Loading groups...')}
                                 </div>
                               ) : groupsError ? (
                                 <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive ${isMobile ? 'p-1.5' : 'p-2'} text-center break-words`}>
-                                  Error loading groups: {groupsError}
+                                  {t('tasks.errorLoadingGroups', 'Error loading groups')}: {groupsError}
                                 </div>
                               ) : filteredGroups.length === 0 ? (
                                 <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'p-1.5' : 'p-2'} text-center`}>
-                                  No groups found
+                                  {t('tasks.noGroupsFound', 'No groups found')}
                                 </div>
                               ) : (
                                 filteredGroups.map((group) => (
@@ -791,7 +792,7 @@ export function CreateTaskDialog({
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>{group.name}</p>
-                                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{group.memberCount} members</p>
+                                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{group.memberCount} {t('groups.members', 'members')}</p>
                                     </div>
                                   </div>
                                 ))
@@ -804,8 +805,8 @@ export function CreateTaskDialog({
                     </div>
                     <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                       {mode === "group" 
-                        ? "This task will be assigned to all group members" 
-                        : "Select a group to assign this task to all group members"
+                        ? t('tasks.taskAssignedToAllMembers', 'This task will be assigned to all group members') 
+                        : t('tasks.selectGroupToAssign', 'Select a group to assign this task to all group members')
                       }
                     </p>
                         <FormMessage className={isMobile ? 'text-xs' : ''} />
@@ -825,14 +826,14 @@ export function CreateTaskDialog({
                   className={`border-border hover:bg-muted ${isMobile ? 'w-full text-xs h-8' : ''}`}
                   size={isMobile ? "sm" : "default"}
                 >
-                  Cancel
+                  {t('common.buttons.cancel', 'Cancel')}
                 </Button>
                 <Button 
                   type="submit"
                   className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all ${isMobile ? 'w-full text-xs h-8' : ''}`}
                   size={isMobile ? "sm" : "default"}
                 >
-                  Create Task
+                  {t('tasks.createTask', 'Create Task')}
                 </Button>
               </div>
             </form>

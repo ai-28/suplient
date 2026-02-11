@@ -718,7 +718,7 @@ export default function Sessions() {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground block`}>{session.client || 'Unknown Client'}</span>
+                              <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground block`}>{session.client || t('sessions.unknownClient', 'Unknown Client')}</span>
                               {!isMobile && <span className="text-xs text-muted-foreground">{t('sessions.individualSession', 'Individual Session')}</span>}
                             </div>
                           </div>

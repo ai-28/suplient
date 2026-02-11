@@ -198,7 +198,7 @@ export function GoalHabitTemplateManager() {
         <CardContent className="p-6">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2 text-sm text-muted-foreground">Loading templates...</span>
+            <span className="ml-2 text-sm text-muted-foreground">{t('settings.templates.loadingTemplates', 'Loading templates...')}</span>
           </div>
         </CardContent>
       </Card>
@@ -210,10 +210,10 @@ export function GoalHabitTemplateManager() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>
-            Goal & Habit Templates
+            {t('settings.templates.goalHabitTemplates', 'Goal & Habit Templates')}
           </h3>
           <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mt-1`}>
-            Create reusable templates for goals and habits that can be applied to clients
+            {t('settings.templates.templatesDescription', 'Create reusable templates for goals and habits that can be applied to clients')}
           </p>
         </div>
         <Button onClick={() => handleOpenTemplateDialog()} size={isMobile ? "sm" : "default"}>
@@ -252,10 +252,10 @@ export function GoalHabitTemplateManager() {
                     )}
                     <div className={`flex items-center gap-4 mt-2 ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
                       <span>
-                        {template.items.filter(i => i.type === 'goal').length} Goals
+                        {template.items.filter(i => i.type === 'goal').length} {t('settings.templates.goals', 'Goals')}
                       </span>
                       <span>
-                        {template.items.filter(i => i.type === 'habit').length} Habits
+                        {template.items.filter(i => i.type === 'habit').length} {t('settings.templates.habits', 'Habits')}
                       </span>
                     </div>
                   </div>
@@ -288,30 +288,30 @@ export function GoalHabitTemplateManager() {
         <DialogContent className={isMobile ? 'max-w-[95vw] max-h-[90vh] overflow-y-auto' : 'max-w-2xl max-h-[90vh] overflow-y-auto'}>
           <DialogHeader>
             <DialogTitle>
-              {editingTemplate ? 'Edit Template' : 'Create New Template'}
+              {editingTemplate ? t('settings.templates.editTemplate', 'Edit Template') : t('settings.templates.createNewTemplate', 'Create New Template')}
             </DialogTitle>
             <DialogDescription>
-              Define a set of goals and habits that can be applied to clients
+              {t('settings.templates.templateDescription', 'Define a set of goals and habits that can be applied to clients')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label>Template Name *</Label>
+              <Label>{t('settings.templates.templateName', 'Template Name')} *</Label>
               <Input
                 value={templateName}
                 onChange={(e) => setTemplateName(e.target.value)}
-                placeholder="e.g., Weight Loss Program"
+                placeholder={t('settings.templates.templateNamePlaceholder', 'e.g., Weight Loss Program')}
                 className="mt-1"
               />
             </div>
 
             <div>
-              <Label>Description</Label>
+              <Label>{t('common.labels.description', 'Description')}</Label>
               <Textarea
                 value={templateDescription}
                 onChange={(e) => setTemplateDescription(e.target.value)}
-                placeholder="Optional description for this template"
+                placeholder={t('settings.templates.templateDescriptionPlaceholder', 'Optional description for this template')}
                 className="mt-1"
                 rows={2}
               />
@@ -319,20 +319,20 @@ export function GoalHabitTemplateManager() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>Goals & Habits ({templateItems.length})</Label>
+                <Label>{t('settings.templates.goalsAndHabits', 'Goals & Habits')} ({templateItems.length})</Label>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAddItemDialog(true)}
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Item
+                  {t('settings.templates.addItem', 'Add Item')}
                 </Button>
               </div>
 
               {templateItems.length === 0 ? (
                 <div className="text-center py-8 border rounded-lg bg-muted/20">
-                  <p className="text-sm text-muted-foreground">No items added yet</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.templates.noItemsAddedYet', 'No items added yet')}</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -346,7 +346,7 @@ export function GoalHabitTemplateManager() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">{item.name}</span>
                           <Badge variant="outline" className="text-xs">
-                            {item.type === 'goal' ? 'Goal' : 'Habit'}
+                            {item.type === 'goal' ? t('settings.templates.goal', 'Goal') : t('settings.templates.habit', 'Habit')}
                           </Badge>
                         </div>
                       </div>
@@ -367,18 +367,18 @@ export function GoalHabitTemplateManager() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowTemplateDialog(false)}>
-              Cancel
+              {t('common.buttons.cancel', 'Cancel')}
             </Button>
             <Button onClick={handleSaveTemplate} disabled={saving}>
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
+                  {t('settings.templates.saving', 'Saving...')}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  {editingTemplate ? 'Update' : 'Create'} Template
+                  {editingTemplate ? t('settings.templates.updateTemplate', 'Update Template') : t('settings.templates.createTemplate', 'Create Template')}
                 </>
               )}
             </Button>
@@ -399,15 +399,15 @@ export function GoalHabitTemplateManager() {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Add Goal or Habit</DialogTitle>
+            <DialogTitle>{t('settings.templates.addGoalOrHabit', 'Add Goal or Habit')}</DialogTitle>
             <DialogDescription>
-              Add a goal or habit to this template
+              {t('settings.templates.addGoalOrHabitDescription', 'Add a goal or habit to this template')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label>Type *</Label>
+              <Label>{t('settings.templates.type', 'Type')} *</Label>
               <div className="flex gap-2 mt-1">
                 <Button
                   type="button"
@@ -420,7 +420,7 @@ export function GoalHabitTemplateManager() {
                   className="flex-1"
                 >
                   <Target className="h-4 w-4 mr-2" />
-                  Goal
+                  {t('settings.templates.goal', 'Goal')}
                 </Button>
                 <Button
                   type="button"
@@ -433,23 +433,23 @@ export function GoalHabitTemplateManager() {
                   className="flex-1"
                 >
                   <TrendingDown className="h-4 w-4 mr-2" />
-                  Habit
+                  {t('settings.templates.habit', 'Habit')}
                 </Button>
               </div>
             </div>
 
             <div>
-              <Label>Name *</Label>
+              <Label>{t('settings.templates.itemName', 'Item Name')} *</Label>
               <Input
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
-                placeholder={newItemType === 'goal' ? "e.g., Meditation Practice" : "e.g., Late Night Snacking"}
+                placeholder={newItemType === 'goal' ? t('settings.templates.goalNamePlaceholder', 'e.g., Meditation Practice') : t('settings.templates.habitNamePlaceholder', 'e.g., Late Night Snacking')}
                 className="mt-1"
               />
             </div>
 
             <div>
-              <Label>Icon</Label>
+              <Label>{t('settings.templates.icon', 'Icon')}</Label>
               <div onClick={(e) => e.stopPropagation()}>
                 <IconPicker
                   value={newItemIcon}
@@ -460,7 +460,7 @@ export function GoalHabitTemplateManager() {
             </div>
 
             <div>
-              <Label>Color</Label>
+              <Label>{t('settings.templates.color', 'Color')}</Label>
               <div onClick={(e) => e.stopPropagation()}>
                 <ColorPicker
                   value={newItemColor}
@@ -472,10 +472,10 @@ export function GoalHabitTemplateManager() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddItemDialog(false)}>
-              Cancel
+              {t('common.buttons.cancel', 'Cancel')}
             </Button>
             <Button onClick={handleAddItem}>
-              Add Item
+              {t('settings.templates.addItem', 'Add Item')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -485,15 +485,15 @@ export function GoalHabitTemplateManager() {
       <AlertDialog open={!!deletingTemplateId} onOpenChange={(open) => !open && setDeletingTemplateId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Template</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.templates.deleteTemplate', 'Delete Template')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this template? This action cannot be undone.
+              {t('settings.templates.confirmDeleteTemplate', 'Are you sure you want to delete this template? This action cannot be undone.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.buttons.cancel', 'Cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteTemplate} className="bg-destructive text-destructive-foreground">
-              Delete
+              {t('common.buttons.delete', 'Delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
