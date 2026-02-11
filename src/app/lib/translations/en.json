@@ -1515,7 +1515,42 @@
             "description": "Description",
             "joinSession": "Join Session"
         },
-        "offlineMessage": "You're offline. Some features may be limited."
+        "offlineMessage": "You're offline. Some features may be limited.",
+        "profile": {
+            "title": "My Profile",
+            "description": "Manage your personal information and preferences."
+        },
+        "settings": {
+            "notifications": {
+                "title": "Notifications",
+                "description": "Choose what notifications you receive",
+                "enable": "Enable Notifications",
+                "enableDescription": "Receive notifications for messages, tasks, sessions, and updates"
+            },
+            "logout": {
+                "title": "Log Out",
+                "description": "Sign out of your account",
+                "button": "Log Out"
+            },
+            "deactivate": {
+                "title": "Deactivate Profile",
+                "description": "Deactivating your profile will disable your account. You can contact your coach to reactivate it later.",
+                "button": "Deactivate Profile",
+                "dialogTitle": "Deactivate Profile",
+                "dialogDescription": "Are you sure you want to deactivate your profile? Your account will be disabled and you will be signed out. You can contact your coach to reactivate it later.",
+                "deactivating": "Deactivating...",
+                "confirm": "Deactivate"
+            },
+            "deleteAccount": {
+                "title": "Delete Account",
+                "description": "Permanently delete your account and all associated data. This action cannot be undone.",
+                "button": "Delete Account",
+                "dialogTitle": "Delete Account",
+                "dialogDescription": "Are you sure you want to permanently delete your account? This will remove all your data, messages, and account information. This action cannot be undone.",
+                "deleting": "Deleting...",
+                "confirm": "Delete Permanently"
+            }
+        }
     },
     "header": {
         "login": "Login",

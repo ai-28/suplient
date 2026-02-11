@@ -49,6 +49,9 @@ import { useGroups } from "@/app/hooks/useGroups";
 import { toast } from "sonner";
 import { isIOS } from "@/lib/capacitor";
 import { pickAvatarImage, convertHeicToJpeg, validateImageFile } from "@/lib/photoPicker";
+import { LanguageSelector } from "@/app/components/LanguageSelector";
+import { useTranslation } from "@/app/context/LanguageContext";
+import { Globe } from "lucide-react";
 
 // Demo data for goals and habits
 const demoGoals = [
@@ -2415,21 +2418,41 @@ export default function ClientProfile() {
 
         <TabsContent value="settings" className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
+            {/* Language Settings */}
+            <Card>
+              <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
+                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
+                  <Globe className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+                  {t('settings.language.title', 'Language')}
+                </CardTitle>
+                <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>
+                  {t('settings.language.select', 'Select your language')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
+                <LanguageSelector variant="compact" />
+              </CardContent>
+            </Card>
+
             {/* Notification Settings */}
             <Card>
               <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
                 <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                   <Bell className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                  Notifications
+                  {t('client.settings.notifications.title', 'Notifications')}
                 </CardTitle>
-                <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Choose what notifications you receive</CardDescription>
+                <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>
+                  {t('client.settings.notifications.description', 'Choose what notifications you receive')}
+                </CardDescription>
               </CardHeader>
               <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
                 <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
                   <div className="space-y-0.5">
-                    <Label className={`${isMobile ? 'text-sm' : ''}`}>Enable Notifications</Label>
+                    <Label className={`${isMobile ? 'text-sm' : ''}`}>
+                      {t('client.settings.notifications.enable', 'Enable Notifications')}
+                    </Label>
                     <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Receive notifications for messages, tasks, sessions, and updates
+                      {t('client.settings.notifications.enableDescription', 'Receive notifications for messages, tasks, sessions, and updates')}
                     </p>
                   </div>
                   <Switch 
@@ -2449,9 +2472,11 @@ export default function ClientProfile() {
               <CardContent className={`pt-6 ${isMobile ? 'p-3' : ''}`}>
                 <div className={`flex items-center justify-between ${isMobile ? 'flex-col gap-4' : ''}`}>
                   <div>
-                    <h3 className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'}`}>Log Out</h3>
+                    <h3 className={`font-semibold ${isMobile ? 'text-base' : 'text-lg'}`}>
+                      {t('client.settings.logout.title', 'Log Out')}
+                    </h3>
                     <p className={`text-muted-foreground mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      Sign out of your account
+                      {t('client.settings.logout.description', 'Sign out of your account')}
                     </p>
                   </div>
                   <Button
@@ -2461,7 +2486,7 @@ export default function ClientProfile() {
                     size={isMobile ? "sm" : "default"}
                   >
                     <LogOut className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                    Log Out
+                    {t('client.settings.logout.button', 'Log Out')}
                   </Button>
                 </div>
               </CardContent>
@@ -2472,12 +2497,12 @@ export default function ClientProfile() {
               <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
                 <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                   <UserX className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                  Deactivate Profile
+                  {t('client.settings.deactivate.title', 'Deactivate Profile')}
                 </CardTitle>
               </CardHeader>
               <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
                 <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Deactivating your profile will disable your account. You can contact your coach to reactivate it later.
+                  {t('client.settings.deactivate.description', 'Deactivating your profile will disable your account. You can contact your coach to reactivate it later.')}
                 </p>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -2488,24 +2513,28 @@ export default function ClientProfile() {
                       size={isMobile ? "sm" : "default"}
                     >
                       <UserX className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                      Deactivate Profile
+                      {t('client.settings.deactivate.button', 'Deactivate Profile')}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className={isMobile ? 'mx-4' : ''}>
                     <AlertDialogHeader>
-                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>Deactivate Profile</AlertDialogTitle>
+                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>
+                        {t('client.settings.deactivate.dialogTitle', 'Deactivate Profile')}
+                      </AlertDialogTitle>
                       <AlertDialogDescription className={isMobile ? 'text-sm' : ''}>
-                        Are you sure you want to deactivate your profile? Your account will be disabled and you will be signed out. You can contact your coach to reactivate it later.
+                        {t('client.settings.deactivate.dialogDescription', 'Are you sure you want to deactivate your profile? Your account will be disabled and you will be signed out. You can contact your coach to reactivate it later.')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
-                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>
+                        {t('common.buttons.cancel', 'Cancel')}
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDeactivateProfile}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         disabled={deactivating}
                       >
-                        {deactivating ? 'Deactivating...' : 'Deactivate'}
+                        {deactivating ? t('client.settings.deactivate.deactivating', 'Deactivating...') : t('client.settings.deactivate.confirm', 'Deactivate')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -2518,12 +2547,12 @@ export default function ClientProfile() {
               <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
                 <CardTitle className={`flex items-center gap-2 text-destructive ${isMobile ? 'text-lg' : ''}`}>
                   <Trash2 className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                  Delete Account
+                  {t('client.settings.deleteAccount.title', 'Delete Account')}
                 </CardTitle>
               </CardHeader>
               <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 p-3' : ''}`}>
                 <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Permanently delete your account and all associated data. This action cannot be undone.
+                  {t('client.settings.deleteAccount.description', 'Permanently delete your account and all associated data. This action cannot be undone.')}
                 </p>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -2534,24 +2563,28 @@ export default function ClientProfile() {
                       size={isMobile ? "sm" : "default"}
                     >
                       <Trash2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                      Delete Account
+                      {t('client.settings.deleteAccount.button', 'Delete Account')}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className={isMobile ? 'mx-4' : ''}>
                     <AlertDialogHeader>
-                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>Delete Account</AlertDialogTitle>
+                      <AlertDialogTitle className={isMobile ? 'text-lg' : ''}>
+                        {t('client.settings.deleteAccount.dialogTitle', 'Delete Account')}
+                      </AlertDialogTitle>
                       <AlertDialogDescription className={isMobile ? 'text-sm' : ''}>
-                        Are you sure you want to permanently delete your account? This will remove all your data, messages, and account information. This action cannot be undone.
+                        {t('client.settings.deleteAccount.dialogDescription', 'Are you sure you want to permanently delete your account? This will remove all your data, messages, and account information. This action cannot be undone.')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
-                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel className={isMobile ? 'w-full' : ''}>
+                        {t('common.buttons.cancel', 'Cancel')}
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDeleteAccount}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         disabled={deleting}
                       >
-                        {deleting ? 'Deleting...' : 'Delete Permanently'}
+                        {deleting ? t('client.settings.deleteAccount.deleting', 'Deleting...') : t('client.settings.deleteAccount.confirm', 'Delete Permanently')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

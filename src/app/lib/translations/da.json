@@ -1599,7 +1599,42 @@
             "description": "Beskrivelse",
             "joinSession": "Deltag i Session"
         },
-        "offlineMessage": "Du er offline. Nogle funktioner kan være begrænsede."
+        "offlineMessage": "Du er offline. Nogle funktioner kan være begrænsede.",
+        "profile": {
+            "title": "Min Profil",
+            "description": "Administrer dine personlige oplysninger og præferencer."
+        },
+        "settings": {
+            "notifications": {
+                "title": "Notifikationer",
+                "description": "Vælg hvilke notifikationer du modtager",
+                "enable": "Aktiver Notifikationer",
+                "enableDescription": "Modtag notifikationer for beskeder, opgaver, sessioner og opdateringer"
+            },
+            "logout": {
+                "title": "Log Ud",
+                "description": "Log ud af din konto",
+                "button": "Log Ud"
+            },
+            "deactivate": {
+                "title": "Deaktiver Profil",
+                "description": "Deaktivering af din profil vil deaktivere din konto. Du kan kontakte din træner for at genaktivere den senere.",
+                "button": "Deaktiver Profil",
+                "dialogTitle": "Deaktiver Profil",
+                "dialogDescription": "Er du sikker på, at du vil deaktivere din profil? Din konto vil blive deaktiveret, og du vil blive logget ud. Du kan kontakte din træner for at genaktivere den senere.",
+                "deactivating": "Deaktiverer...",
+                "confirm": "Deaktiver"
+            },
+            "deleteAccount": {
+                "title": "Slet Konto",
+                "description": "Slet permanent din konto og alle tilknyttede data. Denne handling kan ikke fortrydes.",
+                "button": "Slet Konto",
+                "dialogTitle": "Slet Konto",
+                "dialogDescription": "Er du sikker på, at du vil permanent slette din konto? Dette vil fjerne alle dine data, beskeder og kontooplysninger. Denne handling kan ikke fortrydes.",
+                "deleting": "Sletter...",
+                "confirm": "Slet Permanent"
+            }
+        }
     },
     "header": {
         "login": "Log ind",
