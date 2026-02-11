@@ -569,6 +569,7 @@
         "allGroups": "All Groups",
         "myGroups": "My Groups",
         "available": "Available",
+        "clientParticipating": "Groups that {name} is currently participating in",
         "joined": "Joined",
         "chat": "Chat",
         "joinSession": "Join Session",

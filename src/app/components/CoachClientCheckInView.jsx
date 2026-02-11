@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/pop
 import { CalendarIcon, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/app/lib/utils";
-import { useTranslation } from "@/app/context/LanguageContext";
+import { useTranslation, useLanguage } from "@/app/context/LanguageContext";
 import PolarAreaChart from "./PolarAreaChart";
 
 // Helper function to format date in local timezone (YYYY-MM-DD)
@@ -21,6 +21,7 @@ const formatDateLocal = (date) => {
 
 export function CoachClientCheckInView({ clientId }) {
   const t = useTranslation();
+  const { language } = useLanguage();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activePeriod, setActivePeriod] = useState('today');
   const [checkInData, setCheckInData] = useState(null);
@@ -73,7 +74,8 @@ export function CoachClientCheckInView({ clientId }) {
   }, [clientId, selectedDate, activePeriod]);
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
+    const locale = language === 'da' ? 'da-DK' : 'en-US';
+    return date.toLocaleDateString(locale, {
       weekday: 'long',
       month: 'short',
       day: 'numeric'

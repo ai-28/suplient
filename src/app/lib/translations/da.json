@@ -627,6 +627,7 @@
         "allGroups": "Alle Grupper",
         "myGroups": "Mine Grupper",
         "available": "Tilgængelig",
+        "clientParticipating": "Grupper som {name} deltager i",
         "joined": "Tilmeldt",
         "chat": "Chat",
         "joinSession": "Deltag i Session",

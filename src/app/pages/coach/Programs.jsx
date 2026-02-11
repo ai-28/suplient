@@ -380,7 +380,7 @@ export default function Programs() {
                     {isMobile && <span className="ml-1">{t('groups.members')}</span>}
                   </Button>
                   
-                  <Dialog>
+                  <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
                     <DialogTrigger asChild>
                       <Button
                         size={isMobile ? "sm" : "sm"}

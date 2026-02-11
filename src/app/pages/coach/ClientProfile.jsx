@@ -1601,7 +1601,7 @@ export default function ClientProfile() {
                   {t('groups.memberships', 'Group Memberships')} ({clientGroups.length})
                 </CardTitle>
                 <CardDescription>
-                  {t('groups.clientParticipating', 'Groups that {name} is currently participating in', { name: clientData.name })}
+                  {t('groups.clientParticipating', 'Groups that {name} is currently participating in').replace('{name}', clientData?.name || '')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
