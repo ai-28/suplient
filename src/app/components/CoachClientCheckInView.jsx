@@ -165,7 +165,7 @@ export function CoachClientCheckInView({ clientId }) {
         <CardDescription className={isMobile ? 'text-xs hidden' : ''}>
           {activePeriod === 'today' 
             ? t('clients.viewClientDailyTracking', 'View client\'s daily check-in metrics and notes')
-            : t('clients.viewClientPeriodTracking', `View client's ${activePeriod} average check-in metrics`)
+            : t('clients.viewClientPeriodTracking', `View client's ${activePeriod} average check-in metrics`).replace('{period}', activePeriod === 'week' ? t('analytics.week', 'Week') : t('analytics.month', 'Month'))
           }
         </CardDescription>
       </CardHeader>
@@ -295,7 +295,7 @@ export function CoachClientCheckInView({ clientId }) {
           <div className={`text-center ${isMobile ? 'py-4' : 'py-8'} text-muted-foreground`}>
             <CalendarIcon className={isMobile ? 'h-8 w-8 mx-auto' : 'h-12 w-12 mx-auto'} />
             <p className={isMobile ? 'text-xs' : 'text-sm'}>
-              {t('clients.noCheckInForPeriod', `No check-in data found for this ${activePeriod}`)}
+              {t('clients.noCheckInForPeriod', `No check-in data found for this ${activePeriod}`).replace('{period}', activePeriod === 'week' ? t('analytics.week', 'Week') : t('analytics.month', 'Month'))}
             </p>
           </div>
         )}
