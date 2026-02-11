@@ -718,6 +718,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
 export default function ClientProfile() {
   const { data: session } = useSession();
   const router = useRouter();
+  const t = useTranslation();
   const { 
     goals, 
     badHabits, 
@@ -1626,9 +1627,9 @@ export default function ClientProfile() {
       <div className={`${isMobile ? 'px-4 pb-24' : 'pb-6'}`}>
         <div className={`space-y-6 ${isMobile ? 'space-y-4' : 'space-y-8'} max-w-6xl mx-auto`}>
           <div className={`${isMobile ? 'text-center pt-4' : 'pt-6'}`}>
-            <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>My Profile</h1>
+            <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>{t('client.profile.title', 'My Profile')}</h1>
             <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
-              Loading your profile...
+              {t('client.profile.loading', 'Loading your profile...')}
             </p>
           </div>
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -1645,9 +1646,9 @@ export default function ClientProfile() {
       <div className={`space-y-6 ${isMobile ? 'space-y-4' : 'space-y-8'} max-w-6xl mx-auto`}>
         <div className={`${isMobile ? 'text-center pt-4' : 'pt-6'} flex items-start justify-between`}>
           <div>
-            <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>My Profile</h1>
+            <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>{t('client.profile.title', 'My Profile')}</h1>
             <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
-              Manage your personal information and preferences.
+              {t('client.profile.description', 'Manage your personal information and preferences.')}
             </p>
           </div>
         </div>

@@ -1602,7 +1602,8 @@
         "offlineMessage": "Du er offline. Nogle funktioner kan være begrænsede.",
         "profile": {
             "title": "Min Profil",
-            "description": "Administrer dine personlige oplysninger og præferencer."
+            "description": "Administrer dine personlige oplysninger og præferencer.",
+            "loading": "Indlæser din profil..."
         },
         "settings": {
             "notifications": {
