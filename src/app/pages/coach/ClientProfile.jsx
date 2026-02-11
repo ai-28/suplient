@@ -1047,6 +1047,24 @@ export default function ClientProfile() {
     }
   };
 
+  // Tooltip content callback for progress chart
+  const tooltipContent = useCallback(({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
+          <p className={`${isMobile ? 'text-xs' : ''} font-medium`}>{label}</p>
+          <p className={`${isMobile ? 'text-xs' : ''} text-blue-600`}>
+            {t('clients.performance', 'Performance')}: {payload[0]?.value}
+          </p>
+          <p className={`${isMobile ? 'text-xs' : ''} text-green-600`}>
+            {t('clients.wellbeing', 'Wellbeing')}: {payload[1]?.value}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  }, [t, isMobile]);
+
   return (
     <div className={`max-h-screen ${isMobile ? 'p-4 pb-24' : 'p-6'}`}>
       <div className={`max-w-7xl mx-auto ${isMobile ? 'space-y-3' : 'space-y-6'}`}>
@@ -1745,22 +1763,7 @@ export default function ClientProfile() {
                                 width={isMobile ? 30 : 50}
                               />
                               <Tooltip 
-                                content={({ active, payload, label }) => {
-                                  if (active && payload && payload.length) {
-                                    return (
-                                      <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
-                                        <p className={`${isMobile ? 'text-xs' : ''} font-medium`}>{label}</p>
-                                        <p className={`${isMobile ? 'text-xs' : ''} text-blue-600`}>
-                                          {t('clients.performance', 'Performance')}: {payload[0]?.value}
-                                        </p>
-                                        <p className={`${isMobile ? 'text-xs' : ''} text-green-600`}>
-                                          {t('clients.wellbeing', 'Wellbeing')}: {payload[1]?.value}
-                                        </p>
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                }}
+                                content={tooltipContent}
                               />
                               <Legend 
                                 wrapperStyle={{ fontSize: isMobile ? '10px' : '12px' }}

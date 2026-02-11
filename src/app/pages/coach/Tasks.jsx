@@ -247,7 +247,7 @@ export default function Tasks() {
   }, [t]);
 
   // Dynamic chart data based on active tab using real data
-  const getChartData = () => {
+  const getChartData = useCallback(() => {
     let chartData;
     switch (activeTab) {
       case 'client-tasks':
@@ -267,9 +267,9 @@ export default function Tasks() {
     
     console.log(`📊 Chart data for ${activeTab}:`, chartData);
     return chartData;
-  };
+  }, [activeTab, clientTasks, personalTasks, groupTasks, generateChartData]);
 
-  const getChartTitle = () => {
+  const getChartTitle = useCallback(() => {
     switch (activeTab) {
       case 'client-tasks':
         return t('tasks.clientTaskTrends', 'Client Task Trends');
@@ -280,9 +280,9 @@ export default function Tasks() {
       default:
         return t('tasks.overallTaskTrends', 'Overall Task Trends');
     }
-  };
+  }, [activeTab, t]);
 
-  const getChartSubtitle = () => {
+  const getChartSubtitle = useCallback(() => {
     switch (activeTab) {
       case 'client-tasks':
         return t('tasks.clientTaskTrendsDesc', 'Tasks assigned from client programs');
@@ -293,7 +293,7 @@ export default function Tasks() {
       default:
         return t('tasks.overallTaskTrendsDesc', 'Combined view of all your managed tasks');
     }
-  };
+  }, [activeTab, t]);
 
   const handleEditTask = (task) => {
     setEditingTask(task);

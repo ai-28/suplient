@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -295,6 +295,28 @@ console.log(groupProgressData)
     fetchGroupData();
   };
 
+  // Tooltip content callback for progress chart
+  const tooltipContent = useCallback(({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
+          <p className={`${isMobile ? 'text-xs' : ''} font-medium`}>{label}</p>
+          <p className={`${isMobile ? 'text-xs' : ''} text-blue-600`}>
+            {t('groups.performance', 'Performance')}: {data.performance}
+          </p>
+          <p className={`${isMobile ? 'text-xs' : ''} text-green-600`}>
+            {t('groups.wellbeing', 'Wellbeing')}: {data.wellbeing}
+          </p>
+          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 mt-1`}>
+            {t('groups.basedOnMembers', 'Based on members')}: {data.memberCount}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  }, [t, isMobile]);
+
   return (
     <div className={`flex flex-col bg-background ${isMobile ? 'pb-24' : ''}`}>
       {/* Header */}
@@ -447,26 +469,7 @@ console.log(groupProgressData)
                                 width={isMobile ? 30 : 50}
                               />
                               <Tooltip 
-                                content={({ active, payload, label }) => {
-                                  if (active && payload && payload.length) {
-                                    const data = payload[0].payload;
-                                    return (
-                                       <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
-                                         <p className={`${isMobile ? 'text-xs' : ''} font-medium`}>{label}</p>
-                                         <p className={`${isMobile ? 'text-xs' : ''} text-blue-600`}>
-                                           {t('groups.performance', 'Performance')}: {data.performance}
-                                         </p>
-                                         <p className={`${isMobile ? 'text-xs' : ''} text-green-600`}>
-                                           {t('groups.wellbeing', 'Wellbeing')}: {data.wellbeing}
-                                         </p>
-                                         <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 mt-1`}>
-                                           {t('groups.basedOnMembers', 'Based on members')}: {data.memberCount}
-                                         </p>
-                                       </div>
-                                    );
-                                  }
-                                  return null;
-                                }}
+                                content={tooltipContent}
                               />
                               <Legend 
                                 wrapperStyle={{ fontSize: isMobile ? '10px' : '12px' }}
