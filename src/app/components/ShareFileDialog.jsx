@@ -11,10 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Share2, Search, Users, User, UserCheck, MessageSquare, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 
 
 export function ShareFileDialog({ file, files, onShare, children }) {
+  const t = useTranslation();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("individuals");
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,11 +50,11 @@ export function ShareFileDialog({ file, files, onShare, children }) {
       if (result.status) {
         setClients(result.clients || []);
       } else {
-        setError(result.message || 'Failed to fetch clients');
+        setError(result.message || t('clients.failedToFetch', 'Failed to fetch clients'));
       }
     } catch (err) {
       console.error('Error fetching clients:', err);
-      setError('Failed to fetch clients');
+      setError(t('clients.failedToFetch', 'Failed to fetch clients'));
     } finally {
       setLoadingClients(false);
     }
@@ -68,11 +70,11 @@ export function ShareFileDialog({ file, files, onShare, children }) {
       if (result.groups) {
         setGroups(result.groups || []);
       } else {
-        setError(result.error || 'Failed to fetch groups');
+        setError(result.error || t('groups.failedToFetch', 'Failed to fetch groups'));
       }
     } catch (err) {
       console.error('Error fetching groups:', err);
-      setError('Failed to fetch groups');
+      setError(t('groups.failedToFetch', 'Failed to fetch groups'));
     } finally {
       setLoadingGroups(false);
     }
@@ -123,7 +125,7 @@ export function ShareFileDialog({ file, files, onShare, children }) {
 
   const handleShare = async () => {
     if (selectedClients.length === 0 && selectedGroups.length === 0) {
-      toast.error("Please select at least one client or group to share with.");
+      toast.error(t('clients.selectAtLeastOne', 'Please select at least one client or group to share with.'));
       return;
     }
 
@@ -166,7 +168,7 @@ export function ShareFileDialog({ file, files, onShare, children }) {
         // Check if file has required ID
         if (!actualFileItem.id) {
           console.error('File missing ID:', actualFileItem);
-          throw new Error(`File "${actualFileItem.title || 'Unknown'}" is missing required ID field. Please refresh the page and try again.`);
+          throw new Error(t('clients.fileMissingId', 'File "{title}" is missing required ID field. Please refresh the page and try again.').replace('{title}', actualFileItem.title || t('clients.unknown', 'Unknown')));
         }
         
         const response = await fetch('/api/resources/share', {
@@ -184,7 +186,7 @@ export function ShareFileDialog({ file, files, onShare, children }) {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to share resource');
+          throw new Error(errorData.error || t('clients.failedToShareResource', 'Failed to share resource'));
         }
 
         return response.json();
@@ -208,9 +210,9 @@ export function ShareFileDialog({ file, files, onShare, children }) {
       }, 0);
 
       const fileCount = filesToShare.length;
-      const fileText = fileCount === 1 ? "file" : "files";
+      const fileText = fileCount === 1 ? t('clients.file', 'file') : t('clients.files', 'files');
       
-      toast.success(`${fileCount} ${fileText} shared with ${totalRecipients} recipients.`);
+      toast.success(t('clients.filesSharedWithRecipients', '{count} {fileText} shared with {recipients} recipients.').replace('{count}', fileCount).replace('{fileText}', fileText).replace('{recipients}', totalRecipients));
 
       // Reset form
       setSelectedClients([]);
@@ -223,9 +225,9 @@ export function ShareFileDialog({ file, files, onShare, children }) {
       
       // Provide more specific error messages
       if (error.message.includes('missing required ID field')) {
-        toast.error('Some files cannot be shared due to missing data. Please refresh the page and try again.');
+        toast.error(t('clients.filesCannotBeShared', 'Some files cannot be shared due to missing data. Please refresh the page and try again.'));
       } else {
-        toast.error(error.message || 'Failed to share files');
+        toast.error(error.message || t('clients.failedToShareFiles', 'Failed to share files'));
       }
     } finally {
       setSharing(false);
@@ -242,8 +244,8 @@ export function ShareFileDialog({ file, files, onShare, children }) {
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="h-5 w-5" />
             {files && files.length > 1 
-              ? `Share ${files.length} Files` 
-              : `Share: ${file?.title || files?.[0]?.title}`
+              ? t('clients.shareFiles', 'Share {count} Files').replace('{count}', files.length)
+              : t('clients.shareFile', 'Share: {title}').replace('{title}', file?.title || files?.[0]?.title || '')
             }
           </DialogTitle>
         </DialogHeader>
@@ -251,47 +253,47 @@ export function ShareFileDialog({ file, files, onShare, children }) {
         <div className="space-y-6">
           {/* Quick Select Options */}
           <div className="space-y-2">
-            <Label>Quick Select</Label>
+            <Label>{t('clients.quickSelect', 'Quick Select')}</Label>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleQuickSelect("all-active")}
               >
-                All Active Clients
+                {t('clients.allActiveClients', 'All Active Clients')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleQuickSelect("all-clients")}
               >
-                All Clients
+                {t('clients.allClients', 'All Clients')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleQuickSelect("all-groups")}
               >
-                All Groups
+                {t('clients.allGroups', 'All Groups')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleQuickSelect("clear")}
               >
-                Clear Selection
+                {t('clients.clearSelection', 'Clear Selection')}
               </Button>
             </div>
           </div>
 
           {/* Search */}
           <div className="space-y-2">
-            <Label htmlFor="search">Search Recipients</Label>
+            <Label htmlFor="search">{t('clients.searchRecipients', 'Search Recipients')}</Label>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder="Search clients or groups..."
+                placeholder={t('clients.searchClientsOrGroups', 'Search clients or groups...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -304,11 +306,11 @@ export function ShareFileDialog({ file, files, onShare, children }) {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="individuals">
                 <User className="h-4 w-4 mr-2" />
-                Individual Clients
+                {t('clients.individualClients', 'Individual Clients')}
               </TabsTrigger>
               <TabsTrigger value="groups">
                 <Users className="h-4 w-4 mr-2" />
-                Groups
+                {t('groups.title', 'Groups')}
               </TabsTrigger>
             </TabsList>
             
@@ -317,7 +319,7 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                 {loadingClients ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span className="text-muted-foreground">Loading clients...</span>
+                    <span className="text-muted-foreground">{t('clients.loadingClients', 'Loading clients...')}</span>
                   </div>
                 ) : error ? (
                   <div className="flex items-center justify-center py-8">
@@ -325,7 +327,7 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                   </div>
                 ) : filteredClients.length === 0 ? (
                   <div className="flex items-center justify-center py-8">
-                    <span className="text-muted-foreground">No clients found</span>
+                    <span className="text-muted-foreground">{t('clients.noClientsFound', 'No clients found')}</span>
                   </div>
                 ) : (
                   filteredClients.map((client) => (
@@ -341,15 +343,15 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                               <div>
                                 <p className="font-medium">{client.name}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {client.email ? client.email : 'No email provided'}
+                                  {client.email ? client.email : t('clients.noEmailProvided', 'No email provided')}
                                 </p>
                               </div>
                               <div className="flex gap-2">
                                 <Badge variant={client.type?.toLowerCase() === "personal" ? "default" : "secondary"}>
-                                  {client.type || 'Personal'}
+                                  {client.type ? t(`clients.pipelineStages.${client.type.toLowerCase()}`, client.type) : t('clients.pipelineStages.personal', 'Personal')}
                                 </Badge>
                                 <Badge variant={client.status === "Active" ? "default" : "secondary"}>
-                                  {client.status || 'Active'}
+                                  {client.status === "Active" ? t('common.status.active', 'Active') : client.status || t('common.status.active', 'Active')}
                                 </Badge>
                               </div>
                             </div>
@@ -367,7 +369,7 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                 {loadingGroups ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span className="text-muted-foreground">Loading groups...</span>
+                    <span className="text-muted-foreground">{t('groups.loadingGroups', 'Loading groups...')}</span>
                   </div>
                 ) : error ? (
                   <div className="flex items-center justify-center py-8">
@@ -375,7 +377,7 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                   </div>
                 ) : filteredGroups.length === 0 ? (
                   <div className="flex items-center justify-center py-8">
-                    <span className="text-muted-foreground">No groups found</span>
+                    <span className="text-muted-foreground">{t('groups.noGroupsFound', 'No groups found')}</span>
                   </div>
                 ) : (
                   filteredGroups.map((group) => (
@@ -390,9 +392,9 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium">{group.name}</p>
-                                <p className="text-sm text-muted-foreground">{group.memberCount || 0} members</p>
+                                <p className="text-sm text-muted-foreground">{group.memberCount || 0} {t('groups.members', 'members')}</p>
                               </div>
-                              <Badge variant="outline">{group.focusArea || 'General'}</Badge>
+                              <Badge variant="outline">{group.focusArea || t('groups.general', 'General')}</Badge>
                             </div>
                           </div>
                         </div>
@@ -408,7 +410,7 @@ export function ShareFileDialog({ file, files, onShare, children }) {
           {(files && files.length > 0) || file ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Files to Share</CardTitle>
+                <CardTitle className="text-sm">{t('clients.filesToShare', 'Files to Share')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex flex-wrap gap-1">
@@ -426,18 +428,18 @@ export function ShareFileDialog({ file, files, onShare, children }) {
           {(selectedClients.length > 0 || selectedGroups.length > 0) && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Selected Recipients</CardTitle>
+                <CardTitle className="text-sm">{t('clients.selectedRecipients', 'Selected Recipients')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {selectedClients.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Individual Clients ({selectedClients.length})</p>
+                    <p className="text-sm font-medium mb-1">{t('clients.individualClients', 'Individual Clients')} ({selectedClients.length})</p>
                     <div className="flex flex-wrap gap-1">
                       {selectedClients.map(clientId => {
                         const client = clients.find(c => c.id === clientId);
                         return (
                           <Badge key={clientId} variant="secondary">
-                            {client?.name || 'Unknown Client'}
+                            {client?.name || t('clients.unknownClient', 'Unknown Client')}
                           </Badge>
                         );
                       })}
@@ -446,13 +448,13 @@ export function ShareFileDialog({ file, files, onShare, children }) {
                 )}
                 {selectedGroups.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Groups ({selectedGroups.length})</p>
+                    <p className="text-sm font-medium mb-1">{t('groups.title', 'Groups')} ({selectedGroups.length})</p>
                     <div className="flex flex-wrap gap-1">
                       {selectedGroups.map(groupId => {
                         const group = groups.find(g => g.id === groupId);
                         return (
                           <Badge key={groupId} variant="secondary">
-                            {group?.name || 'Unknown Group'} ({group?.memberCount || 0} members)
+                            {group?.name || t('groups.unknownGroup', 'Unknown Group')} ({group?.memberCount || 0} {t('groups.members', 'members')})
                           </Badge>
                         );
                       })}
@@ -465,12 +467,12 @@ export function ShareFileDialog({ file, files, onShare, children }) {
 
           {/* Share Message */}
           <div className="space-y-2">
-            <Label htmlFor="message">Share Message (Optional)</Label>
+            <Label htmlFor="message">{t('clients.shareMessageOptional', 'Share Message (Optional)')}</Label>
             <Textarea
               id="message"
               value={shareMessage}
               onChange={(e) => setShareMessage(e.target.value)}
-              placeholder="Add a personal message to accompany this shared file..."
+              placeholder={t('clients.addPersonalMessage', 'Add a personal message to accompany this shared file...')}
               rows={3}
             />
           </div>
@@ -478,10 +480,10 @@ export function ShareFileDialog({ file, files, onShare, children }) {
           {/* Action Buttons */}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+              {t('common.buttons.cancel', 'Cancel')}
             </Button>
             <Button onClick={handleShare} disabled={sharing}>
-              {sharing ? "Sharing..." : "Share File"}
+              {sharing ? t('clients.sharing', 'Sharing...') : t('clients.shareFile', 'Share File')}
             </Button>
           </div>
         </div>

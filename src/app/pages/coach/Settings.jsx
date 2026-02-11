@@ -1876,7 +1876,13 @@ export default function Settings() {
                           <div className={`w-4 h-4 rounded-full ${stage.color}`} />
                           <div>
                             <span className="font-medium">{stage.name}</span>
-                            <p className="text-xs text-muted-foreground">{stage.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {stage.id === 'upcoming' ? t('settings.pipeline.groupStageUpcoming', 'Groups scheduled to start') :
+                               stage.id === 'ongoing' ? t('settings.pipeline.groupStageOngoing', 'Active groups') :
+                               stage.id === 'completed' ? t('settings.pipeline.groupStageCompleted', 'Finished groups') :
+                               stage.id === 'inactive' ? t('settings.pipeline.groupStageInactive', 'Paused groups') :
+                               stage.description}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">

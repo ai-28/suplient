@@ -370,14 +370,14 @@ export function CoachClientGoalsHabits({ clientId }) {
           <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'}`}>
             <div className="flex items-center gap-2">
               <Target className={isMobile ? 'h-3 w-3' : 'h-5 w-5'} />
-              <CardTitle className={isMobile ? 'text-sm' : ''}>Life Area Goals</CardTitle>
+              <CardTitle className={isMobile ? 'text-sm' : ''}>{t('clients.lifeAreaGoals', 'Life Area Goals')}</CardTitle>
             </div>
             <Badge variant="outline" className={isMobile ? 'text-xs' : ''}>
-              {goals.filter(g => g.isActive).length} / {goals.length} active
+              {goals.filter(g => g.isActive).length} / {goals.length} {t('common.status.active', 'active')}
             </Badge>
           </div>
           <CardDescription className={isMobile ? 'text-xs hidden' : ''}>
-            Manage client's goals for daily tracking
+            {t('clients.manageClientGoals', 'Manage client\'s goals for daily tracking')}
           </CardDescription>
         </CardHeader>
         <CardContent className={isMobile ? 'px-2 pb-2 space-y-2' : 'space-y-4'}>
@@ -390,16 +390,16 @@ export function CoachClientGoalsHabits({ clientId }) {
                     <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'gap-2'} mb-1`}>
                       <h3 className={`${isMobile ? 'text-xs' : ''} font-medium break-words flex-1 min-w-0`}>{goal.name}</h3>
                       {goal.isCustom && (
-                        <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>Custom</Badge>
+                        <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>{t('clients.custom', 'Custom')}</Badge>
                       )}
                       {goal.isDefault && (
-                        <Badge variant="outline" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>Default</Badge>
+                        <Badge variant="outline" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>{t('clients.default', 'Default')}</Badge>
                       )}
                     </div>
                     {goal.isActive && (
                       <div className={isMobile ? 'mt-1' : 'mt-2'}>
                         <div className={`flex items-center gap-2 text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                          <span className="whitespace-nowrap">Current: {goal.currentScore}/5</span>
+                          <span className="whitespace-nowrap">{t('clients.current', 'Current')}: {goal.currentScore}/5</span>
                           <div className={`bg-secondary rounded-full ${isMobile ? 'w-12' : 'w-16'} h-1 flex-1`}>
                             <div 
                               className="rounded-full h-1 transition-all"
@@ -443,21 +443,21 @@ export function CoachClientGoalsHabits({ clientId }) {
               size={isMobile ? "sm" : "default"}
             >
               <Plus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-              Add Goal
+              {t('clients.addGoal', 'Add Goal')}
             </Button>
           ) : (
             <div className={`space-y-3 ${isMobile ? 'p-2 space-y-2' : 'p-4'} border rounded-lg bg-muted/20`}>
               <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
-                <Label className={isMobile ? 'text-xs' : ''}>Goal Name</Label>
+                <Label className={isMobile ? 'text-xs' : ''}>{t('clients.goalName', 'Goal Name')}</Label>
                 <Input
-                  placeholder="e.g., Meditation Practice"
+                  placeholder={t('clients.goalNamePlaceholder', 'e.g., Meditation Practice')}
                   value={newGoalName}
                   onChange={(e) => setNewGoalName(e.target.value)}
                   className={isMobile ? 'text-xs h-8' : ''}
                 />
               </div>
               <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
-                <Label className={isMobile ? 'text-xs' : ''}>Icon</Label>
+                <Label className={isMobile ? 'text-xs' : ''}>{t('clients.icon', 'Icon')}</Label>
                 <IconPicker
                   value={newGoalIcon}
                   onChange={setNewGoalIcon}
@@ -465,7 +465,7 @@ export function CoachClientGoalsHabits({ clientId }) {
                 />
               </div>
               <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
-                <Label className={isMobile ? 'text-xs' : ''}>Color</Label>
+                <Label className={isMobile ? 'text-xs' : ''}>{t('clients.color', 'Color')}</Label>
                 <ColorPicker
                   value={newGoalColor}
                   onChange={setNewGoalColor}
@@ -475,7 +475,7 @@ export function CoachClientGoalsHabits({ clientId }) {
                 <Button onClick={handleAddGoal} size={isMobile ? "sm" : "sm"} disabled={saving} className={isMobile ? 'w-full text-xs h-8' : ''}>
                   {saving ? <Loader2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} /> : null}
                   {saving && !isMobile && <span className="mr-2" />}
-                  Add Goal
+                  {t('clients.addGoal', 'Add Goal')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -488,7 +488,7 @@ export function CoachClientGoalsHabits({ clientId }) {
                   size={isMobile ? "sm" : "sm"}
                   className={isMobile ? 'w-full text-xs h-8' : ''}
                 >
-                  Cancel
+                  {t('common.buttons.cancel', 'Cancel')}
                 </Button>
               </div>
             </div>
@@ -502,14 +502,14 @@ export function CoachClientGoalsHabits({ clientId }) {
           <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'}`}>
             <div className="flex items-center gap-2">
               <TrendingDown className={isMobile ? 'h-3 w-3' : 'h-5 w-5'} />
-              <CardTitle className={isMobile ? 'text-sm' : ''}>Habits to Reduce</CardTitle>
+              <CardTitle className={isMobile ? 'text-sm' : ''}>{t('clients.habitsToReduce', 'Habits to Reduce')}</CardTitle>
             </div>
             <Badge variant="outline" className={isMobile ? 'text-xs' : ''}>
-              {habits.filter(h => h.isActive).length} / {habits.length} active
+              {habits.filter(h => h.isActive).length} / {habits.length} {t('common.status.active', 'active')}
             </Badge>
           </div>
           <CardDescription className={isMobile ? 'text-xs hidden' : ''}>
-            Manage client's habits for daily tracking
+            {t('clients.manageClientHabits', 'Manage client\'s habits for daily tracking')}
           </CardDescription>
         </CardHeader>
         <CardContent className={isMobile ? 'px-2 pb-2 space-y-2' : 'space-y-4'}>
@@ -522,16 +522,16 @@ export function CoachClientGoalsHabits({ clientId }) {
                     <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'gap-2'} mb-1`}>
                       <h3 className={`${isMobile ? 'text-xs' : ''} font-medium break-words flex-1 min-w-0`}>{habit.name}</h3>
                       {habit.isCustom && (
-                        <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>Custom</Badge>
+                        <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>{t('clients.custom', 'Custom')}</Badge>
                       )}
                       {habit.isDefault && (
-                        <Badge variant="outline" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>Default</Badge>
+                        <Badge variant="outline" className={isMobile ? 'text-[10px] px-1' : 'text-xs'}>{t('clients.default', 'Default')}</Badge>
                       )}
                     </div>
                     {habit.isActive && (
                       <div className={isMobile ? 'mt-1' : 'mt-2'}>
                         <div className={`flex items-center gap-2 text-muted-foreground ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                          <span className="whitespace-nowrap">Current: {habit.currentScore}/5</span>
+                          <span className="whitespace-nowrap">{t('clients.current', 'Current')}: {habit.currentScore}/5</span>
                           <div className={`bg-secondary rounded-full ${isMobile ? 'w-12' : 'w-16'} h-1 flex-1`}>
                             <div 
                               className="rounded-full h-1 transition-all"
@@ -575,14 +575,14 @@ export function CoachClientGoalsHabits({ clientId }) {
               size={isMobile ? "sm" : "default"}
             >
               <Plus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-              Add Habit
+              {t('clients.addHabit', 'Add Habit')}
             </Button>
           ) : (
             <div className={`space-y-3 ${isMobile ? 'p-2 space-y-2' : 'p-4'} border rounded-lg bg-muted/20`}>
               <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
-                <Label className={isMobile ? 'text-xs' : ''}>Habit Name</Label>
+                <Label className={isMobile ? 'text-xs' : ''}>{t('clients.habitName', 'Habit Name')}</Label>
                 <Input
-                  placeholder="e.g., Late Night Snacking"
+                  placeholder={t('clients.habitNamePlaceholder', 'e.g., Late Night Snacking')}
                   value={newHabitName}
                   onChange={(e) => setNewHabitName(e.target.value)}
                   className={isMobile ? 'text-xs h-8' : ''}
@@ -607,7 +607,7 @@ export function CoachClientGoalsHabits({ clientId }) {
                 <Button onClick={handleAddHabit} size={isMobile ? "sm" : "sm"} disabled={saving} className={isMobile ? 'w-full text-xs h-8' : ''}>
                   {saving ? <Loader2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} /> : null}
                   {saving && !isMobile && <span className="mr-2" />}
-                  Add Habit
+                  {t('clients.addHabit', 'Add Habit')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -620,7 +620,7 @@ export function CoachClientGoalsHabits({ clientId }) {
                   size={isMobile ? "sm" : "sm"}
                   className={isMobile ? 'w-full text-xs h-8' : ''}
                 >
-                  Cancel
+                  {t('common.buttons.cancel', 'Cancel')}
                 </Button>
               </div>
             </div>

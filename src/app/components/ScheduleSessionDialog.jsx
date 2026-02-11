@@ -86,29 +86,29 @@ export function ScheduleSessionDialog({
   const meetingTypes = [
     { 
       id: "none", 
-      name: "No Meeting Link", 
-      description: "Schedule without creating a meeting link",
+      name: t('sessions.noMeetingLink', 'No Meeting Link'), 
+      description: t('sessions.scheduleWithoutLink', 'Schedule without creating a meeting link'),
       icon: CalendarIcon,
       color: "text-gray-500"
     },
     { 
       id: "google_meet", 
-      name: "Google Meet", 
-      description: "Create Google Calendar event with Meet link",
+      name: t('sessions.googleMeet', 'Google Meet'), 
+      description: t('sessions.createGoogleCalendarEvent', 'Create Google Calendar event with Meet link'),
       icon: Video,
       color: "text-blue-500"
     },
     { 
       id: "zoom", 
-      name: "Zoom Meeting", 
-      description: "Create Zoom meeting with join link",
+      name: t('sessions.zoomMeeting', 'Zoom Meeting'), 
+      description: t('sessions.createZoomMeeting', 'Create Zoom meeting with join link'),
       icon: Video,
       color: "text-blue-600"
     },
     { 
       id: "teams", 
-      name: "Microsoft Teams", 
-      description: "Create Teams meeting with join link",
+      name: t('sessions.microsoftTeams', 'Microsoft Teams'), 
+      description: t('sessions.createTeamsMeeting', 'Create Teams meeting with join link'),
       icon: Video,
       color: "text-purple-500"
     }

@@ -21,6 +21,7 @@ import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTi
 import { useChat } from "@/app/hooks/useChat";
 import { useSession } from "next-auth/react";
 import { isAndroid } from "@/lib/capacitor";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 // Simple function to get response guarantee text
 const getResponseGuaranteeText = (chatType) => {
@@ -62,6 +63,7 @@ export function UniversalChatInterface({
 }) {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTranslation();
   
   // Use the real-time chat hook
   const {
@@ -786,7 +788,7 @@ export function UniversalChatInterface({
                     el.style.height = Math.min(el.scrollHeight, 160) + 'px';
                   }} 
                   onKeyPress={handleKeyPress} 
-                  placeholder={replyToMessage ? `Reply to ${replyToMessage.senderName}...` : "Type your message..."} 
+                  placeholder={replyToMessage ? `Reply to ${replyToMessage.senderName}...` : t('chat.typeYourMessage', 'Type your message...')} 
                   className="bg-transparent border-0 outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-[44px] max-h-40 px-4 py-3 pr-12 text-sm leading-relaxed overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent" 
                 />
                 <div className="absolute right-2 bottom-2 flex-shrink-0 z-10">

@@ -432,6 +432,14 @@ console.log(groupProgressData)
                                 angle={isMobile ? -45 : 0}
                                 textAnchor={isMobile ? "end" : "middle"}
                                 height={isMobile ? 60 : 30}
+                                tickFormatter={(value) => {
+                                  // Translate week labels like "Week 1", "Week 2", etc.
+                                  if (typeof value === 'string' && value.startsWith('Week ')) {
+                                    const weekNum = value.replace('Week ', '');
+                                    return t('programs.week', 'Week') + ' ' + weekNum;
+                                  }
+                                  return value;
+                                }}
                               />
                               <YAxis 
                                 domain={[0, 10]} 

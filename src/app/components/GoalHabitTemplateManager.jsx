@@ -218,7 +218,7 @@ export function GoalHabitTemplateManager() {
         </div>
         <Button onClick={() => handleOpenTemplateDialog()} size={isMobile ? "sm" : "default"}>
           <Plus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-          {isMobile ? 'New' : 'New Template'}
+          {isMobile ? t('common.new', 'New') : t('settings.templates.newTemplate', 'New Template')}
         </Button>
       </div>
 
@@ -227,10 +227,10 @@ export function GoalHabitTemplateManager() {
           <CardContent className="p-6">
             <div className="text-center py-8">
               <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No templates created yet</p>
+              <p className="text-muted-foreground mb-4">{t('settings.templates.noTemplatesCreated', 'No templates created yet')}</p>
               <Button onClick={() => handleOpenTemplateDialog()}>
                 <Plus className="h-4 w-4 mr-2" />
-                Create Your First Template
+                {t('settings.templates.createFirstTemplate', 'Create Your First Template')}
               </Button>
             </div>
           </CardContent>

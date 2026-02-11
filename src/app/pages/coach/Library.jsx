@@ -219,10 +219,6 @@ export default function Library() {
               )}</span>
             </div>
           </div>
-            <Button onClick={() => router.push('/coach/library/upload')} className={`bg-gradient-primary text-[#1A2D4D] shadow-medium hover:shadow-strong transition-all flex items-center ${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
-            <Plus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-[#1A2D4D]`} />
-            {isMobile ? t('library.upload', 'Upload') : t('library.uploadFiles', 'Upload Files')}
-          </Button>
         </div>
       </div>
 

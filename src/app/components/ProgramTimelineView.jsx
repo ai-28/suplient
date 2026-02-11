@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientTasks from '../pages/client/Tasks';
+import { useTranslation } from '@/app/context/LanguageContext';
 
 export function ProgramTimelineView({ 
   clientProgram, 
@@ -32,6 +33,7 @@ export function ProgramTimelineView({
   onViewProgram,
   onRestart
 }) {
+  const t = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [completingElementId, setCompletingElementId] = useState(null);
@@ -111,7 +113,10 @@ export function ProgramTimelineView({
             <div className={`flex items-center gap-2 ${isMobile ? 'mb-1 flex-wrap' : 'mb-2'}`}>
               <h3 className={`font-semibold ${isMobile ? 'text-sm' : 'text-lg'} break-words`}>{clientProgram?.name}</h3>
               <Badge variant={clientProgram?.status === 'active' ? 'default' : 'secondary'} className={isMobile ? 'text-[10px] px-1.5 py-0.5' : ''}>
-                {clientProgram?.status}
+                {clientProgram?.status === 'active' ? t('common.status.active', 'Active') : 
+                 clientProgram?.status === 'paused' ? t('programs.paused', 'Paused') : 
+                 clientProgram?.status === 'completed' ? t('common.status.completed', 'Completed') : 
+                 clientProgram?.status}
               </Badge>
             </div>
             <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'mb-2' : 'mb-3'} break-words`}>{clientProgram?.description}</p>
@@ -125,27 +130,27 @@ export function ProgramTimelineView({
               {Math.round(progress?.completionRate)}%
             </div>
             <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} ${progress?.completionRate >= 100 ? 'text-green-600' : 'text-muted-foreground'} break-words`}>
-              {progress?.completionRate >= 100 ? '🎉 Complete!' : 'Complete'}
+              {progress?.completionRate >= 100 ? '🎉 ' + t('programs.complete', 'Complete!') : t('programs.complete', 'Complete')}
             </div>
           </div>
           <div className={`text-center ${isMobile ? 'p-1.5' : 'p-3'} bg-muted/50 rounded-lg`}>
             <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold break-words`}>{currentWeek}</div>
-            <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>of {clientProgram?.duration} weeks</div>
+            <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('programs.ofWeeks', 'of {count} weeks').replace('{count}', clientProgram?.duration || 0)}</div>
           </div>
           <div className={`text-center ${isMobile ? 'p-1.5' : 'p-3'} bg-muted/50 rounded-lg`}>
             <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold break-words`}>{Array.isArray(progress?.completedElementsArray) ? progress.completedElementsArray.length : 0}</div>
-            <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>of {progress?.totalElements} tasks</div>
+            <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('programs.ofTasks', 'of {count} tasks').replace('{count}', progress?.totalElements || 0)}</div>
           </div>
           <div className={`text-center ${isMobile ? 'p-1.5' : 'p-3'} bg-muted/50 rounded-lg`}>
             <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold break-words`}>{progress?.currentDay}</div>
-            <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>current day</div>
+            <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('programs.currentDay', 'current day')}</div>
           </div>
         </div>
 
         {/* Progress Bar */}
         <div className={`${isMobile ? 'space-y-1' : 'space-y-2'} ${isMobile ? 'mb-2' : 'mb-4'}`}>
           <div className={`flex items-center justify-between ${isMobile ? 'text-xs' : 'text-sm'}`}>
-            <span className="break-words">Overall Progress</span>
+            <span className="break-words">{t('programs.overallProgress', 'Overall Progress')}</span>
             <span className="break-words">{Math.round(progress?.completionRate)}%</span>
           </div>
           <Progress value={progress?.completionRate} className={isMobile ? 'h-2' : 'h-3'} />
@@ -162,8 +167,8 @@ export function ProgramTimelineView({
                 await onPauseResume();
                 // Toast is handled by parent component (ClientProfile.jsx)
               } catch (error) {
-                toast.error('Error', {
-                  description: 'Failed to update program status. Please try again.',
+                toast.error(t('common.messages.error', 'Error'), {
+                  description: t('programs.failedToUpdateStatus', 'Failed to update program status. Please try again.'),
                 });
               } finally {
                 setIsLoading(false);
@@ -173,7 +178,7 @@ export function ProgramTimelineView({
             className={`flex items-center gap-1 ${isMobile ? 'text-xs h-7 px-2' : ''}`}
           >
             {clientProgram?.status === 'active' ? <Pause className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} /> : <Play className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
-            <span className="break-words">{isLoading ? 'Updating...' : clientProgram?.status === 'active' ? 'Pause' : 'Resume'}</span>
+            <span className="break-words">{isLoading ? t('common.messages.updating', 'Updating...') : clientProgram?.status === 'active' ? t('programs.pause', 'Pause') : t('programs.resume', 'Resume')}</span>
           </Button>
           <Button
             variant="outline"
@@ -182,7 +187,7 @@ export function ProgramTimelineView({
             className={`flex items-center gap-1 ${isMobile ? 'text-xs h-7 px-2' : ''}`}
           >
             {isExpanded ? <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} /> : <ChevronRight className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />}
-            <span className="break-words">{isExpanded ? 'Hide' : 'Show'} Timeline</span>
+            <span className="break-words">{isExpanded ? t('programs.hideTimeline', 'Hide Timeline') : t('programs.showTimeline', 'Show Timeline')}</span>
           </Button>
           <Button
             variant="outline"
@@ -191,7 +196,7 @@ export function ProgramTimelineView({
             className={`flex items-center gap-1 ${isMobile ? 'text-xs h-7 px-2' : ''}`}
           >
             <ExternalLink className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-            <span className="break-words">View Program Details</span>
+            <span className="break-words">{t('programs.viewProgramDetails', 'View Program Details')}</span>
           </Button>
           {clientProgram?.status === 'completed' && onRestart && (
             <Button
@@ -201,12 +206,12 @@ export function ProgramTimelineView({
                 setIsLoading(true);
                 try {
                   await onRestart();
-                  toast.success('Program Restarted', {
-                    description: `${clientProgram?.name} has been restarted and is ready to begin again.`,
+                  toast.success(t('programs.programRestarted', 'Program Restarted'), {
+                    description: t('programs.programRestartedDesc', '{name} has been restarted and is ready to begin again.', { name: clientProgram?.name }),
                   });
                 } catch (error) {
-                  toast.error('Error', {
-                    description: 'Failed to restart program. Please try again.',
+                  toast.error(t('common.messages.error', 'Error'), {
+                    description: t('programs.failedToRestart', 'Failed to restart program. Please try again.'),
                   });
                 } finally {
                   setIsLoading(false);
@@ -216,7 +221,7 @@ export function ProgramTimelineView({
               className={`flex items-center gap-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100 ${isMobile ? 'text-xs h-7 px-2' : ''}`}
             >
               <RotateCcw className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-              <span className="break-words">{isLoading ? 'Restarting...' : 'Restart Program'}</span>
+              <span className="break-words">{isLoading ? t('programs.restarting', 'Restarting...') : t('programs.restartProgram', 'Restart Program')}</span>
             </Button>
           )}
         </div>
@@ -230,10 +235,10 @@ export function ProgramTimelineView({
                 <div key={week} className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                   <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
                     <Badge variant={parseInt(week) === currentWeek ? 'default' : 'outline'} className={isMobile ? 'text-[10px] px-1.5 py-0.5' : ''}>
-                      Week {week}
+                      {t('programs.week', 'Week')} {week}
                     </Badge>
                     {parseInt(week) === currentWeek && (
-                      <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-xs'}>Current</Badge>
+                      <Badge variant="secondary" className={isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-xs'}>{t('programs.current', 'Current')}</Badge>
                     )}
                   </div>
                   
@@ -268,7 +273,7 @@ export function ProgramTimelineView({
                               <div className={`flex items-center gap-2 ${isMobile ? 'mb-0.5 flex-wrap' : 'mb-1'}`}>
                                 <h4 className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} truncate break-words`}>{element?.title}</h4>
                                 <Badge variant="outline" className={isMobile ? 'text-[10px] px-1 py-0.5' : 'text-xs'}>
-                                  Day {(element?.week - 1) * 7 + element?.day}
+                                  {t('programs.dayShort', 'Day')} {(element?.week - 1) * 7 + element?.day}
                                 </Badge>
                                 {element?.scheduledTime && (
                                   <div className={`flex items-center gap-1 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
@@ -301,10 +306,10 @@ export function ProgramTimelineView({
                                     {completingElementId === element?.id ? (
                                       <>
                                         <Loader2 className={`${isMobile ? 'h-2.5 w-2.5 mr-0.5' : 'h-3 w-3 mr-1'} animate-spin`} />
-                                        <span className="break-words">Completing...</span>
+                                        <span className="break-words">{t('programs.completing', 'Completing...')}</span>
                                       </>
                                     ) : (
-                                      <span className="break-words">Mark Complete</span>
+                                      <span className="break-words">{t('programs.markComplete', 'Mark Complete')}</span>
                                     )}
                                   </Button>
                                 );
@@ -322,7 +327,7 @@ export function ProgramTimelineView({
         {/* Program Start Date */}
         <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground ${isMobile ? 'pt-2' : 'pt-3'} border-t`}>
           <Calendar className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-          <span className="break-words">Started: {new Date(clientProgram?.startDate)?.toLocaleDateString()}</span>
+          <span className="break-words">{t('programs.started', 'Started')}: {new Date(clientProgram?.startDate)?.toLocaleDateString()}</span>
         </div>
       </CardContent>
     </Card>

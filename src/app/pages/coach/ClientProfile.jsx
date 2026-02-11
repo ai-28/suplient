@@ -1106,9 +1106,9 @@ export default function ClientProfile() {
                       <div>
                         <h3 className="text-xl font-semibold">{clientData.name}</h3>
                         <p className="text-sm text-gray-500">
-                          Last active: {clientData.lastActive 
+                          {t('clients.lastActive', 'Last active')}: {clientData.lastActive 
                             ? parseAsUTC(clientData.lastActive).toLocaleDateString()
-                            : 'Never'
+                            : t('clients.never', 'Never')
                           }
                         </p>
                       </div>
@@ -1125,18 +1125,18 @@ export default function ClientProfile() {
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <User className="h-4 w-4 text-gray-400" />
-                          <span>Type: {clientData.type || 'Personal'}</span>
+                          <span>{t('clients.type', 'Type')}: {clientData.type ? t(`clients.pipelineStages.${clientData.type.toLowerCase()}`, clientData.type) : t('clients.pipelineStages.personal', 'Personal')}</span>
                         </div>
                         {clientData.nextSession && (
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-4 w-4 text-gray-400" />
-                            <span>Next session: {parseAsUTC(clientData.nextSession).toLocaleString()}</span>
+                            <span>{t('sessions.nextSession', 'Next session')}: {parseAsUTC(clientData.nextSession).toLocaleString()}</span>
                           </div>
                         )}
                         {clientData.status && (
                           <div className="flex items-center gap-2 text-sm">
                             <Badge variant={clientData.status === 'active' ? 'default' : 'secondary'}>
-                              {clientData.status}
+                              {clientData.status === 'active' ? t('common.status.active', 'Active') : clientData.status}
                             </Badge>
                           </div>
                         )}
@@ -1178,7 +1178,7 @@ export default function ClientProfile() {
                                     {task.title}
                                   </p>
                                   <span className="text-xs text-gray-500">
-                                    {task.dueDate ? parseAsUTC(task.dueDate).toLocaleDateString() : 'No due date'}
+                                    {task.dueDate ? parseAsUTC(task.dueDate).toLocaleDateString() : t('tasks.noDueDate', 'No due date')}
                                   </span>
                                 </div>
                               </div>
@@ -1265,7 +1265,7 @@ export default function ClientProfile() {
                                     variant="ghost" 
                                     className="h-5 w-5 p-0"
                                     onClick={() => handleEditNote(note)}
-                                    title="Edit note"
+                                    title={t('notes.editNote', 'Edit note')}
                                   >
                                     <FileText className="h-3 w-3" />
                                   </Button>
@@ -1274,7 +1274,7 @@ export default function ClientProfile() {
                                     variant="ghost" 
                                     className="h-5 w-5 p-0 text-red-500 hover:text-red-600"
                                     onClick={() => handleDeleteNote(note.id)}
-                                    title="Delete note"
+                                    title={t('notes.deleteNote', 'Delete note')}
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
@@ -1315,8 +1315,8 @@ export default function ClientProfile() {
                                 {getFileIcon(file.type)}
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs font-medium truncate">{file.name}</p>
-                                  <p className="text-xs text-gray-500">{file.type} • {file.size}</p>
-                                  <p className="text-xs text-gray-500">Shared {file.sharedDate}</p>
+                                  <p className="text-xs text-gray-500">{file.type === 'video' ? t('library.videos', 'VIDEO') : file.type === 'article' ? t('library.articles', 'ARTICLE') : file.type} • {file.size}</p>
+                                  <p className="text-xs text-gray-500">{t('clients.shared', 'Shared')} {file.sharedDate}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1 ml-2">
@@ -1325,7 +1325,7 @@ export default function ClientProfile() {
                                   variant="ghost" 
                                   className="h-6 w-6 p-0"
                                   onClick={() => handlePreview(file)}
-                                  title="Preview file"
+                                  title={t('clients.previewFile', 'Preview file')}
                                 >
                                   <Eye className="h-3 w-3" />
                                 </Button>
@@ -1334,7 +1334,7 @@ export default function ClientProfile() {
                                   variant="ghost" 
                                   className="h-6 w-6 p-0 text-red-500 hover:text-red-600"
                                   onClick={() => handleRemoveFileClick(file)}
-                                  title="Remove file"
+                                  title={t('clients.removeFile', 'Remove file')}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
@@ -1518,7 +1518,7 @@ export default function ClientProfile() {
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-medium">{program.name}</h4>
                                     <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                                      ⏸️ Paused
+                                      ⏸️ {t('programs.paused', 'Paused')}
                                     </Badge>
                                   </div>
                                     <Button
@@ -1537,14 +1537,14 @@ export default function ClientProfile() {
                                   </p>
                                   <div className="flex items-center justify-between">
                                     <p className="text-xs text-muted-foreground">
-                                      Progress: {Math.round(progress.completionRate)}% • Duration: {program.duration} weeks
+                                      {t('programs.progress', 'Progress')}: {Math.round(progress.completionRate)}% • {t('programs.duration', 'Duration')}: {program.duration} {t('programs.weeks', 'weeks')}
                                     </p>
                                     <div className="flex gap-1">
                                       <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => router.push(`/coach/programs/${clientProgram.programTemplateId}/edit`)}
-                                        title="View Program Details"
+                                        title={t('programs.viewProgramDetails', 'View Program Details')}
                                       >
                                         <Eye className="h-4 w-4" />
                                       </Button>
@@ -1584,7 +1584,11 @@ export default function ClientProfile() {
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-medium">{group.name}</h3>
                               <Badge variant={group.stage === 'ongoing' ? 'default' : 'secondary'}>
-                                {group.stage}
+                                {group.stage === 'upcoming' ? t('groups.stageUpcoming', 'Upcoming') :
+                                 group.stage === 'ongoing' ? t('groups.stageOngoing', 'Ongoing') :
+                                 group.stage === 'completed' ? t('common.status.completed', 'Completed') :
+                                 group.stage === 'inactive' ? t('common.status.inactive', 'Inactive') :
+                                 group.stage}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mb-3">{group.description}</p>
@@ -1593,7 +1597,7 @@ export default function ClientProfile() {
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                  <p className="font-medium">Joined</p>
+                                  <p className="font-medium">{t('groups.joined', 'Joined')}</p>
                                   <p className="text-muted-foreground">
                                     {parseAsUTC(group.joinedDate).toLocaleDateString()}
                                   </p>
@@ -1603,17 +1607,17 @@ export default function ClientProfile() {
                               <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                  <p className="font-medium">Frequency</p>
-                                  <p className="text-muted-foreground">{group.frequency || 'Not specified'}</p>
+                                  <p className="font-medium">{t('groups.frequency', 'Frequency')}</p>
+                                  <p className="text-muted-foreground">{group.frequency || t('common.notSpecified', 'Not specified')}</p>
                                 </div>
                               </div>
                               
                               <div className="flex items-center gap-2">
                                 <Users className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                  <p className="font-medium">Members</p>
+                                  <p className="font-medium">{t('groups.members', 'Members')}</p>
                                   <p className="text-muted-foreground">
-                                    {group.memberCount}/{group.capacity || 'No limit'}
+                                    {group.memberCount}/{group.capacity || t('groups.noLimit', 'No limit')}
                                   </p>
                                 </div>
                               </div>
@@ -1621,8 +1625,14 @@ export default function ClientProfile() {
                               <div className="flex items-center gap-2">
                                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
                                 <div>
-                                  <p className="font-medium">Status</p>
-                                  <p className="text-muted-foreground capitalize">{group.stage}</p>
+                                  <p className="font-medium">{t('common.labels.status', 'Status')}</p>
+                                  <p className="text-muted-foreground capitalize">
+                                    {group.stage === 'upcoming' ? t('groups.stageUpcoming', 'Upcoming') :
+                                     group.stage === 'ongoing' ? t('groups.stageOngoing', 'Ongoing') :
+                                     group.stage === 'completed' ? t('common.status.completed', 'Completed') :
+                                     group.stage === 'inactive' ? t('common.status.inactive', 'Inactive') :
+                                     group.stage}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -1631,7 +1641,7 @@ export default function ClientProfile() {
                         
                         <div className="flex items-center justify-between pt-3 border-t">
                           <div className="text-sm">
-                            <span className="font-medium">Group ID: </span>
+                            <span className="font-medium">{t('groups.groupId', 'Group ID')}: </span>
                             <span className="text-muted-foreground">{group.id}</span>
                           </div>
                           <div className="flex gap-2">
@@ -1691,7 +1701,7 @@ export default function ClientProfile() {
                       <div className="flex items-center justify-center h-full text-red-500">
                         <AlertCircle className={isMobile ? 'h-6 w-6' : 'h-8 w-8'} />
                         <div className="text-center">
-                          <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>Error loading progress data</p>
+                          <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>{t('clients.errorLoadingProgress', 'Error loading progress data')}</p>
                           <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 mt-1`}>{progressError}</p>
                         </div>
                       </div>
@@ -1699,8 +1709,8 @@ export default function ClientProfile() {
                       <div className="flex items-center justify-center h-full text-gray-500">
                         <div className="text-center">
                           <TrendingUp className={isMobile ? 'h-6 w-6' : 'h-8 w-8'} />
-                          <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>No progress data available</p>
-                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400 mt-1`}>Client needs to start activities to see progress</p>
+                          <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>{t('clients.noProgressDataAvailable', 'No progress data available')}</p>
+                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400 mt-1`}>{t('clients.clientNeedsActivity', 'Client needs to start activities to see progress')}</p>
                         </div>
                       </div>
                     ) : (
@@ -1731,10 +1741,10 @@ export default function ClientProfile() {
                                       <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
                                         <p className={`${isMobile ? 'text-xs' : ''} font-medium`}>{label}</p>
                                         <p className={`${isMobile ? 'text-xs' : ''} text-blue-600`}>
-                                          Performance: {payload[0]?.value}
+                                          {t('clients.performance', 'Performance')}: {payload[0]?.value}
                                         </p>
                                         <p className={`${isMobile ? 'text-xs' : ''} text-green-600`}>
-                                          Wellbeing: {payload[1]?.value}
+                                          {t('clients.wellbeing', 'Wellbeing')}: {payload[1]?.value}
                                         </p>
                                       </div>
                                     );
@@ -1774,8 +1784,8 @@ export default function ClientProfile() {
               {/* Progress Stats */}
               <Card className={isMobile ? 'p-0 shadow-none border-0' : ''}>
                 <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
-                  <CardTitle className={isMobile ? 'text-sm' : ''}>Current Metrics</CardTitle>
-                  <CardDescription className={isMobile ? 'text-xs hidden' : ''}>Latest performance and wellbeing scores</CardDescription>
+                  <CardTitle className={isMobile ? 'text-sm' : ''}>{t('clients.currentMetrics', 'Current Metrics')}</CardTitle>
+                  <CardDescription className={isMobile ? 'text-xs hidden' : ''}>{t('clients.latestPerformanceWellbeing', 'Latest performance and wellbeing scores')}</CardDescription>
                 </CardHeader>
                 <CardContent className={`space-y-4 ${isMobile ? 'px-2 pb-2 space-y-2' : ''}`}>
                   <div className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-4'}`}>
@@ -1783,7 +1793,7 @@ export default function ClientProfile() {
                       <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-blue-600`}>
                         {progressData ? clientProgressData.currentMetrics.performance.toFixed(1) : '0.0'}
                       </div>
-                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Performance Score</div>
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>{t('clients.performanceScore', 'Performance Score')}</div>
                       <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
                         <div 
                           className="h-full bg-blue-500"
@@ -1795,7 +1805,7 @@ export default function ClientProfile() {
                       <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-600`}>
                         {progressData ? clientProgressData.currentMetrics.wellbeing.toFixed(1) : '0.0'}
                       </div>
-                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Wellbeing Score</div>
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>{t('clients.wellbeingScore', 'Wellbeing Score')}</div>
                       <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
                         <div 
                           className="h-full bg-green-500"
@@ -1811,13 +1821,13 @@ export default function ClientProfile() {
                       <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-purple-600`}>
                         {progressData?.stats?.journalCompletionRate || 0}%
                       </div>
-                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Journal Completion</div>
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>{t('clients.journalCompletion', 'Journal Completion')}</div>
                     </div>
                     <div className={`text-center ${isMobile ? 'p-2' : 'p-4'} bg-orange-50 rounded-lg`}>
                       <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-orange-600`}>
                         {progressData?.stats?.sessionAttendanceRate || 0}%
                       </div>
-                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Session Attendance</div>
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>{t('clients.sessionAttendance', 'Session Attendance')}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -1989,13 +1999,13 @@ export default function ClientProfile() {
                         const fallback = document.createElement('div');
                         fallback.className = 'text-center py-8';
                         fallback.innerHTML = `
-                          <p class="text-muted-foreground mb-4">Preview failed to load</p>
+                          <p class="text-muted-foreground mb-4">${t('library.previewFailedToLoad', 'Preview failed to load')}</p>
                           <p class="text-xs text-red-500 mb-2">URL: ${previewUrl}</p>
                           <button 
                             class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                             onclick="window.open('${previewUrl}', '_blank')"
                           >
-                            Open in New Tab
+                            ${t('library.openInNewTab', 'Open in New Tab')}
                           </button>
                         `;
                         e.target.parentNode.appendChild(fallback);
@@ -2016,13 +2026,13 @@ export default function ClientProfile() {
                       const fallback = document.createElement('div');
                       fallback.className = 'text-center py-8';
                       fallback.innerHTML = `
-                        <p class="text-muted-foreground mb-4">Video failed to load</p>
+                        <p class="text-muted-foreground mb-4">${t('library.videoFailedToLoad', 'Video failed to load')}</p>
                         <p class="text-xs text-red-500 mb-2">URL: ${previewUrl}</p>
                         <button 
                           class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                           onclick="window.open('${previewUrl}', '_blank')"
                         >
-                          Open in New Tab
+                          ${t('library.openInNewTab', 'Open in New Tab')}
                         </button>
                       `;
                       e.target.parentNode.appendChild(fallback);
@@ -2042,13 +2052,13 @@ export default function ClientProfile() {
                       const fallback = document.createElement('div');
                       fallback.className = 'text-center py-8';
                       fallback.innerHTML = `
-                        <p class="text-muted-foreground mb-4">Audio failed to load</p>
+                        <p class="text-muted-foreground mb-4">${t('library.audioFailedToLoad', 'Audio failed to load')}</p>
                         <p class="text-xs text-red-500 mb-2">URL: ${previewUrl}</p>
                         <button 
                           class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                           onclick="window.open('${previewUrl}', '_blank')"
                         >
-                          Open in New Tab
+                          ${t('library.openInNewTab', 'Open in New Tab')}
                         </button>
                       `;
                       e.target.parentNode.appendChild(fallback);
@@ -2057,11 +2067,11 @@ export default function ClientProfile() {
                 ) : previewType === 'pdf' ? (
                   <div>
                     <div className="mb-4">
-                      <h4 className="text-sm font-medium mb-2">PDF Preview</h4>
+                      <h4 className="text-sm font-medium mb-2">{t('library.pdfPreview', 'PDF Preview')}</h4>
                       <iframe
                         src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
                         className="w-full h-[60vh] border rounded"
-                        title="PDF Preview"
+                        title={t('library.pdfPreview', 'PDF Preview')}
                         onLoad={() => {
                           console.log('✅ PDF loaded successfully via API');
                         }}

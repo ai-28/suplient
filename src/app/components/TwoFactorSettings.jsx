@@ -18,8 +18,10 @@ import {
   AlertDialogTitle,
 } from "@/app/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export function TwoFactorSettings() {
+  const t = useTranslation();
   const { data: session } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -107,10 +109,10 @@ export function TwoFactorSettings() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
-            <CardTitle>Two-Factor Authentication</CardTitle>
+            <CardTitle>{t('settings.security.twoFactorAuth', 'Two-Factor Authentication')}</CardTitle>
           </div>
           <CardDescription>
-            Add an extra layer of security to your account
+            {t('settings.security.twoFactorDescription', 'Add an extra layer of security to your account')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -120,19 +122,19 @@ export function TwoFactorSettings() {
                 {twoFAStatus.has2FA ? (
                   <>
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    <span className="font-medium">2FA is enabled</span>
+                    <span className="font-medium">{t('settings.security.twoFactorEnabled', '2FA is enabled')}</span>
                   </>
                 ) : (
                   <>
                     <XCircle className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">2FA is disabled</span>
+                    <span className="font-medium">{t('settings.security.twoFactorDisabled', '2FA is disabled')}</span>
                   </>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
                 {twoFAStatus.has2FA
-                  ? "Your account is protected with two-factor authentication"
-                  : "Enable 2FA to secure your account"}
+                  ? t('settings.security.twoFactorProtected', 'Your account is protected with two-factor authentication')
+                  : t('settings.security.enable2FAToSecure', 'Enable 2FA to secure your account')}
               </p>
             </div>
 
@@ -142,12 +144,12 @@ export function TwoFactorSettings() {
                   variant="outline"
                   onClick={() => setShowDisableDialog(true)}
                 >
-                  Disable 2FA
+                  {t('settings.security.disable2FA', 'Disable 2FA')}
                 </Button>
               ) : (
                 <Button onClick={handleEnable}>
                   <Shield className="h-4 w-4 mr-2" />
-                  Enable 2FA
+                  {t('settings.security.enable2FA', 'Enable 2FA')}
                 </Button>
               )}
             </div>
@@ -155,7 +157,7 @@ export function TwoFactorSettings() {
 
           {twoFAStatus.isPlatformRequired && twoFAStatus.has2FA && (
             <p className="text-xs text-muted-foreground">
-              ⚠️ 2FA is required by platform administrator and cannot be disabled
+              ⚠️ {t('settings.security.twoFactorRequired', '2FA is required by platform administrator and cannot be disabled')}
             </p>
           )}
         </CardContent>
@@ -164,14 +166,13 @@ export function TwoFactorSettings() {
       <AlertDialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disable Two-Factor Authentication?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.security.disable2FATitle', 'Disable Two-Factor Authentication?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to disable 2FA? This will make your account less secure.
-              You can re-enable it at any time in your settings.
+              {t('settings.security.disable2FADescription', 'Are you sure you want to disable 2FA? This will make your account less secure. You can re-enable it at any time in your settings.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={disabling}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={disabling}>{t('common.cancel', 'Cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDisable}
               disabled={disabling}
@@ -180,10 +181,10 @@ export function TwoFactorSettings() {
               {disabling ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Disabling...
+                  {t('settings.security.disabling', 'Disabling...')}
                 </>
               ) : (
-                "Disable 2FA"
+                t('settings.security.disable2FA', 'Disable 2FA')
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ const formSchema = z.object({
 });
 
 export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
+  const t = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm({
@@ -67,10 +69,10 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to update note');
+        throw new Error(result.error || t('notes.updateFailed', 'Failed to update note'));
       }
 
-      toast.success('Note updated successfully');
+      toast.success(t('notes.updateSuccess', 'Note updated successfully'));
       
       // Call the callback to refresh the notes list
       if (onNoteUpdated) {
@@ -81,7 +83,7 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
       
     } catch (error) {
       console.error('Error updating note:', error);
-      toast.error(`Failed to update note: ${error.message}`);
+      toast.error(t('notes.updateFailed', 'Failed to update note') + ': ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +95,7 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Edit Note
+            {t('notes.editNote', 'Edit Note')}
           </DialogTitle>
         </DialogHeader>
 
@@ -104,10 +106,10 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t('common.labels.description', 'Description')}</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter note description (optional)"
+                      placeholder={t('notes.enterDescriptionOptional', 'Enter note description (optional)')}
                       className="min-h-[100px]"
                       {...field} 
                       disabled={isLoading}
@@ -125,7 +127,7 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
-                Cancel
+                {t('common.buttons.cancel', 'Cancel')}
               </Button>
               <Button 
                 type="submit" 
@@ -134,12 +136,12 @@ export function EditNoteDialog({ open, onOpenChange, note, onNoteUpdated }) {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Updating...
+                    {t('common.messages.updating', 'Updating...')}
                   </>
                 ) : (
                   <>
                     <FileText className="h-4 w-4 mr-2" />
-                    Update Note
+                    {t('notes.updateNote', 'Update Note')}
                   </>
                 )}
               </Button>

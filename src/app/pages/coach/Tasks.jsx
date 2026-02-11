@@ -40,7 +40,7 @@ import { useTasks } from "@/app/hooks/useTasks";
 import {useTranslation} from "@/app/context/LanguageContext"
 
 // Helper function to format task due date
-const formatTaskDueDate = (dueDate) => {
+const formatTaskDueDate = (dueDate, t) => {
   if (!dueDate) return t('tasks.noDueDate');
   const date = new Date(dueDate);
   const today = new Date();
@@ -68,7 +68,7 @@ const getTaskStatus = (task, t) => {
   return { label: t('tasks.upcoming', 'Upcoming'), variant: 'secondary' };
 };
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr, t) => {
   if (!dateStr) return t('tasks.noDueDate');
   const date = new Date(dateStr);
   const today = new Date();
@@ -542,7 +542,7 @@ export default function Tasks() {
                               {task.title}
                             </p>
                             <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5' : 'gap-2 mt-1'}`}>
-                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatTaskDueDate(task.dueDate)}</span>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatTaskDueDate(task.dueDate, t)}</span>
                               <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                                 {status.label}
                               </Badge>
@@ -656,7 +656,7 @@ export default function Tasks() {
                               </label>
                             </div>
                             <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
-                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatDate(task.dueDate)}</span>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatDate(task.dueDate, t)}</span>
                               <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                                 {status.label}
                               </Badge>
@@ -776,7 +776,7 @@ export default function Tasks() {
                               {task.title}
                             </p>
                             <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5' : 'gap-2 mt-1'}`}>
-                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatDate(task.dueDate)}</span>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatDate(task.dueDate, t)}</span>
                               <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                                 {status.label}
                               </Badge>
@@ -895,7 +895,7 @@ export default function Tasks() {
                               {task.title}
                             </p>
                             <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5 flex-wrap' : 'gap-2 mt-1'}`}>
-                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatTaskDueDate(task.dueDate)}</span>
+                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatTaskDueDate(task.dueDate, t)}</span>
                               <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                                 {status.label}
                               </Badge>
