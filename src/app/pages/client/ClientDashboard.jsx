@@ -149,6 +149,7 @@ const useUpcomingSessions = () => {
 export default function ClientDashboard() {
   const router = useRouter();
   const t = useTranslation();
+  const { language } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState("today");
   const [selectedSession, setSelectedSession] = useState(null);
@@ -227,7 +228,8 @@ export default function ClientDashboard() {
 
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { 
+    const locale = language === 'da' ? 'da-DK' : 'en-US';
+    return date.toLocaleDateString(locale, { 
       weekday: 'long', 
       month: 'short', 
       day: 'numeric'

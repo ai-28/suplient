@@ -1252,6 +1252,12 @@
         "documentPreview": "Dokument Forhåndsvisning",
         "cannotPreview": "Denne dokumenttype kan ikke vises direkte i browseren. Download venligst filen for at se den i en kompatibel applikation.",
         "downloadDocument": "Download Dokument",
+        "badges": {
+            "video": "Video",
+            "image": "Billede",
+            "article": "Artikel",
+            "audio": "Lyd"
+        },
         "shareFilesFromLibrary": "Del Filer fra Bibliotek",
         "shareSelectedFiles": "Del Valgte Filer",
         "noFilesInCategory": "Ingen filer i denne kategori",
@@ -1538,7 +1544,16 @@
         "coachDashboard": "Træner Chat Dashboard",
         "coachDashboardSubtitle": "Kommuniker med dine klienter",
         "overdue": "overskredet",
-        "totalClients": "samlede klienter"
+        "totalClients": "samlede klienter",
+        "responseWithin24h": "Svar inden for 24 timer",
+        "responseWithin7Days": "Svar inden for 7 dage",
+        "loadingMessages": "Indlæser beskeder...",
+        "error": "Fejl",
+        "loadMoreMessages": "Indlæs Flere Beskeder",
+        "loadingGroupChat": "Indlæser gruppechat...",
+        "errorLoadingGroupChat": "Fejl ved Indlæsning af Gruppechat",
+        "unableToLoadGroupChat": "Kunne ikke indlæse gruppechat",
+        "groupChatConnectionIssue": "Der var et problem med at forbinde til gruppechatten."
     },
     "analytics": {
         "noActiveGoals": "Ingen Aktive Mål",
@@ -1603,7 +1618,33 @@
         "profile": {
             "title": "Min Profil",
             "description": "Administrer dine personlige oplysninger og præferencer.",
-            "loading": "Indlæser din profil..."
+            "loading": "Indlæser din profil...",
+            "loadingMessage": "Vent venligst mens vi indlæser din profil...",
+            "personalInfo": {
+                "title": "Personlige Oplysninger",
+                "description": "Opdater dine personlige detaljer",
+                "fullName": "Fulde Navn",
+                "enterFullName": "Indtast dit fulde navn",
+                "dateOfBirth": "Fødselsdato",
+                "aboutMe": "Om Mig",
+                "aboutMePlaceholder": "Fortæl os lidt om dig selv..."
+            },
+            "avatar": {
+                "requirements": "JPG, PNG, WebP, GIF eller HEIC. Maks 10MB. HEIC-filer konverteres automatisk til JPEG."
+            },
+            "billing": {
+                "loadingProducts": "Indlæser produkter..."
+            },
+            "tabs": {
+                "profile": "Profil",
+                "personalInfo": "Personlige Oplysninger",
+                "goals": "Mål",
+                "goalsProgress": "Mål & Fremgang",
+                "groups": "Grupper",
+                "myGroup": "Min Gruppe",
+                "settings": "Indstillinger",
+                "billing": "Fakturering"
+            }
         },
         "settings": {
             "notifications": {

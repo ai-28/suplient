@@ -1,16 +1,18 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { useTranslation } from '@/app/context/LanguageContext';
+import { useTranslation, useLanguage } from '@/app/context/LanguageContext';
 
 export function DailyNotes({ currentDate, analyticsData, loading, error }) {
   const t = useTranslation();
+  const { language } = useLanguage();
   
   // Get notes from analyticsData
   const notes = analyticsData?.currentDateNotes || null;
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { 
+    const locale = language === 'da' ? 'da-DK' : 'en-US';
+    return date.toLocaleDateString(locale, { 
       weekday: 'long', 
       month: 'short', 
       day: 'numeric'

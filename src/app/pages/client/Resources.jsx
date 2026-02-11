@@ -309,7 +309,11 @@ export default function ClientResources() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant={getTypeColor(resource.type)} className="text-xs">
-                      {resource.type}
+                      {resource.type === 'Video' ? t('resources.badges.video', 'Video') :
+                       resource.type === 'Image' ? t('resources.badges.image', 'Image') :
+                       resource.type === 'Article' ? t('resources.badges.article', 'Article') :
+                       resource.type === 'Audio' || resource.type === 'Sound' ? t('resources.badges.audio', 'Audio') :
+                       resource.type}
                     </Badge>
                     {resource.completed && (
                       <Badge variant="secondary" className="text-xs">{t('resources.completed', 'Completed')}</Badge>
@@ -354,7 +358,13 @@ export default function ClientResources() {
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant={getTypeColor(resource.type)}>
                           {getTypeIcon(resource.type)}
-                          <span className="ml-1">{resource.type}</span>
+                          <span className="ml-1">
+                            {resource.type === 'Video' ? t('resources.badges.video', 'Video') :
+                             resource.type === 'Image' ? t('resources.badges.image', 'Image') :
+                             resource.type === 'Article' ? t('resources.badges.article', 'Article') :
+                             resource.type === 'Audio' || resource.type === 'Sound' ? t('resources.badges.audio', 'Audio') :
+                             resource.type}
+                          </span>
                         </Badge>
                         {resource.completed && (
                           <Badge variant="secondary">{t('resources.completed', 'Completed')}</Badge>

@@ -426,7 +426,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
-        <span className="text-sm text-muted-foreground">Loading...</span>
+                <span className="text-sm text-muted-foreground">{t('common.messages.loading', 'Loading...')}</span>
       </div>
     );
   }
@@ -448,7 +448,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
             {productsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                <span className="text-sm text-muted-foreground">Loading products...</span>
+                <span className="text-sm text-muted-foreground">{t('client.profile.billing.loadingProducts', 'Loading products...')}</span>
               </div>
             ) : coachProducts.length === 0 ? (
               <div className="text-center py-8">
@@ -1634,7 +1634,7 @@ export default function ClientProfile() {
           </div>
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
-            <p className="text-muted-foreground text-sm">Please wait while we load your profile...</p>
+            <p className="text-muted-foreground text-sm">{t('client.profile.loadingMessage', 'Please wait while we load your profile...')}</p>
           </div>
         </div>
       </div>
@@ -1662,7 +1662,7 @@ export default function ClientProfile() {
             <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
               <User className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
               <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
-                {isMobile ? "Profile" : isTablet ? "Profile" : "Personal Info"}
+                {isMobile ? t('client.profile.tabs.profile', 'Profile') : isTablet ? t('client.profile.tabs.profile', 'Profile') : t('client.profile.tabs.personalInfo', 'Personal Info')}
               </span>
             </div>
           </TabsTrigger>
@@ -1673,7 +1673,7 @@ export default function ClientProfile() {
             <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
               <Target className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
               <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
-                {isMobile ? "Goals" : isTablet ? "Goals" : "Goals & Progress"}
+                {isMobile ? t('client.profile.tabs.goals', 'Goals') : isTablet ? t('client.profile.tabs.goals', 'Goals') : t('client.profile.tabs.goalsProgress', 'Goals & Progress')}
               </span>
             </div>
           </TabsTrigger>
@@ -1684,7 +1684,7 @@ export default function ClientProfile() {
             <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
               <Users className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
               <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
-                {isMobile ? "Groups" : isTablet ? "Groups" : "My Group"}
+                {isMobile ? t('client.profile.tabs.groups', 'Groups') : isTablet ? t('client.profile.tabs.groups', 'Groups') : t('client.profile.tabs.myGroup', 'My Group')}
               </span>
             </div>
           </TabsTrigger>
@@ -1694,7 +1694,7 @@ export default function ClientProfile() {
           >
             <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
               <Shield className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>Settings</span>
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>{t('client.profile.tabs.settings', 'Settings')}</span>
             </div>
           </TabsTrigger>
           {!isIOSNative && (
@@ -1705,7 +1705,7 @@ export default function ClientProfile() {
               <div className={`flex items-center gap-1 ${isMobile ? 'flex-col' : 'flex-row'}`}>
                 <CreditCard className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
                 <span className={`${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Billing
+                  {t('client.profile.tabs.billing', 'Billing')}
                 </span>
               </div>
             </TabsTrigger>
@@ -1812,12 +1812,12 @@ export default function ClientProfile() {
                         disabled={uploadingAvatar}
                         className="w-full text-destructive hover:text-destructive"
                       >
-                        Remove
+                        {t('common.buttons.remove', 'Remove')}
                       </Button>
                     )}
                   </div>
                   <p className={`text-xs text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>
-                    JPG, PNG, WebP, GIF, or HEIC. Max 10MB. HEIC files will be automatically converted to JPEG.
+                    {t('client.profile.avatar.requirements', 'JPG, PNG, WebP, GIF, or HEIC. Max 10MB. HEIC files will be automatically converted to JPEG.')}
                   </p>
                 </div>
               </CardContent>
@@ -1827,24 +1827,24 @@ export default function ClientProfile() {
             <div className={`${isMobile ? 'order-1' : ''} ${isMobile ? '' : isTablet ? 'col-span-2' : 'md:col-span-2'}`}>
               <Card>
                 <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
-                  <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>Personal Information</CardTitle>
-                  <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Update your personal details</CardDescription>
+                  <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>{t('client.profile.personalInfo.title', 'Personal Information')}</CardTitle>
+                  <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.personalInfo.description', 'Update your personal details')}</CardDescription>
                 </CardHeader>
                 <CardContent className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
                   <div className="space-y-2">
-                    <Label htmlFor="name" className={`${isMobile ? 'text-sm' : ''}`}>Full Name *</Label>
+                    <Label htmlFor="name" className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.personalInfo.fullName', 'Full Name')} *</Label>
                     <Input 
                       id="name" 
                       value={formData.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
                       className={`${isMobile ? 'h-10' : ''}`}
                       disabled={loading}
-                      placeholder="Enter your full name"
+                      placeholder={t('client.profile.personalInfo.enterFullName', 'Enter your full name')}
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="email" className={`${isMobile ? 'text-sm' : ''}`}>Email *</Label>
+                    <Label htmlFor="email" className={`${isMobile ? 'text-sm' : ''}`}>{t('common.labels.email', 'Email')} *</Label>
                     <Input 
                       id="email" 
                       type="email" 
@@ -1856,7 +1856,7 @@ export default function ClientProfile() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className={`${isMobile ? 'text-sm' : ''}`}>Phone</Label>
+                    <Label htmlFor="phone" className={`${isMobile ? 'text-sm' : ''}`}>{t('common.labels.phone', 'Phone')}</Label>
                     <Input 
                       id="phone" 
                       type="tel" 
@@ -1868,7 +1868,7 @@ export default function ClientProfile() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="birthdate" className={`${isMobile ? 'text-sm' : ''}`}>Date of Birth</Label>
+                    <Label htmlFor="birthdate" className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.personalInfo.dateOfBirth', 'Date of Birth')}</Label>
                     <Input 
                       id="birthdate" 
                       type="date" 
@@ -1880,10 +1880,10 @@ export default function ClientProfile() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="bio" className={`${isMobile ? 'text-sm' : ''}`}>About Me</Label>
+                    <Label htmlFor="bio" className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.personalInfo.aboutMe', 'About Me')}</Label>
                     <Textarea 
                       id="bio" 
-                      placeholder="Tell us a bit about yourself..."
+                      placeholder={t('client.profile.personalInfo.aboutMePlaceholder', 'Tell us a bit about yourself...')}
                       value={formData.bio}
                       onChange={(e) => handleInputChange('bio', e.target.value)}
                       className={`${isMobile ? 'min-h-20' : 'min-h-24'}`}
@@ -1896,7 +1896,7 @@ export default function ClientProfile() {
                     disabled={saving || loading}
                     className={`w-full ${isMobile ? 'h-10' : ''}`}
                   >
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? t('common.messages.saving', 'Saving...') : t('common.buttons.saveChanges', 'Save Changes')}
                   </Button>
                 </CardContent>
               </Card>

@@ -24,16 +24,16 @@ import { isAndroid } from "@/lib/capacitor";
 import { useTranslation } from "@/app/context/LanguageContext";
 
 // Simple function to get response guarantee text
-const getResponseGuaranteeText = (chatType) => {
+const getResponseGuaranteeText = (chatType, t) => {
   switch (chatType) {
     case 'personal':
-      return 'Response within 24h';
+      return t('chat.responseWithin24h', 'Response within 24h');
     case 'light':
-      return 'Response within 7 days';
+      return t('chat.responseWithin7Days', 'Response within 7 days');
     case 'group':
-      return 'Response within 7 days';
+      return t('chat.responseWithin7Days', 'Response within 7 days');
     default:
-      return 'Response within 24h';
+      return t('chat.responseWithin24h', 'Response within 24h');
   }
 };
 
@@ -399,7 +399,7 @@ export function UniversalChatInterface({
         <div className="flex items-center justify-center h-[calc(100vh-100px)]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading messages...</p>
+            <p className="text-muted-foreground">{t('chat.loadingMessages', 'Loading messages...')}</p>
           </div>
         </div>
       </div>
@@ -411,8 +411,8 @@ export function UniversalChatInterface({
       <div className={`flex flex-col bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <p className="text-destructive mb-4">Error: {error}</p>
-            <Button onClick={() => window.location.reload()}>Retry</Button>
+            <p className="text-destructive mb-4">{t('chat.error', 'Error')}: {error}</p>
+            <Button onClick={() => window.location.reload()}>{t('common.buttons.retry', 'Retry')}</Button>
           </div>
         </div>
       </div>
@@ -482,7 +482,7 @@ export function UniversalChatInterface({
             {currentUserRole === "client" && chatType === "personal" ? (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                <span>{getResponseGuaranteeText(chatType)}</span>
+                <span>{getResponseGuaranteeText(chatType, t)}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -549,7 +549,7 @@ export function UniversalChatInterface({
               <div className="flex justify-center py-2">
                 <Button variant="ghost" size="sm" onClick={loadMoreMessages} disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Load More Messages
+                  {t('chat.loadMoreMessages', 'Load More Messages')}
                 </Button>
               </div>
             )}

@@ -24,6 +24,7 @@
             "saveChanges": "Save Changes",
             "contact": "Contact Support",
             "tryAgain": "Try Again",
+            "retry": "Retry",
             "viewDetails": "View Details",
             "change": "Change",
             "select": "Select"
@@ -1190,7 +1191,13 @@
         "pdfPreview": "PDF Preview",
         "documentPreview": "Document Preview",
         "cannotPreview": "This document type cannot be previewed directly in the browser. Please download the file to view it in a compatible application.",
-        "downloadDocument": "Download Document"
+        "downloadDocument": "Download Document",
+        "badges": {
+            "video": "Video",
+            "image": "Image",
+            "article": "Article",
+            "audio": "Audio"
+        }
     },
     "programs": {
         "title": "Programs",
@@ -1454,7 +1461,16 @@
         "coachDashboard": "Coach Chat Dashboard",
         "coachDashboardSubtitle": "Communicate with your clients",
         "overdue": "overdue",
-        "totalClients": "total clients"
+        "totalClients": "total clients",
+        "responseWithin24h": "Response within 24h",
+        "responseWithin7Days": "Response within 7 days",
+        "loadingMessages": "Loading messages...",
+        "error": "Error",
+        "loadMoreMessages": "Load More Messages",
+        "loadingGroupChat": "Loading group chat...",
+        "errorLoadingGroupChat": "Error Loading Group Chat",
+        "unableToLoadGroupChat": "Unable to Load Group Chat",
+        "groupChatConnectionIssue": "There was an issue connecting to the group chat."
     },
     "analytics": {
         "noActiveGoals": "No Active Goals",
@@ -1519,7 +1535,33 @@
         "profile": {
             "title": "My Profile",
             "description": "Manage your personal information and preferences.",
-            "loading": "Loading your profile..."
+            "loading": "Loading your profile...",
+            "loadingMessage": "Please wait while we load your profile...",
+            "personalInfo": {
+                "title": "Personal Information",
+                "description": "Update your personal details",
+                "fullName": "Full Name",
+                "enterFullName": "Enter your full name",
+                "dateOfBirth": "Date of Birth",
+                "aboutMe": "About Me",
+                "aboutMePlaceholder": "Tell us a bit about yourself..."
+            },
+            "avatar": {
+                "requirements": "JPG, PNG, WebP, GIF, or HEIC. Max 10MB. HEIC files will be automatically converted to JPEG."
+            },
+            "billing": {
+                "loadingProducts": "Loading products..."
+            },
+            "tabs": {
+                "profile": "Profile",
+                "personalInfo": "Personal Info",
+                "goals": "Goals",
+                "goalsProgress": "Goals & Progress",
+                "groups": "Groups",
+                "myGroup": "My Group",
+                "settings": "Settings",
+                "billing": "Billing"
+            }
         },
         "settings": {
             "notifications": {

@@ -3,9 +3,11 @@ import { UniversalChatInterface } from "./UniversalChatInterface";
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export function GroupChatInterface({ groupId, groupName, members, activeMembers, showBackButton = false, backButtonAction, hideHeader = false }) {
   const { data: session } = useSession();
+  const t = useTranslation();
   const [conversationId, setConversationId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,7 +69,7 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
     return (
       <div className="flex flex-col items-center justify-center h-screen text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p>Loading group chat...</p>
+        <p>{t('chat.loadingGroupChat', 'Loading group chat...')}</p>
       </div>
     );
   }
@@ -76,13 +78,13 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
     return (
       <div className="flex flex-col items-center justify-center h-screen text-muted-foreground p-4">
         <div className="text-center">
-          <h3 className="text-lg font-medium mb-2 text-red-500">Error Loading Group Chat</h3>
+          <h3 className="text-lg font-medium mb-2 text-red-500">{t('chat.errorLoadingGroupChat', 'Error Loading Group Chat')}</h3>
           <p className="mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
-            Try Again
+            {t('common.buttons.tryAgain', 'Try Again')}
           </button>
         </div>
       </div>
@@ -93,8 +95,8 @@ export function GroupChatInterface({ groupId, groupName, members, activeMembers,
     return (
       <div className="flex flex-col items-center justify-center h-screen text-muted-foreground p-4">
         <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Unable to Load Group Chat</h3>
-          <p className="mb-4">There was an issue connecting to the group chat.</p>
+          <h3 className="text-lg font-medium mb-2">{t('chat.unableToLoadGroupChat', 'Unable to Load Group Chat')}</h3>
+          <p className="mb-4">{t('chat.groupChatConnectionIssue', 'There was an issue connecting to the group chat.')}</p>
           <button 
             onClick={() => window.location.reload()} 
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
