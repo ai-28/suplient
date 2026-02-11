@@ -73,6 +73,67 @@ export default function Dashboard() {
   }, []);
 
 
+  // Helper function to translate activity titles and descriptions
+  const translateActivity = (activity) => {
+    // Extract client name from description or activityData
+    let displayName = 'User';
+    if (activity.activityData?.clientName) {
+      displayName = activity.activityData.clientName;
+    } else if (activity.description) {
+      // Try to extract name from description like "demo completed their daily check-in"
+      const match = activity.description.match(/^(\w+)\s/);
+      if (match) {
+        displayName = match[1];
+      }
+    }
+    
+    switch (activity.type) {
+      case 'daily_checkin':
+        return {
+          ...activity,
+          title: t('activities.dailyCheckinCompleted', 'Daily Check-in Completed'),
+          description: t('activities.dailyCheckinDescription', '{name} completed their daily check-in').replace('{name}', displayName)
+        };
+      case 'task_completed':
+        const taskTitle = activity.activityData?.taskTitle || activity.title?.replace('Task Completed: ', '') || 'Untitled Task';
+        return {
+          ...activity,
+          title: t('activities.taskCompleted', 'Task Completed: {task}').replace('{task}', taskTitle),
+          description: activity.description ? t('activities.taskCompletedDescription', '{name} completed a task').replace('{name}', displayName) : null
+        };
+      case 'session_attended':
+        const sessionTitle = activity.activityData?.sessionTitle || activity.title?.replace('Session Attended: ', '') || 'Session';
+        return {
+          ...activity,
+          title: t('activities.sessionAttended', 'Session Attended: {session}').replace('{session}', sessionTitle),
+          description: t('activities.sessionAttendedDescription', '{name} attended a coaching session').replace('{name}', displayName)
+        };
+      case 'signup':
+        return {
+          ...activity,
+          title: t('activities.signup', 'New Client Signup'),
+          description: t('activities.signupDescription', '{name} joined the platform').replace('{name}', displayName)
+        };
+      case 'goal_achieved':
+        const goalTitle = activity.activityData?.goalTitle || activity.title?.replace('Goal Achieved: ', '') || 'Goal';
+        return {
+          ...activity,
+          title: t('activities.goalAchieved', 'Goal Achieved: {goal}').replace('{goal}', goalTitle),
+          description: t('activities.goalAchievedDescription', '{name} achieved a personal goal').replace('{name}', displayName)
+        };
+      default:
+        // For other types, try to translate if it matches known patterns
+        if (activity.title?.includes('Daily Check-in')) {
+          return {
+            ...activity,
+            title: t('activities.dailyCheckinCompleted', 'Daily Check-in Completed'),
+            description: activity.description ? t('activities.dailyCheckinDescription', '{name} completed their daily check-in').replace('{name}', displayName) : null
+          };
+        }
+        return activity;
+    }
+  };
+
   // Fetch activities
   const fetchActivities = async () => {
     try {
@@ -84,7 +145,9 @@ export default function Dashboard() {
       }
       
       const data = await response.json();
-      setActivities(data.activities || []);
+      // Translate activities before setting state
+      const translatedActivities = (data.activities || []).map(activity => translateActivity(activity));
+      setActivities(translatedActivities);
     } catch (error) {
       console.error('Error fetching activities:', error);
       setActivities([]);
@@ -455,7 +518,7 @@ export default function Dashboard() {
                           </p>
                         )}
                         <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1`}>
-                          {new Date(activity.createdAt).toLocaleDateString()} at {new Date(activity.createdAt).toLocaleTimeString()}
+                          {new Date(activity.createdAt).toLocaleDateString()} {t('common.time.at', 'at')} {new Date(activity.createdAt).toLocaleTimeString()}
                         </p>
                       </div>
                     </div>

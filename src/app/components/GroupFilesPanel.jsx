@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,7 @@ import { LibraryPickerModal } from "./LibraryPickerModal";
 
 
 export function GroupFilesPanel({ groupId }) {
+  const t = useTranslation();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -178,7 +180,7 @@ export function GroupFilesPanel({ groupId }) {
       <Card className={`shadow-soft border-border bg-card h-full flex flex-col ${isMobile ? 'p-0 shadow-none border-0' : ''}`}>
         <CardHeader className={`${isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'} flex-shrink-0`}>
           <div className="flex items-center justify-between">
-            <CardTitle className={`text-foreground ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>Shared Files</CardTitle>
+            <CardTitle className={`text-foreground ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>{t('groups.sharedFiles', 'Shared Files')}</CardTitle>
             <Button 
               size="sm" 
               variant="ghost"
@@ -195,22 +197,22 @@ export function GroupFilesPanel({ groupId }) {
               <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
                   <Loader2 className={`${isMobile ? 'h-4 w-4' : 'h-6 w-6'} animate-spin mx-auto mb-2`} />
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>Loading files...</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{t('groups.loadingFiles', 'Loading files...')}</p>
                 </div>
               </div>
             ) : error ? (
               <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive mb-2 break-words`}>Error: {error}</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive mb-2 break-words`}>{t('common.messages.error')}: {error}</p>
                   <Button size={isMobile ? "sm" : "sm"} variant="outline" onClick={fetchGroupResources} className={isMobile ? 'text-xs h-7' : ''}>
-                    Try Again
+                    {t('common.buttons.tryAgain', 'Try Again')}
                   </Button>
                 </div>
               </div>
             ) : files.length === 0 ? (
               <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>No files shared yet</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{t('groups.noFilesSharedYet', 'No files shared yet')}</p>
                 </div>
               </div>
             ) : (
@@ -224,7 +226,7 @@ export function GroupFilesPanel({ groupId }) {
                       <div className="flex-1 min-w-0">
                         <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium truncate break-words`}>{file.name}</p>
                         <p className={`${isMobile ? 'text-[9px]' : 'text-xs'} text-gray-500 break-words`}>{file.type} • {file.size}</p>
-                        <p className={`${isMobile ? 'text-[9px]' : 'text-xs'} text-gray-500 break-words`}>Shared {file.sharedDate}</p>
+                        <p className={`${isMobile ? 'text-[9px]' : 'text-xs'} text-gray-500 break-words`}>{t('groups.shared', 'Shared')} {file.sharedDate}</p>
                       </div>
                     </div>
                     <div className={`flex items-center gap-1 ${isMobile ? 'ml-1' : 'ml-2'}`}>
@@ -264,18 +266,18 @@ export function GroupFilesPanel({ groupId }) {
       <AlertDialog open={!!fileToRemove} onOpenChange={() => setFileToRemove(null)}>
         <AlertDialogContent className={isMobile ? 'max-w-full mx-2' : ''}>
           <AlertDialogHeader className={isMobile ? 'px-4 py-3' : ''}>
-            <AlertDialogTitle className={isMobile ? 'text-base' : ''}>Remove File</AlertDialogTitle>
+            <AlertDialogTitle className={isMobile ? 'text-base' : ''}>{t('groups.removeFile', 'Remove File')}</AlertDialogTitle>
             <AlertDialogDescription className={isMobile ? 'text-xs break-words' : 'break-words'}>
-              Are you sure you want to remove "{fileToRemove?.name}"? This action cannot be undone.
+              {t('groups.confirmRemoveFile', 'Are you sure you want to remove "{name}"? This action cannot be undone.', { name: fileToRemove?.name || '' }).replace('{name}', fileToRemove?.name || '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className={isMobile ? 'flex-col gap-2 px-4 pb-3' : ''}>
-            <AlertDialogCancel className={isMobile ? 'w-full text-xs h-8' : ''}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className={isMobile ? 'w-full text-xs h-8' : ''}>{t('common.buttons.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmRemove}
               className={`bg-destructive text-destructive-foreground hover:bg-destructive/90 ${isMobile ? 'w-full text-xs h-8' : ''}`}
             >
-              Remove File
+              {t('groups.removeFile', 'Remove File')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -286,7 +288,7 @@ export function GroupFilesPanel({ groupId }) {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2">
           <div className={`bg-background rounded-lg ${isMobile ? 'max-w-full' : 'max-w-4xl'} max-h-[90vh] w-full overflow-hidden`}>
             <div className={`flex items-center justify-between ${isMobile ? 'p-2' : 'p-4'} border-b`}>
-              <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold break-words`}>Preview</h3>
+              <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold break-words`}>{t('groups.preview', 'Preview')}</h3>
               <Button 
                 variant="ghost" 
                 size={isMobile ? "sm" : "sm"}
@@ -384,7 +386,7 @@ export function GroupFilesPanel({ groupId }) {
               ) : previewType === 'pdf' ? (
                 <div>
                   <div className={isMobile ? 'mb-2' : 'mb-4'}>
-                    <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium mb-2 break-words`}>PDF Preview</h4>
+                    <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium mb-2 break-words`}>{t('groups.pdfPreview', 'PDF Preview')}</h4>
                     <iframe
                       src={`/api/library/preview?path=${encodeURIComponent(previewUrl)}`}
                       className={`w-full ${isMobile ? 'h-[50vh]' : 'h-[60vh]'} border rounded`}
@@ -407,17 +409,17 @@ export function GroupFilesPanel({ groupId }) {
                         window.open(apiUrl, '_blank');
                       }}
                     >
-                      Open in New Tab
+                      {t('groups.openInNewTab', 'Open in New Tab')}
                     </Button>
                   </div>
                 </div>
               ) : previewType === 'document' ? (
                 <div>
                   <div className={isMobile ? 'mb-2' : 'mb-4'}>
-                    <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium mb-2 break-words`}>Document Preview</h4>
+                    <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium mb-2 break-words`}>{t('groups.documentPreview', 'Document Preview')}</h4>
                     <div className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
-                      <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 break-words`}>Document preview not available</p>
-                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mb-2 break-words`}>This file type cannot be previewed inline</p>
+                      <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 break-words`}>{t('groups.documentPreviewNotAvailable', 'Document preview not available')}</p>
+                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mb-2 break-words`}>{t('groups.cannotPreviewInline', 'This file type cannot be previewed inline')}</p>
                     </div>
                   </div>
                   <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
@@ -430,7 +432,7 @@ export function GroupFilesPanel({ groupId }) {
                         window.open(apiUrl, '_blank');
                       }}
                     >
-                      Open in New Tab
+                      {t('groups.openInNewTab', 'Open in New Tab')}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -440,13 +442,13 @@ export function GroupFilesPanel({ groupId }) {
                         window.open(previewUrl, '_blank');
                       }}
                     >
-                      Open Original URL
+                      {t('groups.openOriginalUrl', 'Open Original URL')}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 break-words`}>Preview not available for this file type</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mb-2 break-words`}>{t('groups.previewNotAvailable', 'Preview not available for this file type')}</p>
                   <Button 
                     variant="outline" 
                     className={isMobile ? 'text-xs h-8 w-full' : ''}
@@ -455,7 +457,7 @@ export function GroupFilesPanel({ groupId }) {
                       window.open(previewUrl, '_blank');
                     }}
                   >
-                    Open in New Tab
+                    {t('groups.openInNewTab', 'Open in New Tab')}
                   </Button>
                 </div>
               )}

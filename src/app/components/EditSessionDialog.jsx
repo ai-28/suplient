@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
@@ -19,6 +20,7 @@ export function EditSessionDialog({
   session, 
   onSessionUpdated 
 }) {
+  const t = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState("");
@@ -56,12 +58,12 @@ export function EditSessionDialog({
     try {
       // Validate required fields
       if (!selectedDate) {
-        toast.error("Please select a date");
+        toast.error(t('sessions.pleaseSelectDate', 'Please select a date'));
         return;
       }
       
       if (!selectedTime) {
-        toast.error("Please select a time");
+        toast.error(t('sessions.pleaseSelectTime', 'Please select a time'));
         return;
       }
       
@@ -168,18 +170,18 @@ export function EditSessionDialog({
           const integrationResult = await integrationResponse.json();
           
           if (integrationResult.notificationsSent > 0) {
-            toast.success(`Session updated successfully! ${integrationResult.notificationsSent} attendee(s) notified and calendar events updated.`);
+            toast.success(t('sessions.sessionUpdatedWithNotifications', 'Session updated successfully! {count} attendee(s) notified and calendar events updated.').replace('{count}', integrationResult.notificationsSent));
           } else {
-            toast.success("Session updated successfully! Calendar events updated.");
+            toast.success(t('sessions.sessionUpdatedCalendarUpdated', 'Session updated successfully! Calendar events updated.'));
           }
         } else {
           const errorData = await integrationResponse.json();
           console.error('❌ Failed to update integrations:', errorData);
-          toast.success("Session updated successfully! (Calendar sync failed)");
+          toast.success(t('sessions.sessionUpdatedCalendarSyncFailed', 'Session updated successfully! (Calendar sync failed)'));
         }
       } catch (integrationError) {
         console.error('Error updating integrations:', integrationError);
-        toast.success("Session updated successfully! (Calendar sync failed)");
+        toast.success(t('sessions.sessionUpdatedCalendarSyncFailed', 'Session updated successfully! (Calendar sync failed)'));
       }
 
       onSessionUpdated?.();
@@ -187,7 +189,7 @@ export function EditSessionDialog({
       
     } catch (error) {
       console.error('Error updating session:', error);
-      toast.error(error.message || "Failed to update session");
+      toast.error(error.message || t('sessions.failedToUpdateSession', 'Failed to update session'));
     } finally {
       setIsLoading(false);
     }
@@ -265,7 +267,7 @@ export function EditSessionDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
-            Edit Session
+            {t('sessions.editSession', 'Edit Session')}
           </DialogTitle>
         </DialogHeader>
 
@@ -275,10 +277,10 @@ export function EditSessionDialog({
 
           {/* Title */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Session Title</label>
+            <label className="text-sm font-medium">{t('sessions.sessionTitle', 'Session Title')}</label>
             <Input
-              {...register("title", { required: "Title is required" })}
-              placeholder="Enter session title"
+              {...register("title", { required: t('sessions.titleRequired', 'Title is required') })}
+              placeholder={t('sessions.enterSessionTitle', 'Enter session title')}
             />
             {errors.title && (
               <p className="text-sm text-destructive">{errors.title.message}</p>
@@ -287,10 +289,10 @@ export function EditSessionDialog({
 
           {/* Description */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-sm font-medium">{t('common.labels.description', 'Description')}</label>
             <Textarea
               {...register("description")}
-              placeholder="Enter session description"
+              placeholder={t('sessions.enterSessionDescription', 'Enter session description')}
               rows={3}
             />
           </div>
@@ -298,7 +300,7 @@ export function EditSessionDialog({
           {/* Date and Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Date</label>
+              <label className="text-sm font-medium">{t('common.labels.date', 'Date')}</label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -309,7 +311,7 @@ export function EditSessionDialog({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                    {selectedDate ? format(selectedDate, "PPP") : t('sessions.pickDate', 'Pick a date')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -324,7 +326,7 @@ export function EditSessionDialog({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Time</label>
+              <label className="text-sm font-medium">{t('common.labels.time', 'Time')}</label>
               <Input
                 type="time"
                 value={selectedTime}
@@ -337,12 +339,12 @@ export function EditSessionDialog({
           {/* Duration and Status */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Duration (minutes)</label>
+              <label className="text-sm font-medium">{t('sessions.durationMinutes', 'Duration (minutes)')}</label>
               <Input
                 {...register("duration", { 
-                  required: "Duration is required",
-                  min: { value: 15, message: "Minimum 15 minutes" },
-                  max: { value: 480, message: "Maximum 8 hours" }
+                  required: t('sessions.durationRequired', 'Duration is required'),
+                  min: { value: 15, message: t('sessions.minimum15Minutes', 'Minimum 15 minutes') },
+                  max: { value: 480, message: t('sessions.maximum8Hours', 'Maximum 8 hours') }
                 })}
                 type="number"
                 min="15"
@@ -370,10 +372,10 @@ export function EditSessionDialog({
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating Session...
+                  {t('sessions.updatingSession', 'Updating Session...')}
                 </>
               ) : (
-                "Update Session"
+                t('sessions.updateSession', 'Update Session')
               )}
             </Button>
             <Button
@@ -382,7 +384,7 @@ export function EditSessionDialog({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t('common.buttons.cancel', 'Cancel')}
             </Button>
           </div>
         </form>

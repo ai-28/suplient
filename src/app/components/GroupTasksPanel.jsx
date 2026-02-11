@@ -5,6 +5,7 @@ import { Button } from "@/app/components/ui/button";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { CreateTaskDialog } from "@/app/components/CreateTaskDialog";
 import { TaskCompletionModal } from "@/app/components/TaskCompletionModal";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { 
   Plus,
   Calendar,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 export function GroupTasksPanel({ groupId, memberCount }) {
+  const t = useTranslation();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,7 +81,7 @@ export function GroupTasksPanel({ groupId, memberCount }) {
       <Card className={`${isMobile ? 'p-0 shadow-none border-0' : 'shadow-soft border-border'} bg-card h-full flex flex-col`}>
         <CardHeader className={`${isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'} flex-shrink-0`}>
           <div className="flex items-center justify-between">
-            <CardTitle className={`text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Group Tasks</CardTitle>
+            <CardTitle className={`text-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>{t('groups.groupTasks', 'Group Tasks')}</CardTitle>
             <CreateTaskDialog 
               mode="group" 
               groupId={groupId}
@@ -102,22 +104,22 @@ export function GroupTasksPanel({ groupId, memberCount }) {
               <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
                   <Loader2 className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
-                  <p className={`${isMobile ? 'text-xs mt-1' : 'text-sm mt-2'} text-muted-foreground`}>Loading tasks...</p>
+                  <p className={`${isMobile ? 'text-xs mt-1' : 'text-sm mt-2'} text-muted-foreground`}>{t('groups.loadingTasks', 'Loading tasks...')}</p>
                 </div>
               </div>
             ) : error ? (
               <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive ${isMobile ? 'mb-1' : 'mb-2'} break-words`}>Error: {error}</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-destructive ${isMobile ? 'mb-1' : 'mb-2'} break-words`}>{t('common.messages.error')}: {error}</p>
                   <Button size={isMobile ? "sm" : "sm"} variant="outline" onClick={fetchGroupTasks} className={isMobile ? 'text-xs h-7 mt-1' : ''}>
-                    Try Again
+                    {t('common.buttons.tryAgain', 'Try Again')}
                   </Button>
                 </div>
               </div>
             ) : tasks.length === 0 ? (
               <div className={`flex items-center justify-center ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="text-center">
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>No tasks assigned yet</p>
+                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{t('groups.noTasksAssignedYet', 'No tasks assigned yet')}</p>
                 </div>
               </div>
             ) : (

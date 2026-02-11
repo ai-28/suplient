@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/app/components/ui/dialog";
 import {
   AlertDialog,
@@ -19,6 +20,7 @@ import { Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 export function AIAssistProgramModal({ open, onOpenChange }) {
+  const t = useTranslation();
   const [step, setStep] = useState(1); // 1: Questionnaire, 2: Generation, 3: Review
   const [questionnaireData, setQuestionnaireData] = useState(null);
   const [generatedProgram, setGeneratedProgram] = useState(null);
@@ -285,12 +287,12 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            AI Assist Program Builder
+            {t('programs.aiAssistProgramBuilder', 'AI Assist Program Builder')}
           </DialogTitle>
           <DialogDescription>
-            {step === 1 && "Answer a few questions to generate your program"}
-            {step === 2 && "Generating your program with AI..."}
-            {step === 3 && "Review and edit your generated program"}
+            {step === 1 && t('programs.answerQuestionsToGenerate', 'Answer a few questions to generate your program')}
+            {step === 2 && t('programs.generatingWithAI', 'Generating your program with AI...')}
+            {step === 3 && t('programs.reviewAndEdit', 'Review and edit your generated program')}
           </DialogDescription>
         </DialogHeader>
 
@@ -298,9 +300,9 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
           {step === 1 && showDraftSelector && drafts.length > 0 ? (
             <div className="space-y-4 py-4">
               <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">Resume a Draft?</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('programs.resumeDraft', 'Resume a Draft?')}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  You have {drafts.length} saved draft{drafts.length > 1 ? 's' : ''}. Would you like to resume one?
+                  {t('programs.youHaveSavedDrafts', 'You have {count} saved draft{plural}. Would you like to resume one?', { count: drafts.length }).replace('{count}', drafts.length).replace('{plural}', drafts.length > 1 ? 's' : '')}
                 </p>
               </div>
               <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
@@ -313,9 +315,9 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
                       className="flex-1 cursor-pointer min-w-0"
                       onClick={() => handleLoadDraft(draft.id)}
                     >
-                      <p className="font-medium truncate">{draft.name || draft.programName || 'Untitled Draft'}</p>
+                      <p className="font-medium truncate">{draft.name || draft.programName || t('programs.untitledDraft', 'Untitled Draft')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Saved {new Date(draft.lastSavedAt).toLocaleString()}
+                        {t('programs.saved', 'Saved')} {new Date(draft.lastSavedAt).toLocaleString()}
                       </p>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
@@ -324,7 +326,7 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
                         size="sm"
                         onClick={() => handleLoadDraft(draft.id)}
                       >
-                        Resume
+                        {t('programs.resume', 'Resume')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -343,7 +345,7 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
                   variant="ghost"
                   onClick={() => setShowDraftSelector(false)}
                 >
-                  Start New Program
+                  {t('programs.startNewProgram', 'Start New Program')}
                 </Button>
               </div>
             </div>
@@ -383,23 +385,23 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
     <AlertDialog open={showCloseConfirmation} onOpenChange={setShowCloseConfirmation}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+          <AlertDialogTitle>{t('programs.unsavedChanges', 'Unsaved Changes')}</AlertDialogTitle>
           <AlertDialogDescription>
-            You have unsaved changes to your program. Would you like to save them as a draft before closing?
+            {t('programs.unsavedChangesDescription', 'You have unsaved changes to your program. Would you like to save them as a draft before closing?')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => handleConfirmClose(false)}>
-            Close Without Saving
+            {t('programs.closeWithoutSaving', 'Close Without Saving')}
           </AlertDialogCancel>
           <Button
             variant="outline"
             onClick={() => handleConfirmClose(true)}
           >
-            Save Draft & Close
+            {t('programs.saveDraftAndClose', 'Save Draft & Close')}
           </Button>
           <AlertDialogAction onClick={() => setShowCloseConfirmation(false)}>
-            Cancel
+            {t('common.buttons.cancel', 'Cancel')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -409,9 +411,9 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
     <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Draft?</AlertDialogTitle>
+          <AlertDialogTitle>{t('programs.deleteDraft', 'Delete Draft?')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this draft? This action cannot be undone.
+            {t('programs.deleteDraftDescription', 'Are you sure you want to delete this draft? This action cannot be undone.')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -419,13 +421,13 @@ export function AIAssistProgramModal({ open, onOpenChange }) {
             setDraftToDelete(null);
             setShowDeleteConfirmation(false);
           }}>
-            Cancel
+            {t('common.buttons.cancel', 'Cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={confirmDeleteDraft}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Delete
+            {t('common.buttons.delete', 'Delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

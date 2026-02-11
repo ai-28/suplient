@@ -30,11 +30,17 @@ const categorySounds = "/assets/category-sounds.webp";
 const categoryTemplates = "/assets/category-templates.webp";
 const categoryPrograms = "/assets/category-programs.webp";
 
-// Helper function to format file size
-const formatFileSize = (bytes) => {
-  if (!bytes || bytes === 0) return "0 B";
+// Helper function to format file size (needs translation function)
+const formatFileSize = (bytes, t) => {
+  if (!bytes || bytes === 0) return `0 ${t('library.fileSizeUnits.B', 'B')}`;
   
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const sizes = [
+    t('library.fileSizeUnits.B', 'B'),
+    t('library.fileSizeUnits.KB', 'KB'),
+    t('library.fileSizeUnits.MB', 'MB'),
+    t('library.fileSizeUnits.GB', 'GB'),
+    t('library.fileSizeUnits.TB', 'TB')
+  ];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   const size = (bytes / Math.pow(1024, i)).toFixed(1);
   
@@ -106,51 +112,59 @@ export default function Library() {
         // Create library items with real data
         const items = [
           {
-            category: "Videos",
+            category: t('library.videos', 'Videos'),
             categoryKey: "videos",
             count: results.find(r => r.category === 'videos')?.data?.length || 0,
             icon: Video,
             color: "bg-primary",
-            description: "Videos",
+            description: t('library.videos', 'Videos'),
             image: `${categoryVideos}?v=${cacheBuster}`,
+            totalBytes: results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
             totalSize: formatFileSize(
-              results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0
+              results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+              t
             )
           },
           {
-            category: "Images", 
+            category: t('library.images', 'Images'),
             categoryKey: "images",
             count: results.find(r => r.category === 'images')?.data?.length || 0,
             icon: Image,
             color: "bg-accent",
-            description: "Images",
+            description: t('library.images', 'Images'),
             image: `${categoryImages}?v=${cacheBuster}`,
+            totalBytes: results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
             totalSize: formatFileSize(
-              results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0
+              results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+              t
             )
           },
           {
-            category: "Articles",
+            category: t('library.articles', 'Articles'),
             categoryKey: "articles",
             count: results.find(r => r.category === 'articles')?.data?.length || 0,
             icon: FileText,
             color: "bg-secondary",
-            description: "Articles",
+            description: t('library.articles', 'Articles'),
             image: `${categoryArticles}?v=${cacheBuster}`,
+            totalBytes: results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
             totalSize: formatFileSize(
-              results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0
+              results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+              t
             )
           },
           {
-            category: "Sounds",
+            category: t('library.sounds', 'Sounds'),
             categoryKey: "sounds",
             count: results.find(r => r.category === 'sounds')?.data?.length || 0,
             icon: Music,
             color: "bg-blue-teal",
-            description: "Sounds",
+            description: t('library.sounds', 'Sounds'),
             image: `${categorySounds}?v=${cacheBuster}`,
+            totalBytes: results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
             totalSize: formatFileSize(
-              results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0
+              results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+              t
             )
           }
         ];
@@ -200,15 +214,8 @@ export default function Library() {
             <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-1.5'} text-muted-foreground`}>
               <HardDrive className={isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
               <span className="font-medium text-foreground">{formatFileSize(
-                libraryItems.reduce((sum, item) => {
-                  // Parse the formatted size back to bytes for calculation
-                  const sizeStr = item.totalSize;
-                  const size = parseFloat(sizeStr.replace(/[^\d.]/g, ''));
-                  const unit = sizeStr.includes('GB') ? size * 1024 * 1024 * 1024 :
-                             sizeStr.includes('MB') ? size * 1024 * 1024 :
-                             sizeStr.includes('KB') ? size * 1024 : size;
-                  return sum + size;
-                }, 0)
+                libraryItems.reduce((sum, item) => sum + (item.totalBytes || 0), 0),
+                t
               )}</span>
             </div>
           </div>
@@ -267,7 +274,7 @@ export default function Library() {
               {/* Quick Actions */}
               <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'justify-between'}`}>
                 <div className={`flex items-center gap-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>
-                  <span>{item.count} files • {item.totalSize}</span>
+                  <span>{item.count} {t('library.files', 'files')} • {item.totalSize}</span>
                 </div>
                 <Button 
                   variant="outline" 

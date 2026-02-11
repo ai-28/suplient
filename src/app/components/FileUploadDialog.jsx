@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -41,6 +42,7 @@ const fileFieldNames = {
 };
 
 export function FileUploadDialog({ category, currentFolderId, onUploadComplete, children }) {
+  const t = useTranslation();
   const [open, setOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -61,6 +63,17 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
   const [showTreePicker, setShowTreePicker] = useState(false);
 
   const IconComponent = categoryIcons[category] || File;
+  
+  // Get category title for dialog
+  const getCategoryTitle = () => {
+    const categoryMap = {
+      videos: t('library.videos', 'Videos'),
+      images: t('library.images', 'Images'),
+      articles: t('library.articles', 'Articles'),
+      sounds: t('library.sounds', 'Sounds')
+    };
+    return categoryMap[category] || category.charAt(0).toUpperCase() + category.slice(1);
+  };
 
   // Map category to resourceType
   const getResourceType = () => {
@@ -718,7 +731,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <IconComponent className="h-5 w-5" />
-            Upload to {category.charAt(0).toUpperCase() + category.slice(1)}
+            {t('library.uploadTo', 'Upload to {category}').replace('{category}', getCategoryTitle())}
           </DialogTitle>
         </DialogHeader>
         
@@ -759,10 +772,10 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                       <Progress value={uploadProgress} className="w-full" />
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
-                          {uploadProgress.toFixed(0)}% uploaded
+                          {uploadProgress.toFixed(0)}% {t('library.uploaded', 'uploaded')}
                           {isRetrying && (
                             <span className="ml-2 text-amber-600">
-                              (Retrying... {retryCount}/{3})
+                              ({t('library.retrying', 'Retrying...')} {retryCount}/3)
                             </span>
                           )}
                         </span>
@@ -770,7 +783,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                           <span className="text-muted-foreground/60">
                             {selectedFile.size > 0 
                               ? `${((selectedFile.size * uploadProgress) / 100 / 1024 / 1024).toFixed(2)} MB / ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`
-                              : 'Uploading...'
+                              : t('library.uploading', 'Uploading...')
                             }
                           </span>
                         )}
@@ -783,11 +796,11 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
               <div className="space-y-4">
                 <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
                 <div>
-                  <p className="text-lg font-medium">Drop files here or click to browse</p>
+                  <p className="text-lg font-medium">{t('library.dropFilesHere', 'Drop files here or click to browse')}</p>
                   <p className="text-sm text-muted-foreground">
-                    Accepted formats: {acceptedFormats[category]}
+                    {t('library.acceptedFormats', 'Accepted formats')}: {acceptedFormats[category]}
                   </p>
-                  <p className="text-xs text-red-500 mt-2">⚠️ Please select a file to upload</p>
+                  <p className="text-xs text-red-500 mt-2">⚠️ {t('library.pleaseSelectFile', 'Please select a file to upload')}</p>
                 </div>
                 <Input
                   type="file"
@@ -801,7 +814,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                   className="w-full cursor-pointer"
                   onClick={handleSelectFileClick}
                 >
-                  Select File
+                  {t('library.selectFile', 'Select File')}
                 </Button>
               </div>
             )}
@@ -811,17 +824,17 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           <div className="space-y-4">
             {/* Folder Selection */}
             <div className="space-y-2">
-              <Label>Upload to Folder</Label>
+              <Label>{t('library.uploadToFolder', 'Upload to Folder')}</Label>
               <div className="flex items-center gap-2">
                 <div className="flex-1 p-2 border rounded-lg bg-muted/50 flex items-center gap-2">
                   <Folder className="h-4 w-4 text-muted-foreground shrink-0" />
                   <p className="text-sm text-muted-foreground truncate">
                     {selectedFolderId ? (
-                      loadingFolders ? 'Loading...' : (
-                        availableFolders.find(f => f.id === selectedFolderId)?.displayPath || 'Selected folder'
+                      loadingFolders ? t('common.messages.loading', 'Loading...') : (
+                        availableFolders.find(f => f.id === selectedFolderId)?.displayPath || t('library.selectedFolder', 'Selected folder')
                       )
                     ) : (
-                      'Root (No Folder)'
+                      t('library.root', '(Root)')
                     )}
                   </p>
                 </div>
@@ -832,49 +845,49 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                   onClick={() => setShowTreePicker(true)}
                   disabled={loadingFolders}
                 >
-                  Change
+                  {t('common.buttons.change', 'Change')}
                 </Button>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title">{t('common.labels.title', 'Title')} *</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter file title"
+                placeholder={t('library.enterFileTitle', 'Enter file title')}
                 className={!title.trim() ? "border-red-500 focus:border-red-500" : ""}
               />
               {!title.trim() && (
-                <p className="text-xs text-red-500">Title is required</p>
+                <p className="text-xs text-red-500">{t('library.titleRequired', 'Title is required')}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
+              <Label htmlFor="description">{t('common.labels.description', 'Description')} *</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe the content and purpose of this file"
+                placeholder={t('library.describeFileContent', 'Describe the content and purpose of this file')}
                 rows={3}
                 required
                 className={!description.trim() ? "border-red-500" : ""}
               />
               <div className="text-xs text-muted-foreground">
-                {description.length} characters {!description.trim() && "(Required)"}
+                {description.length} {t('library.characters', 'characters')} {!description.trim() && `(${t('common.required', 'Required')})`}
               </div>
             </div>
 
             {category === 'articles' && (
               <div className="space-y-2">
-                <Label htmlFor="author">Author</Label>
+                <Label htmlFor="author">{t('library.author', 'Author')}</Label>
                 <Input
                   id="author"
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="Enter author name"
+                  placeholder={t('library.enterAuthorName', 'Enter author name')}
                 />
               </div>
             )}
@@ -892,18 +905,18 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
               }}
               disabled={uploading && !uploadAbortController}
             >
-              {uploading ? 'Cancel' : 'Close'}
+              {uploading ? t('common.buttons.cancel', 'Cancel') : t('common.buttons.close', 'Close')}
             </Button>
             <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
               {uploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isRetrying ? `Retrying... (${retryCount}/3)` : 'Uploading...'}
+                  {isRetrying ? `${t('library.retrying', 'Retrying...')} (${retryCount}/3)` : t('library.uploading', 'Uploading...')}
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Upload File
+                  {t('library.uploadFile', 'Upload File')}
                 </>
               )}
             </Button>
@@ -921,7 +934,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           setSelectedFolderId(folderId);
           setShowTreePicker(false);
         }}
-        title="Select Upload Folder"
+        title={t('library.selectUploadFolder', 'Select Upload Folder')}
         allowRoot={true}
         categoryInfo={{
           color: category === 'videos' ? 'bg-primary' : 

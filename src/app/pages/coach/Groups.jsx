@@ -85,6 +85,22 @@ export default function Groups() {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  // Helper function to translate group stage name
+  const translateGroupStageName = (stageId, stageName) => {
+    switch (stageId) {
+      case 'upcoming':
+        return t('groups.stageUpcoming', 'Upcoming');
+      case 'ongoing':
+        return t('groups.stageOngoing', 'Ongoing');
+      case 'completed':
+        return t('common.status.completed');
+      case 'inactive':
+        return t('common.status.inactive');
+      default:
+        return stageName; // Return original if no translation found
+    }
+  };
+
   // Fetch pipeline stages from database
   useEffect(() => {
     const fetchPipelineStages = async () => {
@@ -95,10 +111,11 @@ export default function Groups() {
         const data = await response.json();
         
         if (data.success && data.stages && data.stages.length > 0) {
-          // Map stages with default icons
+          // Map stages with default icons and translated names
           const stagesWithIcons = data.stages.map(stage => ({
             ...stage,
-            icon: defaultGroupIcons[stage.id] || Clock
+            icon: defaultGroupIcons[stage.id] || Clock,
+            translatedName: translateGroupStageName(stage.id, stage.name)
           }));
           setGroupPipelineStages(stagesWithIcons);
 
@@ -228,7 +245,7 @@ export default function Groups() {
                         disabled={stageOption.id === group.stage}
                       >
                         <stageOption.icon className="h-3 w-3 mr-2" />
-                        {stageOption.id}
+                        {stageOption.translatedName || translateGroupStageName(stageOption.id, stageOption.name)}
                       </DropdownMenuItem>
                     ))}
                     <DropdownMenuSeparator />
@@ -449,7 +466,7 @@ export default function Groups() {
                     }
                   >
                     <stage.icon className="h-4 w-4 mr-2" />
-                    {stage.id}
+                    {stage.translatedName || translateGroupStageName(stage.id, stage.name)}
                   </DropdownMenuCheckboxItem>
                 ))}
               </>
@@ -462,7 +479,7 @@ export default function Groups() {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className={`${isMobile ? 'gap-1 text-xs px-2 h-8' : 'gap-2'}`} size={isMobile ? "sm" : "default"}>
               <ArrowUpDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-              Sort By
+              {t('clients.sortBy', 'Sort By')}
               <ChevronDown className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             </Button>
           </DropdownMenuTrigger>
@@ -511,7 +528,7 @@ export default function Groups() {
                     <div className="flex items-center justify-between">
                       <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-2'}`}>
                         <StageIcon className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-muted-foreground`} />
-                        <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-foreground`}>{stage.id}</CardTitle>
+                        <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-foreground`}>{stage.translatedName || translateGroupStageName(stage.id, stage.name)}</CardTitle>
                       </div>
                       <Badge variant="secondary" className={`${isMobile ? 'text-[10px] px-1 py-0' : 'text-xs'}`}>
                         {stats.count}
@@ -576,7 +593,7 @@ export default function Groups() {
                               disabled={stageOption.id === group.stage}
                             >
                               <stageOption.icon className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
-                              {stageOption.id}
+                              {stageOption.translatedName || translateGroupStageName(stageOption.id, stageOption.name)}
                             </DropdownMenuItem>
                           ))}
                           <DropdownMenuSeparator />
@@ -671,7 +688,7 @@ export default function Groups() {
                     <TableCell>
                       <Badge variant="outline" className={`${stage?.color} text-white border-none ${isMobile ? 'text-[10px] px-1 py-0' : 'text-xs'}`}>
                         <StageIcon className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} ${isMobile ? 'mr-0.5' : 'mr-1'}`} />
-                          {stage?.id}
+                          {stage ? (stage.translatedName || translateGroupStageName(stage.id, stage.name)) : group.stage}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -750,7 +767,7 @@ export default function Groups() {
                                 disabled={stageOption.id === group.stage}
                               >
                                 <stageOption.icon className="h-4 w-4 mr-2" />
-                                {stageOption.id}
+                                {stageOption.translatedName || translateGroupStageName(stageOption.id, stageOption.name)}
                               </DropdownMenuItem>
                             ))}
                             <DropdownMenuSeparator />

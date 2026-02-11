@@ -29,9 +29,9 @@ import { useTranslation } from "@/app/context/LanguageContext";
 
 // Force refresh to clear any cached modules
 
-const getFormSchema = () => z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
+const getFormSchema = (t) => z.object({
+  name: z.string().min(2, t('clients.validation.nameMinLength', 'Name must be at least 2 characters')),
+  email: z.string().email(t('clients.validation.emailInvalid', 'Please enter a valid email address')),
   phone: z.string().optional().refine((val) => {
     if (!val || val.trim() === '') return true; // Optional
     const trimmed = val.trim();
@@ -54,7 +54,7 @@ const getFormSchema = () => z.object({
     if (cleaned.length < 8 || cleaned.length > 15) return false;
     // Must start with 1-9 (valid country code digit)
     return /^[1-9]\d{7,14}$/.test(cleaned);
-  }, { message: "Add country code ex. +45 or 45" }),
+  }, { message: t('clients.validation.addCountryCode', 'Add country code ex. +45 or 45') }),
   dateOfBirth: z.date().optional().nullable(),
   address: z.string().optional(),
   concerns: z.string().optional(),
@@ -65,7 +65,7 @@ export function CreateClientDialog({ onClientCreated }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const t = useTranslation();
-  const formSchema = getFormSchema();
+  const formSchema = getFormSchema(t);
 
   // Mobile detection
   useEffect(() => {
@@ -115,7 +115,7 @@ export function CreateClientDialog({ onClientCreated }) {
       const result = await response.json();
 
       if (!response.ok) {
-        const errorMessage = result.error || "Failed to create client";
+        const errorMessage = result.error || t('clients.failedToCreateClient', 'Failed to create client');
         toast.error(errorMessage, {
           duration: 5000,
         });
@@ -124,7 +124,7 @@ export function CreateClientDialog({ onClientCreated }) {
       
       // Show success message with temporary password
       toast.success(t('clients.clientCreated'), {
-        description: `${t('common.labels.name')}: ${result.client.name}\n${t('common.labels.email')}: ${result.client.email}\nTemporary Password: ${result.client.tempPassword}`
+        description: `${t('common.labels.name')}: ${result.client.name}\n${t('common.labels.email')}: ${result.client.email}\n${t('clients.temporaryPassword', 'Temporary Password')}: ${result.client.tempPassword}`
       });
       
       setIsOpen(false);
@@ -199,7 +199,7 @@ export function CreateClientDialog({ onClientCreated }) {
                        <FormControl>
                          <Input 
                            type="email" 
-                           placeholder="Enter email address" 
+                           placeholder={t('clients.enterEmailAddress', 'Enter email address')} 
                            className={`bg-background border-border focus:border-primary ${isMobile ? 'text-xs h-8' : ''}`}
                            {...field} 
                          />
@@ -219,11 +219,11 @@ export function CreateClientDialog({ onClientCreated }) {
                        <FormLabel className={`text-foreground font-medium flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
                          <Phone className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                          <span className="break-words">{t('common.labels.phone')}</span>
-                         <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground font-normal`}>(Optional)</span>
+                         <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground font-normal`}>{t('common.labels.optional')}</span>
                        </FormLabel>
                        <FormControl>
                          <Input 
-                           placeholder="Add country code ex. +45 or 45" 
+                           placeholder={t('clients.addCountryCode', 'Add country code ex. +45 or 45')} 
                            className={`bg-background border-border focus:border-primary ${isMobile ? 'text-xs h-8' : ''}`}
                            {...field} 
                          />
@@ -241,7 +241,7 @@ export function CreateClientDialog({ onClientCreated }) {
                        <FormLabel className={`text-foreground font-medium flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
                          <CalendarIcon2 className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                          <span className="break-words">{t('settings.profile.birthdate')}</span>
-                         <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground font-normal`}>(Optional)</span>
+                         <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground font-normal`}>{t('common.labels.optional')}</span>
                        </FormLabel>
                           <FormControl>
                         <Input
@@ -254,16 +254,16 @@ export function CreateClientDialog({ onClientCreated }) {
                             className={`bg-background border-border pl-4 pr-4 py-2 ${isMobile ? 'h-8 text-xs' : 'h-10 text-sm'} focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-primary/50 cursor-pointer`}
                           max={format(new Date(), "yyyy-MM-dd")}
                           min="1900-01-01"
-                          placeholder="Select your date of birth"
+                          placeholder={t('clients.selectDateOfBirth', 'Select your date of birth')}
                         />
                       </FormControl>
                       {field.value && (
                         <div className={`mt-2 ${isMobile ? 'space-y-0.5' : 'space-y-1'}`}>
                           <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
-                            Selected: {format(field.value, "EEEE, MMMM do, yyyy")}
+                            {t('clients.selected', 'Selected')}: {format(field.value, "EEEE, MMMM do, yyyy")}
                           </div>
                           <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-primary font-medium`}>
-                            Age: {Math.floor((new Date() - field.value) / (365.25 * 24 * 60 * 60 * 1000))} years old
+                            {t('clients.age', 'Age')}: {Math.floor((new Date() - field.value) / (365.25 * 24 * 60 * 60 * 1000))} {t('clients.yearsOld', 'years old')}
                           </div>
                         </div>
                       )}
@@ -281,7 +281,7 @@ export function CreateClientDialog({ onClientCreated }) {
                      <FormLabel className={`text-foreground font-medium flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
                        <MapPin className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                        <span className="break-words">{t('clients.location')}</span>
-                       <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground font-normal`}>(Optional)</span>
+                       <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground font-normal`}>{t('common.labels.optional')}</span>
                      </FormLabel>
                      <FormControl>
                        <Input 
@@ -300,7 +300,7 @@ export function CreateClientDialog({ onClientCreated }) {
             <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
               <div className={`flex items-center gap-2 ${isMobile ? 'pb-1' : 'pb-2'} border-b border-muted`}>
                 <Briefcase className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
-                <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Info about the client (not shared with client)</h3>
+                <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('clients.infoAboutClient', 'Info about the client (not shared with client)')}</h3>
               </div>
 
               <FormField

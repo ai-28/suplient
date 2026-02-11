@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -19,6 +20,7 @@ export function TreePickerDialog({
   allowRoot = true,
   categoryInfo
 }) {
+  const t = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [highlightedFolderId, setHighlightedFolderId] = useState(selectedFolderId);
@@ -207,14 +209,14 @@ export function TreePickerDialog({
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
           {/* Search */}
           <div className="space-y-2">
-            <Label htmlFor="search">Search Folders</Label>
+            <Label htmlFor="search">{t('library.searchFolders', 'Search Folders')}</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search folder name..."
+                placeholder={t('library.searchFolderName', 'Search folder name...')}
                 className="pl-9"
               />
             </div>
@@ -237,7 +239,7 @@ export function TreePickerDialog({
                       <Folder className="h-4 w-4 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-sm">Root (No Folder)</h4>
+                      <h4 className="font-medium text-sm">{t('library.rootNoFolder', 'Root (No Folder)')}</h4>
                     </div>
                     {highlightedFolderId === null && (
                       <Check className="h-4 w-4 text-primary shrink-0" />
@@ -252,7 +254,7 @@ export function TreePickerDialog({
               ))
             ) : (
               <div className="text-center text-muted-foreground py-8">
-                {searchQuery ? 'No folders found matching your search' : 'No folders available'}
+                {searchQuery ? t('library.noFoldersFound', 'No folders found matching your search') : t('library.noFoldersAvailable', 'No folders available')}
               </div>
             )}
           </div>
@@ -260,10 +262,10 @@ export function TreePickerDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
-            Cancel
+            {t('common.buttons.cancel', 'Cancel')}
           </Button>
           <Button onClick={handleConfirm}>
-            Select
+            {t('common.buttons.select', 'Select')}
           </Button>
         </DialogFooter>
       </DialogContent>

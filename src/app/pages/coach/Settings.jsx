@@ -132,14 +132,14 @@ export default function Settings() {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   // Pipeline stage handlers
   const colorOptions = [
-    { value: 'bg-blue-500', label: 'Blue' },
-    { value: 'bg-green-500', label: 'Green' },
-    { value: 'bg-yellow-500', label: 'Yellow' },
-    { value: 'bg-purple-500', label: 'Purple' },
-    { value: 'bg-red-500', label: 'Red' },
-    { value: 'bg-pink-500', label: 'Pink' },
-    { value: 'bg-orange-500', label: 'Orange' },
-    { value: 'bg-gray-500', label: 'Gray' },
+    { value: 'bg-blue-500', label: t('settings.pipeline.colors.blue', 'Blue') },
+    { value: 'bg-green-500', label: t('settings.pipeline.colors.green', 'Green') },
+    { value: 'bg-yellow-500', label: t('settings.pipeline.colors.yellow', 'Yellow') },
+    { value: 'bg-purple-500', label: t('settings.pipeline.colors.purple', 'Purple') },
+    { value: 'bg-red-500', label: t('settings.pipeline.colors.red', 'Red') },
+    { value: 'bg-pink-500', label: t('settings.pipeline.colors.pink', 'Pink') },
+    { value: 'bg-orange-500', label: t('settings.pipeline.colors.orange', 'Orange') },
+    { value: 'bg-gray-500', label: t('settings.pipeline.colors.gray', 'Gray') },
   ];
 
   const handleAddClientStage = async () => {
@@ -645,13 +645,13 @@ export default function Settings() {
       }
 
       const data = await response.json();
-      toast.success(data.message || 'Subscription will be canceled at the end of the billing period');
+      toast.success(data.message || t('settings.billing.subscriptionWillCancel', 'Subscription will be canceled at the end of the billing period'));
       
       // Refresh subscription status
       fetchSubscriptionStatus();
     } catch (error) {
       console.error('Error canceling subscription:', error);
-      toast.error(error.message || 'Failed to cancel subscription');
+      toast.error(error.message || t('settings.billing.failedToCancelSubscription', 'Failed to cancel subscription'));
     } finally {
       setCancelingSubscription(false);
     }
@@ -743,13 +743,13 @@ export default function Settings() {
       if (data.onboardingUrl) {
         window.location.href = data.onboardingUrl;
       } else if (data.onboardingComplete) {
-        toast.success('Payment account is already set up!');
+        toast.success(t('settings.billing.paymentAccountSetUp', 'Payment account is already set up!'));
         fetchConnectStatus();
         fetchProducts();
       }
     } catch (error) {
       console.error('Error creating Connect account:', error);
-      toast.error(error.message || 'Failed to create Connect account');
+      toast.error(error.message || t('settings.billing.failedToCreateConnectAccount', 'Failed to create Connect account'));
     } finally {
       setConnectLoading(false);
     }
@@ -779,27 +779,27 @@ export default function Settings() {
       if (data.subscriptionsUpdated !== undefined) {
         if (data.subscriptionsUpdated > 0) {
           toast.success(
-            `Price updated successfully! ${data.subscriptionsUpdated} subscription(s) will use the new price from their next billing cycle.`,
+            t('settings.billing.priceUpdatedWithSubscriptions', 'Price updated successfully! {count} subscription(s) will use the new price from their next billing cycle.').replace('{count}', data.subscriptionsUpdated),
             { duration: 5000 }
           );
         } else {
-          toast.success('Price updated successfully! New price will apply to future subscriptions.');
+          toast.success(t('settings.billing.priceUpdatedFuture', 'Price updated successfully! New price will apply to future subscriptions.'));
         }
         
         if (data.subscriptionsFailed > 0) {
           toast.warning(
-            `Price updated, but ${data.subscriptionsFailed} subscription(s) could not be updated. Please check manually.`,
+            t('settings.billing.priceUpdatedSomeFailed', 'Price updated, but {count} subscription(s) could not be updated. Please check manually.').replace('{count}', data.subscriptionsFailed),
             { duration: 6000 }
           );
         }
       } else {
-        toast.success('Price updated successfully');
+        toast.success(t('settings.billing.priceUpdated', 'Price updated successfully'));
       }
       
       fetchProducts();
     } catch (error) {
       console.error('Error updating price:', error);
-      toast.error(error.message || 'Failed to update price');
+      toast.error(error.message || t('settings.billing.failedToUpdatePrice', 'Failed to update price'));
     } finally {
       setUpdatingPrice(null);
     }
@@ -828,15 +828,15 @@ export default function Settings() {
       
       // Check if products were already created
       if (data.message && data.message.includes('already exist')) {
-        toast.info(data.message || 'Products already exist');
+        toast.info(data.message || t('settings.billing.productsAlreadyExist', 'Products already exist'));
       } else {
-        toast.success(data.message || 'Products created successfully!');
+        toast.success(data.message || t('settings.billing.productsCreated', 'Products created successfully!'));
       }
       
       fetchProducts(); // Refresh the products list
     } catch (error) {
       console.error('Error creating products:', error);
-      toast.error(error.message || 'Failed to create products');
+      toast.error(error.message || t('settings.billing.failedToCreateProducts', 'Failed to create products'));
     } finally {
       setCreatingProducts(false);
       setProductsLoading(false);
@@ -855,7 +855,7 @@ export default function Settings() {
   const handleCopyPaymentLink = () => {
     if (customPaymentLink) {
       navigator.clipboard.writeText(customPaymentLink);
-      toast.success('Payment link copied to clipboard!');
+      toast.success(t('settings.billing.paymentLinkCopied', 'Payment link copied to clipboard!'));
     }
   };
 
@@ -1064,8 +1064,8 @@ export default function Settings() {
       reader.readAsDataURL(fileToUse);
     } catch (error) {
       console.error('Error picking avatar:', error);
-      toast.error('Failed to pick image', {
-        description: error.message || 'An unexpected error occurred. Please try again or use a different image.'
+      toast.error(t('settings.profile.failedToPickImage', 'Failed to pick image'), {
+        description: error.message || t('settings.profile.imagePickError', 'An unexpected error occurred. Please try again or use a different image.')
       });
     }
   };
@@ -1117,8 +1117,8 @@ export default function Settings() {
       reader.readAsDataURL(fileToUse);
     } catch (error) {
       console.error('Error processing image:', error);
-      toast.error('Failed to process image', {
-        description: error.message || 'An unexpected error occurred. Please try again or use a different image.'
+      toast.error(t('settings.profile.failedToProcessImage', 'Failed to process image'), {
+        description: error.message || t('settings.profile.imageProcessError', 'An unexpected error occurred. Please try again or use a different image.')
       });
     }
   };
@@ -1424,7 +1424,7 @@ export default function Settings() {
             value="templates" 
             className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
           >
-            Templates
+            {t('settings.templates.title', 'Templates')}
           </TabsTrigger>
           <TabsTrigger 
             value="billing" 
@@ -1961,7 +1961,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-primary" />
-                  Goal & Habit Templates
+                  {t('settings.templates.goalHabitTemplates', 'Goal & Habit Templates')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -2176,24 +2176,24 @@ export default function Settings() {
                   {connectLoading ? (
                     <div className="flex items-center justify-center p-4">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      <span className="text-sm text-muted-foreground">Loading...</span>
+                      <span className="text-sm text-muted-foreground">{t('common.messages.loading', 'Loading...')}</span>
                     </div>
                   ) : connectStatus?.connected && connectStatus?.onboardingComplete ? (
                     <div className="p-4 rounded-lg border bg-green-50 dark:bg-green-900/20">
                       <div className="flex items-center gap-2 mb-2">
                         <CheckCircle className="h-5 w-5 text-green-500" />
                         <span className="font-semibold text-green-800 dark:text-green-200">
-                          Connect Account Active
+                          {t('settings.billing.connectAccountActive', 'Connect Account Active')}
                         </span>
                       </div>
                       <p className="text-sm text-green-700 dark:text-green-300">
-                        You can now receive payments from clients. Payouts are processed daily.
+                        {t('settings.billing.canReceivePayments', 'You can now receive payments from clients. Payouts are processed daily.')}
                       </p>
                     </div>
                   ) : (
                     <div className="p-4 rounded-lg border bg-muted/30">
                       <p className="text-sm text-muted-foreground mb-4">
-                        Set up your payment account to receive payments from clients for sessions, programs, and group memberships.
+                        {t('settings.billing.setupPaymentAccount', 'Set up your payment account to receive payments from clients for sessions, programs, and group memberships.')}
                       </p>
                       <Button
                         onClick={handleCreateConnectAccount}
@@ -2203,12 +2203,12 @@ export default function Settings() {
                         {connectLoading ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Setting up...
+                            {t('settings.billing.settingUp', 'Setting up...')}
                           </>
                         ) : (
                           <>
                             <CreditCard className="h-4 w-4 mr-2" />
-                            Set Up Payment Account
+                            {t('settings.billing.setUpPaymentAccount', 'Set Up Payment Account')}
                           </>
                         )}
                       </Button>
@@ -2225,12 +2225,12 @@ export default function Settings() {
                       {productsLoading ? (
                         <div className="flex items-center justify-center p-4">
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          <span className="text-sm text-muted-foreground">Loading products...</span>
+                          <span className="text-sm text-muted-foreground">{t('settings.billing.loadingProducts', 'Loading products...')}</span>
                         </div>
                       ) : products.length === 0 ? (
                         <div className="text-center py-8">
                           <p className="text-muted-foreground mb-4">
-                            No products found. Create default products?
+                            {t('settings.billing.noProductsFound', 'No products found. Create default products?')}
                           </p>
                           <Button 
                             onClick={handleCreateProducts}
@@ -2240,12 +2240,12 @@ export default function Settings() {
                             {productsLoading || creatingProducts ? (
                               <>
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                Creating...
+                                {t('settings.billing.creating', 'Creating...')}
                               </>
                             ) : (
                               <>
                                 <Plus className="h-4 w-4 mr-2" />
-                                Create Products
+                                {t('settings.billing.createProducts', 'Create Products')}
                               </>
                             )}
                           </Button>
@@ -2257,12 +2257,12 @@ export default function Settings() {
                               <div className="flex items-center justify-between mb-2">
                                 <div>
                                   <h4 className="font-semibold">
-                                    {product.productType === 'one_to_one' && '1-to-1 Session'}
-                                    {product.productType === 'program' && 'Program Subscription'}
-                                    {product.productType === 'group' && 'Group Membership'}
+                                    {product.productType === 'one_to_one' && t('settings.billing.oneToOneSession', '1-to-1 Session')}
+                                    {product.productType === 'program' && t('settings.billing.programSubscription', 'Program Subscription')}
+                                    {product.productType === 'group' && t('settings.billing.groupMembership', 'Group Membership')}
                                   </h4>
                                   <p className="text-xs text-muted-foreground">
-                                    {product.productType === 'one_to_one' ? 'One-time payment per session' : 'Monthly subscription'}
+                                    {product.productType === 'one_to_one' ? t('settings.billing.oneTimePayment', 'One-time payment per session') : t('settings.billing.monthlySubscription', 'Monthly subscription')}
                                   </p>
                                 </div>
                                 <div className="text-right">
@@ -2274,7 +2274,7 @@ export default function Settings() {
                               <div className="flex items-center gap-2 mt-3">
                                 <Input
                                   type="number"
-                                  placeholder="New price (DKK)"
+                                  placeholder={t('settings.billing.newPriceDKK', 'New price (DKK)')}
                                   className="w-32"
                                   data-product={product.productType}
                                   onKeyDown={(e) => {
@@ -2302,7 +2302,7 @@ export default function Settings() {
                                   {updatingPrice === product.productType ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
-                                    'Update'
+                                    t('common.buttons.update', 'Update')
                                   )}
                                 </Button>
                               </div>
@@ -2317,17 +2317,17 @@ export default function Settings() {
                   {connectStatus?.onboardingComplete && (
                     <div className="mt-8 pt-8 border-t">
                       <h3 className="text-lg font-semibold mb-4">
-                        Client Subscriptions
+                        {t('settings.billing.clientSubscriptions', 'Client Subscriptions')}
                       </h3>
                       {clientSubscriptionsLoading ? (
                         <div className="flex items-center justify-center p-4">
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          <span className="text-sm text-muted-foreground">Loading subscriptions...</span>
+                          <span className="text-sm text-muted-foreground">{t('settings.billing.loadingSubscriptions', 'Loading subscriptions...')}</span>
                         </div>
                       ) : clientSubscriptions.length === 0 ? (
                         <div className="text-center py-8">
                           <p className="text-muted-foreground text-sm">
-                            No client subscriptions yet.
+                            {t('settings.billing.noClientSubscriptions', 'No client subscriptions yet.')}
                           </p>
                         </div>
                       ) : (
@@ -2340,25 +2340,25 @@ export default function Settings() {
                                     {sub.clientName || sub.clientEmail}
                                   </h4>
                                   <p className="text-sm text-muted-foreground">
-                                    {sub.productType === 'program' && 'Program Subscription'}
-                                    {sub.productType === 'group' && 'Group Membership'}
+                                    {sub.productType === 'program' && t('settings.billing.programSubscription', 'Program Subscription')}
+                                    {sub.productType === 'group' && t('settings.billing.groupMembership', 'Group Membership')}
                                   </p>
                                 </div>
                                 <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
-                                  {sub.status}
+                                  {sub.status === 'active' ? t('common.status.active', 'Active') : sub.status}
                                 </Badge>
                               </div>
                               <div className="flex items-center justify-between mt-3">
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Amount</p>
-                                  <p className="font-semibold">{(sub.amount / 100).toFixed(0)} DKK/month</p>
+                                  <p className="text-sm text-muted-foreground">{t('settings.billing.amount', 'Amount')}</p>
+                                  <p className="font-semibold">{(sub.amount / 100).toFixed(0)} DKK/{t('settings.billing.month', 'month')}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-sm text-muted-foreground">Next billing</p>
+                                  <p className="text-sm text-muted-foreground">{t('settings.billing.nextBilling', 'Next Billing Date')}</p>
                                   <p className="text-sm">
                                     {sub.currentPeriodEnd 
                                       ? new Date(sub.currentPeriodEnd).toLocaleDateString()
-                                      : 'N/A'}
+                                      : t('settings.billing.notAvailable', 'N/A')}
                                   </p>
                                 </div>
                               </div>
@@ -2373,17 +2373,17 @@ export default function Settings() {
                   {connectStatus?.onboardingComplete && (
                     <div className="mt-8 pt-8 border-t">
                       <h3 className="text-lg font-semibold mb-4">
-                        Payment History
+                        {t('settings.billing.paymentHistory', 'Payment History')}
                       </h3>
                       {paymentsLoading ? (
                         <div className="flex items-center justify-center p-4">
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          <span className="text-sm text-muted-foreground">Loading payments...</span>
+                          <span className="text-sm text-muted-foreground">{t('settings.billing.loadingPayments', 'Loading payments...')}</span>
                         </div>
                       ) : payments.length === 0 ? (
                         <div className="text-center py-8">
                           <p className="text-muted-foreground text-sm">
-                            No payment history yet.
+                            {t('settings.billing.noPaymentHistory', 'No payment history yet.')}
                           </p>
                         </div>
                       ) : (
@@ -2391,7 +2391,7 @@ export default function Settings() {
                           {payments.map((payment) => (
                             <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                               <div>
-                                <p className="font-medium">{payment.description || `${payment.productType === 'one_to_one' ? 'Session Payment' : 'Custom Payment'}`}</p>
+                                <p className="font-medium">{payment.description || `${payment.productType === 'one_to_one' ? t('settings.billing.sessionPayment', 'Session Payment') : t('settings.billing.customPayment', 'Custom Payment')}`}</p>
                                 <p className="text-xs text-muted-foreground">
                                   {payment.clientName || payment.clientEmail} • {new Date(payment.createdAt).toLocaleDateString()}
                                 </p>
@@ -2399,7 +2399,7 @@ export default function Settings() {
                               <div className="text-right">
                                 <p className="font-semibold">{(payment.amount / 100).toFixed(0)} DKK</p>
                                 <Badge variant={payment.status === 'succeeded' ? 'default' : 'secondary'} className="text-xs">
-                                  {payment.status}
+                                  {payment.status === 'succeeded' ? t('settings.billing.succeeded', 'Succeeded') : payment.status}
                                 </Badge>
                               </div>
                             </div>
@@ -2417,9 +2417,9 @@ export default function Settings() {
                       </h3>
                       <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
                         <div>
-                          <Label htmlFor="customPaymentLink">Share this link with your clients</Label>
+                          <Label htmlFor="customPaymentLink">{t('settings.billing.shareLinkWithClients', 'Share this link with your clients')}</Label>
                           <p className="text-sm text-muted-foreground mb-2">
-                            Clients can use this link to make custom payments. Each client can enter their own amount.
+                            {t('settings.billing.customPaymentLinkDescription', 'Clients can use this link to make custom payments. Each client can enter their own amount.')}
                           </p>
                           <div className="flex gap-2">
                             <Input
@@ -2432,7 +2432,7 @@ export default function Settings() {
                               onClick={handleCopyPaymentLink}
                               variant="outline"
                               size="icon"
-                              title="Copy link"
+                              title={t('settings.billing.copyLink', 'Copy link')}
                             >
                               <Copy className="h-4 w-4" />
                             </Button>

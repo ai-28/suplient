@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -28,6 +29,7 @@ export function ScheduleSessionDialog({
   groupName, 
   groupMembers 
 }) {
+  const t = useTranslation();
   const { data: session } = useSession();
   const [date, setDate] = useState();
   const [isLoading, setIsLoading] = useState(false);
@@ -924,20 +926,20 @@ export function ScheduleSessionDialog({
         <DialogHeader className={isMobile ? 'px-4 py-3' : ''}>
           <DialogTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-2xl'} break-words`}>
             <CalendarIcon className={`${isMobile ? 'h-4 w-4' : 'h-6 w-6'} text-primary`} />
-            Schedule Session
+            {t('sessions.scheduleSession', 'Schedule Session')}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className={isMobile ? 'space-y-3 px-4' : 'space-y-6'}>
           {/* Session Details */}
           <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Session Details</h3>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('sessions.sessionDetails', 'Session Details')}</h3>
             
             <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-              <Label htmlFor="title" className={isMobile ? 'text-xs' : ''}>Session Title</Label>
+              <Label htmlFor="title" className={isMobile ? 'text-xs' : ''}>{t('sessions.sessionTitle', 'Session Title')}</Label>
               <Input
                 id="title"
-                placeholder={`${groupName} - Group Session`}
+                placeholder={`${groupName} - ${t('sessions.groupSession', 'Group Session')}`}
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
                 className={isMobile ? 'text-xs h-8' : ''}
@@ -945,7 +947,7 @@ export function ScheduleSessionDialog({
             </div>
 
             <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-              <Label htmlFor="sessionType" className={isMobile ? 'text-xs' : ''}>Session Type *</Label>
+              <Label htmlFor="sessionType" className={isMobile ? 'text-xs' : ''}>{t('sessions.sessionType', 'Session Type')} *</Label>
               <Select onValueChange={(value) => {
                 handleInputChange("sessionType", value);
                 setSelectedClient(null);
@@ -953,11 +955,11 @@ export function ScheduleSessionDialog({
                 setFetchedGroupMembers([]);
               }}>
                 <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
-                  <SelectValue placeholder="Select session type" />
+                  <SelectValue placeholder={t('sessions.selectSessionType', 'Select session type')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="individual">Individual Session</SelectItem>
-                  <SelectItem value="group">Group Session</SelectItem>
+                  <SelectItem value="individual">{t('sessions.individualSession', 'Individual Session')}</SelectItem>
+                  <SelectItem value="group">{t('sessions.groupSession', 'Group Session')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -965,20 +967,20 @@ export function ScheduleSessionDialog({
             {/* Client Selection for Individual Sessions */}
             {formData.sessionType === 'individual' && (
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                <Label htmlFor="client" className={isMobile ? 'text-xs' : ''}>Select Client *</Label>
+                <Label htmlFor="client" className={isMobile ? 'text-xs' : ''}>{t('sessions.selectClient', 'Select Client')} *</Label>
                 <Select onValueChange={(value) => {
                   if (value === "loading" || value === "no-clients") return;
                   const client = availableClients.find(c => c.id === value);
                   setSelectedClient(client);
                 }}>
                   <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
-                    <SelectValue placeholder="Select a client" />
+                    <SelectValue placeholder={t('sessions.selectAClient', 'Select a client')} />
                   </SelectTrigger>
                   <SelectContent>
                     {clientsLoading ? (
-                      <SelectItem value="loading" disabled>Loading clients...</SelectItem>
+                      <SelectItem value="loading" disabled>{t('sessions.loadingClients', 'Loading clients...')}</SelectItem>
                     ) : availableClients.length === 0 ? (
-                      <SelectItem value="no-clients" disabled>No clients available</SelectItem>
+                      <SelectItem value="no-clients" disabled>{t('sessions.noClientsAvailable', 'No clients available')}</SelectItem>
                     ) : (
                       availableClients.map((client) => (
                         <SelectItem key={client.id} value={client.id}>
@@ -994,7 +996,7 @@ export function ScheduleSessionDialog({
             {/* Group Selection for Group Sessions */}
             {formData.sessionType === 'group' && (
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                <Label htmlFor="group" className={isMobile ? 'text-xs' : ''}>Select Group *</Label>
+                <Label htmlFor="group" className={isMobile ? 'text-xs' : ''}>{t('sessions.selectGroup', 'Select Group')} *</Label>
                 <Select onValueChange={(value) => {
                   if (value === "loading" || value === "no-groups") return;
                   const group = groups.find(g => g.id === value);
@@ -1002,17 +1004,17 @@ export function ScheduleSessionDialog({
                   fetchGroupMembers(value);
                 }}>
                   <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
-                    <SelectValue placeholder="Select a group" />
+                    <SelectValue placeholder={t('sessions.selectAGroup', 'Select a group')} />
                   </SelectTrigger>
                   <SelectContent>
                     {groupsLoading ? (
-                      <SelectItem value="loading" disabled>Loading groups...</SelectItem>
+                      <SelectItem value="loading" disabled>{t('sessions.loadingGroups', 'Loading groups...')}</SelectItem>
                     ) : groups.length === 0 ? (
-                      <SelectItem value="no-groups" disabled>No groups available</SelectItem>
+                      <SelectItem value="no-groups" disabled>{t('sessions.noGroupsAvailable', 'No groups available')}</SelectItem>
                     ) : (
                       groups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
-                          {group.name} ({group.memberCount} members)
+                          {group.name} ({group.memberCount} {t('sessions.members', 'members')})
                         </SelectItem>
                       ))
                     )}
@@ -1024,11 +1026,11 @@ export function ScheduleSessionDialog({
 
           {/* Date & Time */}
           <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Date & Time</h3>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('sessions.dateTime', 'Date & Time')}</h3>
             
             <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                <Label className={isMobile ? 'text-xs' : ''}>Date *</Label>
+                <Label className={isMobile ? 'text-xs' : ''}>{t('common.labels.date', 'Date')} *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1040,7 +1042,7 @@ export function ScheduleSessionDialog({
                       )}
                     >
                       <CalendarIcon className={`${isMobile ? 'mr-1 h-3 w-3' : 'mr-2 h-4 w-4'}`} />
-                      {date ? format(date, "PPP") : "Pick a date"}
+                      {date ? format(date, "PPP") : t('sessions.pickDate', 'Pick a date')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className={`w-auto p-0 ${isMobile ? 'mx-2' : ''}`} align="start">
@@ -1058,27 +1060,27 @@ export function ScheduleSessionDialog({
 
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="time" className={isMobile ? 'text-xs' : ''}>Time *</Label>
+                  <Label htmlFor="time" className={isMobile ? 'text-xs' : ''}>{t('common.labels.time', 'Time')} *</Label>
                   {calendarConnected && date && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <CheckCircle className="h-3 w-3 text-green-500" />
-                      <span className={isMobile ? 'text-[10px]' : ''}>Synced with Google Calendar</span>
+                      <span className={isMobile ? 'text-[10px]' : ''}>{t('sessions.syncedWithGoogleCalendar', 'Synced with Google Calendar')}</span>
                     </div>
                   )}
                 </div>
                 <Select onValueChange={(value) => handleInputChange("time", value)} value={formData.time}>
                   <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
-                    <SelectValue placeholder={timesLoading ? 'Loading...' : (date ? 'Select time' : 'Pick a date first')} />
+                    <SelectValue placeholder={timesLoading ? t('common.messages.loading', 'Loading...') : (date ? t('sessions.selectTime', 'Select time') : t('sessions.pickDateFirst', 'Pick a date first'))} />
                   </SelectTrigger>
                   <SelectContent>
                     {(!date || timesLoading) && (
                       <SelectItem value="placeholder" disabled>
-                        {timesLoading ? 'Loading...' : 'Pick a date first'}
+                        {timesLoading ? t('common.messages.loading', 'Loading...') : t('sessions.pickDateFirst', 'Pick a date first')}
                       </SelectItem>
                     )}
                     {date && !timesLoading && availableTimes.length === 0 && (
                       <SelectItem value="no-times" disabled>
-                        No available times
+                        {t('sessions.noAvailableTimes', 'No available times')}
                       </SelectItem>
                     )}
                     {date && !timesLoading && availableTimes.map((time) => (
@@ -1095,7 +1097,7 @@ export function ScheduleSessionDialog({
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                 <Label htmlFor="duration" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
                   <Clock className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                  Duration (minutes)
+                  {t('sessions.durationMinutes', 'Duration (minutes)')}
                 </Label>
                 <Select
                   onValueChange={(value) => handleInputChange("duration", value)}
@@ -1105,16 +1107,16 @@ export function ScheduleSessionDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="60">60 minutes</SelectItem>
-                    <SelectItem value="90">90 minutes</SelectItem>
-                    <SelectItem value="120">120 minutes</SelectItem>
-                    <SelectItem value="150">150 minutes</SelectItem>
+                    <SelectItem value="60">60 {t('sessions.minutes', 'minutes')}</SelectItem>
+                    <SelectItem value="90">90 {t('sessions.minutes', 'minutes')}</SelectItem>
+                    <SelectItem value="120">120 {t('sessions.minutes', 'minutes')}</SelectItem>
+                    <SelectItem value="150">150 {t('sessions.minutes', 'minutes')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                <Label htmlFor="timezone" className={isMobile ? 'text-xs' : ''}>Timezone</Label>
+                <Label htmlFor="timezone" className={isMobile ? 'text-xs' : ''}>{t('sessions.timezone', 'Timezone')}</Label>
                 <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
                   <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue>
@@ -1130,7 +1132,7 @@ export function ScheduleSessionDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Times shown in {getTimezoneOffset(selectedTimezone)}
+                  {t('sessions.timesShownIn', 'Times shown in')} {getTimezoneOffset(selectedTimezone)}
                 </p>
               </div>
             </div>
@@ -1139,35 +1141,35 @@ export function ScheduleSessionDialog({
 
           {/* Settings */}
           <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Settings</h3>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('sessions.settings', 'Settings')}</h3>
 
             <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
               <Label htmlFor="reminderTime" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
                 <Bell className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                Email Reminder
+                {t('sessions.emailReminder', 'Email Reminder')}
               </Label>
               <Select onValueChange={(value) => handleInputChange("reminderTime", value)} defaultValue="24">
                 <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="30">30 minutes before</SelectItem>
-                  <SelectItem value="60">1 hour before</SelectItem>
-                  <SelectItem value="120">2 hours before</SelectItem>
-                  <SelectItem value="24">24 hours before</SelectItem>
-                  <SelectItem value="48">48 hours before</SelectItem>
-                  <SelectItem value="none">No email reminder</SelectItem>
+                  <SelectItem value="30">30 {t('sessions.minutesBefore', 'minutes before')}</SelectItem>
+                  <SelectItem value="60">1 {t('sessions.hourBefore', 'hour before')}</SelectItem>
+                  <SelectItem value="120">2 {t('sessions.hoursBefore', 'hours before')}</SelectItem>
+                  <SelectItem value="24">24 {t('sessions.hoursBefore', 'hours before')}</SelectItem>
+                  <SelectItem value="48">48 {t('sessions.hoursBefore', 'hours before')}</SelectItem>
+                  <SelectItem value="none">{t('sessions.noEmailReminder', 'No email reminder')}</SelectItem>
                 </SelectContent>
               </Select>
               <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
-                Note: A popup reminder will always be sent 10 minutes before the session.
+                {t('sessions.popupReminderNote', 'Note: A popup reminder will always be sent 10 minutes before the session.')}
               </p>
             </div>
           </div>
 
           {/* Meeting Type Selection */}
             <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Meeting Link</h3>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('sessions.meetingLink', 'Meeting Link')}</h3>
               
               <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
               {meetingTypes.map((meetingType) => {
@@ -1215,7 +1217,7 @@ export function ScheduleSessionDialog({
                                   {isConnecting ? (
                                     <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin`} />
                                   ) : (
-                                    "Reconnect"
+                                    t('sessions.reconnect', 'Reconnect')
                                   )}
                                 </Button>
                                 <Button
@@ -1228,7 +1230,7 @@ export function ScheduleSessionDialog({
                                   disabled={isConnecting}
                                   className={isMobile ? 'h-5 px-1.5 text-[10px] text-red-600 hover:text-red-700' : 'h-6 px-2 text-xs text-red-600 hover:text-red-700'}
                                 >
-                                  Disconnect
+                                  {t('sessions.disconnect', 'Disconnect')}
                                 </Button>
                               </div>
                             </div>
@@ -1246,7 +1248,7 @@ export function ScheduleSessionDialog({
                               {isConnecting ? (
                                 <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin`} />
                               ) : (
-                                "Connect"
+                                t('sessions.connect', 'Connect')
                               )}
                             </Button>
                           )}
@@ -1262,7 +1264,7 @@ export function ScheduleSessionDialog({
                       <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription className="text-xs">
-                  A meeting link will be automatically created and added to the session.
+                  {t('sessions.meetingLinkAutoCreated', 'A meeting link will be automatically created and added to the session.')}
                         </AlertDescription>
                       </Alert>
                     )}
@@ -1272,8 +1274,7 @@ export function ScheduleSessionDialog({
                       <Alert className="border-blue-200 bg-blue-50">
                         <AlertCircle className="h-4 w-4 text-blue-600" />
                         <AlertDescription className="text-xs text-blue-700">
-                  <strong>New Feature:</strong> Email invitations and calendar integration are now available! 
-                  Click "Reconnect" to get the latest permissions for enhanced functionality.
+                  <strong>{t('sessions.newFeature', 'New Feature')}:</strong> {t('sessions.emailInvitationsAvailable', 'Email invitations and calendar integration are now available! Click "Reconnect" to get the latest permissions for enhanced functionality.')}
                         </AlertDescription>
                       </Alert>
                     )}
@@ -1296,13 +1297,13 @@ export function ScheduleSessionDialog({
 
           {/* Additional Notes */}
           <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>Additional Information</h3>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('sessions.additionalInformation', 'Additional Information')}</h3>
             
             <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-              <Label htmlFor="notes" className={isMobile ? 'text-xs' : ''}>Session Notes</Label>
+              <Label htmlFor="notes" className={isMobile ? 'text-xs' : ''}>{t('sessions.sessionNotes', 'Session Notes')}</Label>
               <Textarea
                 id="notes"
-                placeholder="Any special instructions, topics to cover, materials needed, etc."
+                placeholder={t('sessions.sessionNotesPlaceholder', 'Any special instructions, topics to cover, materials needed, etc.')}
                 value={formData.notes}
                 onChange={(e) => handleInputChange("notes", e.target.value)}
                 rows={isMobile ? 2 : 3}
@@ -1313,11 +1314,11 @@ export function ScheduleSessionDialog({
             <div className={`flex items-start gap-2 ${isMobile ? 'p-2' : 'p-3'} bg-accent/10 rounded-lg border border-accent/20`}>
               <AlertCircle className={`${isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-accent mt-0.5 flex-shrink-0`} />
               <div className={isMobile ? 'text-xs' : 'text-sm'}>
-                <p className={`font-medium text-accent ${isMobile ? 'text-xs' : ''} break-words`}>Important Reminders:</p>
+                <p className={`font-medium text-accent ${isMobile ? 'text-xs' : ''} break-words`}>{t('sessions.importantReminders', 'Important Reminders')}:</p>
                 <ul className={`${isMobile ? 'mt-0.5 text-[10px]' : 'mt-1 text-sm'} text-muted-foreground list-disc list-inside ${isMobile ? 'space-y-0.5' : 'space-y-1'}`}>
-                  <li className="break-words">All group members will be notified about this session</li>
-                  <li className="break-words">Session materials should be prepared in advance</li>
-                  <li className="break-words">Check room availability and setup requirements</li>
+                  <li className="break-words">{t('sessions.allGroupMembersNotified', 'All group members will be notified about this session')}</li>
+                  <li className="break-words">{t('sessions.materialsPreparedInAdvance', 'Session materials should be prepared in advance')}</li>
+                  <li className="break-words">{t('sessions.checkRoomAvailability', 'Check room availability and setup requirements')}</li>
                 </ul>
               </div>
             </div>
@@ -1332,7 +1333,7 @@ export function ScheduleSessionDialog({
               className={isMobile ? 'w-full text-xs h-8' : ''}
               size={isMobile ? "sm" : "default"}
             >
-              Cancel
+              {t('common.buttons.cancel', 'Cancel')}
             </Button>
             <Button
               type="submit"
@@ -1341,7 +1342,7 @@ export function ScheduleSessionDialog({
               size={isMobile ? "sm" : "default"}
             >
               <CalendarIcon className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-              {isLoading ? "Scheduling..." : "Schedule Session"}
+              {isLoading ? t('sessions.scheduling', 'Scheduling...') : t('sessions.scheduleSession', 'Schedule Session')}
             </Button>
           </div>
         </form>

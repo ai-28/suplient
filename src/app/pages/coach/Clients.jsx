@@ -198,6 +198,24 @@ export default function Clients() {
     fetchClients();
   }, []);
 
+  // Helper function to translate stage name
+  const translateStageName = (stageId, stageName) => {
+    switch (stageId) {
+      case 'light':
+        return t('clients.stageLight', 'Light');
+      case 'group':
+        return t('clients.stageGroup', 'Group');
+      case 'personal':
+        return t('clients.stagePersonal', 'Personal');
+      case 'completed':
+        return t('common.status.completed');
+      case 'inactive':
+        return t('common.status.inactive');
+      default:
+        return stageName; // Return original if no translation found
+    }
+  };
+
   // Fetch pipeline stages from database
   useEffect(() => {
     const fetchPipelineStages = async () => {
@@ -208,11 +226,12 @@ export default function Clients() {
         const data = await response.json();
         
         if (data.success && data.stages && data.stages.length > 0) {
-          // Map stages with default icons
+          // Map stages with default icons and translated names
           const stagesWithIcons = data.stages.map(stage => ({
             ...stage,
             icon: defaultIcons[stage.id] || UserPlus,
-            description: stage.name
+            description: stage.name,
+            translatedName: translateStageName(stage.id, stage.name)
           }));
           setFunnelStages(stagesWithIcons);
 
@@ -475,7 +494,7 @@ export default function Clients() {
                     checked={visibleColumns[stage.id]}
                     onCheckedChange={() => setVisibleColumns(prev => ({ ...prev, [stage.id]: !prev[stage.id] }))}
                   >
-                    {stage.name}
+                    {stage.translatedName || translateStageName(stage.id, stage.name)}
                   </DropdownMenuCheckboxItem>
                 ))}
               </>
@@ -553,7 +572,7 @@ export default function Clients() {
                      <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-foreground flex items-center justify-between`}>
                        <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
                          <div className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} rounded-full ${stage.color}`} />
-                         <span>{stage.name}</span>
+                         <span>{stage.translatedName || translateStageName(stage.id, stage.name)}</span>
                        </div>
                        <span className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-primary`}>{stageClients.length}</span>
                      </CardTitle>
@@ -616,7 +635,7 @@ export default function Clients() {
                                  >
                                    <div className="flex items-center gap-2">
                                      <div className={`w-3 h-3 rounded-full ${stageOption.color}`} />
-                                     {stageOption.name}
+                                     {stageOption.translatedName || translateStageName(stageOption.id, stageOption.name)}
                                    </div>
                                  </DropdownMenuItem>
                                ))}
@@ -747,7 +766,7 @@ export default function Clients() {
                 const getStageDisplayName = (stage) => {
                   switch (stage) {
                     case 'light': return t('clients.stageLight', 'Light');
-                    case 'group': return t('groups.title');
+                    case 'group': return t('clients.stageGroup', 'Group');
                     case 'personal': return t('clients.stagePersonal', 'Personal');
                     case 'completed': return t('common.status.completed');
                     case 'inactive': return t('common.status.inactive');

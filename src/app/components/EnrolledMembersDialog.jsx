@@ -44,6 +44,7 @@ export default function EnrolledMembersDialog({
   programName,
   enrolledClients
 }) {
+  const t = useTranslation();
   const router = useRouter();
 console.log("enrolledClients", enrolledClients);
   const handleClientClick = (clientId) => {
@@ -57,7 +58,7 @@ console.log("enrolledClients", enrolledClients);
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Enrolled Members - {programName}
+            {t('programs.enrolledMembers', 'Enrolled Members')} - {programName}
           </DialogTitle>
         </DialogHeader>
 
@@ -65,9 +66,9 @@ console.log("enrolledClients", enrolledClients);
           {enrolledClients.length === 0 ? (
             <div className="text-center py-8">
               <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No enrolled clients</h3>
+              <h3 className="text-lg font-semibold mb-2">{t('programs.noEnrolledClients', 'No enrolled clients')}</h3>
               <p className="text-muted-foreground">
-                This program doesn't have any enrolled clients yet.
+                {t('programs.noEnrolledClientsDescription', 'This program doesn\'t have any enrolled clients yet.')}
               </p>
             </div>
           ) : (
@@ -114,18 +115,18 @@ console.log("enrolledClients", enrolledClients);
                     
                     <div className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span>Progress</span>
-                        <span>{client.progress?.completedElements || 0}/{client.progress?.totalElements || 0} elements</span>
+                        <span>{t('programs.progress', 'Progress')}</span>
+                        <span>{client.progress?.completedElements || 0}/{client.progress?.totalElements || 0} {t('programs.elements', 'elements')}</span>
                       </div>
                       <Progress value={completionRate} className="h-2" />
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Day {client.progress?.currentDay || 0}</span>
-                        <span>{Math.round(completionRate)}% complete</span>
+                        <span>{t('programs.day', 'Day')} {client.progress?.currentDay || 0}</span>
+                        <span>{Math.round(completionRate)}% {t('programs.complete', 'complete')}</span>
                       </div>
                     </div>
                     
                     <p className="text-xs text-muted-foreground">
-                      Enrolled on {client.enrolledDate ? new Date(client.enrolledDate).toLocaleDateString() : 'Unknown date'}
+                      {t('programs.enrolledOn', 'Enrolled on')} {client.enrolledDate ? new Date(client.enrolledDate).toLocaleDateString() : t('programs.unknownDate', 'Unknown date')}
                     </p>
                   </div>
                 </div>

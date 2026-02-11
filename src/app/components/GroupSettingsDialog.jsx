@@ -23,8 +23,10 @@ import {
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export function GroupSettingsDialog({ open, onOpenChange, group }) {
+  const t = useTranslation();
   const [groupName, setGroupName] = useState(group?.name || "");
   const [description, setDescription] = useState("");
   const [capacity, setCapacity] = useState("12");
@@ -75,7 +77,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
         setMembers(data.members || []);
       } catch (error) {
         console.error('Error fetching group members:', error);
-        toast.error('Failed to load group members');
+        toast.error(t('groups.failedToLoadGroupMembers', 'Failed to load group members'));
         setMembers([]);
       } finally {
         setMembersLoading(false);
@@ -111,7 +113,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
       const result = await response.json();
       
       // Show success message
-      toast.success(`${groupName} has been successfully updated.`);
+      toast.success(t('groups.groupUpdatedSuccessfully', '{name} has been successfully updated.', { name: groupName }).replace('{name}', groupName));
       
       // Close the dialog
       onOpenChange(false);
@@ -121,7 +123,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
       
     } catch (error) {
       console.error('Error updating group:', error);
-      toast.error(error.message || 'Failed to update group settings');
+      toast.error(error.message || t('groups.failedToUpdateGroupSettings', 'Failed to update group settings'));
     }
   };
 
@@ -147,10 +149,10 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
       
       // Update local state to reflect the removal
       setMembers(members.filter(member => member.id !== memberId));
-      toast.success(`${memberName} has been removed from the group.`);
+      toast.success(t('groups.memberRemovedFromGroup', '{name} has been removed from the group.', { name: memberName }).replace('{name}', memberName));
     } catch (error) {
       console.error('Error removing member from group:', error);
-      toast.error(error.message || "Failed to remove member from group");
+      toast.error(error.message || t('groups.failedToRemoveMember', 'Failed to remove member from group'));
     }
   };
 
@@ -160,11 +162,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newMemberEmail)) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
+      toast.error(t('clients.validation.emailInvalid', 'Please enter a valid email address'));
       return;
     }
     
@@ -190,11 +188,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
   };
 
   const handleDeleteGroup = () => {
-    toast({
-      title: "Group Deleted",
-      description: `${group?.name} has been permanently deleted.`,
-      variant: "destructive",
-    });
+    toast.success(t('groups.groupDeleted', '{name} has been permanently deleted.', { name: group?.name || '' }).replace('{name}', group?.name || ''));
     onOpenChange(false);
   };
 
@@ -208,15 +202,15 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
             <div className={`bg-gradient-primary rounded-lg ${isMobile ? 'p-1' : 'p-2'}`}>
               <Settings className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
             </div>
-            <span className="break-words min-w-0 flex-1">Group Settings - {group.name}</span>
+            <span className="break-words min-w-0 flex-1">{t('groups.groupSettings', 'Group Settings')} - {group.name}</span>
           </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="settings" className={isMobile ? 'py-2' : 'py-6'}>
           <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3 gap-1 h-auto p-1' : 'grid-cols-3'}`}>
-            <TabsTrigger value="settings" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>Settings</TabsTrigger>
-            <TabsTrigger value="members" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>Members</TabsTrigger>
-            <TabsTrigger value="requests" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>Requests</TabsTrigger>
+            <TabsTrigger value="settings" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>{t('settings.title', 'Settings')}</TabsTrigger>
+            <TabsTrigger value="members" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>{t('groups.members', 'Members')}</TabsTrigger>
+            <TabsTrigger value="requests" className={isMobile ? 'text-xs px-1 py-1.5' : ''}>{t('groups.requests', 'Requests')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="settings" className={isMobile ? 'mt-2' : 'mt-6'}>
@@ -226,45 +220,45 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
             <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
               <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground flex items-center gap-2`}>
                 <Users2 className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
-                Basic Information
+                {t('groups.basicInformation', 'Basic Information')}
               </h3>
               
               <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
                 <div>
-                  <Label htmlFor="groupName" className={isMobile ? 'text-xs' : ''}>Group Name</Label>
+                  <Label htmlFor="groupName" className={isMobile ? 'text-xs' : ''}>{t('groups.groupName', 'Group Name')}</Label>
                   <Input
                     id="groupName"
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
-                    placeholder="Enter group name"
+                    placeholder={t('groups.enterGroupName', 'Enter group name')}
                     className={`mt-1 ${isMobile ? 'text-xs h-8' : ''}`}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="description" className={isMobile ? 'text-xs' : ''}>Description</Label>
+                  <Label htmlFor="description" className={isMobile ? 'text-xs' : ''}>{t('common.labels.description')}</Label>
                   <Textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe the group's purpose and goals..."
+                    placeholder={t('groups.describeGroupPurpose', "Describe the group's purpose and goals...")}
                     className={`mt-1 ${isMobile ? 'min-h-[60px] text-xs' : 'min-h-[100px]'}`}
                   />
                 </div>
 
 
                 <div>
-                  <Label htmlFor="capacity" className={isMobile ? 'text-xs' : ''}>Maximum Capacity</Label>
+                  <Label htmlFor="capacity" className={isMobile ? 'text-xs' : ''}>{t('groups.maximumCapacity', 'Maximum Capacity')}</Label>
                   <Select value={capacity} onValueChange={setCapacity}>
                     <SelectTrigger className={isMobile ? 'mt-1 text-xs h-8' : 'mt-1'}>
-                      <SelectValue placeholder="Select capacity" />
+                      <SelectValue placeholder={t('groups.selectCapacity', 'Select capacity')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="6">6 members</SelectItem>
-                      <SelectItem value="8">8 members</SelectItem>
-                      <SelectItem value="10">10 members</SelectItem>
-                      <SelectItem value="12">12 members</SelectItem>
-                      <SelectItem value="15">15 members</SelectItem>
+                      <SelectItem value="6">6 {t('groups.members', 'members')}</SelectItem>
+                      <SelectItem value="8">8 {t('groups.members', 'members')}</SelectItem>
+                      <SelectItem value="10">10 {t('groups.members', 'members')}</SelectItem>
+                      <SelectItem value="12">12 {t('groups.members', 'members')}</SelectItem>
+                      <SelectItem value="15">15 {t('groups.members', 'members')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -275,16 +269,16 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
             <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
               <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground flex items-center gap-2`}>
                 <Calendar className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
-                Next Session
+                {t('groups.nextSession', 'Next Session')}
               </h3>
               
               <div className={`bg-muted rounded-lg ${isMobile ? 'p-2' : 'p-4'}`}>
                 <div className={`flex items-center ${isMobile ? 'flex-col gap-2' : 'justify-between'}`}>
                   <div className={isMobile ? 'w-full' : ''}>
-                    <p className={`${isMobile ? 'text-xs' : ''} font-medium text-foreground break-words`}>Scheduled for</p>
+                    <p className={`${isMobile ? 'text-xs' : ''} font-medium text-foreground break-words`}>{t('groups.scheduledFor', 'Scheduled for')}</p>
                     <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{group.nextSession}</p>
                   </div>
-                  <Badge variant="secondary" className={isMobile ? 'text-xs w-full justify-center' : ''}>Confirmed</Badge>
+                  <Badge variant="secondary" className={isMobile ? 'text-xs w-full justify-center' : ''}>{t('groups.confirmed', 'Confirmed')}</Badge>
                 </div>
               </div>
               </div>
@@ -297,16 +291,16 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-primary" />
-                  Next Session
+                  {t('groups.nextSession', 'Next Session')}
                 </h3>
                 
                 <div className="bg-muted rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-foreground">Scheduled for</p>
+                      <p className="font-medium text-foreground">{t('groups.scheduledFor', 'Scheduled for')}</p>
                       <p className="text-sm text-muted-foreground">{group.nextSession}</p>
                     </div>
-                    <Badge variant="secondary">Confirmed</Badge>
+                    <Badge variant="secondary">{t('groups.confirmed', 'Confirmed')}</Badge>
                   </div>
                 </div>
               </div>
@@ -320,21 +314,21 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
               <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
                 <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground flex items-center gap-2`}>
                   <Users2 className={isMobile ? 'h-4 w-4' : 'h-5 w-5'} />
-                  Members ({membersLoading ? "..." : members.length})
+                  {t('groups.members', 'Members')} ({membersLoading ? "..." : members.length})
                 </h3>
 
                 <div className={`space-y-3 ${isMobile ? 'max-h-[300px]' : 'max-h-[400px]'} overflow-y-auto`}>
                   {membersLoading ? (
                     <div className={`flex items-center justify-center ${isMobile ? 'p-4' : 'p-8'}`}>
                       <Loader2 className={isMobile ? 'h-4 w-4' : 'h-6 w-6'} />
-                      <span className={`${isMobile ? 'text-xs ml-1' : 'text-sm ml-2'} text-muted-foreground`}>Loading members...</span>
+                      <span className={`${isMobile ? 'text-xs ml-1' : 'text-sm ml-2'} text-muted-foreground`}>{t('groups.loadingMembers', 'Loading members...')}</span>
                     </div>
                   ) : members.length === 0 ? (
                     <div className={`flex items-center justify-center ${isMobile ? 'p-4' : 'p-8'}`}>
                       <div className="text-center">
                         <Users2 className={isMobile ? 'h-8 w-8' : 'h-12 w-12'} />
-                        <p className={`${isMobile ? 'text-xs' : ''} text-muted-foreground font-medium break-words`}>No members yet</p>
-                        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mt-1 break-words`}>Add members to get started</p>
+                        <p className={`${isMobile ? 'text-xs' : ''} text-muted-foreground font-medium break-words`}>{t('groups.noMembersYet', 'No members yet')}</p>
+                        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground mt-1 break-words`}>{t('groups.addMembersToGetStarted', 'Add members to get started')}</p>
                       </div>
                     </div>
                   ) : (
@@ -349,7 +343,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                         <div className="flex-1 min-w-0">
                           <p className={`${isMobile ? 'text-xs' : ''} font-medium text-foreground break-words`}>{member.name}</p>
                           <p className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-muted-foreground break-words`}>
-                            Joined {new Date(member.joinDate).toLocaleDateString()}
+                            {t('groups.joined', 'Joined')} {new Date(member.joinDate).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -369,18 +363,18 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                           </AlertDialogTrigger>
                           <AlertDialogContent className={isMobile ? 'mx-2 max-w-[calc(100vw-1rem)]' : ''}>
                             <AlertDialogHeader>
-                              <AlertDialogTitle className={isMobile ? 'text-sm' : ''}>Remove Member</AlertDialogTitle>
+                              <AlertDialogTitle className={isMobile ? 'text-sm' : ''}>{t('groups.removeMember', 'Remove Member')}</AlertDialogTitle>
                               <AlertDialogDescription className={isMobile ? 'text-xs' : ''}>
-                                Are you sure you want to remove {member.name} from this group? This action cannot be undone.
+                                {t('groups.confirmRemoveMember', 'Are you sure you want to remove {name} from this group? This action cannot be undone.', { name: member.name }).replace('{name}', member.name)}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
-                              <AlertDialogCancel className={isMobile ? 'w-full text-xs' : ''}>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel className={isMobile ? 'w-full text-xs' : ''}>{t('common.buttons.cancel')}</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleRemoveMember(member.id, member.name)}
                                 className={`bg-destructive text-destructive-foreground hover:bg-destructive/90 ${isMobile ? 'w-full text-xs' : ''}`}
                               >
-                                Remove Member
+                                {t('groups.removeMember', 'Remove Member')}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -394,26 +388,26 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                 {/* Add Member Form */}
                 {showAddMember ? (
                   <div className={`space-y-3 ${isMobile ? 'p-2 space-y-2' : 'p-4'} bg-muted rounded-lg`}>
-                    <Label htmlFor="newMemberEmail" className={isMobile ? 'text-xs' : ''}>Member Email</Label>
+                    <Label htmlFor="newMemberEmail" className={isMobile ? 'text-xs' : ''}>{t('groups.memberEmail', 'Member Email')}</Label>
                     <Input
                       id="newMemberEmail"
                       type="email"
                       value={newMemberEmail}
                       onChange={(e) => setNewMemberEmail(e.target.value)}
-                      placeholder="Enter member email address"
+                      placeholder={t('groups.enterMemberEmail', 'Enter member email address')}
                       onKeyPress={(e) => e.key === 'Enter' && handleAddMember()}
                       className={isMobile ? 'text-xs h-8' : ''}
                     />
                     <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
                       <Button size={isMobile ? "sm" : "sm"} onClick={handleAddMember} className={`${isMobile ? 'w-full text-xs h-8' : 'flex-1'}`}>
                         <UserPlus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-                        Send Invitation
+                        {t('groups.sendInvitation', 'Send Invitation')}
                       </Button>
                       <Button size={isMobile ? "sm" : "sm"} variant="outline" onClick={() => {
                         setShowAddMember(false);
                         setNewMemberEmail("");
                       }} className={isMobile ? 'w-full text-xs h-8' : ''}>
-                        Cancel
+                        {t('common.buttons.cancel')}
                       </Button>
                     </div>
                   </div>
@@ -425,7 +419,7 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
                     size={isMobile ? "sm" : "default"}
                   >
                     <UserPlus className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-                    Invite New Member
+                    {t('groups.inviteNewMember', 'Invite New Member')}
                   </Button>
                 )}
               </div>
@@ -452,18 +446,18 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
             </AlertDialogTrigger>
             <AlertDialogContent className={isMobile ? 'mx-2 max-w-[calc(100vw-1rem)]' : ''}>
               <AlertDialogHeader>
-                <AlertDialogTitle className={isMobile ? 'text-sm' : ''}>Delete Group</AlertDialogTitle>
+                <AlertDialogTitle className={isMobile ? 'text-sm' : ''}>{t('groups.deleteGroup', 'Delete Group')}</AlertDialogTitle>
                 <AlertDialogDescription className={isMobile ? 'text-xs break-words' : ''}>
-                  Are you sure you want to delete "{group.name}"? This action cannot be undone. All group data, members, and sessions will be permanently removed.
+                  {t('groups.confirmDeleteGroup', 'Are you sure you want to delete "{name}"? This action cannot be undone. All group data, members, and sessions will be permanently removed.', { name: group.name }).replace('{name}', group.name)}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className={isMobile ? 'flex-col gap-2' : ''}>
-                <AlertDialogCancel className={isMobile ? 'w-full text-xs' : ''}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel className={isMobile ? 'w-full text-xs' : ''}>{t('common.buttons.cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDeleteGroup}
                   className={`bg-destructive text-destructive-foreground hover:bg-destructive/90 ${isMobile ? 'w-full text-xs' : ''}`}
                 >
-                  Delete Group
+                  {t('groups.deleteGroup', 'Delete Group')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -471,11 +465,11 @@ export function GroupSettingsDialog({ open, onOpenChange, group }) {
 
           <div className={`flex ${isMobile ? 'flex-col gap-2 w-full' : 'gap-3'}`}>
             <Button variant="outline" onClick={() => onOpenChange(false)} className={isMobile ? 'w-full text-xs h-8' : ''} size={isMobile ? "sm" : "default"}>
-              Cancel
+              {t('common.buttons.cancel')}
             </Button>
             <Button onClick={handleSave} className={`bg-gradient-primary text-black hover:text-white ${isMobile ? 'w-full text-xs h-8' : ''}`} size={isMobile ? "sm" : "default"}>
               <Save className={isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'} />
-              Save Changes
+              {t('common.buttons.saveChanges')}
             </Button>
           </div>
         </div>

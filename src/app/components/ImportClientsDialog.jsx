@@ -359,21 +359,21 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Upload className="h-4 w-4" />
-          Import from CSV
+          {t('clients.importFromCSV', 'Import from CSV')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
             <FileText className="h-6 w-6 text-primary" />
-            Import Clients from CSV
+            {t('clients.importClientsFromCSV', 'Import Clients from CSV')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* File Upload */}
           <div className="space-y-2">
-            <Label>Select CSV File</Label>
+            <Label>{t('clients.selectCSVFile', 'Select CSV File')}</Label>
             <div className="flex items-center gap-4">
               <Input
                 ref={fileInputRef}
@@ -389,12 +389,12 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
                 className="gap-2"
               >
                 <Upload className="h-4 w-4" />
-                {selectedFile ? selectedFile.name : 'Choose CSV File'}
+                {selectedFile ? selectedFile.name : t('clients.chooseCSVFile', 'Choose CSV File')}
               </Button>
               {selectedFile && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  {csvData?.rows.length || 0} rows found
+                  {csvData?.rows.length || 0} {t('clients.rowsFound', 'rows found')}
                 </div>
               )}
             </div>
@@ -405,20 +405,20 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b">
                 <AlertCircle className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Map CSV Columns</h3>
+                <h3 className="text-lg font-semibold">{t('clients.mapCSVColumns', 'Map CSV Columns')}</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
-                    Name <span className="text-red-500">*</span>
+                    {t('common.labels.name')} <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={columnMapping.name || ''}
                     onValueChange={(value) => setColumnMapping({ ...columnMapping, name: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select column" />
+                      <SelectValue placeholder={t('clients.selectColumn', 'Select column')} />
                     </SelectTrigger>
                     <SelectContent>
                       {csvHeaders.map((header, idx) => (
@@ -432,14 +432,14 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
-                    Email <span className="text-red-500">*</span>
+                    {t('common.labels.email')} <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={columnMapping.email || ''}
                     onValueChange={(value) => setColumnMapping({ ...columnMapping, email: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select column" />
+                      <SelectValue placeholder={t('clients.selectColumn', 'Select column')} />
                     </SelectTrigger>
                     <SelectContent>
                       {csvHeaders.map((header, idx) => (
@@ -453,14 +453,14 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
-                    Phone <span className="text-red-500">*</span>
+                    {t('common.labels.phone')} <span className="text-red-500">*</span>
                   </Label>
                   <Select
                     value={columnMapping.phone || ''}
                     onValueChange={(value) => setColumnMapping({ ...columnMapping, phone: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select column" />
+                      <SelectValue placeholder={t('clients.selectColumn', 'Select column')} />
                     </SelectTrigger>
                     <SelectContent>
                       {csvHeaders.map((header, idx) => (
@@ -473,16 +473,16 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Address/Location (Optional)</Label>
+                  <Label className="text-sm font-medium">{t('clients.addressLocationOptional', 'Address/Location (Optional)')}</Label>
                   <Select
                     value={columnMapping.address || '__none__'}
                     onValueChange={(value) => setColumnMapping({ ...columnMapping, address: value === '__none__' ? undefined : value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select column (optional)" />
+                      <SelectValue placeholder={t('clients.selectColumnOptional', 'Select column (optional)')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">None</SelectItem>
+                      <SelectItem value="__none__">{t('common.labels.none')}</SelectItem>
                       {csvHeaders.map((header, idx) => (
                         <SelectItem key={idx} value={header}>
                           {header}
@@ -493,16 +493,16 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Date of Birth (Optional)</Label>
+                  <Label className="text-sm font-medium">{t('clients.dateOfBirthOptional', 'Date of Birth (Optional)')}</Label>
                   <Select
                     value={columnMapping.dateOfBirth || '__none__'}
                     onValueChange={(value) => setColumnMapping({ ...columnMapping, dateOfBirth: value === '__none__' ? undefined : value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select column (optional)" />
+                      <SelectValue placeholder={t('clients.selectColumnOptional', 'Select column (optional)')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">None</SelectItem>
+                      <SelectItem value="__none__">{t('common.labels.none')}</SelectItem>
                       {csvHeaders.map((header, idx) => (
                         <SelectItem key={idx} value={header}>
                           {header}
@@ -513,16 +513,16 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Notes (Optional)</Label>
+                  <Label className="text-sm font-medium">{t('clients.notesOptional', 'Notes (Optional)')}</Label>
                   <Select
                     value={columnMapping.notes || '__none__'}
                     onValueChange={(value) => setColumnMapping({ ...columnMapping, notes: value === '__none__' ? undefined : value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select column (optional)" />
+                      <SelectValue placeholder={t('clients.selectColumnOptional', 'Select column (optional)')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">None</SelectItem>
+                      <SelectItem value="__none__">{t('common.labels.none')}</SelectItem>
                       {csvHeaders.map((header, idx) => (
                         <SelectItem key={idx} value={header}>
                           {header}
@@ -538,19 +538,19 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
           {/* Preview */}
           {previewRows.length > 0 && Object.keys(columnMapping).length > 0 && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Preview (First 5 rows)</Label>
+              <Label className="text-sm font-medium">{t('clients.previewFirst5Rows', 'Preview (First 5 rows)')}</Label>
               <Card>
                 <CardContent className="p-4">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2">Name</th>
-                          <th className="text-left p-2">Email</th>
-                          <th className="text-left p-2">Phone</th>
-                          {columnMapping.address && <th className="text-left p-2">Address</th>}
-                          {columnMapping.dateOfBirth && <th className="text-left p-2">Date of Birth</th>}
-                          {columnMapping.notes && <th className="text-left p-2">Notes</th>}
+                          <th className="text-left p-2">{t('common.labels.name')}</th>
+                          <th className="text-left p-2">{t('common.labels.email')}</th>
+                          <th className="text-left p-2">{t('common.labels.phone')}</th>
+                          {columnMapping.address && <th className="text-left p-2">{t('clients.address', 'Address')}</th>}
+                          {columnMapping.dateOfBirth && <th className="text-left p-2">{t('clients.dateOfBirth', 'Date of Birth')}</th>}
+                          {columnMapping.notes && <th className="text-left p-2">{t('clients.notes', 'Notes')}</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -581,12 +581,12 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
           {/* Import Progress */}
           {importProgress && (
             <div className="space-y-2">
-              <Label>Import Progress</Label>
+              <Label>{t('clients.importProgress', 'Import Progress')}</Label>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Processing: {importProgress.processed} / {importProgress.total}</span>
-                  <span className="text-green-600">Success: {importProgress.successful}</span>
-                  <span className="text-red-600">Failed: {importProgress.failed}</span>
+                  <span>{t('clients.processing', 'Processing')}: {importProgress.processed} / {importProgress.total}</span>
+                  <span className="text-green-600">{t('clients.success', 'Success')}: {importProgress.successful}</span>
+                  <span className="text-red-600">{t('clients.failed', 'Failed')}: {importProgress.failed}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
@@ -606,7 +606,7 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
               onClick={() => setIsOpen(false)}
               disabled={isImporting}
             >
-              Cancel
+              {t('common.buttons.cancel')}
             </Button>
             <Button
               type="button"
@@ -617,12 +617,12 @@ export function ImportClientsDialog({ onClientsImported, targetCoachId = null })
               {isImporting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Importing...
+                  {t('clients.importing', 'Importing...')}
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4" />
-                  Import Clients
+                  {t('clients.importClients', 'Import Clients')}
                 </>
               )}
             </Button>

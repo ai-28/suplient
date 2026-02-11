@@ -583,7 +583,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <Calendar className="h-3 w-3 mr-1" />
-                      Today
+                      {t('common.time.today')}
                   </Button>
                   <Button
                     size="sm"
@@ -592,7 +592,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <Clock className="h-3 w-3 mr-1" />
-                      Open
+                      {t('tasks.open', 'Open')}
                   </Button>
                   <Button
                     size="sm"
@@ -601,7 +601,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <AlertTriangle className="h-3 w-3 mr-1" />
-                      Overdue
+                      {t('tasks.overdue', 'Overdue')}
                   </Button>
                   <Button
                     size="sm"
@@ -610,7 +610,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <CheckCircle className="h-3 w-3 mr-1" />
-                      Completed
+                      {t('common.status.completed')}
                   </Button>
                 </div>
 
@@ -697,7 +697,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <Calendar className="h-3 w-3 mr-1" />
-                      Today
+                      {t('common.time.today')}
                   </Button>
                   <Button
                     size="sm"
@@ -706,7 +706,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <Clock className="h-3 w-3 mr-1" />
-                      Open
+                      {t('tasks.open', 'Open')}
                   </Button>
                   <Button
                     size="sm"
@@ -715,7 +715,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <AlertTriangle className="h-3 w-3 mr-1" />
-                      Overdue
+                      {t('tasks.overdue', 'Overdue')}
                   </Button>
                   <Button
                     size="sm"
@@ -724,7 +724,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <CheckCircle className="h-3 w-3 mr-1" />
-                      Completed
+                      {t('common.status.completed')}
                   </Button>
                 </div>
 
@@ -808,7 +808,7 @@ export default function Tasks() {
                     onClick={() => setAdminTaskFilter("all")}
                     className="h-8 hover-scale"
                   >
-                    All
+                    {t('common.labels.all')}
                   </Button>
                   <Button
                     size="sm"
@@ -817,7 +817,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <Calendar className="h-3 w-3 mr-1" />
-                    Today
+                    {t('common.time.today')}
                   </Button>
                   <Button
                     size="sm"
@@ -826,7 +826,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <Clock className="h-3 w-3 mr-1" />
-                    Open
+                    {t('tasks.open')}
                   </Button>
                   <Button
                     size="sm"
@@ -835,7 +835,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <AlertTriangle className="h-3 w-3 mr-1" />
-                    Overdue
+                    {t('tasks.overdue')}
                   </Button>
                   <Button
                     size="sm"
@@ -844,7 +844,7 @@ export default function Tasks() {
                     className="h-8 hover-scale"
                   >
                     <CheckCircle className="h-3 w-3 mr-1" />
-                    Completed
+                    {t('tasks.completed')}
                   </Button>
                 </div>
 

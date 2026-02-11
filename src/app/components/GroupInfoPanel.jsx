@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Separator } from "@/app/components/ui/separator";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { 
   Users, 
   Calendar, 
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 
 export function GroupInfoPanel({ group }) {
+  const t = useTranslation();
   const [isMobile, setIsMobile] = useState(false);
 
   // Mobile detection
@@ -49,7 +51,7 @@ export function GroupInfoPanel({ group }) {
       <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'}>
         <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'} font-medium text-foreground`}>
           <Users className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-          Group Details
+          {t('groups.groupDetails', 'Group Details')}
         </CardTitle>
       </CardHeader>
       <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
@@ -60,7 +62,7 @@ export function GroupInfoPanel({ group }) {
                 <Calendar className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                 <div className="flex-1 min-w-0">
                   <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{group.nextSession}</p>
-                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>Next Session</p>
+                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('groups.nextSession', 'Next Session')}</p>
                 </div>
               </div>
               
@@ -68,7 +70,7 @@ export function GroupInfoPanel({ group }) {
                 <Clock className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                 <div className="flex-1 min-w-0">
                   <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{group.frequency} • {group.duration}</p>
-                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>Schedule & Duration</p>
+                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('groups.scheduleAndDuration', 'Schedule & Duration')}</p>
                 </div>
               </div>
               
@@ -76,7 +78,7 @@ export function GroupInfoPanel({ group }) {
                 <MapPin className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
                 <div className="flex-1 min-w-0">
                   <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{group.location}</p>
-                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>Meeting Location</p>
+                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('groups.meetingLocation', 'Meeting Location')}</p>
                 </div>
               </div>
             </div>
@@ -85,13 +87,13 @@ export function GroupInfoPanel({ group }) {
             
             <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
               <div>
-                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium ${isMobile ? 'mb-1' : 'mb-2'} break-words`}>Sessions: {group.completedSessions} of {group.totalSessions} completed</p>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium ${isMobile ? 'mb-1' : 'mb-2'} break-words`}>{t('groups.sessionsCompleted', 'Sessions: {completed} of {total} completed').replace('{completed}', group.completedSessions).replace('{total}', group.totalSessions)}</p>
                 <div className={`flex flex-wrap ${isMobile ? 'gap-0.5' : 'gap-1'}`}>
                   {renderSessionDots()}
                 </div>
               </div>
               <div className={`flex justify-between items-center ${isMobile ? 'flex-wrap gap-1' : ''}`}>
-                <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground break-words`}>Started</span>
+                <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground break-words`}>{t('groups.started', 'Started')}</span>
                 <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{group.startDate}</span>
               </div>
             </div>

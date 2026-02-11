@@ -1078,8 +1078,8 @@ export default function LibraryCategory() {
             <div className="flex-1 min-w-0">
               <h2 className={`${isMobile ? 'text-lg' : 'text-3xl'} font-bold text-foreground`}>{categoryInfo.title}</h2>
               <p className={`text-muted-foreground ${isMobile ? 'text-xs' : ''}`}>
-                {loading ? t('common.messages.loading') : `${items.length} ${items.length === 1 ? 'item' : 'items'} available`}
-                {selectedFiles.length > 0 && ` • ${selectedFiles.length} selected`}
+                {loading ? t('common.messages.loading') : items.length === 1 ? t('library.itemAvailable', '1 item available') : t('library.itemsAvailable', '{count} items available').replace('{count}', items.length)}
+                {selectedFiles.length > 0 && ` • ${selectedFiles.length === 1 ? t('library.selected', '1 selected') : t('library.selectedCount', '{count} selected').replace('{count}', selectedFiles.length)}`}
               </p>
             </div>
           </div>
@@ -1321,11 +1321,11 @@ export default function LibraryCategory() {
                             {newFolderParentId ? (() => {
                               const selectedPath = getFolderPathFromTree(newFolderParentId);
                               if (selectedPath.length > 0) {
-                                return `${categoryInfo.title} / ${selectedPath.map(f => f.name).join(' / ')}`;
+                                return `${categoryInfo.title} ${t('library.pathSeparator', '/')} ${selectedPath.map(f => f.name).join(` ${t('library.pathSeparator', '/')} `)}`;
                               }
                               return categoryInfo.title;
                             })() : (
-                              `${categoryInfo.title} (Root)`
+                              `${categoryInfo.title} ${t('library.root', '(Root)')}`
                             )}
                           </p>
                         </div>

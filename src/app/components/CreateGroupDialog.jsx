@@ -89,7 +89,7 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to create group");
+        throw new Error(result.error || t('groups.failedToCreateGroup', 'Failed to create group'));
       }
       
       // Show success message
@@ -135,14 +135,14 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
         <form onSubmit={handleSubmit} className={isMobile ? 'space-y-3' : 'space-y-6'}>
           {/* Basic Information */}
           <div className={isMobile ? 'space-y-2' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('common.labels.description')}</h3>
+            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('groups.basicInformation', 'Basic Information')}</h3>
             
             <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} ${isMobile ? 'gap-2' : 'gap-4'}`}>
               <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
-                <Label htmlFor="name" className={isMobile ? 'text-xs' : ''}>{t('groups.createGroup')} *</Label>
+                <Label htmlFor="name" className={isMobile ? 'text-xs' : ''}>{t('common.labels.name')} *</Label>
                 <Input
                   id="name"
-                  placeholder={t('groups.createGroup')}
+                  placeholder={t('common.labels.name')}
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                   required
@@ -151,7 +151,7 @@ export function CreateGroupDialog({ open, onOpenChange, onGroupCreated }) {
               </div>
               
               <div className={isMobile ? 'space-y-1' : 'space-y-2'}>
-                <Label htmlFor="focusArea" className={isMobile ? 'text-xs' : ''}>{t('common.labels.status')} *</Label>
+                <Label htmlFor="focusArea" className={isMobile ? 'text-xs' : ''}>{t('groups.focusArea', 'Focus Area')} *</Label>
                 <Select onValueChange={(value) => handleInputChange("focusArea", value)}>
                   <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue placeholder={t('common.labels.select')} />

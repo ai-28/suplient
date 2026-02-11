@@ -14,6 +14,7 @@ import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { UserPlus, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "@/app/context/LanguageContext";
 
 export function AddMemberToGroupDialog({
   open,
@@ -28,6 +29,7 @@ export function AddMemberToGroupDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [availableClients, setAvailableClients] = useState([]);
   const [clientsLoading, setClientsLoading] = useState(false);
+  const t = useTranslation();
 
   // Fetch available clients when dialog opens
   useEffect(() => {
@@ -47,7 +49,7 @@ export function AddMemberToGroupDialog({
         setAvailableClients(data.clients || []);
       } catch (error) {
         console.error('Error fetching available clients:', error);
-        toast.error('Failed to load available clients');
+        toast.error(t('groups.failedToLoadAvailableClients', 'Failed to load available clients'));
         setAvailableClients([]);
       } finally {
         setClientsLoading(false);
@@ -59,7 +61,7 @@ export function AddMemberToGroupDialog({
 
   const handleAddExistingClient = async () => {
     if (!selectedClient) {
-      toast.error("Please select a client to add");
+      toast.error(t('groups.pleaseSelectClient', 'Please select a client to add'));
       return;
     } 
 
@@ -93,13 +95,13 @@ export function AddMemberToGroupDialog({
           type: "existing"
         });
         
-        toast.success(`${client.name} has been added to ${groupName}`);
+        toast.success(t('groups.clientAddedToGroup', '{name} has been added to {groupName}.', { name: client.name, groupName }).replace('{name}', client.name).replace('{groupName}', groupName));
         onOpenChange(false);
         setSelectedClient("");
       }
     } catch (error) {
       console.error('Error adding client to group:', error);
-      toast.error(error.message || "Failed to add member to group");
+      toast.error(error.message || t('groups.failedToAddMember', 'Failed to add member to group'));
     } finally {
       setIsLoading(false);
     }
@@ -107,14 +109,14 @@ export function AddMemberToGroupDialog({
 
   const handleSendInvite = async () => {
     if (!inviteEmail.trim()) {
-      toast.error("Please enter an email address");
+      toast.error(t('groups.pleaseEnterEmail', 'Please enter an email address'));
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(inviteEmail)) {
-      toast.error("Please enter a valid email address");
+      toast.error(t('clients.validation.emailInvalid', 'Please enter a valid email address'));
       return;
     }
 
@@ -125,11 +127,11 @@ export function AddMemberToGroupDialog({
         email: inviteEmail,
         type: "invite"
       });
-      toast.success(`Invitation sent to ${inviteEmail}`);
+      toast.success(t('groups.invitationSent', 'Invitation sent to {email}', { email: inviteEmail }).replace('{email}', inviteEmail));
       onOpenChange(false);
       setInviteEmail("");
     } catch (error) {
-      toast.error("Failed to send invitation");
+      toast.error(t('groups.failedToSendInvitation', 'Failed to send invitation'));
     } finally {
       setIsLoading(false);
     }
@@ -148,10 +150,10 @@ export function AddMemberToGroupDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Add Member to {groupName}
+            {t('groups.addMemberTo', 'Add Member to')} {groupName}
           </DialogTitle>
           <DialogDescription>
-            Add an existing client or invite a new member to join this group.
+            {t('groups.addMemberDescription', 'Add an existing client or invite a new member to join this group.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -164,7 +166,7 @@ export function AddMemberToGroupDialog({
               className="flex-1"
               size="sm"
             >
-              Add Existing Client
+              {t('groups.addExistingClient', 'Add Existing Client')}
             </Button>
             <Button
               variant={addMethod === "invite" ? "default" : "outline"}
@@ -172,26 +174,26 @@ export function AddMemberToGroupDialog({
               className="flex-1"
               size="sm"
             >
-              Send Invitation
+              {t('groups.sendInvitation', 'Send Invitation')}
             </Button>
           </div>
 
           {addMethod === "existing" ? (
             <div className="space-y-3">
-              <Label htmlFor="client-select">Select Client</Label>
+              <Label htmlFor="client-select">{t('groups.selectClient', 'Select Client')}</Label>
               <Select value={selectedClient} onValueChange={setSelectedClient}>
                 <SelectTrigger>
-                  <SelectValue placeholder={clientsLoading ? "Loading clients..." : "Choose a client to add"} />
+                  <SelectValue placeholder={clientsLoading ? t('groups.loadingClients', 'Loading clients...') : t('groups.chooseClientToAdd', 'Choose a client to add')} />
                 </SelectTrigger>
                 <SelectContent>
                   {clientsLoading ? (
                     <div className="flex items-center justify-center p-4">
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      <span className="text-sm text-muted-foreground">Loading clients...</span>
+                      <span className="text-sm text-muted-foreground">{t('groups.loadingClients', 'Loading clients...')}</span>
                     </div>
                   ) : availableClients.length === 0 ? (
                     <div className="flex items-center justify-center p-4">
-                      <span className="text-sm text-muted-foreground">No available clients</span>
+                      <span className="text-sm text-muted-foreground">{t('groups.noAvailableClients', 'No available clients')}</span>
                     </div>
                   ) : (
                     availableClients.map((client) => (
@@ -211,12 +213,12 @@ export function AddMemberToGroupDialog({
                 className="w-full"
               >
                 <UserPlus className="h-4 w-4 mr-2" />
-                {isLoading ? "Adding..." : "Add to Group"}
+                {isLoading ? t('groups.adding', 'Adding...') : t('groups.addToGroup', 'Add to Group')}
               </Button>
             </div>
           ) : (
             <div className="space-y-3">
-              <Label htmlFor="invite-email">Email Address</Label>
+              <Label htmlFor="invite-email">{t('common.labels.email')}</Label>
               <Input
                 id="invite-email"
                 type="email"
@@ -231,7 +233,7 @@ export function AddMemberToGroupDialog({
                 className="w-full"
               >
                 <Mail className="h-4 w-4 mr-2" />
-                {isLoading ? "Sending..." : "Send Invitation"}
+                {isLoading ? t('groups.sending', 'Sending...') : t('groups.sendInvitation', 'Send Invitation')}
               </Button>
             </div>
           )}

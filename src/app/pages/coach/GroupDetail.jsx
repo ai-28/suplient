@@ -182,9 +182,9 @@ export default function GroupDetail() {
   const getSessionBasedData = () => {
     if (!groupData.sessions || groupData.sessions.length === 0) {
       return {
-        frequency: 'Not specified',
-        duration: 'Not specified',
-        location: 'Not specified'
+        frequency: t('common.notSpecified', 'Not specified'),
+        duration: t('common.notSpecified', 'Not specified'),
+        location: t('common.notSpecified', 'Not specified')
       };
     }
 
@@ -195,22 +195,22 @@ export default function GroupDetail() {
     
     // Calculate frequency based on session dates
     const sessionDates = sessions.map(s => new Date(s.sessionDate)).sort();
-    let frequency = 'Not specified';
+    let frequency = t('common.notSpecified', 'Not specified');
     if (sessionDates.length > 1) {
       const avgDaysBetween = (sessionDates[sessionDates.length - 1] - sessionDates[0]) / (sessionDates.length - 1) / (1000 * 60 * 60 * 24);
-      if (avgDaysBetween <= 7) frequency = 'Weekly';
-      else if (avgDaysBetween <= 14) frequency = 'Bi-weekly';
-      else if (avgDaysBetween <= 30) frequency = 'Monthly';
-      else frequency = 'Irregular';
+      if (avgDaysBetween <= 7) frequency = t('groups.frequency.weekly', 'Weekly');
+      else if (avgDaysBetween <= 14) frequency = t('groups.frequency.biWeekly', 'Bi-weekly');
+      else if (avgDaysBetween <= 30) frequency = t('groups.frequency.monthly', 'Monthly');
+      else frequency = t('groups.frequency.irregular', 'Irregular');
     }
 
     // Use next session's duration and location if available, otherwise fall back to most common
-    let duration = 'Not specified';
-    let location = 'Not specified';
+    let duration = t('common.notSpecified', 'Not specified');
+    let location = t('common.notSpecified', 'Not specified');
 
     if (groupData.nextSession) {
-      duration = groupData.nextSession.duration ? `${groupData.nextSession.duration} minutes` : 'Not specified';
-      location = groupData.nextSession.location || 'Not specified';
+      duration = groupData.nextSession.duration ? `${groupData.nextSession.duration} ${t('common.time.minutes', 'minutes')}` : t('common.notSpecified', 'Not specified');
+      location = groupData.nextSession.location || t('common.notSpecified', 'Not specified');
     } 
 
     return {
@@ -227,14 +227,14 @@ export default function GroupDetail() {
     id: groupData.id,
     name: groupData.name,
     members: groupData.memberCount,
-    nextSession: groupData.nextSession ? formatDate(groupData.nextSession.date) : 'No upcoming session',
+    nextSession: groupData.nextSession ? formatDate(groupData.nextSession.date) : t('groups.noUpcomingSession', 'No upcoming session'),
     avatars: groupData.members?.map(member => member.initials) || [],
-    description: groupData.description || 'No description available',
+    description: groupData.description || t('groups.noDescriptionAvailable', 'No description available'),
     frequency: sessionData.frequency,
     duration: sessionData.duration,
     location: sessionData.location,
-    capacity: groupData.capacity ? `${groupData.capacity} members` : 'Not specified',
-    startDate: groupData.createdAt ? formatDate(groupData.createdAt) : 'Not specified',
+    capacity: groupData.capacity ? `${groupData.capacity} ${t('groups.members', 'members')}` : t('common.notSpecified', 'Not specified'),
+    startDate: groupData.createdAt ? formatDate(groupData.createdAt) : t('common.notSpecified', 'Not specified'),
     totalSessions: groupData.totalSessions || 0,
     completedSessions: groupData.completedSessions || 0,
     detailedMembers: groupData.members?.map((member, index) => ({
@@ -401,14 +401,14 @@ console.log(groupProgressData)
                         <div className="flex items-center justify-center h-full">
                           <div className="text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className={`${isMobile ? 'text-sm' : ''} text-gray-600`}>Loading progress data...</p>
+                            <p className={`${isMobile ? 'text-sm' : ''} text-gray-600`}>{t('groups.loadingProgressData', 'Loading progress data...')}</p>
                           </div>
                         </div>
                       ) : progressError ? (
                         <div className="flex items-center justify-center h-full text-red-500">
                           <div className="text-center">
                             <div className="text-red-500 mb-2">⚠️</div>
-                            <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>Error loading progress data</p>
+                            <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>{t('groups.errorLoadingProgressData', 'Error loading progress data')}</p>
                             <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 mt-1`}>{progressError}</p>
                           </div>
                         </div>
@@ -416,8 +416,8 @@ console.log(groupProgressData)
                         <div className="flex items-center justify-center h-full text-gray-500">
                           <div className="text-center">
                             <TrendingUp className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} mx-auto mb-2`} />
-                            <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>No progress data available</p>
-                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400 mt-1`}>Group needs activity to see progress</p>
+                            <p className={`${isMobile ? 'text-sm' : ''} font-medium`}>{t('groups.noProgressDataAvailable', 'No progress data available')}</p>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-400 mt-1`}>{t('groups.groupNeedsActivity', 'Group needs activity to see progress')}</p>
                           </div>
                         </div>
                       ) : (
@@ -446,13 +446,13 @@ console.log(groupProgressData)
                                        <div className={`bg-white ${isMobile ? 'p-2 text-xs' : 'p-3'} border rounded-lg shadow-lg`}>
                                          <p className={`${isMobile ? 'text-xs' : ''} font-medium`}>{label}</p>
                                          <p className={`${isMobile ? 'text-xs' : ''} text-blue-600`}>
-                                           {"Performance"}: {data.performance}
+                                           {t('groups.performance', 'Performance')}: {data.performance}
                                          </p>
                                          <p className={`${isMobile ? 'text-xs' : ''} text-green-600`}>
-                                           {"Wellbeing"}: {data.wellbeing}
+                                           {t('groups.wellbeing', 'Wellbeing')}: {data.wellbeing}
                                          </p>
                                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 mt-1`}>
-                                           {"Based on members"}: {data.memberCount}
+                                           {t('groups.basedOnMembers', 'Based on members')}: {data.memberCount}
                                          </p>
                                        </div>
                                     );
@@ -469,7 +469,7 @@ console.log(groupProgressData)
                                 dataKey="performance" 
                                 stroke="#3b82f6" 
                                 strokeWidth={isMobile ? 2 : 3}
-                                name={"Group Performance"}
+                                name={t('groups.groupPerformance', 'Group Performance')}
                                 dot={!isMobile}
                               />
                               <Line 
@@ -477,7 +477,7 @@ console.log(groupProgressData)
                                 dataKey="wellbeing" 
                                 stroke="#10b981" 
                                 strokeWidth={isMobile ? 2 : 3}
-                                name={"Group Wellbeing"}
+                                name={t('groups.groupWellbeing', 'Group Wellbeing')}
                                 dot={!isMobile}
                               />
                             </LineChart>
@@ -491,13 +491,13 @@ console.log(groupProgressData)
                 {/* Member Summary Table */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className={isMobile ? "text-base" : ""}>{"Member Progress"}</CardTitle>
+                    <CardTitle className={isMobile ? "text-base" : ""}>{t('groups.memberProgress', 'Member Progress')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {!groupProgressData.members || groupProgressData.members.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         <Users className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <p className="text-sm">No member progress data available</p>
+                        <p className="text-sm">{t('groups.noMemberProgressDataAvailable', 'No member progress data available')}</p>
                       </div>
                     ) : isMobile ? (
                       // Mobile: Card-based layout
@@ -529,7 +529,7 @@ console.log(groupProgressData)
                             <div className="space-y-2">
                               <div>
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className="text-xs text-gray-600">Performance</span>
+                                  <span className="text-xs text-gray-600">{t('groups.performance', 'Performance')}</span>
                                   <span className="text-xs font-medium">{member.currentMetrics.performance}</span>
                                 </div>
                                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -542,7 +542,7 @@ console.log(groupProgressData)
                               
                               <div>
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className="text-xs text-gray-600">Wellbeing</span>
+                                  <span className="text-xs text-gray-600">{t('groups.wellbeing', 'Wellbeing')}</span>
                                   <span className="text-xs font-medium">{member.currentMetrics.wellbeing}</span>
                                 </div>
                                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -561,7 +561,7 @@ console.log(groupProgressData)
                               className="w-full flex items-center justify-center gap-1 text-xs"
                             >
                               <Eye className="h-3 w-3" />
-                              {"View Details"}
+                              {t('common.buttons.viewDetails', 'View Details')}
                             </Button>
                           </div>
                         ))}
@@ -574,11 +574,11 @@ console.log(groupProgressData)
                           <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>{"Member"}</TableHead>
-                              <TableHead>{"Status"}</TableHead>
-                              <TableHead>{"Current Performance"}</TableHead>
-                              <TableHead>{"Current Wellbeing"}</TableHead>
-                              <TableHead>{"Actions"}</TableHead>
+                              <TableHead>{t('groups.member', 'Member')}</TableHead>
+                              <TableHead>{t('common.labels.status')}</TableHead>
+                              <TableHead>{t('groups.currentPerformance', 'Current Performance')}</TableHead>
+                              <TableHead>{t('groups.currentWellbeing', 'Current Wellbeing')}</TableHead>
+                              <TableHead>{t('common.labels.actions', 'Actions')}</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -637,7 +637,7 @@ console.log(groupProgressData)
                                     className="flex items-center gap-1"
                                   >
                                     <Eye className="h-3 w-3" />
-                                    {"View Details"}
+                                    {t('common.buttons.viewDetails', 'View Details')}
                                   </Button>
                                 </TableCell>
                               </TableRow>
@@ -646,7 +646,7 @@ console.log(groupProgressData)
                               <TableRow>
                                 <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                                   <Users className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                                  <p className="text-sm">No member progress data available</p>
+                                  <p className="text-sm">{t('groups.noMemberProgressDataAvailable', 'No member progress data available')}</p>
                                 </TableCell>
                               </TableRow>
                             )}

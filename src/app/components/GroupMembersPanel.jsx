@@ -6,6 +6,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
+import { useTranslation } from "@/app/context/LanguageContext";
 import { 
   Users,
   MessageCircle,
@@ -18,6 +19,7 @@ import {
   UserPlus
 } from "lucide-react";
 export function GroupMembersPanel({ members, onMessageMember, onMemberClick, groupId }) {
+  const t = useTranslation();
   const [isMobile, setIsMobile] = useState(false);
 
   // Mobile detection
@@ -84,26 +86,26 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
         <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'}>
           <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'}`}>
             <TrendingUp className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-            Member Statistics
+            {t('groups.memberStatistics', 'Member Statistics')}
           </CardTitle>
         </CardHeader>
         <CardContent className={isMobile ? 'px-2 pb-2 pt-0' : 'pt-0'}>
           <div className={`grid grid-cols-4 ${isMobile ? 'gap-1' : 'gap-3'}`}>
             <div className={`text-center ${isMobile ? 'p-1' : 'p-2'} bg-success/5 rounded-lg border border-success/20`}>
               <div className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-success`}>{activeMembers.length}</div>
-              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>Active</div>
+              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{t('common.status.active')}</div>
             </div>
             <div className={`text-center ${isMobile ? 'p-1' : 'p-2'} bg-muted/5 rounded-lg border border-muted/20`}>
               <div className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-muted-foreground`}>{inactiveMembers.length}</div>
-              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>Inactive</div>
+              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{t('common.status.inactive')}</div>
             </div>
             <div className={`text-center ${isMobile ? 'p-1' : 'p-2'} bg-warning/5 rounded-lg border border-warning/20`}>
               <div className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-warning`}>{onHoldMembers.length}</div>
-              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>On Hold</div>
+              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{t('groups.onHold', 'On Hold')}</div>
             </div>
             <div className={`text-center ${isMobile ? 'p-1' : 'p-2'} bg-primary/5 rounded-lg border border-primary/20`}>
               <div className={`${isMobile ? 'text-base' : 'text-xl'} font-bold text-primary`}>{allMembers.length}</div>
-              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>Total</div>
+              <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{t('common.total', 'Total')}</div>
             </div>
           </div>
         </CardContent>
@@ -118,7 +120,7 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
             <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
               <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'}`}>
                 <CheckCircle className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                <span className="break-words">Active Members ({activeMembers.length})</span>
+                <span className="break-words">{t('groups.activeMembers', 'Active Members')} ({activeMembers.length})</span>
               </CardTitle>
             </CardHeader>
             <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
@@ -145,7 +147,7 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} break-words`}>{member.name}</p>
-                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>Joined {member.joinDate}</p>
+                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('groups.joined', 'Joined')} {member.joinDate}</p>
                       </div>
                     </div>
                   </div>
@@ -163,7 +165,7 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
               <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
                 <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'}`}>
                   <Clock className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                  <span className="break-words">On Hold ({onHoldMembers.length})</span>
+                  <span className="break-words">{t('groups.onHold', 'On Hold')} ({onHoldMembers.length})</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
@@ -194,9 +196,9 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                             </p>
                             <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
                               {member.requestId ? (
-                                member.requestType === "invitation" ? "Invited" : "Requested"
+                                member.requestType === "invitation" ? t('groups.invited', 'Invited') : t('groups.requested', 'Requested')
                               ) : (
-                                "On hold"
+                                t('groups.onHold', 'On hold')
                               )}
                             </p>
                           </div>
@@ -220,7 +222,7 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                               }}
                             >
                               <UserCheck className={isMobile ? 'h-2.5 w-2.5 mr-0.5' : 'h-3 w-3 mr-1'} />
-                              Approve
+                              {t('groups.approve', 'Approve')}
                             </Button>
                             <Button 
                               variant="outline" 
@@ -231,7 +233,7 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                                 handleDeclineRequest(member.requestId);
                               }}
                             >
-                              Decline
+                              {t('groups.decline', 'Decline')}
                             </Button>
                           </div>
                         )}
@@ -251,7 +253,7 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
           <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : ''}>
             <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-lg'}`}>
               <UserCheck className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-              <span className="break-words">Inactive Members ({inactiveMembers.length})</span>
+              <span className="break-words">{t('groups.inactiveMembers', 'Inactive Members')} ({inactiveMembers.length})</span>
             </CardTitle>
           </CardHeader>
           <CardContent className={isMobile ? 'px-2 pb-2' : ''}>
@@ -283,12 +285,12 @@ export function GroupMembersPanel({ members, onMessageMember, onMemberClick, gro
                         onClick={() => onMemberClick?.(member.id.toString(), member.name)}
                       >
                         <p className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground break-words`}>{member.name}</p>
-                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>Joined {member.joinDate}</p>
+                        <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>{t('groups.joined', 'Joined')} {member.joinDate}</p>
                       </div>
                     </div>
                     <div className={`flex items-center gap-2 ${isMobile ? 'w-full justify-end' : ''}`}>
                       <Badge variant="outline" className={`${isMobile ? 'text-[10px]' : 'text-xs'} border-muted/50 text-muted-foreground bg-muted/10`}>
-                        Inactive
+                        {t('common.status.inactive')}
                       </Badge>
                       <Button 
                         variant="ghost" 
