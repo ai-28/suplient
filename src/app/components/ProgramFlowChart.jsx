@@ -25,10 +25,19 @@ const ELEMENT_ICONS = {
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export function ProgramFlowChart({ elements, duration, highlightedElementId, onElementClick, onAddElementToDay, onDayClick, selectedDay, forceCloseDropdowns = false }) {
+  const t = useTranslation();
   const [currentWeekStart, setCurrentWeekStart] = useState(1);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   console.log("elements", elements)
+
+  // Define ELEMENT_TYPES with translations
+  const ELEMENT_TYPES = {
+    content: t('programs.elementTypes.content', 'Content'),
+    task: t('programs.elementTypes.task', 'Task'),
+    message: t('programs.elementTypes.message', 'Message'),
+    checkin: t('programs.elementTypes.checkin', 'Check-in')
+  };
 
   // Mobile detection
   useEffect(() => {
@@ -103,7 +112,7 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
       <CardHeader className={isMobile ? 'px-2 pb-2 pt-2' : 'pb-3'}>
         <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
           <div className="flex-1 min-w-0">
-            <CardTitle className={`${isMobile ? 'text-sm' : 'text-lg'} break-words`}>Program Flow Overview</CardTitle>
+            <CardTitle className={`${isMobile ? 'text-sm' : 'text-lg'} break-words`}>{t('programs.programFlowOverview', 'Program Flow Overview')}</CardTitle>
             <CardDescription className={isMobile ? 'text-xs mt-0.5' : ''}>
               <span className="break-words">{t('programs.weeks', 'Weeks')} {currentWeekStart}-{currentWeekEnd} {t('common.of', 'of')} {duration}</span>
               <span className={isMobile ? 'block' : ''}> • {currentViewElements} {t('common.of', 'of')} {totalElements} {t('programs.elements', 'elements')}</span>
@@ -251,12 +260,12 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                               highlightedElementId === element.id ? 'ring-2 ring-yellow-400 animate-pulse scale-110' : ''
                             )}
                             onClick={() => onElementClick?.(element)}
-                            title={`${element.title || ELEMENT_TYPES[element.type]}${isCoachTask ? ' (Coach Task)' : ''}`}
+                            title={`${element.title || ELEMENT_TYPES[element.type]}${isCoachTask ? ` (${t('programs.coachTask', 'Coach Task')})` : ''}`}
                           >
                             <div className="flex items-center gap-1">
                               <Icon className={isMobile ? 'w-2.5 h-2.5 flex-shrink-0' : 'w-3 h-3 flex-shrink-0'} />
                               {isCoachTask && (
-                                <div className={`${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} rounded-full bg-yellow-300 border border-yellow-500`} title="Coach Task" />
+                                <div className={`${isMobile ? 'w-1.5 h-1.5' : 'w-2 h-2'} rounded-full bg-yellow-300 border border-yellow-500`} title={t('programs.coachTask', 'Coach Task')} />
                               )}
                             </div>
                             <div className={`mt-0.5 ${isMobile ? 'text-[9px]' : 'text-[10px]'} leading-tight break-words`}>
