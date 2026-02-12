@@ -1628,15 +1628,15 @@
         "rating": "Vurdering (0-5)"
     },
     "streak": {
-        "dayStreak": "dages streak",
+        "dayStreak": "dages stribe",
         "points": "Point",
         "level": "Niveau",
         "next": "Næste",
         "daysToGo": "dage tilbage",
         "progress": "Fremgang",
         "toLevel": "til Niveau",
-        "streakTitle": "Daglig Streak",
-        "streakDescription": "Dine på hinanden følgende dage med at fuldføre daglige tjek-ind. Fuldfør et tjek-ind hver dag for at bevare din streak!",
+        "streakTitle": "Daglig Stribe",
+        "streakDescription": "Dine på hinanden følgende dage med at fuldføre daglige tjek-ind. Fuldfør et tjek-ind hver dag for at bevare din stribe!",
         "pointsTitle": "Engagement Point",
         "pointsDescription": "Optjen 1 point for hver: daglige tjek-ind, afsluttede opgaver, viste ressourcer og deltagelse i sessioner. Point hjælper dig med at stige i niveau og spore din fremgang!",
         "levelTitle": "Niveau",
