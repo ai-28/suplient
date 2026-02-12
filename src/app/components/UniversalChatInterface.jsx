@@ -505,7 +505,7 @@ export function UniversalChatInterface({
         <div className="flex items-center gap-2">
             {currentUserRole === "client" && chatType === "personal" ? <Button variant="default" size="sm" className="h-8 px-3 text-xs flex items-center gap-1" onClick={() => router.push('/client/book-session')}>
               <Video className="h-3 w-3" />
-              <span>1-1</span>
+              <span>{t('sessions.oneOnOne', '1-1')}</span>
             </Button> : chatType === "group" ? (
               <Button 
                 variant="default" 
@@ -521,20 +521,20 @@ export function UniversalChatInterface({
                     if (data.success && data.session?.meetingUrl) {
                       window.open(data.session.meetingUrl, '_blank');
                     } else {
-                      alert('No active session available. Please contact your coach.');
+                      alert(t('sessions.noActiveSession', 'No active session available. Please contact your coach.'));
                     }
                   } catch (error) {
                     console.error('Error joining session:', error);
-                    alert('Unable to join session. Please try again or contact your coach.');
+                    alert(t('sessions.unableToJoinSession', 'Unable to join session. Please try again or contact your coach.'));
                   }
                 }}
               >
                 <Video className="h-3 w-3" />
-                <span>Join Session</span>
+                <span>{t('sessions.joinSession', 'Join Session')}</span>
               </Button>
             ) : allowScheduling ? <Button variant="ghost" size="sm" className="hover:bg-accent flex items-center gap-2" onClick={() => setIsScheduleDialogOpen(true)}>
               <Calendar className="h-4 w-4" />
-              <span className="text-xs">Book Session</span>
+              <span className="text-xs">{t('sessions.bookSession', 'Book Session')}</span>
             </Button> : null}
         </div>
       </div>

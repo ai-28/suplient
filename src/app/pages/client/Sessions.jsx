@@ -166,7 +166,7 @@ export default function ClientSessions() {
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Users className="h-3 w-3 flex-shrink-0" />
-                              <span>{group.members}/{group.maxMembers || '∞'} members</span>
+                              <span>{group.members}/{group.maxMembers || '∞'} {t('groups.membersLowercase', 'members')}</span>
                             </div>
                             <Badge variant="outline" className="text-xs w-fit">
                               {group.focusArea || 'General'}
@@ -208,13 +208,13 @@ export default function ClientSessions() {
   const getResponseGuaranteeText = (chatType) => {
     switch (chatType) {
       case 'personal':
-        return 'Response within 24h';
+        return t('chat.responseWithin24h', 'Response within 24h');
       case 'light':
-        return 'Response within 7 days';
+        return t('chat.responseWithin7Days', 'Response within 7 days');
       case 'group':
-        return 'Response within 7 days';
+        return t('chat.responseWithin7Days', 'Response within 7 days');
       default:
-        return 'Response within 24h';
+        return t('chat.responseWithin24h', 'Response within 24h');
     }
   };
 
@@ -235,7 +235,7 @@ export default function ClientSessions() {
         >
           <TabsList className="w-full grid grid-cols-2 h-12 bg-transparent p-0">
             <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-              1-1
+              {t('sessions.oneOnOne', '1-1')}
             </TabsTrigger>
             <TabsTrigger value="groups" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
               {t('navigation.groups')}
@@ -283,7 +283,7 @@ export default function ClientSessions() {
                 onClick={() => router.push('/client/book-session')}
               >
                 <Video className="h-3 w-3" />
-                <span>1-1</span>
+                <span>{t('sessions.oneOnOne', '1-1')}</span>
               </Button>
             </div>
           </div>
@@ -312,7 +312,7 @@ export default function ClientSessions() {
                 <h3 className="font-medium text-foreground truncate">{activeGroup.name}</h3>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">
-                    {activeGroup.members}/{activeGroup.maxMembers || '∞'} members
+                    {activeGroup.members}/{activeGroup.maxMembers || '∞'} {t('groups.membersLowercase', 'members')}
                   </Badge>
                 </div>
               </div>
@@ -331,16 +331,16 @@ export default function ClientSessions() {
                     if (data.success && data.session?.meetingUrl) {
                       window.open(data.session.meetingUrl, '_blank');
                     } else {
-                      alert('No active session available. Please contact your coach.');
+                      alert(t('sessions.noActiveSession', 'No active session available. Please contact your coach.'));
                     }
                   } catch (error) {
                     console.error('Error joining session:', error);
-                    alert('Unable to join session. Please try again or contact your coach.');
+                    alert(t('sessions.unableToJoinSession', 'Unable to join session. Please try again or contact your coach.'));
                   }
                 }}
               >
                 <Video className="h-3 w-3" />
-                <span>Join Session</span>
+                <span>{t('sessions.joinSession', 'Join Session')}</span>
               </Button>
             </div>
           </div>

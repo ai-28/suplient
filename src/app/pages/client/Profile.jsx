@@ -352,6 +352,7 @@ const useGoalTracking = () => {
 };
 
 function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, onCancelSubscription, onRefresh, isMobile, userData }) {
+  const t = useTranslation();
   const { data: session } = useSession();
   const [creatingSubscription, setCreatingSubscription] = useState(null);
   const [coachProducts, setCoachProducts] = useState([]);
@@ -391,7 +392,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to create subscription');
+        throw new Error(error.error || t('client.profile.billing.failedToCreateSubscription', 'Failed to create subscription'));
       }
 
       const data = await response.json();
@@ -400,7 +401,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
       }
     } catch (error) {
       console.error('Error creating subscription:', error);
-      toast.error(error.message || 'Failed to create subscription');
+      toast.error(error.message || t('client.profile.billing.failedToCreateSubscription', 'Failed to create subscription'));
     } finally {
       setCreatingSubscription(null);
     }
@@ -440,7 +441,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                Subscribe to Services
+                {t('client.profile.billing.subscribeToServices', 'Subscribe to Services')}
               </CardTitle>
             </CardHeader>
           )}
@@ -453,7 +454,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
             ) : coachProducts.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground text-sm">
-                  Your coach hasn't set up subscription products yet.
+                  {t('client.profile.billing.noProducts', "Your coach hasn't set up subscription products yet.")}
                 </p>
               </div>
             ) : (
@@ -463,13 +464,13 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                   <div className={`p-4 rounded-lg border ${isMobile ? 'p-3' : ''}`}>
                     <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
                       <div className="flex-1">
-                        <h4 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>Program</h4>
+                        <h4 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>{t('client.profile.billing.program', 'Program')}</h4>
                         <p className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          Access to your coach's program
+                          {t('client.profile.billing.programDescription', "Access to your coach's program")}
                         </p>
                         {isIOSDevice ? (
                           <Badge variant={hasActiveSubscription('program') ? 'default' : 'secondary'} className="mt-2">
-                            {hasActiveSubscription('program') ? 'Active' : 'Inactive'}
+                            {hasActiveSubscription('program') ? t('common.status.active', 'Active') : t('common.status.inactive', 'Inactive')}
                           </Badge>
                         ) : (
                           <>
@@ -485,12 +486,12 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                               {creatingSubscription?.includes('program') ? (
                                 <>
                                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Processing...
+                                  {t('client.profile.billing.processing', 'Processing...')}
                                 </>
                               ) : hasActiveSubscription('program') ? (
-                                'Already Subscribed'
+                                t('client.profile.billing.alreadySubscribed', 'Already Subscribed')
                               ) : (
-                                'Subscribe'
+                                t('client.profile.billing.subscribe', 'Subscribe')
                               )}
                             </Button>
                           </>
@@ -505,13 +506,13 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                   <div className={`p-4 rounded-lg border ${isMobile ? 'p-3' : ''}`}>
                     <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between'}`}>
                       <div className="flex-1">
-                        <h4 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>Group Membership</h4>
+                        <h4 className={`font-semibold ${isMobile ? 'text-sm' : ''}`}>{t('client.profile.billing.groupMembership', 'Group Membership')}</h4>
                         <p className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          Join your coach's group sessions
+                          {t('client.profile.billing.groupMembershipDescription', "Join your coach's group sessions")}
                         </p>
                         {isIOSDevice ? (
                           <Badge variant={hasActiveSubscription('group') ? 'default' : 'secondary'} className="mt-2">
-                            {hasActiveSubscription('group') ? 'Active' : 'Inactive'}
+                            {hasActiveSubscription('group') ? t('common.status.active', 'Active') : t('common.status.inactive', 'Inactive')}
                           </Badge>
                         ) : (
                           <>
@@ -527,12 +528,12 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                               {creatingSubscription?.includes('group') ? (
                                 <>
                                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Processing...
+                                  {t('client.profile.billing.processing', 'Processing...')}
                                 </>
                               ) : hasActiveSubscription('group') ? (
-                                'Already Subscribed'
+                                t('client.profile.billing.alreadySubscribed', 'Already Subscribed')
                               ) : (
-                                'Subscribe'
+                                t('client.profile.billing.subscribe', 'Subscribe')
                               )}
                             </Button>
                           </>
@@ -553,14 +554,14 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Active Subscriptions
+              {t('client.profile.billing.activeSubscriptions', 'Active Subscriptions')}
             </CardTitle>
-            <CardDescription>Your active subscriptions to coach services</CardDescription>
+            <CardDescription>{t('client.profile.billing.activeSubscriptionsDescription', 'Your active subscriptions to coach services')}</CardDescription>
           </CardHeader>
           <CardContent>
             {subscriptions.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No active subscriptions</p>
+                <p className="text-muted-foreground">{t('client.profile.billing.noActiveSubscriptions', 'No active subscriptions')}</p>
               </div>
             ) : (
               <div className="max-h-[400px] overflow-y-auto space-y-4 pr-2">
@@ -569,10 +570,10 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <h4 className="font-semibold">
-                          {sub.productType === 'program' && 'Program Subscription'}
-                          {sub.productType === 'group' && 'Group Membership'}
+                          {sub.productType === 'program' && t('client.profile.billing.programSubscription', 'Program Subscription')}
+                          {sub.productType === 'group' && t('client.profile.billing.groupMembership', 'Group Membership')}
                         </h4>
-                        <p className="text-sm text-muted-foreground">Coach: {sub.coachName}</p>
+                        <p className="text-sm text-muted-foreground">{t('client.profile.billing.coach', 'Coach')}: {sub.coachName}</p>
                       </div>
                       <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
                         {sub.status}
@@ -580,15 +581,15 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                     </div>
                     <div className="flex items-center justify-between mt-3">
                       <div>
-                        <p className="text-sm text-muted-foreground">Amount</p>
-                        <p className="font-semibold">{(sub.amount / 100).toFixed(0)} DKK/month</p>
+                        <p className="text-sm text-muted-foreground">{t('client.profile.billing.amount', 'Amount')}</p>
+                        <p className="font-semibold">{(sub.amount / 100).toFixed(0)} DKK/{t('client.profile.billing.month', 'month')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Next billing</p>
+                        <p className="text-sm text-muted-foreground">{t('client.profile.billing.nextBilling', 'Next billing')}</p>
                         <p className="text-sm">
                           {sub.currentPeriodEnd 
                             ? new Date(sub.currentPeriodEnd).toLocaleDateString()
-                            : 'N/A'}
+                            : t('client.profile.billing.na', 'N/A')}
                         </p>
                       </div>
                     </div>
@@ -599,7 +600,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                         className="mt-3 w-full"
                         onClick={() => onCancelSubscription(sub.stripeSubscriptionId)}
                       >
-                        Cancel Subscription
+                        {t('client.profile.billing.cancelSubscription', 'Cancel Subscription')}
                       </Button>
                     )}
                   </div>
@@ -614,20 +615,20 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
       {!isIOSDevice && (
         <Card>
           <CardHeader>
-            <CardTitle>Payment History</CardTitle>
-            <CardDescription>Your recent payments</CardDescription>
+            <CardTitle>{t('client.profile.billing.paymentHistory', 'Payment History')}</CardTitle>
+            <CardDescription>{t('client.profile.billing.paymentHistoryDescription', 'Your recent payments')}</CardDescription>
           </CardHeader>
           <CardContent>
             {payments.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No payment history</p>
+                <p className="text-muted-foreground">{t('client.profile.billing.noPaymentHistory', 'No payment history')}</p>
               </div>
             ) : (
               <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
                 {payments.map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
-                      <p className="font-medium">{payment.description || 'Payment'}</p>
+                      <p className="font-medium">{payment.description || t('client.profile.payment', 'Payment')}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(payment.createdAt).toLocaleDateString()}
                       </p>
@@ -652,14 +653,14 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
-              Custom Payment
+              {t('client.profile.billing.customPayment', 'Custom Payment')}
             </CardTitle>
-            <CardDescription>Make a custom payment to your coach</CardDescription>
+            <CardDescription>{t('client.profile.billing.customPaymentDescription', 'Make a custom payment to your coach')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="p-4 rounded-lg border bg-muted/30">
               <p className="text-sm text-muted-foreground mb-4">
-                Need to make a custom payment? Enter any amount you'd like to pay to your coach.
+                {t('client.profile.billing.customPaymentHelp', "Need to make a custom payment? Enter any amount you'd like to pay to your coach.")}
               </p>
               <Button
                 onClick={() => window.location.href = '/client/custom-payment'}
@@ -667,7 +668,7 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                 variant="outline"
               >
                 <CreditCard className="h-4 w-4 mr-2" />
-                Make Custom Payment
+                {t('client.profile.billing.makeCustomPayment', 'Make Custom Payment')}
               </Button>
             </div>
           </CardContent>
@@ -678,13 +679,13 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
       {!isIOSDevice && (
         <Card>
           <CardHeader>
-            <CardTitle>Payment Methods</CardTitle>
-            <CardDescription>Your saved payment methods</CardDescription>
+            <CardTitle>{t('client.profile.billing.paymentMethods', 'Payment Methods')}</CardTitle>
+            <CardDescription>{t('client.profile.billing.paymentMethodsDescription', 'Your saved payment methods')}</CardDescription>
           </CardHeader>
           <CardContent>
             {paymentMethods.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No payment methods saved</p>
+                <p className="text-muted-foreground">{t('client.profile.billing.noPaymentMethods', 'No payment methods saved')}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -697,12 +698,12 @@ function ClientBillingTab({ loading, subscriptions, payments, paymentMethods, on
                           {method.brand?.toUpperCase()} •••• {method.last4}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Expires {method.expMonth}/{method.expYear}
+                          {t('client.profile.billing.expires', 'Expires')} {method.expMonth}/{method.expYear}
                         </p>
                       </div>
                     </div>
                     {method.isDefault && (
-                      <Badge variant="outline">Default</Badge>
+                      <Badge variant="outline">{t('client.profile.billing.default', 'Default')}</Badge>
                     )}
                   </div>
                 ))}
@@ -848,11 +849,11 @@ export default function ClientProfile() {
         throw new Error(error.error || 'Failed to cancel subscription');
       }
 
-      toast.success('Subscription will be canceled at the end of the billing period');
+      toast.success(t('client.profile.subscriptionWillBeCanceled', 'Subscription will be canceled at the end of the billing period'));
       fetchBillingData();
     } catch (error) {
       console.error('Error canceling subscription:', error);
-      toast.error(error.message || 'Failed to cancel subscription');
+      toast.error(error.message || t('client.profile.failedToCancelSubscription', 'Failed to cancel subscription'));
     }
   };
 
@@ -915,11 +916,11 @@ export default function ClientProfile() {
             }
           }
         } else {
-          toast.error('Failed to load user data');
+          toast.error(t('client.profile.failedToLoadUserData', 'Failed to load user data'));
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
-        toast.error('Failed to load user data');
+        toast.error(t('client.profile.failedToLoadUserData', 'Failed to load user data'));
       } finally {
         setLoading(false);
       }
@@ -970,7 +971,7 @@ export default function ClientProfile() {
 
   const handleAddCustomGoal = async () => {
     if (!newGoalName.trim()) {
-      toast.error("Please enter a goal name");
+      toast.error(t('client.profile.pleaseEnterGoalName', 'Please enter a goal name'));
       return;
     }
     
@@ -980,15 +981,15 @@ export default function ClientProfile() {
       setNewGoalIcon("🎯");
       setNewGoalColor("#3B82F6");
       setShowCustomGoalDialog(false);
-      toast.success("Custom goal added successfully!");
+      toast.success(t('client.profile.customGoalAdded', 'Custom goal added successfully!'));
     } catch (error) {
-      toast.error(error.message || "Failed to add custom goal");
+      toast.error(error.message || t('client.profile.failedToAddGoal', 'Failed to add custom goal'));
     }
   };
 
   const handleAddCustomBadHabit = async () => {
     if (!newBadHabitName.trim()) {
-      toast.error("Please enter a habit name");
+      toast.error(t('client.profile.pleaseEnterHabitName', 'Please enter a habit name'));
       return;
     }
     
@@ -998,45 +999,45 @@ export default function ClientProfile() {
       setNewBadHabitIcon("📱");
       setNewBadHabitColor("#EF4444");
       setShowCustomBadHabitDialog(false);
-      toast.success("Custom habit added successfully!");
+      toast.success(t('client.profile.customHabitAdded', 'Custom habit added successfully!'));
     } catch (error) {
-      toast.error(error.message || "Failed to add custom habit");
+      toast.error(error.message || t('client.profile.failedToAddHabit', 'Failed to add custom habit'));
     }
   };
 
   const handleToggleGoal = async (goalId) => {
     try {
       await toggleGoal(goalId);
-      toast.success("Goal updated successfully!");
+      toast.success(t('client.profile.goalUpdated', 'Goal updated successfully!'));
     } catch (error) {
-      toast.error(error.message || "Failed to update goal");
+      toast.error(error.message || t('client.profile.failedToUpdateGoal', 'Failed to update goal'));
     }
   };
 
   const handleToggleBadHabit = async (habitId) => {
     try {
       await toggleBadHabit(habitId);
-      toast.success("Habit tracking updated!");
+      toast.success(t('client.profile.habitTrackingUpdated', 'Habit tracking updated!'));
     } catch (error) {
-      toast.error(error.message || "Failed to update habit");
+      toast.error(error.message || t('client.profile.failedToUpdateHabit', 'Failed to update habit'));
     }
   };
 
   const handleRemoveCustomGoal = async (goalId, goalName) => {
     try {
       await removeCustomGoal(goalId);
-      toast.success(`"${goalName}" removed successfully!`);
+      toast.success(t('client.profile.goalRemoved', '"{name}" removed successfully!').replace('{name}', goalName));
     } catch (error) {
-      toast.error(error.message || "Failed to remove goal");
+      toast.error(error.message || t('client.profile.failedToRemoveGoal', 'Failed to remove goal'));
     }
   };
 
   const handleRemoveCustomBadHabit = async (habitId, habitName) => {
     try {
       await removeCustomBadHabit(habitId);
-      toast.success(`"${habitName}" removed successfully!`);
+      toast.success(t('client.profile.habitRemoved', '"{name}" removed successfully!').replace('{name}', habitName));
     } catch (error) {
-      toast.error(error.message || "Failed to remove habit");
+      toast.error(error.message || t('client.profile.failedToRemoveHabit', 'Failed to remove habit'));
     }
   };
 
@@ -1067,19 +1068,19 @@ export default function ClientProfile() {
       localStorage.setItem('notificationsEnabled', enabled.toString());
       
       toast.success(
-        enabled ? "Notifications enabled" : "Notifications disabled",
+        enabled ? t('client.profile.notificationsEnabled', 'Notifications enabled') : t('client.profile.notificationsDisabled', 'Notifications disabled'),
         {
           description: enabled 
-            ? "You'll receive notifications for messages, tasks, and sessions"
-            : "You won't receive any notifications"
+            ? t('client.profile.notificationsEnabledDescription', "You'll receive notifications for messages, tasks, and sessions")
+            : t('client.profile.notificationsDisabledDescription', "You won't receive any notifications")
         }
       );
       } else {
-        throw new Error(data.error || 'Failed to save notification preference');
+        throw new Error(data.error || t('client.profile.failedToSaveNotificationPreference', 'Failed to save notification preference'));
       }
     } catch (error) {
       console.error('Error saving notification preference:', error);
-      toast.error("Failed to save notification preference");
+      toast.error(t('client.profile.failedToSaveNotificationPreference', 'Failed to save notification preference'));
       // Revert state on error
       setNotificationsEnabled(!enabled);
     }
@@ -1117,13 +1118,13 @@ export default function ClientProfile() {
 
       if (isHeic) {
         try {
-          toast.info('Converting HEIC image to JPEG...', { duration: 2000 });
+          toast.info(t('client.profile.convertingHeic', 'Converting HEIC image to JPEG...'), { duration: 2000 });
           fileToUse = await convertHeicToJpeg(file);
-          toast.success('HEIC image converted successfully', { duration: 2000 });
+          toast.success(t('client.profile.heicConverted', 'HEIC image converted successfully'), { duration: 2000 });
         } catch (conversionError) {
           console.error('Error converting HEIC:', conversionError);
-          toast.error('Failed to convert HEIC image', {
-            description: conversionError.message || 'Please try converting it to JPEG first, or use a different image format.'
+          toast.error(t('client.profile.failedToConvertHeic', 'Failed to convert HEIC image'), {
+            description: conversionError.message || t('client.profile.heicConversionError', 'Please try converting it to JPEG first, or use a different image format.')
           });
           return;
         }
@@ -1147,8 +1148,8 @@ export default function ClientProfile() {
       reader.readAsDataURL(fileToUse);
     } catch (error) {
       console.error('Error picking avatar:', error);
-      toast.error('Failed to pick image', {
-        description: error.message || 'An unexpected error occurred. Please try again or use a different image.'
+      toast.error(t('client.profile.failedToPickImage', 'Failed to pick image'), {
+        description: error.message || t('client.profile.imagePickError', 'An unexpected error occurred. Please try again or use a different image.')
       });
     }
   };
@@ -1170,13 +1171,13 @@ export default function ClientProfile() {
       // Convert HEIC to JPEG if needed
       if (isHeic) {
         try {
-          toast.info('Converting HEIC image to JPEG...', { duration: 2000 });
+          toast.info(t('client.profile.convertingHeic', 'Converting HEIC image to JPEG...'), { duration: 2000 });
           fileToUse = await convertHeicToJpeg(file);
-          toast.success('HEIC image converted successfully', { duration: 2000 });
+          toast.success(t('client.profile.heicConverted', 'HEIC image converted successfully'), { duration: 2000 });
         } catch (conversionError) {
           console.error('Error converting HEIC:', conversionError);
-          toast.error('Failed to convert HEIC image', {
-            description: conversionError.message || 'Please try converting it to JPEG first, or use a different image format.'
+          toast.error(t('client.profile.failedToConvertHeic', 'Failed to convert HEIC image'), {
+            description: conversionError.message || t('client.profile.heicConversionError', 'Please try converting it to JPEG first, or use a different image format.')
           });
           return;
         }
@@ -1200,8 +1201,8 @@ export default function ClientProfile() {
       reader.readAsDataURL(fileToUse);
     } catch (error) {
       console.error('Error processing image:', error);
-      toast.error('Failed to process image', {
-        description: error.message || 'An unexpected error occurred. Please try again or use a different image.'
+      toast.error(t('client.profile.failedToProcessImage', 'Failed to process image'), {
+        description: error.message || t('client.profile.imageProcessError', 'An unexpected error occurred. Please try again or use a different image.')
       });
     }
   };
@@ -1257,7 +1258,7 @@ export default function ClientProfile() {
     const file = selectedFile;
     
     if (!file) {
-      toast.error('Please select an image file');
+      toast.error(t('client.profile.pleaseSelectImage', 'Please select an image file'));
       return;
     }
 
@@ -1278,7 +1279,7 @@ export default function ClientProfile() {
       });
 
       if (!initiateResponse.ok) {
-        let errorMessage = 'Failed to initiate avatar upload';
+        let errorMessage = t('client.profile.failedToInitiateUpload', 'Failed to initiate avatar upload');
         let errorDetails = null;
         
         try {
@@ -1286,7 +1287,7 @@ export default function ClientProfile() {
           errorMessage = errorData.error || errorMessage;
           errorDetails = errorData.details || null;
         } catch (e) {
-          errorMessage = `Failed to initiate upload (${initiateResponse.status} ${initiateResponse.statusText})`;
+          errorMessage = t('client.profile.failedToInitiateUploadStatus', 'Failed to initiate upload ({status} {statusText})').replace('{status}', initiateResponse.status).replace('{statusText}', initiateResponse.statusText);
         }
         
         toast.error(errorMessage, {
@@ -1298,8 +1299,8 @@ export default function ClientProfile() {
       const initiateResult = await initiateResponse.json();
       
       if (!initiateResult.success) {
-        toast.error(initiateResult.error || 'Failed to initiate upload', {
-          description: initiateResult.details || `File: ${file.name}`
+        toast.error(initiateResult.error || t('client.profile.failedToInitiateUpload', 'Failed to initiate avatar upload'), {
+          description: initiateResult.details || t('client.profile.file', 'File: {name}').replace('{name}', file.name)
         });
         return;
       }
@@ -1326,12 +1327,12 @@ export default function ClientProfile() {
       });
 
       if (!completeResponse.ok) {
-        let errorMessage = 'Failed to complete avatar upload';
+        let errorMessage = t('client.profile.failedToCompleteUpload', 'Failed to complete avatar upload');
         try {
           const errorData = await completeResponse.json();
           errorMessage = errorData.error || errorMessage;
         } catch (e) {
-          errorMessage = `Failed to complete upload (${completeResponse.status})`;
+          errorMessage = t('client.profile.failedToCompleteUploadStatus', 'Failed to complete upload ({status})').replace('{status}', completeResponse.status);
         }
         toast.error(errorMessage);
         return;
@@ -1340,7 +1341,7 @@ export default function ClientProfile() {
       const completeResult = await completeResponse.json();
 
       if (completeResult.success) {
-        toast.success('Avatar uploaded successfully!');
+        toast.success(t('client.profile.avatarUploaded', 'Avatar uploaded successfully!'));
         // Clear selected file and preview
         setSelectedFile(null);
         setAvatarPreview(null);
@@ -1362,25 +1363,25 @@ export default function ClientProfile() {
           }, 100);
         }
       } else {
-        toast.error(completeResult.error || 'Failed to complete avatar upload');
+        toast.error(completeResult.error || t('client.profile.failedToCompleteUpload', 'Failed to complete avatar upload'));
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
       
-      let errorMessage = 'Failed to upload avatar';
+      let errorMessage = t('client.profile.failedToUploadAvatar', 'Failed to upload avatar');
       let errorDescription = null;
       
       if (error.name === 'NetworkError' || error.message?.includes('fetch')) {
-        errorMessage = 'Network error';
-        errorDescription = 'Please check your internet connection and try again.';
+        errorMessage = t('client.profile.networkError', 'Network error');
+        errorDescription = t('client.profile.networkErrorDescription', 'Please check your internet connection and try again.');
       } else if (error.message?.includes('Failed to fetch')) {
-        errorMessage = 'Connection failed';
-        errorDescription = 'Unable to connect to server. Please check your connection and try again later.';
+        errorMessage = t('client.profile.connectionFailed', 'Connection failed');
+        errorDescription = t('client.profile.connectionFailedDescription', 'Unable to connect to server. Please check your connection and try again later.');
       } else if (error.message) {
         errorMessage = error.message;
-        errorDescription = `File: ${file?.name || 'unknown'}`;
+        errorDescription = t('client.profile.file', 'File: {name}').replace('{name}', file?.name || t('client.profile.unknown', 'unknown'));
       } else {
-        errorDescription = `File: ${file?.name || 'unknown'}. Please try again.`;
+        errorDescription = t('client.profile.fileTryAgain', 'File: {name}. Please try again.').replace('{name}', file?.name || t('client.profile.unknown', 'unknown'));
       }
       
       toast.error(errorMessage, {
@@ -1403,7 +1404,7 @@ export default function ClientProfile() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Avatar removed successfully!');
+        toast.success(t('client.profile.avatarRemoved', 'Avatar removed successfully!'));
         setAvatarPreview(null);
         // Update user data
         setUserData(prev => ({
@@ -1415,11 +1416,11 @@ export default function ClientProfile() {
           window.location.reload();
         }
       } else {
-        toast.error(data.error || 'Failed to remove avatar');
+        toast.error(data.error || t('client.profile.failedToRemoveAvatar', 'Failed to remove avatar'));
       }
     } catch (error) {
       console.error('Error removing avatar:', error);
-      toast.error('Failed to remove avatar');
+      toast.error(t('client.profile.failedToRemoveAvatar', 'Failed to remove avatar'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -1428,7 +1429,7 @@ export default function ClientProfile() {
   // Handle save profile
   const handleSaveProfile = async () => {
     if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error('Please fill in all required fields');
+      toast.error(t('client.profile.pleaseFillRequiredFields', 'Please fill in all required fields'));
       return;
     }
 
@@ -1448,13 +1449,13 @@ export default function ClientProfile() {
       if (response.ok && data.success) {
         // Update userData with the response
         setUserData(data.user);
-        toast.success('Profile updated successfully!');
+        toast.success(t('client.profile.profileUpdated', 'Profile updated successfully!'));
       } else {
-        throw new Error(data.error || 'Failed to update profile');
+        throw new Error(data.error || t('client.profile.failedToUpdateProfile', 'Failed to update profile'));
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || 'Failed to update profile');
+      toast.error(error.message || t('client.profile.failedToUpdateProfile', 'Failed to update profile'));
     } finally {
       setSaving(false);
     }
@@ -1463,7 +1464,7 @@ export default function ClientProfile() {
   // Handle deactivate profile
   const handleDeactivateProfile = async () => {
     if (!session?.user?.id) {
-      toast.error('You must be logged in to deactivate your profile');
+      toast.error(t('client.profile.mustBeLoggedInToDeactivate', 'You must be logged in to deactivate your profile'));
       return;
     }
 
@@ -1479,17 +1480,17 @@ export default function ClientProfile() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Profile deactivated successfully');
+        toast.success(t('client.profile.profileDeactivated', 'Profile deactivated successfully'));
         // Sign out after deactivation
         setTimeout(() => {
           signOut({ callbackUrl: '/login' });
         }, 2000);
       } else {
-        toast.error(data.error || 'Failed to deactivate profile');
+        toast.error(data.error || t('client.profile.failedToDeactivateProfile', 'Failed to deactivate profile'));
       }
     } catch (error) {
       console.error('Error deactivating profile:', error);
-      toast.error('Failed to deactivate profile');
+      toast.error(t('client.profile.failedToDeactivateProfile', 'Failed to deactivate profile'));
     } finally {
       setDeactivating(false);
     }
@@ -1498,7 +1499,7 @@ export default function ClientProfile() {
   // Handle delete account
   const handleDeleteAccount = async () => {
     if (!session?.user?.id) {
-      toast.error('You must be logged in to delete your account');
+      toast.error(t('client.profile.mustBeLoggedInToDelete', 'You must be logged in to delete your account'));
       return;
     }
 
@@ -1514,17 +1515,17 @@ export default function ClientProfile() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Account deleted successfully');
+        toast.success(t('client.profile.accountDeleted', 'Account deleted successfully'));
         // Sign out after deletion
         setTimeout(() => {
           signOut({ callbackUrl: '/login' });
         }, 2000);
       } else {
-        toast.error(data.error || 'Failed to delete account');
+        toast.error(data.error || t('client.profile.failedToDeleteAccount', 'Failed to delete account'));
       }
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
+      toast.error(t('client.profile.failedToDeleteAccount', 'Failed to delete account'));
     } finally {
       setDeleting(false);
     }
@@ -1532,15 +1533,15 @@ export default function ClientProfile() {
 
   // Get assigned therapist from user data
   const assignedTherapist = userData?.coachId ? {
-    name: userData.coachName || "Your Coach", 
-    specialization: "Mental Health Professional", 
-    since: "Recently",
+    name: userData.coachName || t('client.profile.yourCoach', 'Your Coach'), 
+    specialization: t('client.profile.mentalHealthProfessional', 'Mental Health Professional'), 
+    since: t('client.profile.recently', 'Recently'),
     email: userData.coachEmail || "stevenjohn201315@gmail.com", // Use real coach email
     phone: userData.coachPhone || "+1 (555) 000-0000"
   } : {
     name: "Dr. Steven Johnson", 
-    specialization: "Mental Health Professional", 
-    since: "Recently",
+    specialization: t('client.profile.mentalHealthProfessional', 'Mental Health Professional'), 
+    since: t('client.profile.recently', 'Recently'),
     email: "stevenjohn201315@gmail.com", // Your actual coach email
     phone: "+1 (555) 000-0000"
   };
@@ -1575,7 +1576,7 @@ export default function ClientProfile() {
 
   const handleSendMessage = async () => {
     if (!contactMessage.trim()) {
-      toast.error('Please enter a message');
+      toast.error(t('client.profile.pleaseEnterMessage', 'Please enter a message'));
       return;
     }
 
@@ -1600,22 +1601,22 @@ export default function ClientProfile() {
           message: contactMessage.trim(),
           coachEmail: assignedTherapist.email,
           coachName: assignedTherapist.name,
-          clientName: userData?.name || 'Client'
+          clientName: userData?.name || t('client.dashboard.client', 'Client')
         }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success('Message sent successfully!');
+        toast.success(t('client.profile.messageSent', 'Message sent successfully!'));
         setContactMessage("");
         setShowContactDialog(false);
       } else {
-        throw new Error(data.error || 'Failed to send message');
+        throw new Error(data.error || t('client.profile.failedToSendMessage', 'Failed to send message'));
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error(error.message || 'Failed to send message');
+      toast.error(error.message || t('client.profile.failedToSendMessage', 'Failed to send message'));
     } finally {
       setSendingMessage(false);
     }
@@ -1722,7 +1723,7 @@ export default function ClientProfile() {
             {/* Profile Picture */}
             <Card className={`${isMobile ? 'order-2' : ''}`}>
               <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
-                <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>Profile Picture</CardTitle>
+                <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>{t('client.profile.profilePicture', 'Profile Picture')}</CardTitle>
               </CardHeader>
               <CardContent className={`text-center space-y-4 ${isMobile ? 'py-4' : ''}`}>
                 <div className="relative mx-auto inline-block">
@@ -1767,7 +1768,7 @@ export default function ClientProfile() {
                       disabled={uploadingAvatar}
                     >
                       <Camera className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
-                      {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                      {avatarPreview ? t('client.profile.changePhoto', 'Change Photo') : t('client.profile.uploadPhoto', 'Upload Photo')}
                     </Button>
                     {avatarPreview && (
                       <div className="flex gap-2">
@@ -1781,10 +1782,10 @@ export default function ClientProfile() {
                           {uploadingAvatar ? (
                             <>
                               <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} mr-2 animate-spin`} />
-                              Uploading...
+                              {t('client.profile.uploading', 'Uploading...')}
                             </>
                           ) : (
-                            'Save Photo'
+                            t('client.profile.savePhoto', 'Save Photo')
                           )}
                         </Button>
                         <Button 
@@ -1908,9 +1909,9 @@ export default function ClientProfile() {
             <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
               <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                 <User className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                My Therapist
+                {t('client.profile.myTherapist', 'My Therapist')}
               </CardTitle>
-              <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Your assigned mental health professional (full access)</CardDescription>
+              <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.myTherapistDescription', 'Your assigned mental health professional (full access)')}</CardDescription>
             </CardHeader>
             <CardContent className={`${isMobile ? 'p-3' : ''}`}>
               <div className={`${isMobile ? 'flex flex-col space-y-3 p-3' : 'flex items-center justify-between p-4'} border rounded-lg bg-muted/30`}>
@@ -1922,8 +1923,8 @@ export default function ClientProfile() {
                   </Avatar>
                   <div className={`${isMobile ? 'flex-1' : ''}`}>
                     <h3 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{assignedTherapist.name}</h3>
-                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>{assignedTherapist.specialization}</p>
-                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>Working together since {assignedTherapist.since}</p>
+                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>{assignedTherapist.specialization || t('client.profile.mentalHealthProfessional', 'Mental Health Professional')}</p>
+                    <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>{t('client.profile.workingTogetherSince', 'Working together since')} {assignedTherapist.since || t('client.profile.recently', 'Recently')}</p>
                   </div>
                 </div>
                 <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
@@ -1934,7 +1935,7 @@ export default function ClientProfile() {
                     onClick={handleContactTherapist}
                   >
                     <MessageCircle className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-1'}`} />
-                    Contact
+                    {t('client.profile.contact', 'Contact')}
                   </Button>
                 </div>
               </div>
@@ -1947,7 +1948,7 @@ export default function ClientProfile() {
           {goalsLoading && (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <span className="ml-2 text-muted-foreground">Loading goals...</span>
+              <span className="ml-2 text-muted-foreground">{t('client.profile.loadingGoals', 'Loading goals...')}</span>
             </div>
           )}
 
@@ -1957,7 +1958,7 @@ export default function ClientProfile() {
               <CardContent className="p-6 text-center">
                 <div className="text-red-500 mb-2">⚠️</div>
                 <p className="text-muted-foreground">{goalsError}</p>
-                <p className="text-sm text-muted-foreground mt-2">Using demo data as fallback</p>
+                <p className="text-sm text-muted-foreground mt-2">{t('client.profile.usingDemoData', 'Using demo data as fallback')}</p>
               </CardContent>
             </Card>
           )}
@@ -1967,8 +1968,8 @@ export default function ClientProfile() {
             <>
             <Card>
             <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
-              <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>Overall Progress</CardTitle>
-              <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Your current goal achievement level</CardDescription>
+              <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>{t('client.profile.overallProgress', 'Overall Progress')}</CardTitle>
+              <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.overallProgressDescription', 'Your current goal achievement level')}</CardDescription>
             </CardHeader>
             <CardContent className={`${isMobile ? 'p-4' : ''}`}>
               <div className={`text-center space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
@@ -1976,7 +1977,7 @@ export default function ClientProfile() {
                   {calculateOverallScore()}%
                 </div>
                 <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
-                  Based on {goals.filter(g => g.isActive).length} active goals
+                  {t('client.profile.basedOnActiveGoals', 'Based on {count} active goals').replace('{count}', goals.filter(g => g.isActive).length)}
                 </p>
                 <div className={`w-full bg-secondary rounded-full ${isMobile ? 'h-2' : 'h-3'}`}>
                   <div 
@@ -1994,14 +1995,14 @@ export default function ClientProfile() {
               <CardTitle className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
                 <div className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                   <Target className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                  Life Area Goals
+                  {t('client.profile.lifeAreaGoals', 'Life Area Goals')}
                 </div>
                 <Badge variant="outline" className={`${isMobile ? 'text-xs' : ''}`}>
-                  {goals.filter(g => g.isActive).length} / {goals.length} active
+                  {goals.filter(g => g.isActive).length} / {goals.length} {t('client.profile.active', 'active')}
                 </Badge>
               </CardTitle>
               <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>
-                Activate goals you want to track daily
+                {t('client.profile.activateGoalsDescription', 'Activate goals you want to track daily')}
               </CardDescription>
             </CardHeader>
             <CardContent className={`${isMobile ? 'p-3' : ''}`}>
@@ -2014,13 +2015,13 @@ export default function ClientProfile() {
                         <div className={`flex items-center gap-2 mb-1 ${isMobile ? 'flex-wrap' : ''}`}>
                           <h3 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{goal.name}</h3>
                           {goal.isCustom && (
-                            <Badge variant="secondary" className={`${isMobile ? 'text-xs px-1 py-0' : 'text-xs'}`}>Custom</Badge>
+                            <Badge variant="secondary" className={`${isMobile ? 'text-xs px-1 py-0' : 'text-xs'}`}>{t('client.profile.custom', 'Custom')}</Badge>
                           )}
                         </div>
                         {goal.isActive && (
                           <div className={`mt-2 ${isMobile ? 'mt-1' : ''}`}>
                             <div className={`flex items-center gap-2 text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                              <span>Current: {goal.currentScore}/5</span>
+                              <span>{t('client.profile.current', 'Current')}: {goal.currentScore}/5</span>
                               <div className={`bg-secondary rounded-full ${isMobile ? 'w-12 h-1' : 'w-16 h-1'}`}>
                                 <div 
                                   className={`rounded-full transition-all ${isMobile ? 'h-1' : 'h-1'}`}
@@ -2065,21 +2066,21 @@ export default function ClientProfile() {
                     className={`w-full ${isMobile ? 'h-10' : ''}`}
                   >
                     <Plus className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'}`} />
-                    Add Custom Goal
+                    {t('client.profile.addCustomGoal', 'Add Custom Goal')}
                   </Button>
                 ) : (
                   <div className={`space-y-3 p-4 border rounded-lg bg-muted/20 ${isMobile ? 'space-y-2 p-3' : ''}`}>
                     <div className="space-y-2">
-                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Goal Name</Label>
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.goalName', 'Goal Name')}</Label>
                       <Input
-                        placeholder="e.g., Learn a new skill"
+                        placeholder={t('client.profile.goalNamePlaceholder', 'e.g., Learn a new skill')}
                         value={newGoalName}
                         onChange={(e) => setNewGoalName(e.target.value)}
                         className={`${isMobile ? 'h-10' : ''}`}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Icon</Label>
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.icon', 'Icon')}</Label>
                       <IconPicker
                         value={newGoalIcon}
                         onChange={setNewGoalIcon}
@@ -2087,7 +2088,7 @@ export default function ClientProfile() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Color</Label>
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.color', 'Color')}</Label>
                       <ColorPicker
                         value={newGoalColor}
                         onChange={setNewGoalColor}
@@ -2095,7 +2096,7 @@ export default function ClientProfile() {
                     </div>
                     <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
                       <Button onClick={handleAddCustomGoal} size={isMobile ? "sm" : "sm"} className={`${isMobile ? 'w-full h-10' : ''}`}>
-                        Add Goal
+                        {t('client.profile.addGoal', 'Add Goal')}
                       </Button>
                       <Button 
                         variant="outline" 
@@ -2108,7 +2109,7 @@ export default function ClientProfile() {
                         size={isMobile ? "sm" : "sm"}
                         className={`${isMobile ? 'w-full h-10' : ''}`}
                       >
-                        Cancel
+                        {t('common.buttons.cancel', 'Cancel')}
                       </Button>
                     </div>
                   </div>
@@ -2123,14 +2124,14 @@ export default function ClientProfile() {
               <CardTitle className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
                 <div className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                   <TrendingDown className={`text-destructive ${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                  Habits to Reduce
+                  {t('client.profile.habitsToReduce', 'Habits to Reduce')}
                 </div>
                 <Badge variant="outline" className={`${isMobile ? 'text-xs' : ''}`}>
-                  {badHabits.filter(h => h.isActive).length} / {badHabits.length} tracking
+                  {badHabits.filter(h => h.isActive).length} / {badHabits.length} {t('client.profile.tracking', 'tracking')}
                 </Badge>
               </CardTitle>
               <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>
-                Select habits you want to track and reduce
+                {t('client.profile.selectHabitsDescription', 'Select habits you want to track and reduce')}
               </CardDescription>
             </CardHeader>
             <CardContent className={`${isMobile ? 'p-3' : ''}`}>
@@ -2143,7 +2144,7 @@ export default function ClientProfile() {
                         <div className={`flex items-center gap-2 mb-1 ${isMobile ? 'flex-wrap' : ''}`}>
                           <h3 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{habit.name}</h3>
                           {habit.isCustom && (
-                            <Badge variant="secondary" className={`${isMobile ? 'text-xs px-1 py-0' : 'text-xs'}`}>Custom</Badge>
+                            <Badge variant="secondary" className={`${isMobile ? 'text-xs px-1 py-0' : 'text-xs'}`}>{t('client.profile.custom', 'Custom')}</Badge>
                           )}
                         </div>
                       </div>
@@ -2178,21 +2179,21 @@ export default function ClientProfile() {
                     className={`w-full ${isMobile ? 'h-10' : ''}`}
                   >
                     <Plus className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-2'}`} />
-                    Add Custom Habit to Reduce
+                    {t('client.profile.addCustomHabit', 'Add Custom Habit to Reduce')}
                   </Button>
                 ) : (
                   <div className={`space-y-3 p-4 border rounded-lg bg-muted/20 ${isMobile ? 'space-y-2 p-3' : ''}`}>
                     <div className="space-y-2">
-                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Habit Name</Label>
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.habitName', 'Habit Name')}</Label>
                       <Input
-                        placeholder="e.g., Excessive screen time"
+                        placeholder={t('client.profile.habitNamePlaceholder', 'e.g., Excessive screen time')}
                         value={newBadHabitName}
                         onChange={(e) => setNewBadHabitName(e.target.value)}
                         className={`${isMobile ? 'h-10' : ''}`}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Icon</Label>
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.icon', 'Icon')}</Label>
                       <IconPicker
                         value={newBadHabitIcon}
                         onChange={setNewBadHabitIcon}
@@ -2200,7 +2201,7 @@ export default function ClientProfile() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className={`${isMobile ? 'text-sm' : ''}`}>Color</Label>
+                      <Label className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.color', 'Color')}</Label>
                       <ColorPicker
                         value={newBadHabitColor}
                         onChange={setNewBadHabitColor}
@@ -2208,7 +2209,7 @@ export default function ClientProfile() {
                     </div>
                     <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>
                       <Button onClick={handleAddCustomBadHabit} size={isMobile ? "sm" : "sm"} className={`${isMobile ? 'w-full h-10' : ''}`}>
-                        Add Habit
+                        {t('client.profile.addHabit', 'Add Habit')}
                       </Button>
                       <Button 
                         variant="outline" 
@@ -2221,7 +2222,7 @@ export default function ClientProfile() {
                         size={isMobile ? "sm" : "sm"}
                         className={`${isMobile ? 'w-full h-10' : ''}`}
                       >
-                        Cancel
+                        {t('common.buttons.cancel', 'Cancel')}
                       </Button>
                     </div>
                   </div>
@@ -2238,7 +2239,7 @@ export default function ClientProfile() {
           {groupsLoading && (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <span className="ml-2 text-muted-foreground">Loading groups...</span>
+              <span className="ml-2 text-muted-foreground">{t('client.profile.loadingGroups', 'Loading groups...')}</span>
             </div>
           )}
 
@@ -2248,7 +2249,7 @@ export default function ClientProfile() {
               <CardContent className="p-6 text-center">
                 <div className="text-red-500 mb-2">⚠️</div>
                 <p className="text-muted-foreground">{groupsError}</p>
-                <p className="text-sm text-muted-foreground mt-2">Unable to load groups data</p>
+                <p className="text-sm text-muted-foreground mt-2">{t('client.profile.unableToLoadGroups', 'Unable to load groups data')}</p>
               </CardContent>
             </Card>
           )}
@@ -2262,9 +2263,9 @@ export default function ClientProfile() {
                   <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
                     <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                       <Users className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                      My Groups ({transformedJoinedGroups.length})
+                      {t('client.profile.myGroups', 'My Groups')} ({transformedJoinedGroups.length})
                     </CardTitle>
-                    <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Support groups you're currently participating in</CardDescription>
+                    <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.myGroupsDescription', "Support groups you're currently participating in")}</CardDescription>
                   </CardHeader>
                   <CardContent className={`${isMobile ? 'p-3' : ''}`}>
                     <div className="space-y-4">
@@ -2274,13 +2275,13 @@ export default function ClientProfile() {
                             <div className="flex-1">
                               <div className={`flex items-center gap-2 mb-1 ${isMobile ? 'flex-wrap' : ''}`}>
                                 <h3 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{group.name}</h3>
-                                <Badge variant="default" className={`${isMobile ? 'text-xs px-1 py-0' : ''}`}>{group.status}</Badge>
+                                <Badge variant="default" className={`${isMobile ? 'text-xs px-1 py-0' : ''}`}>{group.status === 'Active' ? t('common.status.active', 'Active') : group.status}</Badge>
                               </div>
                               <p className={`text-muted-foreground mb-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>{group.description}</p>
                               <div className={`flex ${isMobile ? 'flex-col gap-2' : isTablet ? 'flex-col gap-2' : 'flex-wrap gap-4'} text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>
                                 <div className="flex items-center gap-1">
                                   <Calendar className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                                  <span>Joined {group.joinedDate}</span>
+                                  <span>{t('client.profile.joined', 'Joined')} {group.joinedDate || t('client.profile.recently', 'Recently')}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
@@ -2288,19 +2289,19 @@ export default function ClientProfile() {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Users className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                                  <span>{group.members}/{group.maxMembers} members</span>
+                                  <span>{group.members}/{group.maxMembers} {t('groups.membersLowercase', 'members')}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <TrendingUp className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                                  <span>{group.attendance}% attendance</span>
+                                  <span>{group.attendance}% {t('client.profile.attendance', 'attendance')}</span>
                                 </div>
                               </div>
                             </div>
                           </div>
                           <div className={`flex ${isMobile ? 'flex-col gap-2' : isTablet ? 'flex-col gap-2' : 'items-center justify-between'}`}>
                             <div className={`text-sm ${isMobile ? 'text-xs' : ''}`}>
-                              <span className="font-medium">Next session: </span>
-                              <span className="text-muted-foreground">{group.nextSession}</span>
+                              <span className="font-medium">{t('client.profile.nextSession', 'Next session')}: </span>
+                              <span className="text-muted-foreground">{group.nextSession || t('client.profile.tbd', 'TBD')}</span>
                             </div>
                             <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
                               <Button 
@@ -2309,7 +2310,7 @@ export default function ClientProfile() {
                                 className={`${isMobile ? 'flex-1 h-10' : ''}`}
                                 onClick={() => handleViewGroup(group)}
                               >
-                                View Group
+                                {t('client.profile.viewGroup', 'View Group')}
                               </Button>
                               <Button 
                                 variant="outline" 
@@ -2318,7 +2319,7 @@ export default function ClientProfile() {
                                 onClick={() => router.push(`/client/group/${group.id}?groupName=${encodeURIComponent(group.name)}`)}
                               >
                                 <MessageCircle className={`${isMobile ? 'h-3 w-3 mr-1' : 'h-4 w-4 mr-1'}`} />
-                                Chat
+                                {t('common.buttons.chat', 'Chat')}
                               </Button>
                             </div>
                           </div>
@@ -2332,16 +2333,16 @@ export default function ClientProfile() {
                   <CardContent className="p-6 text-center">
                     <div className="text-muted-foreground mb-4">
                       <Users className="h-12 w-12 mx-auto mb-2" />
-                      <h3 className="text-lg font-medium">No Groups Yet</h3>
+                      <h3 className="text-lg font-medium">{t('client.profile.noGroupsYet', 'No Groups Yet')}</h3>
                     </div>
                     <p className="text-muted-foreground mb-4">
-                      You haven't joined any support groups yet. Browse available groups to get started.
+                      {t('client.profile.noGroupsDescription', "You haven't joined any support groups yet. Browse available groups to get started.")}
                     </p>
                     <Button 
                       onClick={() => router.push('/client/groups')}
                       className="w-full"
                     >
-                      Browse All Groups
+                      {t('client.profile.browseAllGroups', 'Browse All Groups')}
                     </Button>
                   </CardContent>
                 </Card>
@@ -2353,9 +2354,9 @@ export default function ClientProfile() {
                   <CardHeader className={`${isMobile ? 'pb-3' : ''}`}>
                     <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : ''}`}>
                       <UserPlus className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
-                      Available Groups ({availableGroups.length})
+                      {t('client.profile.availableGroups', 'Available Groups')} ({availableGroups.length})
                     </CardTitle>
-                    <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>Join new support groups that match your interests</CardDescription>
+                    <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.availableGroupsDescription', 'Join new support groups that match your interests')}</CardDescription>
                   </CardHeader>
                   <CardContent className={`${isMobile ? 'p-3' : ''}`}>
                     <div className={`space-y-3 ${isMobile ? 'space-y-2' : 'space-y-4'}`}>
@@ -2368,32 +2369,32 @@ export default function ClientProfile() {
                               <div className={`flex ${isMobile ? 'flex-col gap-2' : isTablet ? 'flex-col gap-2' : 'flex-wrap gap-4'} text-muted-foreground ${isMobile ? 'text-xs' : 'text-xs'}`}>
                                 <div className="flex items-center gap-1">
                                   <Clock className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                                  <span>{group.sessionFrequency || 'Weekly'} • {group.duration || '8 weeks'}</span>
+                                  <span>{group.sessionFrequency || t('client.profile.weekly', 'Weekly')} • {group.duration || t('client.profile.eightWeeks', '8 weeks')}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Users className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                                  <span>{group.members?.length || 0}/{group.maxMembers || 15} members</span>
+                                  <span>{group.members?.length || 0}/{group.maxMembers || 15} {t('groups.membersLowercase', 'members')}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Calendar className={`${isMobile ? 'h-3 w-3' : 'h-3 w-3'}`} />
-                                  <span>Starts {group.nextSession || 'TBD'}</span>
+                                  <span>{t('client.profile.starts', 'Starts')} {group.nextSession || t('client.profile.tbd', 'TBD')}</span>
                                 </div>
                               </div>
                             </div>
                             {!isMobile && !isTablet && (
                               <div className="ml-4">
                                 <Badge variant="secondary" className="mb-2">
-                                  {(group.maxMembers || 15) - (group.members?.length || 0)} seats left
+                                  {(group.maxMembers || 15) - (group.members?.length || 0)} {t('client.profile.seatsLeft', 'seats left')}
                                 </Badge>
                               </div>
                             )}
                           </div>
                           <div className={`flex ${isMobile ? 'flex-col gap-2' : isTablet ? 'flex-col gap-2' : 'items-center justify-between'}`}>
                             <div className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                              {group.members?.length || 0}/{group.maxMembers || 15} members
+                              {group.members?.length || 0}/{group.maxMembers || 15} {t('groups.membersLowercase', 'members')}
                               {(isMobile || isTablet) && (
                                 <Badge variant="secondary" className={`ml-2 ${isMobile ? 'text-xs px-1 py-0' : ''}`}>
-                                  {(group.maxMembers || 15) - (group.members?.length || 0)} seats left
+                                  {(group.maxMembers || 15) - (group.members?.length || 0)} {t('client.profile.seatsLeft', 'seats left')}
                                 </Badge>
                               )}
                             </div>
@@ -2403,7 +2404,7 @@ export default function ClientProfile() {
                               size={isMobile ? "sm" : "sm"}
                             >
                               <UserPlus className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                              Request to Join
+                              {t('client.profile.requestToJoin', 'Request to Join')}
                             </Button>
                           </div>
                         </div>
@@ -2617,17 +2618,17 @@ export default function ClientProfile() {
       <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
         <DialogContent className={`${isMobile ? 'mx-4' : ''}`}>
           <DialogHeader>
-            <DialogTitle className={`${isMobile ? 'text-lg' : ''}`}>Contact Your Therapist</DialogTitle>
+            <DialogTitle className={`${isMobile ? 'text-lg' : ''}`}>{t('client.profile.contactTherapist', 'Contact Your Therapist')}</DialogTitle>
             <DialogDescription className={`${isMobile ? 'text-sm' : ''}`}>
-              Send a message to {assignedTherapist.name}. They will receive an email notification.
+              {t('client.profile.contactTherapistDescription', 'Send a message to {name}. They will receive an email notification.').replace('{name}', assignedTherapist.name)}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="contact-message" className={`${isMobile ? 'text-sm' : ''}`}>Your Message</Label>
+              <Label htmlFor="contact-message" className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.yourMessage', 'Your Message')}</Label>
               <Textarea
                 id="contact-message"
-                placeholder="Type your message here..."
+                placeholder={t('client.profile.typeMessagePlaceholder', 'Type your message here...')}
                 value={contactMessage}
                 onChange={(e) => setContactMessage(e.target.value)}
                 className={`${isMobile ? 'min-h-24' : 'min-h-32'}`}
@@ -2644,14 +2645,14 @@ export default function ClientProfile() {
                 disabled={sendingMessage}
                 size={isMobile ? "sm" : "sm"}
               >
-                Cancel
+                {t('common.buttons.cancel', 'Cancel')}
               </Button>
               <Button 
                 onClick={handleSendMessage}
                 disabled={sendingMessage || !contactMessage.trim()}
                 size={isMobile ? "sm" : "sm"}
               >
-                {sendingMessage ? 'Sending...' : 'Send Message'}
+                {sendingMessage ? t('client.profile.sending', 'Sending...') : t('client.profile.sendMessage', 'Send Message')}
               </Button>
             </div>
           </div>
