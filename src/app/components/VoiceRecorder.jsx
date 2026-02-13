@@ -860,7 +860,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
           </div>
           
           {/* Simple waveform visualization - responds to actual audio level */}
-          <div className="flex items-center gap-0.5 h-6 flex-1 min-w-0 max-w-[100px] sm:max-w-[140px] justify-center overflow-hidden">
+          <div className="flex items-center gap-1 sm:gap-1.5 h-12 flex-1 min-w-0 max-w-[200px] sm:max-w-[420px] justify-center overflow-hidden">
             {Array.from({ length: 20 }).map((_, i) => {
               // Amplify normalized level for better sensitivity to sound detection
               // Apply exponential scaling to make small sounds more visible
@@ -877,18 +877,18 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
               // Combine waves for natural variation
               const wavePattern = (wave1 * 0.4 + wave2 * 0.4 + wave3 * 0.2);
               
-              // Calculate bar height: minimum 3px when no sound, up to 20px when loud
+              // Calculate bar height: minimum 6px when no sound, up to 40px when loud (2x height)
               // Wave pattern creates variation between bars (0.3 to 1.0 multiplier)
               const baseHeight = normalizedLevel > 0 
-                ? 3 + (normalizedLevel * 17)
-                : 3;
-              const barHeight = Math.max(3, baseHeight * (0.3 + wavePattern * 0.7));
+                ? 6 + (normalizedLevel * 34)
+                : 6;
+              const barHeight = Math.max(6, baseHeight * (0.3 + wavePattern * 0.7));
               
               return (
                 <div
                   key={i}
                   className={cn(
-                    "w-0.5 sm:w-1 rounded-full transition-all duration-100 flex-shrink-0",
+                    "w-1 sm:w-3 rounded-full transition-all duration-100 flex-shrink-0",
                     audioLevel > 5 ? "bg-primary" : "bg-muted/50"
                   )}
                   style={{ height: `${barHeight}px` }}
