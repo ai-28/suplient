@@ -536,10 +536,10 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
 
   // Auto-start recording when component mounts if autoStart is true
   useEffect(() => {
-    if (autoStart && !isRecording && !audioUrl && !isProcessing && !isInitializing) {
+    if (autoStart && !isRecording && !audioUrl && !isProcessing && !isInitializing && !permissionError) {
       handleStartRecording();
     }
-  }, [autoStart]);
+  }, [autoStart, permissionError]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -632,6 +632,8 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       }
       
       setPermissionError(errorMsg);
+      // Also log for debugging
+      console.error('Voice recording error:', errorMsg, errorDescription);
       toast.error(`❌ ${errorMsg}`, {
         description: errorDescription,
         duration: 7000
@@ -780,13 +782,56 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     );
   }
 
-  // If there's a permission error, show it
+  // If there's a permission error, show it prominently
   if (permissionError) {
+    // For "No microphone found" error, show recording-like UI
+    if (permissionError.includes('No microphone') || permissionError.includes('No microphone found')) {
+      return (
+        <div className={cn("flex items-center justify-between w-full gap-2 px-2 min-w-0", className)}>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {/* Recording indicator */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="w-2.5 h-2.5 rounded-full bg-muted flex-shrink-0" />
+              <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                No device
+              </span>
+            </div>
+            
+            {/* Empty space where waveform would be */}
+            <div className="flex-1 min-w-0" />
+          </div>
+          
+          {/* Try Again button (styled like stop button) */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="rounded-full h-8 px-3 flex-shrink-0"
+            onClick={() => {
+              setPermissionError(null);
+              handleStartRecording();
+            }}
+          >
+            Try Again
+          </Button>
+        </div>
+      );
+    }
+    
+    // For other errors, show full error UI
     return (
-      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3 w-full", className)}>
-        <AlertCircle className="h-8 w-8 text-destructive flex-shrink-0" />
-        <p className="text-sm text-destructive text-center font-medium">{permissionError}</p>
-        <Button variant="outline" size="sm" onClick={() => setPermissionError(null)}>
+      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3 w-full min-h-[120px]", className)}>
+        <AlertCircle className="h-10 w-10 text-destructive flex-shrink-0" />
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-sm text-destructive text-center font-semibold">{permissionError}</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => {
+            setPermissionError(null);
+            handleStartRecording();
+          }}
+        >
           Try Again
         </Button>
       </div>
@@ -817,14 +862,25 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
           {/* Simple waveform visualization - responds to actual audio level */}
           <div className="flex items-center gap-0.5 h-6 flex-1 min-w-0 max-w-[100px] sm:max-w-[140px] justify-center overflow-hidden">
             {Array.from({ length: 20 }).map((_, i) => {
-              // Base height on actual audio level with slight variation for visual appeal
+              // Base height on actual audio level
               const normalizedLevel = audioLevel / 255;
-              // Add slight variation per bar (0.7 to 1.3x) to create natural waveform look
-              const variation = 0.7 + (Math.sin(i * 0.5 + duration * 0.3) * 0.3);
+              
+              // Create wave pattern: each bar has different height based on position
+              // Use multiple sine waves for natural waveform look
+              const wave1 = Math.sin((i / 20) * Math.PI * 4 + duration * 0.5) * 0.5 + 0.5;
+              const wave2 = Math.sin((i / 20) * Math.PI * 6 + duration * 0.3) * 0.3 + 0.7;
+              const wave3 = Math.sin((i / 20) * Math.PI * 2 + duration * 0.7) * 0.2 + 0.8;
+              
+              // Combine waves for natural variation
+              const wavePattern = (wave1 * 0.4 + wave2 * 0.4 + wave3 * 0.2);
+              
               // Calculate bar height: minimum 3px when no sound, up to 20px when loud
-              const barHeight = normalizedLevel > 0 
-                ? Math.max(3, 3 + (normalizedLevel * 17 * variation))
+              // Wave pattern creates variation between bars (0.3 to 1.0 multiplier)
+              const baseHeight = normalizedLevel > 0 
+                ? 3 + (normalizedLevel * 17)
                 : 3;
+              const barHeight = Math.max(3, baseHeight * (0.3 + wavePattern * 0.7));
+              
               return (
                 <div
                   key={i}
