@@ -6,7 +6,6 @@ import { cn } from '@/app/lib/utils';
 import { toast } from 'sonner';
 import { Capacitor } from '@capacitor/core';
 import { isNative, isIOS } from '@/lib/capacitor';
-import { WaveformVisualizer } from './WaveformVisualizer';
 
 // Recording time limits following best practices (Discord/Telegram standard)
 const MAX_RECORDING_DURATION = 300; // 5 minutes maximum (Discord: ~5min, Telegram: 1hr)
@@ -22,7 +21,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   const [audioUrl, setAudioUrl] = useState(null);
   const [waveformData, setWaveformData] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackTime, setPlaybackTime] = useState(0);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0); // Real-time audio level indicator
   const [availableMicrophones, setAvailableMicrophones] = useState([]);
@@ -444,14 +442,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     setAudioUrl(null);
     setWaveformData([]);
     setShowTimeWarning(false);
-    setPlaybackTime(0);
-    setIsPlaying(false);
-    
-    // Stop any playing audio
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current = null;
-    }
     
     // Clean up audio level monitoring
     if (audioLevelContextRef.current) {
@@ -497,8 +487,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     setAudioUrl(null);
     setWaveformData([]);
     setIsProcessing(false);
-    setPlaybackTime(0);
-    setIsPlaying(false);
     
     // Clean up audio URL if it exists
     if (audioUrl) {
@@ -517,25 +505,13 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
       
-      // Track playback time
-      const updatePlaybackTime = () => {
-        if (currentAudioRef.current) {
-          setPlaybackTime(currentAudioRef.current.currentTime);
-        }
-      };
-      const timeInterval = setInterval(updatePlaybackTime, 100);
-      
       audio.onended = () => {
         setIsPlaying(false);
-        setPlaybackTime(0);
-        clearInterval(timeInterval);
         currentAudioRef.current = null;
       };
       
       audio.onerror = () => {
         setIsPlaying(false);
-        setPlaybackTime(0);
-        clearInterval(timeInterval);
         currentAudioRef.current = null;
         toast.error('❌ Failed to play preview', { duration: 3000 });
       };
@@ -544,8 +520,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
         setIsPlaying(true);
       }).catch((err) => {
         setIsPlaying(false);
-        setPlaybackTime(0);
-        clearInterval(timeInterval);
         currentAudioRef.current = null;
         toast.error('❌ Failed to play preview: ' + err.message, { duration: 3000 });
       });
@@ -558,7 +532,6 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
       currentAudioRef.current = null;
     }
     setIsPlaying(false);
-    // Keep playbackTime where it is for resume
   };
 
   // Auto-start recording when component mounts if autoStart is true
@@ -789,90 +762,140 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     }
   };
 
-  // Show warning for unsupported browsers - simplified
+  // Show warning for unsupported browsers
   if (!browserSupported) {
     return (
-      <div className={cn("flex items-center gap-2 p-3 text-destructive text-sm", className)}>
-        <AlertCircle className="h-4 w-4" />
-        <span>Voice recording not supported</span>
-        <Button variant="ghost" size="sm" onClick={onCancel} className="ml-auto">
-          <X className="h-4 w-4" />
+      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
+        <AlertCircle className="h-8 w-8 text-destructive" />
+        <p className="text-sm text-destructive text-center font-medium">
+          Voice messages not supported
+        </p>
+        <p className="text-xs text-muted-foreground text-center">
+          Your browser doesn't support voice recording. Please use Chrome, Edge, or Firefox.
+        </p>
+        <Button variant="outline" size="sm" onClick={onCancel}>
+          Close
         </Button>
       </div>
     );
   }
 
-  // If there's a permission error, show simplified error
+  // If there's a permission error, show it
   if (permissionError) {
     return (
-      <div className={cn("flex items-center gap-2 p-3 text-destructive text-sm", className)}>
-        <AlertCircle className="h-4 w-4" />
-        <span>{permissionError}</span>
-        <Button variant="ghost" size="sm" onClick={() => setPermissionError(null)} className="ml-auto">
-          Retry
+      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
+        <AlertCircle className="h-8 w-8 text-destructive" />
+        <p className="text-sm text-destructive text-center">{permissionError}</p>
+        <Button variant="outline" size="sm" onClick={() => setPermissionError(null)}>
+          Try Again
         </Button>
       </div>
     );
   }
 
-  // Generate real-time waveform data from audio level for recording visualization
-  const [recordingWaveform, setRecordingWaveform] = useState(Array(32).fill(0));
-  
-  useEffect(() => {
-    if (isRecording && audioLevel > 0) {
-      // Update waveform based on audio level - create a more dynamic visualization
-      const normalizedLevel = Math.min(audioLevel / 255, 1);
-      const bars = 32;
-      const newWaveform = Array(bars).fill(0);
-      
-      // Create a wave pattern that responds to audio level
-      for (let i = 0; i < bars; i++) {
-        const position = i / bars;
-        // Use sine wave pattern with audio level modulation
-        const baseHeight = Math.sin(position * Math.PI * 6) * 0.3 + 0.4;
-        const height = Math.max(0.1, baseHeight * normalizedLevel);
-        newWaveform[i] = height;
-      }
-      
-      setRecordingWaveform(newWaveform);
-    } else if (!isRecording) {
-      setRecordingWaveform(Array(32).fill(0));
-    }
-  }, [isRecording, audioLevel]);
-
-  // If recording, show simplified recording interface (like WhatsApp/Discord)
+  // If recording, show recording interface
   if (isRecording) {
     const remainingTime = MAX_RECORDING_DURATION - duration;
     const isNearLimit = duration >= MAX_RECORDING_DURATION - WARNING_DURATION;
     
+    // Audio level indicator
+    const levelPercentage = (audioLevel / 255) * 100;
+    const getLevelColor = () => {
+      if (audioLevel < 5) return 'bg-destructive';
+      if (audioLevel < 20) return 'bg-yellow-500';
+      return 'bg-green-500';
+    };
+    
     return (
-      <div className={cn("flex items-center gap-3 p-3", className)}>
-        {/* Waveform visualization */}
-        <div className="flex-1 h-12 min-w-[200px]">
-          <WaveformVisualizer
-            data={recordingWaveform}
-            isRecording={true}
-            className="h-full"
-          />
+      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "w-3 h-3 rounded-full animate-pulse",
+              isNearLimit ? "bg-orange-500" : "bg-red-500"
+            )} />
+            <span className="text-sm font-medium">Recording...</span>
+          </div>
+          {currentMicrophoneName && (
+            <span className="text-xs text-muted-foreground">
+              🎤 {currentMicrophoneName}
+            </span>
+          )}
         </div>
         
-        {/* Timer */}
+        {/* Audio Level Indicator */}
+        <div className="w-full max-w-xs space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Microphone Level</span>
+            <span className={cn(
+              "font-medium",
+              audioLevel < 5 ? "text-destructive" : audioLevel < 20 ? "text-yellow-500" : "text-green-500"
+            )}>
+              {audioLevel < 5 ? '⚠️ TOO LOW!' : audioLevel < 20 ? 'Low' : 'Good'} ({audioLevel}/255)
+            </span>
+          </div>
+          <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+            <div 
+              className={cn("h-full transition-all duration-200", getLevelColor())}
+              style={{ width: `${levelPercentage}%` }}
+            />
+          </div>
+          {audioLevel < 5 && duration > 2 && (
+            <div className="text-xs text-destructive text-center space-y-1">
+              <p className="font-medium">⚠️ Microphone not detecting sound!</p>
+              <p>Check Windows sound settings or select a different microphone.</p>
+            </div>
+          )}
+        </div>
+        
+        {/* Show microphone selector if having issues */}
+        {availableMicrophones.length > 1 && audioLevel < 5 && duration > 2 && (
+          <div className="w-full max-w-xs space-y-2 border border-destructive/20 rounded-md p-3 bg-destructive/5">
+            <label className="text-xs font-medium text-foreground">Try a different microphone:</label>
+            <select
+              value={selectedMicrophoneId}
+              onChange={(e) => {
+                const newMicId = e.target.value;
+                setSelectedMicrophoneId(newMicId);
+                localStorage.setItem('preferredMicrophoneId', newMicId);
+                toast.info('🔄 Microphone changed. Please stop and start recording again.', { duration: 3000 });
+              }}
+              className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+            >
+              <option value="default">Auto-detect</option>
+              {availableMicrophones.map((mic) => (
+                <option key={mic.deviceId} value={mic.deviceId}>
+                  {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
         <div className={cn(
-          "text-sm font-mono min-w-[50px] text-center",
+          "text-2xl font-mono",
           isNearLimit ? "text-orange-600" : "text-foreground"
         )}>
           {formatDuration(duration)}
         </div>
         
-        {/* Stop button */}
-        <Button 
-          onClick={handleStopRecording} 
-          size="icon"
-          variant="destructive"
-          className="rounded-full h-10 w-10 flex-shrink-0"
-        >
-          <Square className="h-5 w-5" />
-        </Button>
+        {/* Time limit indicator */}
+        <div className="text-xs text-muted-foreground">
+          {isNearLimit ? (
+            <span className="text-orange-600 font-medium">
+              Auto-stop in {remainingTime}s
+            </span>
+          ) : (
+            `Max: ${formatDuration(MAX_RECORDING_DURATION)}`
+          )}
+        </div>
+        
+        <div className="flex gap-2">
+          <Button onClick={handleStopRecording} size="sm" variant="destructive">
+            <Square className="h-4 w-4" />
+            Stop
+          </Button>
+        </div>
       </div>
     );
   }
@@ -887,73 +910,78 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     );
   }
 
-  // If we have a recorded audio, show simplified playback interface (like WhatsApp/Discord)
+  // If we have a recorded audio, show playback interface
   if (audioUrl) {
     return (
-      <div className={cn("flex items-center gap-3 p-3", className)}>
-        {/* Play/Pause button */}
-        <Button 
-          onClick={handlePlayPause} 
-          size="icon"
-          variant="ghost"
-          className="rounded-full h-10 w-10 flex-shrink-0"
-        >
-          {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-        </Button>
-        
-        {/* Waveform visualization */}
-        <div className="flex-1 h-12 min-w-[200px]">
-          <WaveformVisualizer
-            data={waveformData}
-            isPlaying={isPlaying}
-            currentTime={playbackTime}
-            duration={duration}
-            className="h-full"
-          />
+      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
+        <div className="flex items-center gap-2">
+          <Button onClick={handlePlayPause} size="sm" variant="outline">
+            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            {isPlaying ? 'Pause' : 'Play'}
+          </Button>
+          <span className="text-sm font-mono">{formatDuration(duration)}</span>
         </div>
         
-        {/* Timer */}
-        <span className="text-sm font-mono min-w-[50px] text-center">
-          {formatDuration(isPlaying ? playbackTime : duration)}
-        </span>
-        
-        {/* Send button */}
-        <Button 
-          onClick={handleSend} 
-          size="icon"
-          className="rounded-full h-10 w-10 flex-shrink-0"
-        >
-          <Send className="h-5 w-5" />
-        </Button>
-        
-        {/* Delete button */}
-        <Button 
-          onClick={handleCancel} 
-          size="icon"
-          variant="ghost"
-          className="rounded-full h-10 w-10 flex-shrink-0"
-        >
-          <Trash2 className="h-5 w-5" />
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleSend} size="sm">
+            <Send className="h-4 w-4" />
+            Send
+          </Button>
+          <Button onClick={handleCancel} size="sm" variant="outline">
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
+        </div>
       </div>
     );
   }
 
-  // Default state - show simple record button (like WhatsApp/Discord)
+  // Default state - show record button
   return (
-    <div className={cn("flex items-center justify-center p-2", className)}>
+    <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
+      {/* Microphone selector - only show if multiple microphones or having issues */}
+      {availableMicrophones.length > 1 && (
+        <details className="w-full max-w-xs">
+          <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground">
+            ⚙️ Microphone Settings ({availableMicrophones.length} devices)
+          </summary>
+          <div className="mt-2 space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Select Microphone:</label>
+            <select
+              value={selectedMicrophoneId}
+              onChange={(e) => {
+                const newMicId = e.target.value;
+                setSelectedMicrophoneId(newMicId);
+                localStorage.setItem('preferredMicrophoneId', newMicId);
+                toast.success('✅ Microphone preference saved!', { duration: 2000 });
+              }}
+              className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+            >
+              <option value="default">Auto-detect (Recommended)</option>
+              {availableMicrophones.map((mic) => (
+                <option key={mic.deviceId} value={mic.deviceId}>
+                  {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Your choice will be remembered for next time
+            </p>
+          </div>
+        </details>
+      )}
+      
       <Button 
         onClick={handleStartRecording} 
-        size="icon"
-        className="rounded-full h-10 w-10"
+        size="lg" 
+        className="rounded-full w-16 h-16"
         disabled={isInitializing}
       >
-        {isInitializing ? (
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current" />
-        ) : (
-          <Mic className="h-5 w-5" />
-        )}
+        <Mic className="h-6 w-6" />
       </Button>
+      <span className="text-sm text-muted-foreground">
+        {isInitializing ? 'Initializing...' : 'Tap to record'}
+      </span>
     </div>
   );
 }
