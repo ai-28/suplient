@@ -793,109 +793,59 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
     );
   }
 
-  // If recording, show recording interface
+  // If recording, show simple UI (like Discord/WhatsApp) - always simple, no matter the audio level
   if (isRecording) {
-    const remainingTime = MAX_RECORDING_DURATION - duration;
     const isNearLimit = duration >= MAX_RECORDING_DURATION - WARNING_DURATION;
     
-    // Audio level indicator
-    const levelPercentage = (audioLevel / 255) * 100;
-    const getLevelColor = () => {
-      if (audioLevel < 5) return 'bg-destructive';
-      if (audioLevel < 20) return 'bg-yellow-500';
-      return 'bg-green-500';
-    };
-    
     return (
-      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2">
+      <div className={cn("flex items-center justify-between w-full gap-2 px-2 min-w-0", className)}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {/* Recording indicator */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <div className={cn(
-              "w-3 h-3 rounded-full animate-pulse",
+              "w-2.5 h-2.5 rounded-full animate-pulse flex-shrink-0",
               isNearLimit ? "bg-orange-500" : "bg-red-500"
             )} />
-            <span className="text-sm font-medium">Recording...</span>
-          </div>
-          {currentMicrophoneName && (
-            <span className="text-xs text-muted-foreground">
-              🎤 {currentMicrophoneName}
-            </span>
-          )}
-        </div>
-        
-        {/* Audio Level Indicator */}
-        <div className="w-full max-w-xs space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Microphone Level</span>
             <span className={cn(
-              "font-medium",
-              audioLevel < 5 ? "text-destructive" : audioLevel < 20 ? "text-yellow-500" : "text-green-500"
+              "text-sm font-medium font-mono tabular-nums whitespace-nowrap",
+              isNearLimit ? "text-orange-600" : "text-foreground"
             )}>
-              {audioLevel < 5 ? '⚠️ TOO LOW!' : audioLevel < 20 ? 'Low' : 'Good'} ({audioLevel}/255)
+              {formatDuration(duration)}
             </span>
           </div>
-          <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-            <div 
-              className={cn("h-full transition-all duration-200", getLevelColor())}
-              style={{ width: `${levelPercentage}%` }}
-            />
+          
+          {/* Simple waveform visualization */}
+          <div className="flex items-center gap-0.5 h-6 flex-1 min-w-0 justify-center overflow-hidden">
+            {Array.from({ length: 20 }).map((_, i) => {
+              // Create a waveform pattern based on audio level and position
+              const normalizedLevel = audioLevel / 255;
+              const wavePattern = Math.sin((i / 20) * Math.PI * 4 + duration * 0.5) * 0.5 + 0.5;
+              const barHeight = audioLevel > 0 
+                ? Math.max(3, normalizedLevel * 18 * (0.3 + wavePattern * 0.7))
+                : 3;
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "w-0.5 rounded-full transition-all duration-150 flex-shrink-0",
+                    audioLevel > 0 ? "bg-primary" : "bg-muted"
+                  )}
+                  style={{ height: `${barHeight}px` }}
+                />
+              );
+            })}
           </div>
-          {audioLevel < 5 && duration > 2 && (
-            <div className="text-xs text-destructive text-center space-y-1">
-              <p className="font-medium">⚠️ Microphone not detecting sound!</p>
-              <p>Check Windows sound settings or select a different microphone.</p>
-            </div>
-          )}
         </div>
         
-        {/* Show microphone selector if having issues */}
-        {availableMicrophones.length > 1 && audioLevel < 5 && duration > 2 && (
-          <div className="w-full max-w-xs space-y-2 border border-destructive/20 rounded-md p-3 bg-destructive/5">
-            <label className="text-xs font-medium text-foreground">Try a different microphone:</label>
-            <select
-              value={selectedMicrophoneId}
-              onChange={(e) => {
-                const newMicId = e.target.value;
-                setSelectedMicrophoneId(newMicId);
-                localStorage.setItem('preferredMicrophoneId', newMicId);
-                toast.info('🔄 Microphone changed. Please stop and start recording again.', { duration: 3000 });
-              }}
-              className="w-full px-3 py-2 text-sm border rounded-md bg-background"
-            >
-              <option value="default">Auto-detect</option>
-              {availableMicrophones.map((mic) => (
-                <option key={mic.deviceId} value={mic.deviceId}>
-                  {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        
-        <div className={cn(
-          "text-2xl font-mono",
-          isNearLimit ? "text-orange-600" : "text-foreground"
-        )}>
-          {formatDuration(duration)}
-        </div>
-        
-        {/* Time limit indicator */}
-        <div className="text-xs text-muted-foreground">
-          {isNearLimit ? (
-            <span className="text-orange-600 font-medium">
-              Auto-stop in {remainingTime}s
-            </span>
-          ) : (
-            `Max: ${formatDuration(MAX_RECORDING_DURATION)}`
-          )}
-        </div>
-        
-        <div className="flex gap-2">
-          <Button onClick={handleStopRecording} size="sm" variant="destructive">
-            <Square className="h-4 w-4" />
-            Stop
-          </Button>
-        </div>
+        {/* Stop button */}
+        <Button 
+          onClick={handleStopRecording} 
+          size="sm" 
+          variant="destructive"
+          className="rounded-full h-8 w-8 p-0 flex-shrink-0"
+        >
+          <Square className="h-4 w-4" />
+        </Button>
       </div>
     );
   }
