@@ -860,7 +860,7 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
           </div>
           
           {/* Simple waveform visualization - responds to actual audio level */}
-          <div className="flex items-center gap-1 sm:gap-1.5 h-12 flex-1 min-w-0 max-w-[200px] sm:max-w-[420px] justify-center overflow-hidden">
+          <div className="flex items-center gap-1 sm:gap-1.5 h-12 flex-1 min-w-0 max-w-[200px] sm:max-w-[200px] justify-center overflow-hidden">
             {Array.from({ length: 20 }).map((_, i) => {
               // Amplify normalized level for better sensitivity to sound detection
               // Apply exponential scaling to make small sounds more visible
