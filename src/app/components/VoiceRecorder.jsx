@@ -862,8 +862,11 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
           {/* Simple waveform visualization - responds to actual audio level */}
           <div className="flex items-center gap-0.5 h-6 flex-1 min-w-0 max-w-[100px] sm:max-w-[140px] justify-center overflow-hidden">
             {Array.from({ length: 20 }).map((_, i) => {
-              // Base height on actual audio level
-              const normalizedLevel = audioLevel / 255;
+              // Amplify normalized level for better sensitivity to sound detection
+              // Apply exponential scaling to make small sounds more visible
+              const rawLevel = audioLevel / 255;
+              const amplifiedLevel = Math.pow(rawLevel, 0.6); // Amplify: lower values get boosted more
+              const normalizedLevel = Math.min(1, amplifiedLevel * 1.5); // Further amplify and cap at 1
               
               // Create wave pattern: each bar has different height based on position
               // Use multiple sine waves for natural waveform look
