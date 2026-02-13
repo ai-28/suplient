@@ -783,9 +783,9 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   // If there's a permission error, show it
   if (permissionError) {
     return (
-      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
-        <AlertCircle className="h-8 w-8 text-destructive" />
-        <p className="text-sm text-destructive text-center">{permissionError}</p>
+      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3 w-full", className)}>
+        <AlertCircle className="h-8 w-8 text-destructive flex-shrink-0" />
+        <p className="text-sm text-destructive text-center font-medium">{permissionError}</p>
         <Button variant="outline" size="sm" onClick={() => setPermissionError(null)}>
           Try Again
         </Button>
@@ -814,21 +814,23 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
             </span>
           </div>
           
-          {/* Simple waveform visualization */}
-          <div className="flex items-center gap-0.5 h-6 flex-1 min-w-0 justify-center overflow-hidden">
+          {/* Simple waveform visualization - responds to actual audio level */}
+          <div className="flex items-center gap-0.5 h-6 flex-1 min-w-0 max-w-[100px] sm:max-w-[140px] justify-center overflow-hidden">
             {Array.from({ length: 20 }).map((_, i) => {
-              // Create a waveform pattern based on audio level and position
+              // Base height on actual audio level with slight variation for visual appeal
               const normalizedLevel = audioLevel / 255;
-              const wavePattern = Math.sin((i / 20) * Math.PI * 4 + duration * 0.5) * 0.5 + 0.5;
-              const barHeight = audioLevel > 0 
-                ? Math.max(3, normalizedLevel * 18 * (0.3 + wavePattern * 0.7))
+              // Add slight variation per bar (0.7 to 1.3x) to create natural waveform look
+              const variation = 0.7 + (Math.sin(i * 0.5 + duration * 0.3) * 0.3);
+              // Calculate bar height: minimum 3px when no sound, up to 20px when loud
+              const barHeight = normalizedLevel > 0 
+                ? Math.max(3, 3 + (normalizedLevel * 17 * variation))
                 : 3;
               return (
                 <div
                   key={i}
                   className={cn(
-                    "w-0.5 rounded-full transition-all duration-150 flex-shrink-0",
-                    audioLevel > 0 ? "bg-primary" : "bg-muted"
+                    "w-0.5 sm:w-1 rounded-full transition-all duration-100 flex-shrink-0",
+                    audioLevel > 5 ? "bg-primary" : "bg-muted/50"
                   )}
                   style={{ height: `${barHeight}px` }}
                 />
@@ -863,23 +865,22 @@ export function VoiceRecorder({ onSendVoiceMessage, onCancel, className, autoSta
   // If we have a recorded audio, show playback interface
   if (audioUrl) {
     return (
-      <div className={cn("flex flex-col items-center justify-center p-4 space-y-3", className)}>
-        <div className="flex items-center gap-2">
-          <Button onClick={handlePlayPause} size="sm" variant="outline">
+      <div className={cn("flex items-center justify-between w-full gap-2 px-2", className)}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Button onClick={handlePlayPause} size="sm" variant="outline" className="flex-shrink-0">
             {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {isPlaying ? 'Pause' : 'Play'}
           </Button>
-          <span className="text-sm font-mono">{formatDuration(duration)}</span>
+          <span className="text-sm font-mono tabular-nums whitespace-nowrap">{formatDuration(duration)}</span>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button onClick={handleSend} size="sm">
             <Send className="h-4 w-4" />
             Send
           </Button>
-          <Button onClick={handleCancel} size="sm" variant="outline">
+          <Button onClick={handleCancel} size="sm" variant="outline" className="p-0 h-8 w-8">
             <Trash2 className="h-4 w-4" />
-            Delete
           </Button>
         </div>
       </div>
