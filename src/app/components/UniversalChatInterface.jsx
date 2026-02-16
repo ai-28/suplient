@@ -20,7 +20,7 @@ import { MessageWithLinks } from "@/app/components/MessageWithLinks";
 import { groupMessagesByTime, formatTimeOfDay, formatDateSeparator, getPreciseTimestamp } from "@/app/utils/timestampGrouping";
 import { useChat } from "@/app/hooks/useChat";
 import { useSession } from "next-auth/react";
-import { isAndroid } from "@/lib/capacitor";
+import { isAndroid, isNative } from "@/lib/capacitor";
 import { useTranslation } from "@/app/context/LanguageContext";
 
 // Simple function to get response guarantee text
@@ -87,21 +87,97 @@ export function UniversalChatInterface({
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [replyToMessage, setReplyToMessage] = useState(null);
   const [isAndroidNative, setIsAndroidNative] = useState(false);
+  const [isMobileNative, setIsMobileNative] = useState(false);
   const inputRef = useRef(null);
+  const scrollAreaRef = useRef(null);
+  const scrollViewportRef = useRef(null);
   
-  // Check if running on Android Capacitor (client-side only)
+  // Check if running on native mobile (iOS/Android Capacitor)
   useEffect(() => {
     setIsAndroidNative(isAndroid());
+    setIsMobileNative(isNative());
   }, []);
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth"
-    });
-  };
 
+  // Find ScrollArea viewport element (needed for mobile scrolling)
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (scrollAreaRef.current && isMobileNative) {
+      const findViewport = () => {
+        const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (viewport) {
+          scrollViewportRef.current = viewport;
+          // Scroll to bottom once viewport is found
+          if (messages.length > 0) {
+            requestAnimationFrame(() => {
+              viewport.scrollTop = viewport.scrollHeight;
+            });
+          }
+          return true;
+        }
+        return false;
+      };
+      
+      // Try immediately
+      if (!findViewport()) {
+        // Also try after delays (DOM might not be ready)
+        const timer1 = setTimeout(() => findViewport(), 100);
+        const timer2 = setTimeout(() => findViewport(), 300);
+        return () => {
+          clearTimeout(timer1);
+          clearTimeout(timer2);
+        };
+      }
+    }
+  }, [isMobileNative, messages.length]);
+
+  // Improved scroll function that works on mobile
+  const scrollToBottom = useCallback(() => {
+    if (isMobileNative && scrollViewportRef.current) {
+      // Mobile: Use scrollTop (more reliable on Capacitor)
+      const viewport = scrollViewportRef.current;
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (viewport) {
+            viewport.scrollTop = viewport.scrollHeight;
+          }
+        }, 50);
+      });
+    } else if (messagesEndRef.current) {
+      // Web: Use scrollIntoView (current behavior)
+      messagesEndRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "end"
+      });
+    }
+  }, [isMobileNative]);
+
+  // Scroll when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom]);
+
+  // Also scroll after initial load (important for mobile)
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      // Delay for mobile to ensure DOM is fully rendered
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, isMobileNative ? 300 : 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, messages.length, scrollToBottom, isMobileNative]);
+
+  // Force scroll on initial load (especially important for mobile)
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      // Delay for mobile to ensure DOM is fully rendered
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, isMobileNative ? 400 : 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]); // Only when loading completes
 
   // Mark messages as read when conversation loads
   useEffect(() => {
@@ -541,7 +617,10 @@ export function UniversalChatInterface({
       )}
 
       {/* Messages Area - Natural flow with sticky header on client */}
-      <ScrollArea className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? "pt-24" : "pt-4"} ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-52" : "pb-20"}` : ""}`}>
+      <ScrollArea 
+        ref={scrollAreaRef}
+        className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? "pt-24" : "pt-4"} ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-52" : "pb-20"}` : ""}`}
+      >
         <TooltipProvider>
           <div className="space-y-1">
             {/* Load More Button */}

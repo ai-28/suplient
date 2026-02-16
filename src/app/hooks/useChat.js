@@ -437,9 +437,17 @@ export function useChat(conversationId) {
   }, [conversationId, session?.user?.id]);
 
   // Auto-scroll to bottom when new messages arrive
+  // Note: This is handled in UniversalChatInterface with mobile-specific logic
+  // Keeping this as fallback for other components that might use useChat
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      // Use requestAnimationFrame for better compatibility
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'end'
+        });
+      });
     }
   }, [messages]);
 
