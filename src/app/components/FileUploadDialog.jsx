@@ -9,11 +9,12 @@ import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { Upload, X, File, Image, Video, Music, FileText, FileImage, BookOpen, Loader2, Folder } from "lucide-react";
+import { Upload, X, File, Image, Video, Music, FileText, FileImage, BookOpen, Loader2, Folder, CheckCircle2 } from "lucide-react";
 import { TreePickerDialog } from "@/app/components/TreePickerDialog";
 import { toast } from "sonner";
 import { Progress } from "@/app/components/ui/progress";
 import { useUploadManager } from "@/app/context/UploadManagerContext";
+import { cn } from "@/app/lib/utils";
 
 const categoryIcons = {
   videos: Video,
@@ -47,16 +48,17 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
   const { addUpload, updateUpload, removeUpload, cancelUpload } = useUploadManager();
   const [open, setOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [author, setAuthor] = useState("");
+  
+  // Multiple files support
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [fileMetadata, setFileMetadata] = useState({}); // { fileId: { title, description, author } }
+  
+  // Upload tracking per file
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [uploadAbortController, setUploadAbortController] = useState(null);
-  const [currentUploadId, setCurrentUploadId] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState({}); // { fileId: progress }
+  const [uploadStatus, setUploadStatus] = useState({}); // { fileId: 'uploading' | 'completed' | 'failed' }
+  const [activeUploads, setActiveUploads] = useState({}); // { fileId: uploadId }
+  const [retryCount, setRetryCount] = useState({}); // { fileId: retryCount }
   
   // Folder selection state
   const [selectedFolderId, setSelectedFolderId] = useState(currentFolderId || null);
@@ -134,6 +136,11 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     setSelectedFolderId(currentFolderId || null);
   }, [currentFolderId]);
 
+  // Generate unique ID for each file
+  const getFileId = (file) => {
+    return `${file.name}-${file.size}-${file.lastModified}`;
+  };
+
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -149,24 +156,97 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     e.stopPropagation();
     setDragActive(false);
     
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
-      setTitle(e.dataTransfer.files[0].name.split('.')[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const filesArray = Array.from(e.dataTransfer.files);
+      addFiles(filesArray);
     }
   };
 
   const handleFileSelect = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-      setTitle(e.target.files[0].name.split('.')[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files);
+      addFiles(filesArray);
+      // Reset input to allow selecting same files again
+      e.target.value = '';
     }
   };
 
-  const handleSelectFileClick = () => {
-    const fileInput = document.getElementById('file-upload');
-    if (fileInput) {
-      fileInput.click();
+  const addFiles = (filesArray) => {
+    const newFiles = [];
+    const newMetadata = { ...fileMetadata };
+    
+    filesArray.forEach(file => {
+      const fileId = getFileId(file);
+      
+      // Check if file already exists
+      if (selectedFiles.find(f => getFileId(f) === fileId)) {
+        return; // Skip duplicate
+      }
+      
+      newFiles.push(file);
+      
+      // Auto-generate metadata from filename
+      const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+      newMetadata[fileId] = {
+        title: fileNameWithoutExt,
+        description: `Uploaded file: ${file.name}`,
+        author: category === 'articles' ? '' : ''
+      };
+    });
+    
+    if (newFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+      setFileMetadata(newMetadata);
+      toast.success(`${newFiles.length} file(s) added`);
     }
+  };
+
+  const removeFile = (fileId) => {
+    setSelectedFiles(prev => prev.filter(f => getFileId(f) !== fileId));
+    setFileMetadata(prev => {
+      const newMeta = { ...prev };
+      delete newMeta[fileId];
+      return newMeta;
+    });
+    
+    // Cancel upload if in progress
+    if (activeUploads[fileId]) {
+      cancelUpload(activeUploads[fileId]);
+      removeUpload(activeUploads[fileId]);
+      setActiveUploads(prev => {
+        const newActive = { ...prev };
+        delete newActive[fileId];
+        return newActive;
+      });
+    }
+    
+    // Clean up progress and status
+    setUploadProgress(prev => {
+      const newProgress = { ...prev };
+      delete newProgress[fileId];
+      return newProgress;
+    });
+    setUploadStatus(prev => {
+      const newStatus = { ...prev };
+      delete newStatus[fileId];
+      return newStatus;
+    });
+  };
+
+  const updateFileMetadata = (fileId, field, value) => {
+    setFileMetadata(prev => ({
+      ...prev,
+      [fileId]: {
+        ...prev[fileId],
+        [field]: value
+      }
+    }));
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
   // Upload using presigned URL with progress tracking and retry logic
@@ -479,7 +559,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
   };
 
   // Retry logic with exponential backoff
-  const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
+  const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000, fileId = null) => {
     let lastError;
     
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -500,256 +580,259 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
         
         // Calculate delay with exponential backoff (1s, 2s, 4s)
         const delay = baseDelay * Math.pow(2, attempt);
-        setRetryCount(attempt + 1);
-        setIsRetrying(true);
+        if (fileId) {
+          setRetryCount(prev => ({ ...prev, [fileId]: attempt + 1 }));
+        }
         
         // Wait before retrying
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
     
-    setIsRetrying(false);
+    if (fileId) {
+      setRetryCount(prev => {
+        const newRetry = { ...prev };
+        delete newRetry[fileId];
+        return newRetry;
+      });
+    }
     throw lastError;
   };
 
   const handleUpload = async () => {
-    // Check for missing fields and show comprehensive error message
-    const missingFields = [];
-    
-    if (!selectedFile) {
-      missingFields.push("File selection");
+    if (selectedFiles.length === 0) {
+      toast.error("Please select at least one file");
+      return;
     }
-    
-    if (!title.trim()) {
-      missingFields.push("Title");
-    }
-    
-    if (!description.trim()) {
-      missingFields.push("Description");
-    }
-    
-    if (missingFields.length > 0) {
-      const errorMessage = missingFields.length === 1 
-        ? `Please fill in: ${missingFields[0]}`
-        : `Please fill in the following fields: ${missingFields.join(", ")}`;
-        
-      toast.error("Missing Required Information", {
-        description: errorMessage
-      });
+
+    // Validate all files have required metadata
+    const missingMetadata = [];
+    selectedFiles.forEach(file => {
+      const fileId = getFileId(file);
+      const meta = fileMetadata[fileId];
+      if (!meta || !meta.title?.trim() || !meta.description?.trim()) {
+        missingMetadata.push(file.name);
+      }
+    });
+
+    if (missingMetadata.length > 0) {
+      toast.error(`Missing metadata for: ${missingMetadata.join(', ')}`);
       return;
     }
 
     setUploading(true);
-    setUploadProgress(0);
-    setRetryCount(0);
-    setIsRetrying(false);
-    
-    // Create abort controller for cancellation
-    const abortController = new AbortController();
-    setUploadAbortController(abortController);
-    
-    // Register upload with upload manager for background tracking
-    const uploadId = addUpload({
-      fileName: selectedFile.name,
-      fileSize: selectedFile.size,
-      category: category,
-      title: title.trim(),
-      abortController: abortController,
-      status: 'uploading',
-      progress: 0
-    });
-    setCurrentUploadId(uploadId);
-    
-    try {
-      const fileSize = selectedFile.size;
+    setUploadProgress({});
+    setUploadStatus({});
+    setActiveUploads({});
+    setRetryCount({});
 
-      // Step 1: Get presigned URL (with retry)
-      let initiateResult;
-      await retryWithBackoff(async () => {
-        const initiateResponse = await fetch('/api/library/upload/initiate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileName: selectedFile.name,
-            fileSize: fileSize,
-            fileType: selectedFile.type,
-            category: category,
-          }),
-          signal: abortController.signal,
-        });
-
-        if (!initiateResponse.ok) {
-          throw new Error(`Failed to initiate upload: ${initiateResponse.statusText}`);
-        }
-
-        initiateResult = await initiateResponse.json();
-
-        if (!initiateResult.success) {
-          throw new Error(initiateResult.error || 'Failed to initiate upload');
-        }
-      });
-
-      // Step 2: Upload file (single or multipart)
-      let uploadedParts = [];
+    // Upload all files in parallel
+    const uploadPromises = selectedFiles.map(async (file) => {
+      const fileId = getFileId(file);
+      const meta = fileMetadata[fileId];
       
-      if (initiateResult.uploadType === 'multipart') {
-        // Multipart upload for large files
-        uploadedParts = await uploadChunksInParallel(
-          selectedFile,
-          initiateResult.filePath,
-          initiateResult.uploadId,
-          initiateResult.chunkSize,
-          initiateResult.totalChunks,
-          (progress) => {
-            setUploadProgress(progress);
-            updateUpload(uploadId, { progress });
-          },
-          abortController.signal,
-          8 // Max 8 parallel uploads (optimized for performance)
-        );
-      } else {
-        // Single PUT upload for smaller files
+      setUploadStatus(prev => ({ ...prev, [fileId]: 'uploading' }));
+      setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
+
+      const abortController = new AbortController();
+      
+      // Register upload with upload manager
+      const uploadId = addUpload({
+        fileName: file.name,
+        fileSize: file.size,
+        category: category,
+        title: meta.title.trim(),
+        abortController: abortController,
+        status: 'uploading',
+        progress: 0
+      });
+      
+      setActiveUploads(prev => ({ ...prev, [fileId]: uploadId }));
+
+      try {
+        const fileSize = file.size;
+
+        // Step 1: Get presigned URL
+        let initiateResult;
         await retryWithBackoff(async () => {
-          await uploadWithPresignedUrl(
-            initiateResult.presignedUrl,
-            selectedFile,
+          const initiateResponse = await fetch('/api/library/upload/initiate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileSize: fileSize,
+              fileType: file.type,
+              category: category,
+            }),
+            signal: abortController.signal,
+          });
+
+          if (!initiateResponse.ok) {
+            throw new Error(`Failed to initiate upload: ${initiateResponse.statusText}`);
+          }
+
+          initiateResult = await initiateResponse.json();
+
+          if (!initiateResult.success) {
+            throw new Error(initiateResult.error || 'Failed to initiate upload');
+          }
+        }, 3, 1000, fileId);
+
+        // Step 2: Upload file
+        let uploadedParts = [];
+        
+        if (initiateResult.uploadType === 'multipart') {
+          uploadedParts = await uploadChunksInParallel(
+            file,
+            initiateResult.filePath,
+            initiateResult.uploadId,
+            initiateResult.chunkSize,
+            initiateResult.totalChunks,
             (progress) => {
-              setUploadProgress(progress);
+              setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
               updateUpload(uploadId, { progress });
             },
-            abortController.signal
+            abortController.signal,
+            8
           );
-        });
-      }
-
-      // Step 3: Complete upload (save metadata to database) (with retry)
-      let completeResult;
-      await retryWithBackoff(async () => {
-        if (initiateResult.uploadType === 'multipart') {
-          // Complete multipart upload
-          const completeResponse = await fetch('/api/library/upload/complete-multipart', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              filePath: initiateResult.filePath,
-              fileName: initiateResult.fileName,
-              uploadId: initiateResult.uploadId,
-              parts: uploadedParts,
-              title: title.trim(),
-              description: description.trim(),
-              author: category === 'articles' ? author.trim() : '',
-              category: category,
-              fileSize: fileSize,
-              fileType: selectedFile.type,
-              folderId: selectedFolderId || null,
-            }),
-            signal: abortController.signal,
-          });
-
-          if (!completeResponse.ok) {
-            throw new Error(`Failed to complete multipart upload: ${completeResponse.statusText}`);
-          }
-
-          completeResult = await completeResponse.json();
-
-          if (!completeResult.success) {
-            throw new Error(completeResult.error || 'Failed to complete multipart upload');
-          }
         } else {
-          // Complete single upload
-          const completeResponse = await fetch('/api/library/upload/complete', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              filePath: initiateResult.filePath,
-              fileName: initiateResult.fileName,
-              title: title.trim(),
-              description: description.trim(),
-              author: category === 'articles' ? author.trim() : '',
-              category: category,
-              fileSize: fileSize,
-              fileType: selectedFile.type,
-              folderId: selectedFolderId || null,
-            }),
-            signal: abortController.signal,
-          });
-
-          if (!completeResponse.ok) {
-            throw new Error(`Failed to complete upload: ${completeResponse.statusText}`);
-          }
-
-          completeResult = await completeResponse.json();
-
-          if (!completeResult.success) {
-            throw new Error(completeResult.error || 'Failed to complete upload');
-          }
+          await retryWithBackoff(async () => {
+            await uploadWithPresignedUrl(
+              initiateResult.presignedUrl,
+              file,
+              (progress) => {
+                setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
+                updateUpload(uploadId, { progress });
+              },
+              abortController.signal
+            );
+          }, 3, 1000, fileId);
         }
-      });
 
-      // Success!
-      updateUpload(uploadId, { status: 'completed', progress: 100 });
-      
-      toast.success("Upload Successful", {
-        description: `${title} has been uploaded to ${category}.`
-      });
-      
-      onUploadComplete?.(completeResult.data);
-      
-      // Reset form
-      setSelectedFile(null);
-      setTitle("");
-      setDescription("");
-      setAuthor("");
-      setUploadProgress(0);
-      setRetryCount(0);
-      setIsRetrying(false);
-      setSelectedFolderId(currentFolderId || null); // Reset to current folder
-      setCurrentUploadId(null);
-      setOpen(false);
-      
-      // Auto-remove completed upload from status bar after 5 seconds
-      setTimeout(() => {
-        removeUpload(uploadId);
-      }, 5000);
-    } catch (error) {
-      console.error('Upload error:', error);
-      
-      // Update upload status
-      if (currentUploadId) {
-        if (error.message.includes('cancelled') || error.message.includes('abort')) {
-          updateUpload(currentUploadId, { status: 'cancelled' });
-        } else {
-          updateUpload(currentUploadId, { status: 'failed', error: error.message });
-        }
-      }
-      
-      // Don't show error toast if upload was cancelled
-      if (error.message.includes('cancelled') || error.message.includes('abort')) {
-        toast.info("Upload Cancelled", {
-          description: "The upload was cancelled."
-        });
-      } else {
-        const errorMessage = retryCount > 0
-          ? `${error.message} (Retried ${retryCount} time${retryCount > 1 ? 's' : ''})`
-          : error.message || "An error occurred while uploading the file";
+        // Step 3: Complete upload
+        let completeResult;
+        await retryWithBackoff(async () => {
+          if (initiateResult.uploadType === 'multipart') {
+            const completeResponse = await fetch('/api/library/upload/complete-multipart', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                filePath: initiateResult.filePath,
+                fileName: initiateResult.fileName,
+                uploadId: initiateResult.uploadId,
+                parts: uploadedParts,
+                title: meta.title.trim(),
+                description: meta.description.trim(),
+                author: category === 'articles' ? (meta.author || '').trim() : '',
+                category: category,
+                fileSize: fileSize,
+                fileType: file.type,
+                folderId: selectedFolderId || null,
+              }),
+              signal: abortController.signal,
+            });
+
+            if (!completeResponse.ok) {
+              throw new Error(`Failed to complete multipart upload: ${completeResponse.statusText}`);
+            }
+
+            completeResult = await completeResponse.json();
+
+            if (!completeResult.success) {
+              throw new Error(completeResult.error || 'Failed to complete multipart upload');
+            }
+          } else {
+            const completeResponse = await fetch('/api/library/upload/complete', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                filePath: initiateResult.filePath,
+                fileName: initiateResult.fileName,
+                title: meta.title.trim(),
+                description: meta.description.trim(),
+                author: category === 'articles' ? (meta.author || '').trim() : '',
+                category: category,
+                fileSize: fileSize,
+                fileType: file.type,
+                folderId: selectedFolderId || null,
+              }),
+              signal: abortController.signal,
+            });
+
+            if (!completeResponse.ok) {
+              throw new Error(`Failed to complete upload: ${completeResponse.statusText}`);
+            }
+
+            completeResult = await completeResponse.json();
+
+            if (!completeResult.success) {
+              throw new Error(completeResult.error || 'Failed to complete upload');
+            }
+          }
+        }, 3, 1000, fileId);
+
+        // Success!
+        updateUpload(uploadId, { status: 'completed', progress: 100 });
+        setUploadStatus(prev => ({ ...prev, [fileId]: 'completed' }));
+        setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
         
-        toast.error("Upload Failed", {
-          description: errorMessage
-        });
+        onUploadComplete?.(completeResult.data);
+        
+        // Auto-remove from status bar after 5 seconds
+        setTimeout(() => {
+          removeUpload(uploadId);
+        }, 5000);
+
+        return { fileId, success: true, data: completeResult.data };
+      } catch (error) {
+        console.error(`Upload error for ${file.name}:`, error);
+        
+        if (activeUploads[fileId]) {
+          if (error.message.includes('cancelled') || error.message.includes('abort')) {
+            updateUpload(activeUploads[fileId], { status: 'cancelled' });
+            setUploadStatus(prev => ({ ...prev, [fileId]: 'cancelled' }));
+          } else {
+            updateUpload(activeUploads[fileId], { status: 'failed', error: error.message });
+            setUploadStatus(prev => ({ ...prev, [fileId]: 'failed' }));
+          }
+        }
+        
+        return { fileId, success: false, error: error.message };
       }
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
-      setRetryCount(0);
-      setIsRetrying(false);
-      setUploadAbortController(null);
+    });
+
+    // Wait for all uploads to complete
+    const results = await Promise.all(uploadPromises);
+    
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    
+    if (successful > 0) {
+      toast.success(`Successfully uploaded ${successful} file(s)`);
     }
+    
+    if (failed > 0) {
+      toast.error(`${failed} file(s) failed to upload`);
+    }
+
+    // Reset form if all successful
+    if (failed === 0) {
+      setSelectedFiles([]);
+      setFileMetadata({});
+      setUploadProgress({});
+      setUploadStatus({});
+      setActiveUploads({});
+      setRetryCount({});
+      setOpen(false);
+    }
+    
+    setUploading(false);
   };
 
   const handleDialogClose = (newOpen) => {
@@ -770,79 +853,138 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
         {children}
       </DialogTrigger>
       <DialogContent 
-        className="sm:max-w-[600px]"
+        className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto"
         onInteractOutside={(e) => {
           // Always allow closing - upload continues in background
-          // No need to prevent closing
         }}
         onEscapeKeyDown={(e) => {
           // Always allow closing with Escape - upload continues in background
-          // No need to prevent closing
         }}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <IconComponent className="h-5 w-5" />
             {t('library.uploadTo', 'Upload to {category}').replace('{category}', getCategoryTitle())}
+            {selectedFiles.length > 0 && (
+              <span className="text-sm font-normal text-muted-foreground">
+                ({selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''})
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
           {/* File Upload Area */}
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={cn(
+              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
               dragActive 
                 ? "border-primary bg-primary/5" 
-                : !selectedFile 
+                : selectedFiles.length === 0
                   ? "border-red-300 bg-red-50/50" 
                   : "border-muted-foreground/25"
-            }`}
+            )}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            {selectedFile ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-2">
-                  <File className="h-8 w-8 text-primary" />
-                  <span className="font-medium">{selectedFile.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedFile(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                  {uploading && (
-                    <div className="space-y-1">
-                      <Progress value={uploadProgress} className="w-full" />
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>
-                          {uploadProgress.toFixed(0)}% {t('library.uploaded', 'uploaded')}
-                          {isRetrying && (
-                            <span className="ml-2 text-amber-600">
-                              ({t('library.retrying', 'Retrying...')} {retryCount}/3)
+            {selectedFiles.length > 0 ? (
+              <div className="space-y-4">
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {selectedFiles.map((file) => {
+                    const fileId = getFileId(file);
+                    const meta = fileMetadata[fileId] || {};
+                    const progress = uploadProgress[fileId] || 0;
+                    const status = uploadStatus[fileId];
+                    const isUploading = status === 'uploading';
+                    const isCompleted = status === 'completed';
+                    const isFailed = status === 'failed';
+                    const fileRetryCount = retryCount[fileId] || 0;
+                    
+                    return (
+                      <div key={fileId} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <File className="h-5 w-5 text-primary flex-shrink-0" />
+                            <span className="font-medium truncate">{file.name}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
+                              {formatFileSize(file.size)}
                             </span>
+                            {isCompleted && (
+                              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            )}
+                            {isFailed && (
+                              <X className="h-4 w-4 text-red-500 flex-shrink-0" />
+                            )}
+                          </div>
+                          {!isUploading && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(fileId)}
+                              className="flex-shrink-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           )}
-                        </span>
-                        {uploadProgress > 0 && uploadProgress < 100 && (
-                          <span className="text-muted-foreground/60">
-                            {selectedFile.size > 0 
-                              ? `${((selectedFile.size * uploadProgress) / 100 / 1024 / 1024).toFixed(2)} MB / ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`
-                              : t('library.uploading', 'Uploading...')
-                            }
-                          </span>
+                        </div>
+                        
+                        {isUploading && (
+                          <div className="space-y-1">
+                            <Progress value={progress} className="w-full" />
+                            <p className="text-xs text-muted-foreground text-right">
+                              {progress.toFixed(0)}%
+                              {fileRetryCount > 0 && (
+                                <span className="ml-2 text-amber-600">
+                                  ({t('library.retrying', 'Retrying...')} {fileRetryCount}/3)
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {!isUploading && (
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Title *"
+                              value={meta.title || ''}
+                              onChange={(e) => updateFileMetadata(fileId, 'title', e.target.value)}
+                              className={!meta.title?.trim() ? "border-red-500" : ""}
+                            />
+                            <Textarea
+                              placeholder="Description *"
+                              value={meta.description || ''}
+                              onChange={(e) => updateFileMetadata(fileId, 'description', e.target.value)}
+                              rows={2}
+                              className={!meta.description?.trim() ? "border-red-500" : ""}
+                            />
+                            {category === 'articles' && (
+                              <Input
+                                placeholder="Author (optional)"
+                                value={meta.author || ''}
+                                onChange={(e) => updateFileMetadata(fileId, 'author', e.target.value)}
+                              />
+                            )}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const fileInput = document.getElementById('file-upload');
+                    if (fileInput) {
+                      fileInput.click();
+                    }
+                  }}
+                  disabled={uploading}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Add More Files
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -852,7 +994,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                   <p className="text-sm text-muted-foreground">
                     {t('library.acceptedFormats', 'Accepted formats')}: {acceptedFormats[category]}
                   </p>
-                  <p className="text-xs text-red-500 mt-2">⚠️ {t('library.pleaseSelectFile', 'Please select a file to upload')}</p>
+                  <p className="text-xs text-red-500 mt-2">⚠️ {t('library.pleaseSelectFile', 'Please select at least one file to upload')}</p>
                 </div>
                 <Input
                   type="file"
@@ -860,21 +1002,26 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                   onChange={handleFileSelect}
                   className="hidden"
                   id="file-upload"
+                  multiple
                 />
                 <Button 
                   variant="outline" 
                   className="w-full cursor-pointer"
-                  onClick={handleSelectFileClick}
+                  onClick={() => {
+                    const fileInput = document.getElementById('file-upload');
+                    if (fileInput) {
+                      fileInput.click();
+                    }
+                  }}
                 >
-                  {t('library.selectFile', 'Select File')}
+                  {t('library.selectFiles', 'Select Files')}
                 </Button>
               </div>
             )}
           </div>
 
-          {/* File Information */}
-          <div className="space-y-4">
-            {/* Folder Selection */}
+          {/* Folder Selection */}
+          {selectedFiles.length > 0 && (
             <div className="space-y-2">
               <Label>{t('library.uploadToFolder', 'Upload to Folder')}</Label>
               <div className="flex items-center gap-2">
@@ -901,75 +1048,38 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                 </Button>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="title">{t('common.labels.title', 'Title')} *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t('library.enterFileTitle', 'Enter file title')}
-                className={!title.trim() ? "border-red-500 focus:border-red-500" : ""}
-              />
-              {!title.trim() && (
-                <p className="text-xs text-red-500">{t('library.titleRequired', 'Title is required')}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">{t('common.labels.description', 'Description')} *</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t('library.describeFileContent', 'Describe the content and purpose of this file')}
-                rows={3}
-                required
-                className={!description.trim() ? "border-red-500" : ""}
-              />
-              <div className="text-xs text-muted-foreground">
-                {description.length} {t('library.characters', 'characters')} {!description.trim() && `(${t('common.required', 'Required')})`}
-              </div>
-            </div>
-
-            {category === 'articles' && (
-              <div className="space-y-2">
-                <Label htmlFor="author">{t('library.author', 'Author')}</Label>
-                <Input
-                  id="author"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                  placeholder={t('library.enterAuthorName', 'Enter author name')}
-                />
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Upload Button */}
           <div className="flex justify-end gap-2">
             <Button 
               variant="outline" 
               onClick={() => {
-                if (uploading && uploadAbortController && currentUploadId) {
-                  // Cancel upload and remove from manager
-                  cancelUpload(currentUploadId);
-                  removeUpload(currentUploadId);
+                if (uploading) {
+                  // Cancel all uploads
+                  Object.values(activeUploads).forEach(uploadId => {
+                    cancelUpload(uploadId);
+                    removeUpload(uploadId);
+                  });
                 }
                 setOpen(false);
               }}
             >
               {uploading ? t('common.buttons.cancel', 'Cancel') : t('common.buttons.close', 'Close')}
             </Button>
-            <Button onClick={handleUpload} disabled={!selectedFile || uploading}>
+            <Button 
+              onClick={handleUpload} 
+              disabled={selectedFiles.length === 0 || uploading}
+            >
               {uploading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isRetrying ? `${t('library.retrying', 'Retrying...')} (${retryCount}/3)` : t('library.uploading', 'Uploading...')}
+                  {t('library.uploading', 'Uploading...')}
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  {t('library.uploadFile', 'Upload File')}
+                  {t('library.uploadFiles', 'Upload {count} File(s)').replace('{count}', selectedFiles.length.toString())}
                 </>
               )}
             </Button>
