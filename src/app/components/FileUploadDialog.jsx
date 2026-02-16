@@ -626,6 +626,10 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     setActiveUploads({});
     setRetryCount({});
 
+    // Close dialog immediately - uploads continue in background
+    // This prevents blocking the screen with many files
+    setOpen(false);
+
     // Calculate optimal maxParallel per file based on total files
     // Best practice: Limit total concurrent connections to avoid browser queuing
     // Browser typically allows 6-10 concurrent connections per domain
@@ -654,7 +658,8 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
         title: meta.title.trim(),
         abortController: abortController,
         status: 'uploading',
-        progress: 0
+        progress: 0,
+        startTime: Date.now() // Track start time for time estimation
       });
       
       setActiveUploads(prev => ({ ...prev, [fileId]: uploadId }));
@@ -831,7 +836,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       toast.error(`${failed} file(s) failed to upload`);
     }
 
-    // Reset form if all successful
+    // Reset form if all successful (dialog already closed, just reset state)
     if (failed === 0) {
       setSelectedFiles([]);
       setFileMetadata({});
@@ -839,7 +844,6 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       setUploadStatus({});
       setActiveUploads({});
       setRetryCount({});
-      setOpen(false);
     }
     
     setUploading(false);

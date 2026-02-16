@@ -132,11 +132,11 @@ const Layout = ({ children }) => {
             )}
             
             {/* Main Content */}
-            <main className={`flex-1 ${isClientRoute ? 'p-0' : 'p-0'} bg-background md:px-[30px] ${shouldShowSidebar ? 'pb-20' : 'pb-20'}`}>
+            <main className={`flex-1 ${isClientRoute ? 'p-0' : 'p-0'} bg-background md:px-[30px]`}>
               {children}
             </main>
             
-            {/* Upload Status Bar - only show for coach/admin routes */}
+            {/* Upload Status Bar - floating dialog in bottom-right (only show for coach/admin routes) */}
             {shouldShowSidebar && <UploadStatusBar />}
           </div>
         </div>

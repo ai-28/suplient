@@ -9,7 +9,13 @@ export function UploadManagerProvider({ children }) {
 
   const addUpload = useCallback((upload) => {
     const uploadId = upload.id || `upload-${Date.now()}-${Math.random()}`;
-    const uploadWithId = { ...upload, id: uploadId, status: 'uploading', progress: 0 };
+    const uploadWithId = { 
+      ...upload, 
+      id: uploadId, 
+      status: upload.status || 'uploading', 
+      progress: upload.progress || 0,
+      startTime: upload.startTime || Date.now()
+    };
     
     setUploads(prev => [...prev, uploadWithId]);
     return uploadId;
