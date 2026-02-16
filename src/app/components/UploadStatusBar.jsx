@@ -42,32 +42,61 @@ export function UploadStatusBar() {
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
-  // Calculate time remaining (simple estimation)
+  // Calculate time remaining (speed-based, accurate for different file sizes)
   const calculateTimeRemaining = () => {
     if (activeUploads.length === 0) return null;
     
-    const avgProgress = activeUploads.reduce((sum, u) => sum + (u.progress || 0), 0) / activeUploads.length;
-    if (avgProgress === 0 || avgProgress === 100) return null;
+    const fileTimes = [];
     
-    // Estimate based on average progress and elapsed time
-    const avgElapsed = activeUploads.reduce((sum, u) => {
-      if (u.startTime) {
-        return sum + (Date.now() - u.startTime);
+    activeUploads.forEach(upload => {
+      // Skip if we don't have required data
+      if (!upload.fileSize || !upload.startTime || upload.progress === 0 || upload.progress === 100) {
+        return;
       }
-      return sum;
-    }, 0) / activeUploads.length;
+      
+      // Calculate uploaded bytes
+      const uploadedBytes = (upload.fileSize * upload.progress) / 100;
+      const remainingBytes = upload.fileSize - uploadedBytes;
+      
+      // Calculate elapsed time in seconds
+      const elapsedSeconds = (Date.now() - upload.startTime) / 1000;
+      
+      // Skip if no time has passed or nothing uploaded yet
+      if (elapsedSeconds <= 0 || uploadedBytes <= 0) {
+        return;
+      }
+      
+      // Calculate upload speed (bytes per second)
+      const uploadSpeed = uploadedBytes / elapsedSeconds;
+      
+      // Skip if speed is too slow or invalid (less than 1 KB/s)
+      if (uploadSpeed < 1024) {
+        return;
+      }
+      
+      // Calculate time remaining for this file (seconds)
+      const timeRemainingSeconds = remainingBytes / uploadSpeed;
+      
+      fileTimes.push(timeRemainingSeconds);
+    });
     
-    if (avgElapsed === 0) return null;
+    // If no valid calculations, return null
+    if (fileTimes.length === 0) return null;
     
-    const estimatedTotal = avgElapsed / (avgProgress / 100);
-    const remaining = estimatedTotal - avgElapsed;
+    // Time remaining = maximum time among all files (the slowest one determines total time)
+    const maxRemainingSeconds = Math.max(...fileTimes);
     
-    if (remaining < 1000) return t('uploadStatusBar.almostDone', 'Almost done...');
-    if (remaining < 60000) {
-      const seconds = Math.ceil(remaining / 1000);
-      return t('uploadStatusBar.secondsRemaining', '{seconds} seconds remaining...').replace('{seconds}', seconds.toString());
+    if (maxRemainingSeconds < 1) {
+      return t('uploadStatusBar.almostDone', 'Almost done...');
     }
-    const minutes = Math.ceil(remaining / 60000);
+    
+    if (maxRemainingSeconds < 60) {
+      const seconds = Math.ceil(maxRemainingSeconds);
+      return t('uploadStatusBar.secondsRemaining', '{seconds} seconds remaining...')
+        .replace('{seconds}', seconds.toString());
+    }
+    
+    const minutes = Math.ceil(maxRemainingSeconds / 60);
     return t('uploadStatusBar.minutesRemaining', '{minutes} minute{plural} remaining...')
       .replace('{minutes}', minutes.toString())
       .replace('{plural}', minutes !== 1 ? 's' : '');
