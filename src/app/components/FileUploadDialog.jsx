@@ -13,6 +13,7 @@ import { Upload, X, File, Image, Video, Music, FileText, FileImage, BookOpen, Lo
 import { TreePickerDialog } from "@/app/components/TreePickerDialog";
 import { toast } from "sonner";
 import { Progress } from "@/app/components/ui/progress";
+import { useUploadManager } from "@/app/context/UploadManagerContext";
 
 const categoryIcons = {
   videos: Video,
@@ -43,6 +44,7 @@ const fileFieldNames = {
 
 export function FileUploadDialog({ category, currentFolderId, onUploadComplete, children }) {
   const t = useTranslation();
+  const { addUpload, updateUpload, removeUpload, cancelUpload } = useUploadManager();
   const [open, setOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -54,6 +56,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [uploadAbortController, setUploadAbortController] = useState(null);
+  const [currentUploadId, setCurrentUploadId] = useState(null);
   
   // Folder selection state
   const [selectedFolderId, setSelectedFolderId] = useState(currentFolderId || null);
@@ -545,6 +548,18 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     const abortController = new AbortController();
     setUploadAbortController(abortController);
     
+    // Register upload with upload manager for background tracking
+    const uploadId = addUpload({
+      fileName: selectedFile.name,
+      fileSize: selectedFile.size,
+      category: category,
+      title: title.trim(),
+      abortController: abortController,
+      status: 'uploading',
+      progress: 0
+    });
+    setCurrentUploadId(uploadId);
+    
     try {
       const fileSize = selectedFile.size;
 
@@ -587,7 +602,10 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           initiateResult.uploadId,
           initiateResult.chunkSize,
           initiateResult.totalChunks,
-          (progress) => setUploadProgress(progress), // progress is already 0-100, no need to multiply
+          (progress) => {
+            setUploadProgress(progress);
+            updateUpload(uploadId, { progress });
+          },
           abortController.signal,
           8 // Max 8 parallel uploads (optimized for performance)
         );
@@ -597,7 +615,10 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
           await uploadWithPresignedUrl(
             initiateResult.presignedUrl,
             selectedFile,
-            (progress) => setUploadProgress(progress),
+            (progress) => {
+              setUploadProgress(progress);
+              updateUpload(uploadId, { progress });
+            },
             abortController.signal
           );
         });
@@ -672,6 +693,8 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       });
 
       // Success!
+      updateUpload(uploadId, { status: 'completed', progress: 100 });
+      
       toast.success("Upload Successful", {
         description: `${title} has been uploaded to ${category}.`
       });
@@ -687,9 +710,24 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       setRetryCount(0);
       setIsRetrying(false);
       setSelectedFolderId(currentFolderId || null); // Reset to current folder
+      setCurrentUploadId(null);
       setOpen(false);
+      
+      // Auto-remove completed upload from status bar after 5 seconds
+      setTimeout(() => {
+        removeUpload(uploadId);
+      }, 5000);
     } catch (error) {
       console.error('Upload error:', error);
+      
+      // Update upload status
+      if (currentUploadId) {
+        if (error.message.includes('cancelled') || error.message.includes('abort')) {
+          updateUpload(currentUploadId, { status: 'cancelled' });
+        } else {
+          updateUpload(currentUploadId, { status: 'failed', error: error.message });
+        }
+      }
       
       // Don't show error toast if upload was cancelled
       if (error.message.includes('cancelled') || error.message.includes('abort')) {
@@ -715,9 +753,13 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
   };
 
   const handleDialogClose = (newOpen) => {
-    if (!newOpen && uploading && uploadAbortController) {
-      // If closing during upload, cancel the upload
-      uploadAbortController.abort();
+    // Always allow closing - upload continues in background
+    if (!newOpen && uploading) {
+      // Show notification that upload continues in background
+      toast.info("Upload continues in background", {
+        description: "You can monitor progress in the upload status bar at the bottom of the screen.",
+        duration: 3000
+      });
     }
     setOpen(newOpen);
   };
@@ -727,7 +769,17 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent 
+        className="sm:max-w-[600px]"
+        onInteractOutside={(e) => {
+          // Always allow closing - upload continues in background
+          // No need to prevent closing
+        }}
+        onEscapeKeyDown={(e) => {
+          // Always allow closing with Escape - upload continues in background
+          // No need to prevent closing
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <IconComponent className="h-5 w-5" />
@@ -898,12 +950,13 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
             <Button 
               variant="outline" 
               onClick={() => {
-                if (uploading && uploadAbortController) {
-                  uploadAbortController.abort();
+                if (uploading && uploadAbortController && currentUploadId) {
+                  // Cancel upload and remove from manager
+                  cancelUpload(currentUploadId);
+                  removeUpload(currentUploadId);
                 }
                 setOpen(false);
               }}
-              disabled={uploading && !uploadAbortController}
             >
               {uploading ? t('common.buttons.cancel', 'Cancel') : t('common.buttons.close', 'Close')}
             </Button>

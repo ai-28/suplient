@@ -13,6 +13,8 @@ import { ImpersonationBanner } from "@/app/components/ImpersonationBanner";
 import { useTranslation } from "@/app/context/LanguageContext";
 import SubscriptionGuard from "@/app/components/SubscriptionGuard";
 import { useUpdateLastLogin } from "@/app/hooks/useUpdateLastLogin";
+import { UploadManagerProvider } from "@/app/context/UploadManagerContext";
+import { UploadStatusBar } from "@/app/components/UploadStatusBar";
 
 const Layout = ({ children }) => {
     const pathname = usePathname();
@@ -72,6 +74,7 @@ const Layout = ({ children }) => {
 
     return (
         <SubscriptionGuard>
+        <UploadManagerProvider>
         <SidebarProvider>
         <div className="min-h-screen flex w-full bg-background">
           {/* Conditionally render sidebar only for coach/admin routes */}
@@ -129,12 +132,16 @@ const Layout = ({ children }) => {
             )}
             
             {/* Main Content */}
-            <main className={`flex-1 ${isClientRoute ? 'p-0' : 'p-0'} bg-background md:px-[30px]`}>
+            <main className={`flex-1 ${isClientRoute ? 'p-0' : 'p-0'} bg-background md:px-[30px] ${shouldShowSidebar ? 'pb-20' : 'pb-20'}`}>
               {children}
             </main>
+            
+            {/* Upload Status Bar - only show for coach/admin routes */}
+            {shouldShowSidebar && <UploadStatusBar />}
           </div>
         </div>
       </SidebarProvider>
+      </UploadManagerProvider>
       </SubscriptionGuard>
     )
 }
