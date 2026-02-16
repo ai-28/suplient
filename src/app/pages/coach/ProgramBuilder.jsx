@@ -9,6 +9,7 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { Label } from "@/app/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { AddElementDialog } from "@/app/components/AddElementDialog";
+import { EditElementDialog } from "@/app/components/EditElementDialog";
 import { ProgramFlowChart } from "@/app/components/ProgramFlowChart";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "@/app/context/LanguageContext";
@@ -48,6 +49,10 @@ export default function ProgramBuilder() {
     week: null,
     day: null
   });
+  const [editElementDialog, setEditElementDialog] = useState({
+    open: false,
+    element: null
+  });
   const [isSaving, setIsSaving] = useState(false);
 
 
@@ -61,6 +66,22 @@ export default function ProgramBuilder() {
       id: `element-${Date.now()}`
     };
     setElements(prev => [...prev, newElement]);
+  };
+
+  const handleEditElement = (element) => {
+    setEditElementDialog({ open: true, element });
+  };
+
+  const handleUpdateElement = (updatedElement) => {
+    setElements(prev => prev.map(el => el.id === updatedElement.id ? updatedElement : el));
+    setEditElementDialog({ open: false, element: null });
+    toast.success(t('programs.elementUpdated', 'Element updated successfully'));
+  };
+
+  const handleDeleteElement = (elementId) => {
+    setElements(prev => prev.filter(el => el.id !== elementId));
+    setEditElementDialog({ open: false, element: null });
+    toast.success(t('programs.elementDeleted', 'Element deleted'));
   };
 
 
@@ -197,10 +218,8 @@ export default function ProgramBuilder() {
       <ProgramFlowChart 
         elements={elements} 
         duration={formData.duration}
-        forceCloseDropdowns={addElementDialog.open}
-        onElementClick={(element) => {
-          // Optional: Handle element clicks if needed
-        }}
+        forceCloseDropdowns={addElementDialog.open || editElementDialog.open}
+        onElementClick={handleEditElement}
         onAddElementToDay={(absoluteDay, week, type) => {
           // absoluteDay is already the absolute day number (1-28 for 4 weeks)
           // Calculate day of week from absolute day (1-7, where 1=Monday, 7=Sunday)
@@ -218,6 +237,14 @@ export default function ProgramBuilder() {
         preselectedDay={addElementDialog.day}
         preselectedWeek={addElementDialog.week}
         onAddElement={handleAddElement}
+      />
+
+      <EditElementDialog
+        element={editElementDialog.element}
+        open={editElementDialog.open}
+        onOpenChange={(open) => setEditElementDialog({ open, element: null })}
+        onSave={handleUpdateElement}
+        onDelete={handleDeleteElement}
       />
       </div>
     );
