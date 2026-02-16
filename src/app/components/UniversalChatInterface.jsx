@@ -619,7 +619,7 @@ export function UniversalChatInterface({
       {/* Messages Area - Natural flow with sticky header on client */}
       <ScrollArea 
         ref={scrollAreaRef}
-        className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? "pt-4" : "pt-4"} ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-52" : "pb-20"}` : ""}`}
+        className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? "pt-4" : "pt-4"} ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-40" : "pb-40"}` : ""}`}
       >
         <TooltipProvider>
           <div className="space-y-1">
