@@ -626,6 +626,16 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     setActiveUploads({});
     setRetryCount({});
 
+    // Calculate optimal maxParallel per file based on total files
+    // Best practice: Limit total concurrent connections to avoid browser queuing
+    // Browser typically allows 6-10 concurrent connections per domain
+    const totalFiles = selectedFiles.length;
+    const MAX_TOTAL_CONCURRENT = 12; // Global limit across all files (safe for most browsers)
+    const maxParallelPerFile = Math.max(2, Math.floor(MAX_TOTAL_CONCURRENT / totalFiles));
+    
+    // Log the concurrency strategy for debugging
+    console.log(`📊 [MULTI-FILE] Uploading ${totalFiles} file(s) with ${maxParallelPerFile} chunks per file (${totalFiles * maxParallelPerFile} total concurrent)`);
+
     // Upload all files in parallel
     const uploadPromises = selectedFiles.map(async (file) => {
       const fileId = getFileId(file);
@@ -695,7 +705,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
               updateUpload(uploadId, { progress });
             },
             abortController.signal,
-            8
+            maxParallelPerFile // Use dynamic concurrency based on file count
           );
         } else {
           await retryWithBackoff(async () => {
