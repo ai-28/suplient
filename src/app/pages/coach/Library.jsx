@@ -32,19 +32,36 @@ const categoryPrograms = "/assets/category-programs.webp";
 
 // Helper function to format file size (needs translation function)
 const formatFileSize = (bytes, t) => {
-  if (!bytes || bytes === 0) return `0 ${t('library.fileSizeUnits.B', 'B')}`;
+  if (!bytes || bytes === 0) {
+    const unit = t('library.fileSizeUnits.B', 'B') || 'B';
+    return `0 ${unit}`;
+  }
+  
+  // Default size units as fallback
+  const defaultSizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   
   const sizes = [
-    t('library.fileSizeUnits.B', 'B'),
-    t('library.fileSizeUnits.KB', 'KB'),
-    t('library.fileSizeUnits.MB', 'MB'),
-    t('library.fileSizeUnits.GB', 'GB'),
-    t('library.fileSizeUnits.TB', 'TB')
+    t('library.fileSizeUnits.B', 'B') || 'B',
+    t('library.fileSizeUnits.KB', 'KB') || 'KB',
+    t('library.fileSizeUnits.MB', 'MB') || 'MB',
+    t('library.fileSizeUnits.GB', 'GB') || 'GB',
+    t('library.fileSizeUnits.TB', 'TB') || 'TB'
   ];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const size = (bytes / Math.pow(1024, i)).toFixed(1);
   
-  return `${size} ${sizes[i]}`;
+  // Calculate index and clamp it to valid array bounds
+  const i = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    sizes.length - 1
+  );
+  
+  // Ensure index is not negative
+  const index = Math.max(0, i);
+  const size = (bytes / Math.pow(1024, index)).toFixed(1);
+  
+  // Use default size unit if translation returns undefined/null/empty
+  const unit = sizes[index] || defaultSizes[index] || 'B';
+  
+  return `${size} ${unit}`;
 };
 
 // Helper function to get total size in MB for calculations
