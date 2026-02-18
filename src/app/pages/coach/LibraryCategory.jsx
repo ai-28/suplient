@@ -46,6 +46,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/app/components/ui/alert-dialog";
@@ -281,6 +282,11 @@ export default function LibraryCategory() {
   const [deletingFileId, setDeletingFileId] = useState(null);
   const [deletingFiles, setDeletingFiles] = useState(false);
   const [folderViewMode, setFolderViewMode] = useState('current'); // 'current' or 'tree'
+  const [editingFile, setEditingFile] = useState(null);
+  const [editingFileName, setEditingFileName] = useState("");
+  const [editingFileDescription, setEditingFileDescription] = useState("");
+  const [editingFileAuthor, setEditingFileAuthor] = useState("");
+  const [updatingFile, setUpdatingFile] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState(new Set()); // Track expanded folders in tree view
   const [newFolderParentId, setNewFolderParentId] = useState(null); // For creating subfolders
   const [showTreePicker, setShowTreePicker] = useState(false); // For tree picker dialog
@@ -554,6 +560,58 @@ export default function LibraryCategory() {
 
   const getSelectedFiles = () => {
     return items.filter(item => selectedFiles.includes(item.id));
+  };
+
+  const handleEditFile = (file) => {
+    setEditingFile(file);
+    setEditingFileName(file.title || '');
+    setEditingFileDescription(file.description || '');
+    setEditingFileAuthor(file.author || '');
+  };
+
+  const handleUpdateFile = async () => {
+    if (!editingFile || !editingFileName.trim()) {
+      toast.error(t('library.fileNameRequired', 'File name is required'));
+      return;
+    }
+
+    try {
+      setUpdatingFile(true);
+      const response = await fetch(`/api/library/resources/${editingFile.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editingFileName.trim(),
+          description: editingFileDescription.trim(),
+          author: editingFileAuthor.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.status) {
+        // Update the item in the list
+        setItems(prev => prev.map(item => 
+          item.id === editingFile.id 
+            ? { ...item, title: editingFileName.trim(), description: editingFileDescription.trim(), author: editingFileAuthor.trim() }
+            : item
+        ));
+        toast.success(t('library.fileUpdated', 'File updated successfully'));
+        setEditingFile(null);
+        setEditingFileName("");
+        setEditingFileDescription("");
+        setEditingFileAuthor("");
+      } else {
+        toast.error(data.message || t('library.updateFailed', 'Failed to update file'));
+      }
+    } catch (error) {
+      console.error('Error updating file:', error);
+      toast.error(t('library.updateFailed', 'Failed to update file'));
+    } finally {
+      setUpdatingFile(false);
+    }
   };
 
   const handleDeleteFile = async (fileId) => {
@@ -1694,6 +1752,15 @@ export default function LibraryCategory() {
                   <Button 
                     size="sm" 
                     variant="outline" 
+                    title={t('common.buttons.edit', 'Edit')} 
+                    className="px-3"
+                    onClick={() => handleEditFile(item)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
                     title={t('library.download', 'Download')} 
                     className="px-3"
                     disabled={downloadingItemId === item.id}
@@ -1811,6 +1878,15 @@ export default function LibraryCategory() {
                       <Button 
                         size="sm" 
                         variant="outline" 
+                        title={t('common.buttons.edit', 'Edit')} 
+                        className="px-3"
+                        onClick={() => handleEditFile(item)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
                         title={t('library.download', 'Download')} 
                         className="px-3"
                         disabled={downloadingItemId === item.id}
@@ -1850,8 +1926,8 @@ export default function LibraryCategory() {
               </CardContent>
             </Card>
           ))}
-            </div>
-          )}
+        </div>
+      )}
         </>
       )}
 
@@ -2079,6 +2155,76 @@ export default function LibraryCategory() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit File Dialog */}
+      {editingFile && (
+        <Dialog open={!!editingFile} onOpenChange={(open) => !open && setEditingFile(null)}>
+          <DialogContent className={isMobile ? 'w-[90vw]' : ''}>
+            <DialogHeader>
+              <DialogTitle>{t('library.editFile', 'Edit File')}</DialogTitle>
+              <DialogDescription>
+                {t('library.editFileDesc', 'Update file name, description, and author')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="fileName">{t('library.fileName', 'File Name')} *</Label>
+                <Input
+                  id="fileName"
+                  value={editingFileName}
+                  onChange={(e) => setEditingFileName(e.target.value)}
+                  placeholder={t('library.enterFileName', 'Enter file name')}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fileDescription">{t('common.labels.description', 'Description')}</Label>
+                <Textarea
+                  id="fileDescription"
+                  value={editingFileDescription}
+                  onChange={(e) => setEditingFileDescription(e.target.value)}
+                  placeholder={t('library.enterDescription', 'Enter description (optional)')}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fileAuthor">{t('library.author', 'Author')}</Label>
+                <Input
+                  id="fileAuthor"
+                  value={editingFileAuthor}
+                  onChange={(e) => setEditingFileAuthor(e.target.value)}
+                  placeholder={t('library.enterAuthor', 'Enter author (optional)')}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditingFile(null);
+                  setEditingFileName("");
+                  setEditingFileDescription("");
+                  setEditingFileAuthor("");
+                }}
+              >
+                {t('common.buttons.cancel', 'Cancel')}
+              </Button>
+              <Button
+                onClick={handleUpdateFile}
+                disabled={updatingFile || !editingFileName.trim()}
+              >
+                {updatingFile ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('common.buttons.updating', 'Updating...')}
+                  </>
+                ) : (
+                  t('common.buttons.save', 'Save')
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Edit Folder Dialog */}

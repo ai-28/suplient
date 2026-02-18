@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import authOptions from "@/app/lib/authoption";
 import { userRepo } from "@/app/lib/db/userRepo";
-import { getResourceById, deleteResource } from "@/app/lib/db/resourceRepo";
+import { getResourceById, deleteResource, updateResource } from "@/app/lib/db/resourceRepo";
 import { deleteFileFromS3, extractFilePathFromUrl } from "@/app/lib/s3Client";
 
 export async function DELETE(request, { params }) {
@@ -57,3 +57,54 @@ export async function DELETE(request, { params }) {
   }
 }
 
+export async function PUT(request, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const email = session.user.email;
+    const user = await userRepo.getUserByEmail(email);
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const { title, description, author } = body;
+
+    // Get resource to verify ownership
+    const resource = await getResourceById(id);
+    if (!resource) {
+      return NextResponse.json({ message: "Resource not found" }, { status: 404 });
+    }
+
+    // Check ownership
+    if (resource.coachId !== user.id && user.role !== 'admin') {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    // Build update object with only provided fields
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (author !== undefined) updates.author = author;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ message: "No fields to update" }, { status: 400 });
+    }
+
+    // Update resource
+    const updatedResource = await updateResource(id, updates);
+
+    return NextResponse.json({ 
+      status: true, 
+      message: "Resource updated successfully",
+      resource: updatedResource
+    });
+  } catch (error) {
+    console.error('Error updating resource:', error);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
+}
