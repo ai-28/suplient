@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Checkbox } from "@/app/components/ui/checkbox";
@@ -21,48 +21,63 @@ export function FileExplorer({
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [filteredFiles, setFilteredFiles] = useState([]);
 
-  // Build folder tree structure recursively
-  const buildFolderTree = useCallback((folders) => {
-    const folderMap = new Map();
-    const rootFolders = [];
+  // Process folder tree - API returns tree structure, but ensure it's properly formatted
+  const processFolderTree = useCallback((folders) => {
+    if (!folders || folders.length === 0) {
+      return [];
+    }
 
-    // Create map of all folders with children array
-    folders.forEach(folder => {
-      folderMap.set(folder.id, { ...folder, children: [] });
-    });
+    // Check if folders is already a tree (has children property) or flat array
+    const isTree = folders.some(f => f.children !== undefined);
+    
+    if (isTree) {
+      // Already a tree structure from API, just ensure children arrays exist
+      const ensureChildren = (folderList) => {
+        return folderList.map(folder => ({
+          ...folder,
+          children: folder.children ? ensureChildren(folder.children) : []
+        }));
+      };
+      return ensureChildren(folders);
+    } else {
+      // Flat array - build tree structure
+      const folderMap = new Map();
+      const rootFolders = [];
 
-    // Build tree structure
-    folders.forEach(folder => {
-      if (folder.parentFolderId) {
-        const parent = folderMap.get(folder.parentFolderId);
-        if (parent) {
-          parent.children.push(folderMap.get(folder.id));
+      // Create map of all folders with children array
+      folders.forEach(folder => {
+        folderMap.set(folder.id, { ...folder, children: [] });
+      });
+
+      // Build tree structure
+      folders.forEach(folder => {
+        if (folder.parentFolderId) {
+          const parent = folderMap.get(folder.parentFolderId);
+          if (parent) {
+            parent.children.push(folderMap.get(folder.id));
+          } else {
+            // Parent not found, treat as root
+            rootFolders.push(folderMap.get(folder.id));
+          }
         } else {
-          // Parent not found, treat as root
+          // No parent, it's a root folder
           rootFolders.push(folderMap.get(folder.id));
         }
-      } else {
-        // No parent, it's a root folder
-        rootFolders.push(folderMap.get(folder.id));
-      }
-    });
-
-    // Sort children recursively
-    const sortFolders = (folderList) => {
-      folderList.forEach(folder => {
-        if (folder.children && folder.children.length > 0) {
-          folder.children.sort((a, b) => a.name.localeCompare(b.name));
-          sortFolders(folder.children);
-        }
       });
-      folderList.sort((a, b) => a.name.localeCompare(b.name));
-    };
 
-    sortFolders(rootFolders);
-    return rootFolders;
+      return rootFolders;
+    }
   }, []);
 
-  const folderTree = buildFolderTree(folders);
+  const folderTree = useMemo(() => {
+    const tree = processFolderTree(folders);
+    console.log('Folder tree processed:', {
+      inputFolders: folders?.length || 0,
+      outputTree: tree?.length || 0,
+      tree: tree
+    });
+    return tree;
+  }, [folders, processFolderTree]);
 
   // Filter files by selected folder and category
   useEffect(() => {
@@ -176,7 +191,13 @@ export function FileExplorer({
               <span className="text-sm flex-1 truncate">{t('library.rootFolder', 'Root')}</span>
             </div>
             {/* Folder tree */}
-            {renderFolderTree(folderTree)}
+            {folderTree && folderTree.length > 0 ? (
+              renderFolderTree(folderTree)
+            ) : (
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                {t('library.noFolders', 'No folders found')}
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>
