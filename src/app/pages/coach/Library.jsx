@@ -32,10 +32,18 @@ const categoryPrograms = "/assets/category-programs.webp";
 
 // Helper function to format file size (needs translation function)
 const formatFileSize = (bytes, t) => {
-  if (!bytes || bytes === 0) {
+  // Convert to number and validate
+  const numBytes = Number(bytes);
+  
+  // Handle invalid, NaN, Infinity, or zero values
+  if (!numBytes || numBytes === 0 || !isFinite(numBytes) || isNaN(numBytes)) {
     const unit = t('library.fileSizeUnits.B', 'B') || 'B';
     return `0 ${unit}`;
   }
+  
+  // Cap at TB to prevent scientific notation for extremely large values
+  const maxBytes = Math.pow(1024, 5); // 1 PB
+  const clampedBytes = Math.min(numBytes, maxBytes);
   
   // Default size units as fallback
   const defaultSizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -50,13 +58,13 @@ const formatFileSize = (bytes, t) => {
   
   // Calculate index and clamp it to valid array bounds
   const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
+    Math.floor(Math.log(clampedBytes) / Math.log(1024)),
     sizes.length - 1
   );
   
   // Ensure index is not negative
   const index = Math.max(0, i);
-  const size = (bytes / Math.pow(1024, index)).toFixed(1);
+  const size = (clampedBytes / Math.pow(1024, index)).toFixed(1);
   
   // Use default size unit if translation returns undefined/null/empty
   const unit = sizes[index] || defaultSizes[index] || 'B';
@@ -136,9 +144,9 @@ export default function Library() {
             color: "bg-primary",
             description: t('library.videos', 'Videos'),
             image: `${categoryVideos}?v=${cacheBuster}`,
-            totalBytes: results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+            totalBytes: results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
             totalSize: formatFileSize(
-              results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+              results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
               t
             )
           },
@@ -150,9 +158,9 @@ export default function Library() {
             color: "bg-accent",
             description: t('library.images', 'Images'),
             image: `${categoryImages}?v=${cacheBuster}`,
-            totalBytes: results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+            totalBytes: results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
             totalSize: formatFileSize(
-              results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+              results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
               t
             )
           },
@@ -164,9 +172,9 @@ export default function Library() {
             color: "bg-secondary",
             description: t('library.articles', 'Articles'),
             image: `${categoryArticles}?v=${cacheBuster}`,
-            totalBytes: results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+            totalBytes: results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
             totalSize: formatFileSize(
-              results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+              results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
               t
             )
           },
@@ -178,9 +186,9 @@ export default function Library() {
             color: "bg-blue-teal",
             description: t('library.sounds', 'Sounds'),
             image: `${categorySounds}?v=${cacheBuster}`,
-            totalBytes: results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+            totalBytes: results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
             totalSize: formatFileSize(
-              results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (item.fileSize || 0), 0) || 0,
+              results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
               t
             )
           }
@@ -231,7 +239,7 @@ export default function Library() {
             <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-1.5'} text-muted-foreground`}>
               <HardDrive className={isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
               <span className="font-medium text-foreground">{formatFileSize(
-                libraryItems.reduce((sum, item) => sum + (item.totalBytes || 0), 0),
+                libraryItems.reduce((sum, item) => sum + (Number(item.totalBytes) || 0), 0),
                 t
               )}</span>
             </div>
