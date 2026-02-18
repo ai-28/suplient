@@ -612,9 +612,9 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       const meta = fileMetadata[fileId];
       if (!meta || !meta.title?.trim() || !meta.description?.trim()) {
         missingMetadata.push(file.name);
-      }
+    }
     });
-
+    
     if (missingMetadata.length > 0) {
       toast.error(`Missing metadata for: ${missingMetadata.join(', ')}`);
       return;
@@ -629,7 +629,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
     // Close dialog immediately - uploads continue in background
     // This prevents blocking the screen with many files
     setOpen(false);
-
+    
     // Calculate optimal maxParallel per file based on total files
     // Best practice: Limit total concurrent connections to avoid browser queuing
     // Browser typically allows 6-10 concurrent connections per domain
@@ -648,7 +648,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       setUploadStatus(prev => ({ ...prev, [fileId]: 'uploading' }));
       setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
 
-      const abortController = new AbortController();
+    const abortController = new AbortController();
       
       // Register upload with upload manager
       const uploadId = addUpload({
@@ -663,156 +663,156 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
       });
       
       setActiveUploads(prev => ({ ...prev, [fileId]: uploadId }));
-
-      try {
+    
+    try {
         const fileSize = file.size;
 
         // Step 1: Get presigned URL
-        let initiateResult;
-        await retryWithBackoff(async () => {
-          const initiateResponse = await fetch('/api/library/upload/initiate', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+      let initiateResult;
+      await retryWithBackoff(async () => {
+        const initiateResponse = await fetch('/api/library/upload/initiate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
               fileName: file.name,
-              fileSize: fileSize,
+            fileSize: fileSize,
               fileType: file.type,
-              category: category,
-            }),
-            signal: abortController.signal,
-          });
+            category: category,
+          }),
+          signal: abortController.signal,
+        });
 
-          if (!initiateResponse.ok) {
-            throw new Error(`Failed to initiate upload: ${initiateResponse.statusText}`);
-          }
+        if (!initiateResponse.ok) {
+          throw new Error(`Failed to initiate upload: ${initiateResponse.statusText}`);
+        }
 
-          initiateResult = await initiateResponse.json();
+        initiateResult = await initiateResponse.json();
 
-          if (!initiateResult.success) {
-            throw new Error(initiateResult.error || 'Failed to initiate upload');
-          }
+        if (!initiateResult.success) {
+          throw new Error(initiateResult.error || 'Failed to initiate upload');
+        }
         }, 3, 1000, fileId);
 
         // Step 2: Upload file
-        let uploadedParts = [];
-        
-        if (initiateResult.uploadType === 'multipart') {
-          uploadedParts = await uploadChunksInParallel(
+      let uploadedParts = [];
+      
+      if (initiateResult.uploadType === 'multipart') {
+        uploadedParts = await uploadChunksInParallel(
             file,
-            initiateResult.filePath,
-            initiateResult.uploadId,
-            initiateResult.chunkSize,
-            initiateResult.totalChunks,
+          initiateResult.filePath,
+          initiateResult.uploadId,
+          initiateResult.chunkSize,
+          initiateResult.totalChunks,
             (progress) => {
               setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
               updateUpload(uploadId, { progress });
             },
-            abortController.signal,
+          abortController.signal,
             maxParallelPerFile // Use dynamic concurrency based on file count
-          );
-        } else {
-          await retryWithBackoff(async () => {
-            await uploadWithPresignedUrl(
-              initiateResult.presignedUrl,
+        );
+      } else {
+        await retryWithBackoff(async () => {
+          await uploadWithPresignedUrl(
+            initiateResult.presignedUrl,
               file,
               (progress) => {
                 setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
                 updateUpload(uploadId, { progress });
               },
-              abortController.signal
-            );
+            abortController.signal
+          );
           }, 3, 1000, fileId);
-        }
+      }
 
         // Step 3: Complete upload
-        let completeResult;
-        await retryWithBackoff(async () => {
-          if (initiateResult.uploadType === 'multipart') {
-            const completeResponse = await fetch('/api/library/upload/complete-multipart', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                filePath: initiateResult.filePath,
-                fileName: initiateResult.fileName,
-                uploadId: initiateResult.uploadId,
-                parts: uploadedParts,
+      let completeResult;
+      await retryWithBackoff(async () => {
+        if (initiateResult.uploadType === 'multipart') {
+          const completeResponse = await fetch('/api/library/upload/complete-multipart', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filePath: initiateResult.filePath,
+              fileName: initiateResult.fileName,
+              uploadId: initiateResult.uploadId,
+              parts: uploadedParts,
                 title: meta.title.trim(),
                 description: meta.description.trim(),
                 author: category === 'articles' ? (meta.author || '').trim() : '',
-                category: category,
-                fileSize: fileSize,
+              category: category,
+              fileSize: fileSize,
                 fileType: file.type,
-                folderId: selectedFolderId || null,
-              }),
-              signal: abortController.signal,
-            });
+              folderId: selectedFolderId || null,
+            }),
+            signal: abortController.signal,
+          });
 
-            if (!completeResponse.ok) {
-              throw new Error(`Failed to complete multipart upload: ${completeResponse.statusText}`);
-            }
-
-            completeResult = await completeResponse.json();
-
-            if (!completeResult.success) {
-              throw new Error(completeResult.error || 'Failed to complete multipart upload');
-            }
-          } else {
-            const completeResponse = await fetch('/api/library/upload/complete', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                filePath: initiateResult.filePath,
-                fileName: initiateResult.fileName,
-                title: meta.title.trim(),
-                description: meta.description.trim(),
-                author: category === 'articles' ? (meta.author || '').trim() : '',
-                category: category,
-                fileSize: fileSize,
-                fileType: file.type,
-                folderId: selectedFolderId || null,
-              }),
-              signal: abortController.signal,
-            });
-
-            if (!completeResponse.ok) {
-              throw new Error(`Failed to complete upload: ${completeResponse.statusText}`);
-            }
-
-            completeResult = await completeResponse.json();
-
-            if (!completeResult.success) {
-              throw new Error(completeResult.error || 'Failed to complete upload');
-            }
+          if (!completeResponse.ok) {
+            throw new Error(`Failed to complete multipart upload: ${completeResponse.statusText}`);
           }
+
+          completeResult = await completeResponse.json();
+
+          if (!completeResult.success) {
+            throw new Error(completeResult.error || 'Failed to complete multipart upload');
+          }
+        } else {
+          const completeResponse = await fetch('/api/library/upload/complete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filePath: initiateResult.filePath,
+              fileName: initiateResult.fileName,
+                title: meta.title.trim(),
+                description: meta.description.trim(),
+                author: category === 'articles' ? (meta.author || '').trim() : '',
+              category: category,
+              fileSize: fileSize,
+                fileType: file.type,
+              folderId: selectedFolderId || null,
+            }),
+            signal: abortController.signal,
+          });
+
+          if (!completeResponse.ok) {
+            throw new Error(`Failed to complete upload: ${completeResponse.statusText}`);
+          }
+
+          completeResult = await completeResponse.json();
+
+          if (!completeResult.success) {
+            throw new Error(completeResult.error || 'Failed to complete upload');
+          }
+        }
         }, 3, 1000, fileId);
 
-        // Success!
+      // Success!
         updateUpload(uploadId, { status: 'completed', progress: 100 });
         setUploadStatus(prev => ({ ...prev, [fileId]: 'completed' }));
         setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
-        
-        onUploadComplete?.(completeResult.data);
-        
+      
+      onUploadComplete?.(completeResult.data);
+      
         // Auto-remove from status bar after 5 seconds
         setTimeout(() => {
           removeUpload(uploadId);
         }, 5000);
 
         return { fileId, success: true, data: completeResult.data };
-      } catch (error) {
+    } catch (error) {
         console.error(`Upload error for ${file.name}:`, error);
-        
+      
         if (activeUploads[fileId]) {
-          if (error.message.includes('cancelled') || error.message.includes('abort')) {
+      if (error.message.includes('cancelled') || error.message.includes('abort')) {
             updateUpload(activeUploads[fileId], { status: 'cancelled' });
             setUploadStatus(prev => ({ ...prev, [fileId]: 'cancelled' }));
-          } else {
+      } else {
             updateUpload(activeUploads[fileId], { status: 'failed', error: error.message });
             setUploadStatus(prev => ({ ...prev, [fileId]: 'failed' }));
           }
@@ -933,27 +933,27 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                             )}
                           </div>
                           {!isUploading && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                               onClick={() => removeFile(fileId)}
                               className="flex-shrink-0"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                           )}
-                        </div>
+                </div>
                         
                         {isUploading && (
-                          <div className="space-y-1">
+                    <div className="space-y-1">
                             <Progress value={progress} className="w-full" />
                             <p className="text-xs text-muted-foreground text-right">
                               {progress.toFixed(0)}%
                               {fileRetryCount > 0 && (
-                                <span className="ml-2 text-amber-600">
+                            <span className="ml-2 text-amber-600">
                                   ({t('library.retrying', 'Retrying...')} {fileRetryCount}/3)
-                                </span>
-                              )}
+                            </span>
+                          )}
                             </p>
                           </div>
                         )}
@@ -979,10 +979,10 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                                 value={meta.author || ''}
                                 onChange={(e) => updateFileMetadata(fileId, 'author', e.target.value)}
                               />
-                            )}
-                          </div>
                         )}
-                      </div>
+                    </div>
+                  )}
+                </div>
                     );
                   })}
                 </div>
@@ -1034,7 +1034,7 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
             )}
           </div>
 
-          {/* Folder Selection */}
+            {/* Folder Selection */}
           {selectedFiles.length > 0 && (
             <div className="space-y-2">
               <Label>{t('library.uploadToFolder', 'Upload to Folder')}</Label>

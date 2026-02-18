@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import authOptions from "@/app/lib/authoption.js";
 import { getResourcesForDialog } from "../../../lib/db/resourceRepo.js";
 import { userRepo } from "../../../lib/db/userRepo.js";
-import { getFolderPath } from "../../../lib/db/folderRepo.js";
 
 export async function GET(request) {
     try {
@@ -25,7 +24,7 @@ export async function GET(request) {
         const resources = await getResourcesForDialog(user.id);
 
         // Transform to the format expected by frontend
-        const allResources = await Promise.all(resources.map(async (item) => {
+        const allResources = resources.map(item => {
             // Determine type and category based on resourceType
             let type, category;
             switch (item.resourceType) {
@@ -50,17 +49,6 @@ export async function GET(request) {
                     category = 'articles';
             }
 
-            // Get folder path if folderId exists
-            let folderPath = null;
-            if (item.folderId) {
-                try {
-                    const path = await getFolderPath(item.folderId);
-                    folderPath = path.map(f => f.name).join(' / ');
-                } catch (error) {
-                    console.error('Error getting folder path:', error);
-                }
-            }
-
             return {
                 id: item.id,
                 name: item.title,
@@ -68,11 +56,9 @@ export async function GET(request) {
                 category: category,
                 size: item.fileSize ? formatFileSize(item.fileSize) : 'Unknown',
                 url: item.url || null,
-                folderId: item.folderId || null,
-                folderName: item.folderName || null,
-                folderPath: folderPath || null
+                folderId: item.folderId || null
             };
-        }));
+        });
 
         // Calculate counts by category
         const counts = {
