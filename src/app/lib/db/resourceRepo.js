@@ -365,15 +365,19 @@ export async function getResourcesForDialog(coachId) {
     try {
         const result = await sql`
             SELECT 
-                id,
-                "fileName",
-                title,
-                "resourceType",
-                "fileSize",
-                url
-            FROM "Resource"
-            WHERE "coachId" = ${coachId}
-            ORDER BY "createdAt" DESC
+                r.id,
+                r."fileName",
+                r.title,
+                r."resourceType",
+                r."fileSize",
+                r.url,
+                r."folderId",
+                f.name as "folderName",
+                f."parentFolderId"
+            FROM "Resource" r
+            LEFT JOIN "ResourceFolder" f ON r."folderId" = f.id
+            WHERE r."coachId" = ${coachId}
+            ORDER BY r."createdAt" DESC
         `;
         return result;
     } catch (error) {

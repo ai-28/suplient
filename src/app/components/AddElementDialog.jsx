@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Checkbox } from "@/app/components/ui/checkbox";
-import { Upload, CheckSquare, MessageSquare, FileText, Image, Video, Music } from "lucide-react";
+import { Upload, CheckSquare, MessageSquare, FileText, Image, Video, Music, Folder, ChevronRight, ChevronDown } from "lucide-react";
 
 export function AddElementDialog({
   open,
@@ -43,6 +43,7 @@ export function AddElementDialog({
   // Content selection state
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('articles');
+  const [expandedFolders, setExpandedFolders] = useState(new Set());
   
   // Task state
   const [taskTitle, setTaskTitle] = useState('');
@@ -134,6 +135,150 @@ export function AddElementDialog({
     );
   };
 
+  const toggleFolder = (folderPath) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderPath)) {
+        newSet.delete(folderPath);
+      } else {
+        newSet.add(folderPath);
+      }
+      return newSet;
+    });
+  };
+
+  // Group files by folder path
+  const groupFilesByFolder = (files) => {
+    const grouped = {
+      root: [] // Files without folder
+    };
+
+    files.forEach(file => {
+      if (file.folderPath) {
+        if (!grouped[file.folderPath]) {
+          grouped[file.folderPath] = [];
+        }
+        grouped[file.folderPath].push(file);
+      } else {
+        grouped.root.push(file);
+      }
+    });
+
+    return grouped;
+  };
+
+  // Render folder hierarchy
+  const renderFileList = (files) => {
+    const grouped = groupFilesByFolder(files);
+    const folderPaths = Object.keys(grouped).filter(key => key !== 'root').sort();
+    
+    return (
+      <div className="space-y-1">
+        {/* Root files (no folder) */}
+        {grouped.root.length > 0 && (
+          <div className="space-y-1">
+            {grouped.root.map(file => (
+              <div
+                key={file.id}
+                className="flex items-center space-x-3 p-2 rounded-lg border hover:bg-accent cursor-pointer ml-0"
+                onClick={() => toggleFileSelection(file)}
+              >
+                <Checkbox
+                  checked={selectedFiles.some(f => f.id === file.id)}
+                  onChange={() => toggleFileSelection(file)}
+                />
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {getFileIcon(file.type)}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">{file.size}</p>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                  {file.type}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Files in folders */}
+        {folderPaths.map(folderPath => {
+          const isExpanded = expandedFolders.has(folderPath);
+          const folderFiles = grouped[folderPath];
+          const pathParts = folderPath.split(' / ');
+          const folderName = pathParts[pathParts.length - 1];
+          const indentLevel = pathParts.length - 1;
+
+          return (
+            <div key={folderPath} className="space-y-1">
+              {/* Folder header */}
+              <div
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent/50 cursor-pointer"
+                style={{ paddingLeft: `${(indentLevel * 16) + 8}px` }}
+                onClick={() => toggleFolder(folderPath)}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                )}
+                <Folder className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm font-medium text-muted-foreground truncate">
+                  {folderName}
+                </span>
+                <Badge variant="outline" className="text-xs ml-auto flex-shrink-0">
+                  {folderFiles.length}
+                </Badge>
+              </div>
+
+              {/* Folder files */}
+              {isExpanded && (
+                <div className="space-y-1">
+                  {folderFiles.map(file => (
+                    <div
+                      key={file.id}
+                      className="flex items-center space-x-3 p-2 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+                      style={{ paddingLeft: `${(indentLevel * 16) + 32}px` }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFileSelection(file);
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedFiles.some(f => f.id === file.id)}
+                        onChange={() => toggleFileSelection(file)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {getFileIcon(file.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{file.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">{file.size}</p>
+                            {folderPath && (
+                              <>
+                                <span className="text-xs text-muted-foreground">•</span>
+                                <p className="text-xs text-muted-foreground truncate">{folderPath}</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
+                        {file.type}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const getElementData = (type) => {
     switch (type) {
       case 'content':
@@ -207,6 +352,7 @@ export function AddElementDialog({
     setSelectedWeek(preselectedWeek || defaultWeek);
     setSelectedDayOfWeek(preselectedDay || 1);
     setSelectedTime('09:00');
+    setExpandedFolders(new Set());
   };
 
   const isFormValid = () => {
@@ -324,30 +470,7 @@ export function AddElementDialog({
                     </div>
                   </div>
                 ) : (
-                  libraryFiles
-                    .filter(file => file.category === selectedCategory)
-                    .map(file => (
-                      <div
-                        key={file.id}
-                        className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent cursor-pointer"
-                        onClick={() => toggleFileSelection(file)}
-                      >
-                        <Checkbox
-                          checked={selectedFiles.some(f => f.id === file.id)}
-                          onChange={() => toggleFileSelection(file)}
-                        />
-                        <div className="flex items-center gap-2">
-                          {getFileIcon(file.type)}
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{file.name}</p>
-                            <p className="text-xs text-muted-foreground">{file.size}</p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {file.type}
-                        </Badge>
-                      </div>
-                    ))
+                  renderFileList(libraryFiles.filter(file => file.category === selectedCategory))
                 )}
               </div>
             </ScrollArea>
