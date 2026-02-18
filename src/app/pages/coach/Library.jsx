@@ -110,85 +110,85 @@ export default function Library() {
     setImageErrors(prev => new Set([...prev, categoryKey]));
   };
 
-  // Fetch real data from API
+  // Fetch real data from API - get ALL files including those in nested folders
   useEffect(() => {
     const fetchLibraryData = async () => {
       try {
         setLoading(true);
         
-        // Fetch data from all categories
-        const categories = ['videos', 'images', 'articles', 'sounds'];
-        const promises = categories.map(async (category) => {
-          try {
-            const response = await fetch(`/api/library/${category}`);
-            const data = await response.json();
-            return {
-              category,
-              data: data.status ? data[category] || [] : []
-            };
-          } catch (error) {
-            console.error(`Error fetching ${category}:`, error);
-            return { category, data: [] };
-          }
-        });
-
-        const results = await Promise.all(promises);
+        // Fetch ALL resources (including files in nested folders)
+        const response = await fetch('/api/library/all');
+        const data = await response.json();
         
-        // Create library items with real data
+        if (!data.status || !data.resources) {
+          setLibraryItems([]);
+          return;
+        }
+
+        // Get all resources and group by category
+        const allResources = data.resources || [];
+        
+        // Group resources by category and calculate totals (includes files in nested folders)
+        const videos = allResources.filter(r => r.category === 'videos');
+        const images = allResources.filter(r => r.category === 'images');
+        const articles = allResources.filter(r => r.category === 'articles');
+        const sounds = allResources.filter(r => r.category === 'sounds');
+        
+        // Create library items with real data (including files in nested folders)
         const items = [
           {
             category: t('library.videos', 'Videos'),
             categoryKey: "videos",
-            count: results.find(r => r.category === 'videos')?.data?.length || 0,
+            count: videos.length,
             icon: Video,
             color: "bg-primary",
             description: t('library.videos', 'Videos'),
             image: `${categoryVideos}?v=${cacheBuster}`,
-            totalBytes: results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
+            totalBytes: videos.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0),
             totalSize: formatFileSize(
-              results.find(r => r.category === 'videos')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
+              videos.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0),
               t
             )
           },
           {
             category: t('library.images', 'Images'),
             categoryKey: "images",
-            count: results.find(r => r.category === 'images')?.data?.length || 0,
+            count: images.length,
             icon: Image,
             color: "bg-accent",
             description: t('library.images', 'Images'),
             image: `${categoryImages}?v=${cacheBuster}`,
-            totalBytes: results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
+            totalBytes: images.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0),
             totalSize: formatFileSize(
-              results.find(r => r.category === 'images')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
+              images.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0),
               t
             )
           },
           {
             category: t('library.articles', 'Articles'),
             categoryKey: "articles",
-            count: results.find(r => r.category === 'articles')?.data?.length || 0,
+            count: articles.length,
             icon: FileText,
             color: "bg-secondary",
             description: t('library.articles', 'Articles'),
             image: `${categoryArticles}?v=${cacheBuster}`,
-            totalBytes: results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
+            totalBytes: articles.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0),
             totalSize: formatFileSize(
-              results.find(r => r.category === 'articles')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
+              articles.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0),
               t
             )
           },
           {
             category: t('library.sounds', 'Sounds'),
             categoryKey: "sounds",
-            count: results.find(r => r.category === 'sounds')?.data?.length || 0,
+            count: sounds.length,
             icon: Music,
             color: "bg-blue-teal",
             description: t('library.sounds', 'Sounds'),
             image: `${categorySounds}?v=${cacheBuster}`,
-            totalBytes: results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
+            totalBytes: sounds.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0),
             totalSize: formatFileSize(
-              results.find(r => r.category === 'sounds')?.data?.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0) || 0,
+              sounds.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0),
               t
             )
           }
@@ -205,7 +205,7 @@ export default function Library() {
     };
 
     fetchLibraryData();
-  }, []);
+  }, [t]);
 
   if (loading) {
     return (

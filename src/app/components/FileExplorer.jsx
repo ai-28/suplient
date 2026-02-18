@@ -70,13 +70,7 @@ export function FileExplorer({
   }, []);
 
   const folderTree = useMemo(() => {
-    const tree = processFolderTree(folders);
-    console.log('Folder tree processed:', {
-      inputFolders: folders?.length || 0,
-      outputTree: tree?.length || 0,
-      tree: tree
-    });
-    return tree;
+    return processFolderTree(folders);
   }, [folders, processFolderTree]);
 
   // Filter files by selected folder and category

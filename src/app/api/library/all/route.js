@@ -55,6 +55,7 @@ export async function GET(request) {
                 type: type,
                 category: category,
                 size: item.fileSize ? formatFileSize(item.fileSize) : 'Unknown',
+                fileSize: item.fileSize || 0, // Raw file size in bytes for calculations
                 url: item.url || null,
                 folderId: item.folderId || null
             };
