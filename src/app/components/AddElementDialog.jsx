@@ -393,36 +393,6 @@ export function AddElementDialog({
                 rows={4}
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label>{t('tasks.assignTo', 'Assign To')}</Label>
-              <div className="flex gap-4 mt-2">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="assign-client"
-                    name="assignedTo"
-                    value="client"
-                    checked={taskAssignedTo === 'client'}
-                    onChange={(e) => setTaskAssignedTo(e.target.value)}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                  />
-                  <Label htmlFor="assign-client" className="text-sm font-normal">{t('tasks.assignToClient', 'Assign to Client')}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="assign-coach"
-                    name="assignedTo"
-                    value="coach"
-                    checked={taskAssignedTo === 'coach'}
-                    onChange={(e) => setTaskAssignedTo(e.target.value)}
-                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                  />
-                  <Label htmlFor="assign-coach" className="text-sm font-normal">{t('tasks.assignToMeCoach', 'Assign to Me (Coach)')}</Label>
-                </div>
-              </div>
-            </div>
           </div>
         );
         
@@ -438,12 +408,6 @@ export function AddElementDialog({
                 placeholder={t('programs.enterMessageToClient', 'Enter the message to send to the client...')}
                 rows={4}
               />
-            </div>
-            
-            <div className="bg-muted p-3 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>{t('common.note', 'Note')}:</strong> {t('programs.messageWillBeSentAutomatically', 'This message will be sent automatically on the scheduled day and time.')}
-              </p>
             </div>
           </div>
         );
@@ -479,7 +443,7 @@ export function AddElementDialog({
         <div className="space-y-6">
           {renderTimeSelector()}
           {renderContentSection()}
-          {renderPreview()}
+          {(elementType !== 'task' && elementType !== 'message' && elementType !== 'content') && renderPreview()}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={handleCancel}>

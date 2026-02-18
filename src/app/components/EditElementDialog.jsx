@@ -213,14 +213,24 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
                 </div>
 
                 {/* Type-specific content */}
-                <Tabs value={formData.type} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="content">Content</TabsTrigger>
-                    <TabsTrigger value="task">Task</TabsTrigger>
-                    <TabsTrigger value="checkin">Check-in</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="content" className="space-y-4">
+                {formData.type === 'task' ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="taskDescription">Task Description</Label>
+                      <Textarea
+                        id="taskDescription"
+                        value={formData.data?.description || ''}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          data: { ...(prev.data), description: e.target.value, title: formData.title || '' }
+                        }))}
+                        placeholder="Describe what the client needs to do"
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                ) : formData.type === 'content' ? (
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Library File</Label>
                       <div className="flex items-center gap-2">
@@ -250,17 +260,6 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
                             <Eye className="h-4 w-4" />
                             View Document
                           </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleDownloadContent}
-                            disabled={loadingResource}
-                            className="flex items-center gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </Button>
                         </div>
                       )}
                     </div>
@@ -277,71 +276,28 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
                         rows={4}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Assigned To</Label>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            id="contentAssignedClient"
-                            name="contentAssignedTo"
-                            value="client"
-                            checked={(formData.data?.assignedTo || 'client') === 'client'}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              data: { ...(prev.data), assignedTo: e.target.value }
-                            }))}
-                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                          />
-                          <Label htmlFor="contentAssignedClient" className="font-normal cursor-pointer">Client</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            id="contentAssignedCoach"
-                            name="contentAssignedTo"
-                            value="coach"
-                            checked={formData.data?.assignedTo === 'coach'}
-                            onChange={(e) => setFormData(prev => ({
-                              ...prev,
-                              data: { ...(prev.data), assignedTo: e.target.value }
-                            }))}
-                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                          />
-                          <Label htmlFor="contentAssignedCoach" className="font-normal cursor-pointer">Coach</Label>
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
+                  </div>
+                ) : (
+                  <Tabs value={formData.type} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="content">Content</TabsTrigger>
+                      <TabsTrigger value="task">Task</TabsTrigger>
+                      <TabsTrigger value="checkin">Check-in</TabsTrigger>
+                    </TabsList>
 
-                  <TabsContent value="task" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="taskDescription">Task Description</Label>
-                      <Textarea
-                        id="taskDescription"
-                        value={formData.data?.description || ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          data: { ...(prev.data), description: e.target.value, title: formData.title || '' }
-                        }))}
-                        placeholder="Describe what the client needs to do"
-                        rows={4}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="checkin" className="space-y-4">
-                    <div className="text-sm text-muted-foreground">
-                      Check-in questions are currently view-only in this dialog. Use the check-in builder for full editing.
-                    </div>
-                    {formData.data?.questions?.map((question, index) => (
-                      <div key={question.id} className="p-3 border rounded-lg">
-                        <div className="font-medium text-sm">{question.question}</div>
-                        <div className="text-xs text-muted-foreground mt-1">Type: {question.type}</div>
+                    <TabsContent value="checkin" className="space-y-4">
+                      <div className="text-sm text-muted-foreground">
+                        Check-in questions are currently view-only in this dialog. Use the check-in builder for full editing.
                       </div>
-                    ))}
-                  </TabsContent>
-                </Tabs>
+                      {formData.data?.questions?.map((question, index) => (
+                        <div key={question.id} className="p-3 border rounded-lg">
+                          <div className="font-medium text-sm">{question.question}</div>
+                          <div className="text-xs text-muted-foreground mt-1">Type: {question.type}</div>
+                        </div>
+                      ))}
+                    </TabsContent>
+                  </Tabs>
+                )}
               </>
             )}
           </div>
