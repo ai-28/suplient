@@ -21,28 +21,44 @@ export function FileExplorer({
   const [selectedFolderId, setSelectedFolderId] = useState(null);
   const [filteredFiles, setFilteredFiles] = useState([]);
 
-  // Build folder tree structure
+  // Build folder tree structure recursively
   const buildFolderTree = useCallback((folders) => {
     const folderMap = new Map();
     const rootFolders = [];
 
-    // Create map of all folders
+    // Create map of all folders with children array
     folders.forEach(folder => {
       folderMap.set(folder.id, { ...folder, children: [] });
     });
 
-    // Build tree
+    // Build tree structure
     folders.forEach(folder => {
       if (folder.parentFolderId) {
         const parent = folderMap.get(folder.parentFolderId);
         if (parent) {
           parent.children.push(folderMap.get(folder.id));
+        } else {
+          // Parent not found, treat as root
+          rootFolders.push(folderMap.get(folder.id));
         }
       } else {
+        // No parent, it's a root folder
         rootFolders.push(folderMap.get(folder.id));
       }
     });
 
+    // Sort children recursively
+    const sortFolders = (folderList) => {
+      folderList.forEach(folder => {
+        if (folder.children && folder.children.length > 0) {
+          folder.children.sort((a, b) => a.name.localeCompare(b.name));
+          sortFolders(folder.children);
+        }
+      });
+      folderList.sort((a, b) => a.name.localeCompare(b.name));
+    };
+
+    sortFolders(rootFolders);
     return rootFolders;
   }, []);
 
@@ -87,6 +103,8 @@ export function FileExplorer({
   };
 
   const renderFolderTree = (folders, level = 0) => {
+    if (!folders || folders.length === 0) return null;
+
     return folders.map(folder => {
       const isExpanded = expandedFolders.has(folder.id);
       const isSelected = selectedFolderId === folder.id;
@@ -110,7 +128,7 @@ export function FileExplorer({
                 }
               }}
               className={cn(
-                "flex items-center justify-center w-4 h-4",
+                "flex items-center justify-center w-4 h-4 flex-shrink-0",
                 !hasChildren && "invisible"
               )}
             >
@@ -121,9 +139,9 @@ export function FileExplorer({
               )}
             </button>
             {isExpanded ? (
-              <FolderOpen className="h-4 w-4 text-primary" />
+              <FolderOpen className="h-4 w-4 text-primary flex-shrink-0" />
             ) : (
-              <Folder className="h-4 w-4 text-primary" />
+              <Folder className="h-4 w-4 text-primary flex-shrink-0" />
             )}
             <span className="text-sm flex-1 truncate">{folder.name}</span>
           </div>

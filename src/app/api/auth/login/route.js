@@ -34,7 +34,7 @@ export async function POST(request) {
     // Check subscription status for coaches (payment control)
     if (user.role === 'coach') {
       const subscriptionStatus = await checkCoachSubscriptionStatus(user.id);
-      
+
       if (!subscriptionStatus.hasActiveSubscription) {
         return NextResponse.json({
           success: false,
@@ -49,7 +49,7 @@ export async function POST(request) {
     // Check client access (if their coach's subscription is inactive)
     if (user.role === 'client') {
       const clientAccess = await checkClientAccess(user.id);
-      
+
       if (!clientAccess.hasAccess) {
         return NextResponse.json({
           success: false,
@@ -119,9 +119,9 @@ export async function POST(request) {
         if (clientResult.length > 0) {
           const client = clientResult[0];
           const now = new Date();
-          
+
           // Only update if lastActive is NULL or older than 1 hour (server-side throttling)
-          const shouldUpdate = !client.lastActive || 
+          const shouldUpdate = !client.lastActive ||
             (new Date(client.lastActive).getTime() < (now.getTime() - 60 * 60 * 1000));
 
           if (shouldUpdate) {
@@ -145,16 +145,16 @@ export async function POST(request) {
     if (user.role === 'coach') {
       try {
         const now = new Date();
-        
+
         // Get current lastLogin
         const userResult = await sql`
           SELECT "lastLogin" FROM "User" WHERE id = ${user.id}
         `;
-        
+
         const currentLastLogin = userResult[0]?.lastLogin;
-        
+
         // Only update if lastLogin is NULL or older than 1 hour (server-side throttling)
-        const shouldUpdate = !currentLastLogin || 
+        const shouldUpdate = !currentLastLogin ||
           (new Date(currentLastLogin).getTime() < (now.getTime() - 60 * 60 * 1000));
 
         if (shouldUpdate) {
