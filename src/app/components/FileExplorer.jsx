@@ -6,7 +6,7 @@ import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Badge } from "@/app/components/ui/badge";
 import { FileText, Image, Video, Music, Folder, FolderOpen, ChevronRight, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/app/lib/utils";
 
 export function FileExplorer({
   files = [],
