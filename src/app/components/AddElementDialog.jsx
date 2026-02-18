@@ -287,7 +287,7 @@ export function AddElementDialog({
   const previewText = `${getElementTitle()} - ${t('programs.week', 'Week')} ${selectedWeek}, ${dayNames[selectedDayOfWeek - 1]}`;
 
   const renderTimeSelector = () => (
-    <div className="space-y-4 border-b pb-4">
+    <div className="space-y-4 pb-4">
       {!(preselectedDay && preselectedWeek) && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -445,7 +445,7 @@ export function AddElementDialog({
           {renderContentSection()}
           {(elementType !== 'task' && elementType !== 'message' && elementType !== 'content') && renderPreview()}
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={handleCancel}>
               {t('common.buttons.cancel', 'Cancel')}
             </Button>

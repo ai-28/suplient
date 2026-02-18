@@ -888,6 +888,16 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
         </DialogHeader>
         
         <div className="space-y-6">
+          {/* Hidden file input - always available for "Add More Files" button */}
+          <Input
+            type="file"
+            accept={acceptedFormats[category]}
+            onChange={handleFileSelect}
+            className="hidden"
+            id="file-upload"
+            multiple
+          />
+          
           {/* File Upload Area */}
           <div
             className={cn(
@@ -1010,14 +1020,6 @@ export function FileUploadDialog({ category, currentFolderId, onUploadComplete, 
                   </p>
                   <p className="text-xs text-red-500 mt-2">⚠️ {t('library.pleaseSelectFile', 'Please select at least one file to upload')}</p>
                 </div>
-                <Input
-                  type="file"
-                  accept={acceptedFormats[category]}
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="file-upload"
-                  multiple
-                />
                 <Button 
                   variant="outline" 
                   className="w-full cursor-pointer"
