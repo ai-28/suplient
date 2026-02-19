@@ -263,6 +263,81 @@ export default function ProgramEditor() {
     };
   }, [hasUnsavedChanges]);
 
+  // Intercept Link clicks and router navigation to check for unsaved changes
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const handleLinkClick = (e) => {
+      // Find the closest <a> element (Next.js Link renders as <a>)
+      const linkElement = e.target.closest('a[href]');
+      
+      if (!linkElement) return;
+
+      const href = linkElement.getAttribute('href');
+      if (!href) return;
+
+      // Don't intercept external links, anchors, or mailto links
+      if (href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('#')) {
+        return;
+      }
+
+      // Don't intercept if it's the same page
+      const currentPath = window.location.pathname;
+      const normalizedHref = href.startsWith('/') ? href : `/${href}`;
+      if (normalizedHref === currentPath || normalizedHref === currentPath + '/') {
+        return;
+      }
+
+      // Don't intercept if clicking on elements inside dialogs/modals
+      if (e.target.closest('[role="dialog"]') || e.target.closest('[data-radix-portal]')) {
+        return;
+      }
+
+      // Prevent default navigation
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      // Show confirmation dialog
+      setPendingNavigation(normalizedHref);
+      setShowUnsavedDialog(true);
+    };
+
+    // Add click listener to document to catch all Link clicks
+    // Use capture phase to catch before Next.js Link handles it
+    document.addEventListener('click', handleLinkClick, true);
+
+    // Also intercept router.push calls by wrapping the router
+    const originalPush = router.push;
+    const originalReplace = router.replace;
+    
+    router.push = (url, options) => {
+      if (hasUnsavedChanges) {
+        const normalizedUrl = typeof url === 'string' ? url : url.toString();
+        setPendingNavigation(normalizedUrl);
+        setShowUnsavedDialog(true);
+        return Promise.resolve(false);
+      }
+      return originalPush.call(router, url, options);
+    };
+
+    router.replace = (url, options) => {
+      if (hasUnsavedChanges) {
+        const normalizedUrl = typeof url === 'string' ? url : url.toString();
+        setPendingNavigation(normalizedUrl);
+        setShowUnsavedDialog(true);
+        return Promise.resolve(false);
+      }
+      return originalReplace.call(router, url, options);
+    };
+
+    return () => {
+      document.removeEventListener('click', handleLinkClick, true);
+      router.push = originalPush;
+      router.replace = originalReplace;
+    };
+  }, [hasUnsavedChanges, router]);
+
   // Helper function to handle navigation with unsaved changes check
   const handleNavigation = (url) => {
     if (hasUnsavedChanges) {
