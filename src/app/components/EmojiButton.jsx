@@ -12,10 +12,15 @@ export const EmojiButton = ({
   className = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const popoverContentRef = useRef(null);
 
   const handleEmojiClick = (emoji) => {
+    // Insert emoji first
     onEmojiSelect(emoji);
-    setIsOpen(false);
+    // Close popover after a short delay to ensure emoji is inserted
+    setTimeout(() => {
+      setIsOpen(false);
+    }, 50);
   };
 
   return (
@@ -30,11 +35,38 @@ export const EmojiButton = ({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-auto p-0 border-0 shadow-lg" 
+        ref={popoverContentRef}
+        className="w-auto p-0 border-0 shadow-lg z-[100]" 
         side="top"
         align="end"
+        onInteractOutside={(e) => {
+          // Check if the click is on the emoji picker or its children
+          const target = e.target;
+          // Prevent closing if clicking inside the emoji picker
+          if (target && (
+            target.closest('epr-emoji-picker') ||
+            target.closest('[class*="emoji-picker"]') ||
+            target.closest('[id*="emoji-picker"]')
+          )) {
+            e.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(e) => {
+          // Check if the click is on the emoji picker or its children
+          const target = e.target;
+          // Prevent closing if clicking inside the emoji picker
+          if (target && (
+            target.closest('epr-emoji-picker') ||
+            target.closest('[class*="emoji-picker"]') ||
+            target.closest('[id*="emoji-picker"]')
+          )) {
+            e.preventDefault();
+          }
+        }}
       >
-        <EmojiPickerComponent onEmojiClick={handleEmojiClick} />
+        <div data-emoji-picker onClick={(e) => e.stopPropagation()}>
+          <EmojiPickerComponent onEmojiClick={handleEmojiClick} />
+        </div>
       </PopoverContent>
     </Popover>
   );
