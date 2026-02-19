@@ -79,12 +79,12 @@ export function useWebPushNotifications() {
 
                 // Wait for service worker to be ready
                 const registration = await navigator.serviceWorker.ready;
-                
+
                 if (!isMounted) return;
 
                 // Small delay to ensure everything is initialized
                 await new Promise(resolve => setTimeout(resolve, 200));
-                
+
                 if (!isMounted) return;
 
                 // Get subscription from push manager
@@ -101,7 +101,7 @@ export function useWebPushNotifications() {
                 }
             } catch (error) {
                 if (!isMounted) return;
-                
+
                 // Handle InvalidStateError (page unloading)
                 if (error.name === 'InvalidStateError') {
                     console.log('[Web Push] Service worker access blocked (page unloading)');
@@ -111,7 +111,7 @@ export function useWebPushNotifications() {
                 setIsSubscribed(false);
             }
         };
-        
+
         checkAfterReady();
 
         return () => {
@@ -140,7 +140,7 @@ export function useWebPushNotifications() {
         try {
             // Wait for service worker to be ready
             const registration = await navigator.serviceWorker.ready;
-            
+
             // Get subscription from push manager
             const subscription = await registration.pushManager.getSubscription();
 
@@ -194,13 +194,18 @@ export function useWebPushNotifications() {
             // Get VAPID public key
             const response = await fetch('/api/push/vapid-public-key');
             if (!response.ok) {
-                throw new Error('Failed to get VAPID public key');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Failed to get VAPID public key');
             }
 
-            const { publicKey } = await response.json();
+            const data = await response.json();
+            const publicKey = data?.publicKey;
             if (!publicKey) {
-                throw new Error('VAPID public key not available');
+                console.error('[Web Push] VAPID public key response:', data);
+                throw new Error('VAPID public key not available in response');
             }
+
+            console.log('[Web Push] VAPID public key retrieved:', publicKey.substring(0, 20) + '...');
 
             // Check document state again before accessing service worker
             if (document.readyState === 'unloading' || document.readyState === 'closed') {
@@ -219,11 +224,31 @@ export function useWebPushNotifications() {
                 // Still send to server to update
             }
 
+            // Convert public key to Uint8Array
+            let applicationServerKey;
+            try {
+                applicationServerKey = urlBase64ToUint8Array(publicKey);
+                console.log('[Web Push] Converted public key to Uint8Array, length:', applicationServerKey.length);
+            } catch (keyError) {
+                console.error('[Web Push] Error converting public key:', keyError);
+                throw new Error('Invalid VAPID public key format');
+            }
+
             // Subscribe to push
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(publicKey)
-            });
+            let subscription;
+            try {
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: applicationServerKey
+                });
+            } catch (subscribeError) {
+                console.error('[Web Push] Error during pushManager.subscribe:', subscribeError);
+                // Provide more helpful error message
+                if (subscribeError.message?.includes('public key')) {
+                    throw new Error('Failed to subscribe: Invalid public key format. Please check VAPID key configuration.');
+                }
+                throw subscribeError;
+            }
 
             console.log('[Web Push] Push subscription created:', {
                 endpoint: subscription.endpoint.substring(0, 50) + '...',
