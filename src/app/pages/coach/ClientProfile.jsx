@@ -107,6 +107,7 @@ import { CreateNoteDialog } from "@/app/components/CreateNoteDialog";
 import { EditNoteDialog } from "@/app/components/EditNoteDialog";
 import { CoachClientCheckInView } from "@/app/components/CoachClientCheckInView";
 import { CoachClientGoalsHabits } from "@/app/components/CoachClientGoalsHabits";
+import { TaskDetailModal } from "@/app/components/TaskDetailModal";
 
 // Demo data for files (these will be replaced with real data later)
 
@@ -158,6 +159,8 @@ export default function ClientProfile() {
   const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskDetailModalOpen, setTaskDetailModalOpen] = useState(false);
 
   // Get conversation ID for chat - memoize to prevent unnecessary re-renders
   const conversationParams = useMemo(() => ({
@@ -1224,10 +1227,17 @@ export default function ClientProfile() {
                             clientTasks.map((task) => {
                               const status = getTaskStatus(task, t);
                               return (
-                              <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                              <div 
+                                key={task.id} 
+                                className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
+                                onClick={() => handleTaskClick(task)}
+                              >
                                 <Checkbox 
                                   checked={task.completed}
-                                  onCheckedChange={() => handleTaskToggle(task.id)}
+                                  onCheckedChange={(e) => {
+                                    e.stopPropagation();
+                                    handleTaskToggle(task.id);
+                                  }}
                                 />
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-sm ${task.completed ? 'line-through text-gray-500' : ''}`}>
@@ -2206,6 +2216,19 @@ export default function ClientProfile() {
         onOpenChange={setIsEditNoteOpen}
         note={editingNote}
         onNoteUpdated={handleNoteUpdated}
+      />
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        open={taskDetailModalOpen}
+        onOpenChange={setTaskDetailModalOpen}
+        task={selectedTask}
+        onToggleComplete={() => {
+          if (selectedTask) {
+            handleTaskToggle(selectedTask.id);
+          }
+        }}
+        showCheckbox={true}
       />
     </div>
   );
