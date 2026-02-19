@@ -36,7 +36,6 @@ export function ScheduleSessionDialog({
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [fetchedGroupMembers, setFetchedGroupMembers] = useState([]);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState({});
   const [isMobile, setIsMobile] = useState(false);
   
@@ -64,8 +63,6 @@ export function ScheduleSessionDialog({
     time: "",
     duration: "60",
     sessionType: "",
-    notes: "",
-    reminderTime: "24",
     meetingType: "none",
   });
 
@@ -328,42 +325,6 @@ export function ScheduleSessionDialog({
     }
   }, [open]);
 
-  // Handle OAuth callback
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const googleConnected = urlParams.get('google_connected');
-    const zoomConnected = urlParams.get('zoom_connected');
-    
-    if (googleConnected === 'true') {
-      toast.success('Google Meet connected successfully!');
-      // Immediately update localStorage with Google connection
-      const currentConnections = JSON.parse(localStorage.getItem('integrationConnections') || '{}');
-      currentConnections.google_meet = {
-        connected: true,
-        email: 'Connected', // Will be updated by checkExistingConnections
-        name: 'Google Meet'
-      };
-      localStorage.setItem('integrationConnections', JSON.stringify(currentConnections));
-      checkExistingConnections();
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    if (zoomConnected === 'true') {
-      toast.success('Zoom connected successfully!');
-      // Immediately update localStorage with Zoom connection
-      const currentConnections = JSON.parse(localStorage.getItem('integrationConnections') || '{}');
-      currentConnections.zoom = {
-        connected: true,
-        email: 'Connected', // Will be updated by checkExistingConnections
-        name: 'Zoom'
-      };
-      localStorage.setItem('integrationConnections', JSON.stringify(currentConnections));
-      checkExistingConnections();
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
 
   const checkExistingConnections = async () => {
     try {
@@ -548,9 +509,16 @@ export function ScheduleSessionDialog({
       return;
     }
 
-    // Check if meeting type requires connection
-    if (formData.meetingType !== 'none' && !connectionStatus[formData.meetingType]?.connected) {
-      toast.error(`Please connect ${formData.meetingType === 'google_meet' ? 'Google Meet' : formData.meetingType} first`);
+    // Check if any integration is connected - require at least one for session creation
+    const hasConnectedIntegration = Object.values(connectionStatus).some(status => status?.connected);
+    
+    if (!hasConnectedIntegration) {
+      toast.error(
+        t('sessions.noIntegrationConnected', 'No meeting integration connected'),
+        {
+          description: t('sessions.connectIntegrationRequired', 'Please connect Google Meet, Zoom, or Microsoft Teams in Settings > Integration before creating a session. Sessions require a meeting link.')
+        }
+      );
       return;
     }
 
@@ -560,7 +528,7 @@ export function ScheduleSessionDialog({
       // Prepare session data
       const sessionData = {
         title: formData.title || (formData.sessionType === 'individual' ? `${selectedClient.name} Session` : `${selectedGroup.name} Session`),
-        description: formData.notes || null,
+        description: null,
         sessionDate: date.toISOString().split('T')[0], // YYYY-MM-DD format
         sessionTime: formData.time,
         timeZone: selectedTimezone || 'UTC',
@@ -572,11 +540,15 @@ export function ScheduleSessionDialog({
         meetingLink: null,
         status: 'scheduled',
         mood: 'neutral',
-        notes: formData.notes || null,
-        meetingType: formData.meetingType,
-        integrationSettings: {
-          reminderTime: formData.reminderTime
-        }
+        notes: null,
+        meetingType: (() => {
+          // Auto-select first connected integration (prefer Google Meet, then Zoom, then Teams)
+          if (connectionStatus.google_meet?.connected) return 'google_meet';
+          if (connectionStatus.zoom?.connected) return 'zoom';
+          if (connectionStatus.teams?.connected) return 'teams';
+          return 'none';
+        })(),
+        integrationSettings: {}
       };
 
       // Create session via API
@@ -631,7 +603,7 @@ export function ScheduleSessionDialog({
           let integrationResult;
           
           // For all meeting types, use the original logic
-            const platformForAPI = formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType;
+            const platformForAPI = selectedMeetingType === 'google_meet' ? 'google_calendar' : selectedMeetingType;
             integrationResult = await createExternalMeeting(result.session.id, sessionData, platformForAPI);
 
           
@@ -650,13 +622,13 @@ export function ScheduleSessionDialog({
             let meetingLinkToSave = null;
             let locationToSave = null;
             
-            if (formData.meetingType === 'zoom' && integrationResult.results?.zoom?.meetingLink) {
+            if (selectedMeetingType === 'zoom' && integrationResult.results?.zoom?.meetingLink) {
               meetingLinkToSave = integrationResult.results.zoom.meetingLink;
               locationToSave = `Zoom Meeting - Password: ${integrationResult.results.zoom.password || 'No password required'}`;
-            } else if (formData.meetingType === 'google_meet' && integrationResult.results?.google_calendar?.meetingLink) {
+            } else if (selectedMeetingType === 'google_meet' && integrationResult.results?.google_calendar?.meetingLink) {
               meetingLinkToSave = integrationResult.results.google_calendar.meetingLink;
               locationToSave = 'Google Meet';
-            } else if (formData.meetingType === 'teams' && integrationResult.results?.teams?.meetingUrl) {
+            } else if (selectedMeetingType === 'teams' && integrationResult.results?.teams?.meetingUrl) {
               meetingLinkToSave = integrationResult.results.teams.meetingUrl;
               locationToSave = 'Microsoft Teams';
             }
@@ -848,8 +820,6 @@ export function ScheduleSessionDialog({
         time: "",
         duration: "60",
         sessionType: "",
-        notes: "",
-        reminderTime: "24",
         meetingType: "none",
       });
       
@@ -1139,190 +1109,6 @@ export function ScheduleSessionDialog({
 
           </div>
 
-          {/* Settings */}
-          <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('sessions.settings', 'Settings')}</h3>
-
-            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-              <Label htmlFor="reminderTime" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
-                <Bell className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                {t('sessions.emailReminder', 'Email Reminder')}
-              </Label>
-              <Select onValueChange={(value) => handleInputChange("reminderTime", value)} defaultValue="24">
-                <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30">30 {t('sessions.minutesBefore', 'minutes before')}</SelectItem>
-                  <SelectItem value="60">1 {t('sessions.hourBefore', 'hour before')}</SelectItem>
-                  <SelectItem value="120">2 {t('sessions.hoursBefore', 'hours before')}</SelectItem>
-                  <SelectItem value="24">24 {t('sessions.hoursBefore', 'hours before')}</SelectItem>
-                  <SelectItem value="48">48 {t('sessions.hoursBefore', 'hours before')}</SelectItem>
-                  <SelectItem value="none">{t('sessions.noEmailReminder', 'No email reminder')}</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
-                {t('sessions.popupReminderNote', 'Note: A popup reminder will always be sent 10 minutes before the session.')}
-              </p>
-            </div>
-          </div>
-
-          {/* Meeting Type Selection */}
-            <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('sessions.meetingLink', 'Meeting Link')}</h3>
-              
-              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
-              {meetingTypes.map((meetingType) => {
-                const Icon = meetingType.icon;
-                const isConnected = connectionStatus[meetingType.id]?.connected;
-                const isSelected = formData.meetingType === meetingType.id;
-                
-                return (
-                  <div 
-                    key={meetingType.id}
-                    className={cn(
-                      `flex items-center justify-between ${isMobile ? 'p-2' : 'p-3'} border rounded-lg cursor-pointer transition-all`,
-                      isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                    )}
-                    onClick={() => handleInputChange('meetingType', meetingType.id)}
-                  >
-                    <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'} flex-1 min-w-0`}>
-                      <Icon className={cn(`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} flex-shrink-0`, meetingType.color)} />
-                      <div className="flex-1 min-w-0">
-                        <div className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium break-words`}>{meetingType.name}</div>
-                        <div className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-muted-foreground break-words`}>{meetingType.description}</div>
-                      </div>
-                </div>
-
-                    <div className={`flex items-center ${isMobile ? 'gap-1 flex-col' : 'gap-2'}`}>
-                      {meetingType.id === 'none' ? (
-                        <div className={cn(`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} rounded-full border-2 flex-shrink-0`, isSelected ? "border-primary bg-primary" : "border-gray-300")} />
-                      ) : (
-                        <>
-                          {isConnected ? (
-                            <div className={`flex items-center ${isMobile ? 'gap-1 flex-col' : 'gap-1'}`}>
-                              <CheckCircle className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-green-500 flex-shrink-0`} />
-                              <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-green-600 break-words`}>{connectionStatus[meetingType.id]?.email}</span>
-                              <div className={`flex ${isMobile ? 'flex-col gap-1' : 'gap-1'}`}>
-                                <Button
-                                  size={isMobile ? "sm" : "sm"}
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleReconnectPlatform(meetingType.id);
-                                  }}
-                                  disabled={isConnecting}
-                                  className={isMobile ? 'h-5 px-1.5 text-[10px]' : 'h-6 px-2 text-xs'}
-                                >
-                                  {isConnecting ? (
-                                    <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin`} />
-                                  ) : (
-                                    t('sessions.reconnect', 'Reconnect')
-                                  )}
-                                </Button>
-                                <Button
-                                  size={isMobile ? "sm" : "sm"}
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDisconnectPlatform(meetingType.id);
-                                  }}
-                                  disabled={isConnecting}
-                                  className={isMobile ? 'h-5 px-1.5 text-[10px] text-red-600 hover:text-red-700' : 'h-6 px-2 text-xs text-red-600 hover:text-red-700'}
-                                >
-                                  {t('sessions.disconnect', 'Disconnect')}
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <Button
-                              size={isMobile ? "sm" : "sm"}
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleConnectPlatform(meetingType.id);
-                              }}
-                              disabled={isConnecting}
-                              className={isMobile ? 'text-xs h-7 px-2' : ''}
-                            >
-                              {isConnecting ? (
-                                <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin`} />
-                              ) : (
-                                t('sessions.connect', 'Connect')
-                              )}
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-            {formData.meetingType !== 'none' && (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription className="text-xs">
-                  {t('sessions.meetingLinkAutoCreated', 'A meeting link will be automatically created and added to the session.')}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-            {/* Info about reconnecting for new permissions */}
-            {formData.meetingType !== 'none' && connectionStatus[formData.meetingType]?.connected && (
-                      <Alert className="border-blue-200 bg-blue-50">
-                        <AlertCircle className="h-4 w-4 text-blue-600" />
-                        <AlertDescription className="text-xs text-blue-700">
-                  <strong>{t('sessions.newFeature', 'New Feature')}:</strong> {t('sessions.emailInvitationsAvailable', 'Email invitations and calendar integration are now available! Click "Reconnect" to get the latest permissions for enhanced functionality.')}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-            {/* Zoom-specific configuration info */}
-            {formData.meetingType === 'zoom' && !connectionStatus[formData.meetingType]?.connected && (
-                      <Alert className="border-yellow-200 bg-yellow-50">
-                        <AlertCircle className="h-4 w-4 text-yellow-600" />
-                        <AlertDescription className="text-xs text-yellow-700">
-                  <strong>Zoom App Setup:</strong> To use Zoom integration:
-                  <br />1. Create a Zoom app in Zoom Marketplace or Developer Console
-                  <br />2. Enable "meeting:write" scope (or let Zoom use default scopes)
-                  <br />3. Set redirect URI to: <code>{window.location.origin}/api/integrations/oauth/zoom/callback</code>
-                  <br />4. Add ZOOM_CLIENT_ID and ZOOM_CLIENT_SECRET to environment variables
-                  <br />5. Note: CSP warnings in console are normal and don't affect functionality
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-
-          {/* Additional Notes */}
-          <div className={isMobile ? 'space-y-3' : 'space-y-4'}>
-            <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-foreground break-words`}>{t('sessions.additionalInformation', 'Additional Information')}</h3>
-            
-            <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-              <Label htmlFor="notes" className={isMobile ? 'text-xs' : ''}>{t('sessions.sessionNotes', 'Session Notes')}</Label>
-              <Textarea
-                id="notes"
-                placeholder={t('sessions.sessionNotesPlaceholder', 'Any special instructions, topics to cover, materials needed, etc.')}
-                value={formData.notes}
-                onChange={(e) => handleInputChange("notes", e.target.value)}
-                rows={isMobile ? 2 : 3}
-                className={isMobile ? 'text-xs min-h-[60px]' : ''}
-              />
-            </div>
-
-            <div className={`flex items-start gap-2 ${isMobile ? 'p-2' : 'p-3'} bg-accent/10 rounded-lg border border-accent/20`}>
-              <AlertCircle className={`${isMobile ? 'h-3 w-3' : 'h-5 w-5'} text-accent mt-0.5 flex-shrink-0`} />
-              <div className={isMobile ? 'text-xs' : 'text-sm'}>
-                <p className={`font-medium text-accent ${isMobile ? 'text-xs' : ''} break-words`}>{t('sessions.importantReminders', 'Important Reminders')}:</p>
-                <ul className={`${isMobile ? 'mt-0.5 text-[10px]' : 'mt-1 text-sm'} text-muted-foreground list-disc list-inside ${isMobile ? 'space-y-0.5' : 'space-y-1'}`}>
-                  <li className="break-words">{t('sessions.allGroupMembersNotified', 'All group members will be notified about this session')}</li>
-                  <li className="break-words">{t('sessions.materialsPreparedInAdvance', 'Session materials should be prepared in advance')}</li>
-                  <li className="break-words">{t('sessions.checkRoomAvailability', 'Check room availability and setup requirements')}</li>
-                </ul>
-              </div>
-            </div>
-          </div>
 
           {/* Action Buttons */}
           <div className={`flex ${isMobile ? 'flex-col-reverse gap-2' : 'justify-end gap-3'} ${isMobile ? 'pt-2' : 'pt-4'} border-t`}>

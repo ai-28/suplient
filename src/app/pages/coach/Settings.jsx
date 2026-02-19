@@ -42,7 +42,8 @@ import {
   AlertCircle,
   LogOut,
   Copy,
-  Target
+  Target,
+  Video
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
@@ -73,6 +74,196 @@ export default function Settings() {
     confirmPassword: ''
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Integration connection state
+  const [integrationConnectionStatus, setIntegrationConnectionStatus] = useState({});
+  const [isConnectingIntegration, setIsConnectingIntegration] = useState(false);
+
+  // Check existing integrations
+  const checkExistingIntegrations = async () => {
+    try {
+      const response = await fetch('/api/integrations');
+      if (response.ok) {
+        const data = await response.json();
+        const integrations = data.integrations || [];
+        
+        const status = {};
+        integrations.forEach(integration => {
+          const platformKey = integration.platform === 'google_calendar' ? 'google_meet' : integration.platform;
+          status[platformKey] = {
+            connected: true,
+            email: integration.platformEmail,
+            name: integration.platformName
+          };
+        });
+        
+        setIntegrationConnectionStatus(status);
+        localStorage.setItem('integrationConnections', JSON.stringify(status));
+      } else {
+        const cachedConnections = localStorage.getItem('integrationConnections');
+        if (cachedConnections) {
+          try {
+            const cachedStatus = JSON.parse(cachedConnections);
+            setIntegrationConnectionStatus(cachedStatus);
+          } catch (e) {
+            console.warn('Failed to parse cached connections:', e);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking integrations:', error);
+      const cachedConnections = localStorage.getItem('integrationConnections');
+      if (cachedConnections) {
+        try {
+          const cachedStatus = JSON.parse(cachedConnections);
+          setIntegrationConnectionStatus(cachedStatus);
+        } catch (e) {
+          console.warn('Failed to use cached connections:', e);
+        }
+      }
+    }
+  };
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleConnected = urlParams.get('google_connected');
+    const zoomConnected = urlParams.get('zoom_connected');
+    
+    if (googleConnected === 'true') {
+      toast.success('Google Meet connected successfully!');
+      const currentConnections = JSON.parse(localStorage.getItem('integrationConnections') || '{}');
+      currentConnections.google_meet = {
+        connected: true,
+        email: 'Connected',
+        name: 'Google Meet'
+      };
+      localStorage.setItem('integrationConnections', JSON.stringify(currentConnections));
+      checkExistingIntegrations();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    if (zoomConnected === 'true') {
+      toast.success('Zoom connected successfully!');
+      const currentConnections = JSON.parse(localStorage.getItem('integrationConnections') || '{}');
+      currentConnections.zoom = {
+        connected: true,
+        email: 'Connected',
+        name: 'Zoom'
+      };
+      localStorage.setItem('integrationConnections', JSON.stringify(currentConnections));
+      checkExistingIntegrations();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // Load integrations on mount
+  useEffect(() => {
+    checkExistingIntegrations();
+  }, []);
+
+  const handleConnectIntegration = async (platform) => {
+    setIsConnectingIntegration(true);
+    try {
+      if (platform === 'google_meet') {
+        const authUrl = `/api/integrations/oauth/google/authorize?callbackUrl=${encodeURIComponent(window.location.href)}`;
+        window.location.href = authUrl;
+        return;
+      }
+      
+      if (platform === 'zoom') {
+        const authUrl = `/api/integrations/oauth/zoom/authorize?callbackUrl=${encodeURIComponent(window.location.href)}`;
+        window.location.href = authUrl;
+        return;
+      }
+      
+      toast.info(`${platform} OAuth integration coming soon`);
+    } catch (error) {
+      console.error('Connection error:', error);
+      toast.error('Failed to connect platform');
+    } finally {
+      setIsConnectingIntegration(false);
+    }
+  };
+
+  const handleReconnectIntegration = async (platform) => {
+    setIsConnectingIntegration(true);
+    try {
+      const platformMap = {
+        'google_meet': 'google_calendar',
+        'zoom': 'zoom',
+        'teams': 'teams'
+      };
+      
+      const apiPlatform = platformMap[platform] || platform;
+      
+      const response = await fetch('/api/integrations/reconnect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ platform: apiPlatform }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reconnect');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.reconnectUrl) {
+        window.location.href = result.reconnectUrl;
+      } else {
+        toast.error('Failed to get reconnect URL');
+      }
+    } catch (error) {
+      console.error('Reconnection error:', error);
+      toast.error(`Failed to reconnect ${platform}: ${error.message}`);
+    } finally {
+      setIsConnectingIntegration(false);
+    }
+  };
+
+  const handleDisconnectIntegration = async (platform) => {
+    setIsConnectingIntegration(true);
+    try {
+      const platformMap = {
+        'google_meet': 'google_calendar',
+        'zoom': 'zoom',
+        'teams': 'teams'
+      };
+      
+      const apiPlatform = platformMap[platform] || platform;
+      
+      const response = await fetch('/api/integrations/reconnect', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ platform: apiPlatform }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to disconnect');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(`${platform} integration disconnected successfully`);
+        await checkExistingIntegrations();
+      } else {
+        toast.error('Failed to disconnect integration');
+      }
+    } catch (error) {
+      console.error('Disconnection error:', error);
+      toast.error(`Failed to disconnect ${platform}: ${error.message}`);
+    } finally {
+      setIsConnectingIntegration(false);
+    }
+  };
 
   // Helper function to get translated stage name
   const getStageDisplayName = (stageId) => {
@@ -1415,10 +1606,10 @@ export default function Settings() {
             {t('profile.title')}
           </TabsTrigger>
           <TabsTrigger 
-            value="notifications" 
+            value="integration" 
             className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${isMobile ? 'text-xs px-2 py-2' : ''}`}
           >
-            {t('settings.notifications.title', 'Notifications')}
+            {t('settings.integration.title', 'Integration')}
           </TabsTrigger>
           <TabsTrigger 
             value="security" 
@@ -1619,33 +1810,162 @@ export default function Settings() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Notification Settings */}
+          <div className="lg:col-span-2 mt-6">
+            <Card className="card-standard">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-primary" />
+                  {t('settings.notifications.title', 'Notifications')}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">{t('settings.notifications.description', 'Choose what notifications you receive')}</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {t('settings.notifications.description', 'Receive notifications for messages, tasks, sessions, and updates')}
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={notificationsEnabled} 
+                    onCheckedChange={handleNotificationToggle}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Logout Section */}
+          <div className="lg:col-span-2 mt-6 pt-6 border-t border-border">
+            <Card className="card-standard">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{t('settings.logout.title', 'Log Out')}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t('settings.logout.description', 'Sign out of your account')}
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className="gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {t('settings.logout.button', 'Log Out')}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
-        {/* Notification Settings */}
-        <TabsContent value="notifications">
-          <Card className="card-standard">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                {t('settings.notifications.title', 'Notifications')}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">{t('settings.notifications.description', 'Choose what notifications you receive')}</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('settings.notifications.description', 'Receive notifications for messages, tasks, sessions, and updates')}
-                  </p>
-                </div>
-                <Switch 
-                  checked={notificationsEnabled} 
-                  onCheckedChange={handleNotificationToggle}
-                />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Integration Settings */}
+        <TabsContent value="integration">
+          <div className="space-y-6">
+            <Card className="card-standard">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <SettingsIcon className="h-5 w-5 text-primary" />
+                  {t('settings.integration.title', 'Meeting Integrations')}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">{t('settings.integration.description', 'Connect your calendar and meeting platforms to automatically create meeting links when scheduling sessions')}</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {(() => {
+                  const meetingTypes = [
+                    { 
+                      id: "google_meet", 
+                      name: t('sessions.googleMeet', 'Google Meet'), 
+                      description: t('sessions.createGoogleCalendarEvent', 'Create Google Calendar event with Meet link'),
+                      icon: Video,
+                      color: "text-blue-500"
+                    },
+                    { 
+                      id: "zoom", 
+                      name: t('sessions.zoomMeeting', 'Zoom Meeting'), 
+                      description: t('sessions.createZoomMeeting', 'Create Zoom meeting with join link'),
+                      icon: Video,
+                      color: "text-blue-600"
+                    },
+                    { 
+                      id: "teams", 
+                      name: t('sessions.microsoftTeams', 'Microsoft Teams'), 
+                      description: t('sessions.createTeamsMeeting', 'Create Teams meeting with join link'),
+                      icon: Video,
+                      color: "text-purple-500"
+                    }
+                  ];
+
+                  return meetingTypes.map((meetingType) => {
+                    const Icon = meetingType.icon;
+                    const isConnected = integrationConnectionStatus[meetingType.id]?.connected;
+                    
+                    return (
+                      <div 
+                        key={meetingType.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Icon className={`h-5 w-5 flex-shrink-0 ${meetingType.color}`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium">{meetingType.name}</div>
+                            <div className="text-sm text-muted-foreground">{meetingType.description}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {isConnected ? (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                              <span className="text-xs text-green-600">{integrationConnectionStatus[meetingType.id]?.email}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleReconnectIntegration(meetingType.id)}
+                                disabled={isConnectingIntegration}
+                              >
+                                {isConnectingIntegration ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  t('sessions.reconnect', 'Reconnect')
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDisconnectIntegration(meetingType.id)}
+                                disabled={isConnectingIntegration}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                {t('sessions.disconnect', 'Disconnect')}
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleConnectIntegration(meetingType.id)}
+                              disabled={isConnectingIntegration}
+                            >
+                              {isConnectingIntegration ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                t('sessions.connect', 'Connect')
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Security Settings */}
@@ -2664,29 +2984,6 @@ export default function Settings() {
         </DialogContent>
       </Dialog>
 
-      {/* Logout Section */}
-      <div className="mt-8 pt-6 border-t border-border">
-        <Card className="card-standard">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">{t('settings.logout.title', 'Log Out')}</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('settings.logout.description', 'Sign out of your account')}
-                </p>
-              </div>
-              <Button
-                variant="destructive"
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                {t('settings.logout.button', 'Log Out')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

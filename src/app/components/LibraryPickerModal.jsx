@@ -139,7 +139,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
         </DialogHeader>
         
         {/* Category Selection */}
-        <div className="flex gap-2 border-b pb-3">
+        <div className="flex gap-2 pb-3">
           {categories.map(category => (
             <Button
               key={category.id}
@@ -167,7 +167,7 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
+        <div className="flex items-center justify-between border-border pt-4 mt-2">
           <div className="flex items-center gap-2">
             {selectedFiles.length > 0 && (
               <Badge variant="secondary">
