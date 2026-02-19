@@ -53,9 +53,6 @@ import { pickAvatarImage, convertHeicToJpeg, validateImageFile } from "@/lib/pho
 import { useWebPushNotifications } from "@/app/hooks/useWebPushNotifications";
 import { useNativePushNotifications } from "@/app/hooks/useNativePushNotifications";
 import { isNative } from "@/lib/capacitor";
-import { useWebPushNotifications } from "@/app/hooks/useWebPushNotifications";
-import { useNativePushNotifications } from "@/app/hooks/useNativePushNotifications";
-import { isNative } from "@/lib/capacitor";
 
 export default function Settings() {
   const { data: session } = useSession();
