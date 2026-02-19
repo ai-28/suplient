@@ -1245,7 +1245,7 @@ export default function ClientProfile() {
                                   }}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-sm ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                                  <p className="text-sm">
                                     {task.title}
                                   </p>
                                   <div className="flex items-center gap-2 mt-1">

@@ -54,7 +54,14 @@ export function TaskCompletionModal({ open, onOpenChange, task }) {
         <div className="flex flex-col gap-4 flex-1 min-h-0">
           {/* Task Details - Fixed at top */}
           <div className="bg-muted/30 p-4 rounded-lg flex-shrink-0">
-            <p className="text-sm text-muted-foreground mb-3">{task.description}</p>
+            {task.description && (
+              <div className="mb-3">
+                <h3 className="text-sm font-medium mb-2">Description</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                  {task.description}
+                </p>
+              </div>
+            )}
             
             <div className="flex items-center justify-between text-sm mb-3">
               <div className="flex items-center gap-2">

@@ -1,46 +1,76 @@
 "use client"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
-import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Badge } from "@/app/components/ui/badge";
-import { Checkbox } from "@/app/components/ui/checkbox";
 import { 
   Video,
   Image,
   FileText,
   Volume2,
-  Layout,
-  BookOpen,
-  Eye,
   Share2,
-  Loader2
+  Loader2,
+  Music
 } from "lucide-react";
-import { Textarea } from "@/app/components/ui/textarea";
-import { Label } from "@/app/components/ui/label";
+import { FileExplorer } from "@/app/components/FileExplorer";
 
 export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
   const t = useTranslation();
   
   const categories = [
-    { id: "videos", name: t('library.videos', 'Videos'), icon: Video, color: "text-blue-500" },
-    { id: "images", name: t('library.images', 'Images'), icon: Image, color: "text-green-500" },
-    { id: "articles", name: t('library.articles', 'Articles'), icon: FileText, color: "text-purple-500" },
-    { id: "sounds", name: t('library.sounds', 'Sounds'), icon: Volume2, color: "text-orange-500" },
+    { id: 'articles', name: t('library.articles', 'Articles'), icon: FileText, color: 'bg-blue-500' },
+    { id: 'images', name: t('library.images', 'Images'), icon: Image, color: 'bg-green-500' },
+    { id: 'videos', name: t('library.videos', 'Videos'), icon: Video, color: 'bg-purple-500' },
+    { id: 'sounds', name: t('library.sounds', 'Sounds'), icon: Music, color: 'bg-orange-500' }
   ];
-  const [selectedCategory, setSelectedCategory] = useState("videos");
+  
+  const [selectedCategory, setSelectedCategory] = useState('articles');
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [allFiles, setAllFiles] = useState([]);
-  const [categoryCounts, setCategoryCounts] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [libraryFiles, setLibraryFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [folders, setFolders] = useState([]);
+  const [loadingFolders, setLoadingFolders] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState(null);
-  const [shareMessage, setShareMessage] = useState("");
 
-  const fetchLibraryResources = async () => {
+  // Map category to resourceType
+  const getResourceType = () => {
+    const mapping = {
+      videos: 'video',
+      images: 'image',
+      articles: 'article',
+      sounds: 'sound'
+    };
+    return mapping[selectedCategory] || 'article';
+  };
+
+  // Fetch folders for the selected category
+  const fetchFolders = useCallback(async () => {
     try {
-      setLoading(true);
+      setLoadingFolders(true);
+      const resourceType = getResourceType();
+      const response = await fetch(`/api/library/folders?resourceType=${resourceType}&tree=true`);
+      const data = await response.json();
+      
+      if (data.status) {
+        setFolders(data.folders || []);
+      } else {
+        console.error('Failed to fetch folders:', data.message);
+        setFolders([]);
+      }
+    } catch (error) {
+      console.error('Error fetching folders:', error);
+      setFolders([]);
+    } finally {
+      setLoadingFolders(false);
+    }
+  }, [selectedCategory]);
+
+  // Fetch library files from API
+  const fetchLibraryFiles = useCallback(async () => {
+    try {
+      setLoadingFiles(true);
       setError(null);
       const response = await fetch('/api/library/all');
       if (!response.ok) {
@@ -48,26 +78,29 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
       }
       const result = await response.json();
       if (result.status) {
-        setAllFiles(result.resources || []);
-        setCategoryCounts(result.counts || {});
+        setLibraryFiles(result.resources || []);
       } else {
         throw new Error(result.message || 'Failed to fetch resources');
       }
     } catch (err) {
-      console.error('Error fetching library resources:', err);
+      console.error('Error fetching library files:', err);
       setError(err.message);
+      setLibraryFiles([]);
     } finally {
-      setLoading(false);
+      setLoadingFiles(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (open) {
-      fetchLibraryResources();
+      fetchLibraryFiles();
+      fetchFolders();
     }
-  }, [open]);
+  }, [open, fetchLibraryFiles, fetchFolders]);
 
-  const filteredFiles = allFiles.filter(file => file.category === selectedCategory);
+  useEffect(() => {
+    fetchFolders();
+  }, [fetchFolders]);
 
   const toggleFileSelection = (file) => {
     setSelectedFiles(prev => 
@@ -80,9 +113,8 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
   const handleShare = async () => {
     try {
       setSharing(true);
-      await onShareFiles(selectedFiles, shareMessage);
+      await onShareFiles(selectedFiles, "");
       setSelectedFiles([]);
-      setShareMessage("");
       onOpenChange(false);
     } catch (error) {
       console.error('Error sharing files:', error);
@@ -94,135 +126,48 @@ export function LibraryPickerModal({ open, onOpenChange, onShareFiles }) {
 
   const handleClose = () => {
     setSelectedFiles([]);
-    setShareMessage("");
     setError(null);
     setSharing(false);
     onOpenChange(false);
   };
 
-  const getFileIcon = (type) => {
-    switch (type.toLowerCase()) {
-      case 'video': return <Video className="h-4 w-4 text-blue-500" />;
-      case 'image': return <Image className="h-4 w-4 text-green-500" />;
-      case 'pdf': return <FileText className="h-4 w-4 text-red-500" />;
-      case 'audio': return <Volume2 className="h-4 w-4 text-orange-500" />;
-      case 'document': return <FileText className="h-4 w-4 text-blue-600" />;
-      default: return <FileText className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  const getFileTypeLabel = (type) => {
-    if (!type) return t('library.fileType.file', 'file');
-    const typeLower = type.toLowerCase();
-    const typeKey = `library.fileType.${typeLower}`;
-    const defaultLabel = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-    return t(typeKey, defaultLabel);
-  };
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-5xl w-full max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t('library.shareFilesFromLibrary', 'Share Files from Library')}</DialogTitle>
         </DialogHeader>
         
-        {/* Main content area */}
-        <div className="flex-1 flex gap-4 overflow-hidden mt-2">
-          {/* Categories Sidebar */}
-          <div className="w-48 border-r border-border pr-4">
-            <ScrollArea className="h-full">
-              <div className="space-y-1">
-                {categories.map((category) => {
-                  const IconComponent = category.icon;
-                  const count = categoryCounts[category.id] || 0;
-                  return (
-                    <Button
-                      key={category.id}
-                      variant={selectedCategory === category.id ? "secondary" : "ghost"}
-                      className="w-full justify-start"
-                      onClick={() => setSelectedCategory(category.id)}
-                    >
-                      <IconComponent className={`h-4 w-4 mr-2 ${category.color}`} />
-                      <span className="flex-1 text-left">{category.name}</span>
-                      {count > 0 && (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {count}
-                        </Badge>
-                      )}
-                    </Button>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </div>
-
-          {/* Files Grid */}
-          <div className="flex-1 min-w-0">
-            <ScrollArea className="h-full pr-1">
-              {loading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="text-center">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">{t('library.loading', 'Loading library...')}</p>
-                  </div>
-                </div>
-              ) : error ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="text-center">
-                    <p className="text-sm text-destructive mb-2">{t('library.error', 'Error')}: {error}</p>
-                    <Button size="sm" variant="outline" onClick={fetchLibraryResources}>
-                      {t('common.buttons.tryAgain', 'Try Again')}
-                    </Button>
-                  </div>
-                </div>
-              ) : filteredFiles.length === 0 ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">{t('library.noFilesInCategory', 'No files in this category')}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {filteredFiles.map((file) => (
-                    <div 
-                      key={file.id} 
-                      className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <Checkbox
-                        checked={selectedFiles.some(f => f.id === file.id)}
-                        onCheckedChange={() => toggleFileSelection(file)}
-                      />
-                      {getFileIcon(file.type)}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">{getFileTypeLabel(file.type)} • {file.size}</p>
-                      </div>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </div>
+        {/* Category Selection */}
+        <div className="flex gap-2 border-b pb-3">
+          {categories.map(category => (
+            <Button
+              key={category.id}
+              variant={selectedCategory === category.id ? "default" : "ghost"}
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => setSelectedCategory(category.id)}
+            >
+              <category.icon className="h-4 w-4" />
+              {category.name}
+            </Button>
+          ))}
         </div>
-
-        {/* Message Input */}
-        <div className="space-y-2 border-t border-border pt-4 mt-2">
-          <Label htmlFor="shareMessage">{t('library.shareMessageOptional', 'Share Message (Optional)')}</Label>
-          <Textarea
-            id="shareMessage"
-            value={shareMessage}
-            onChange={(e) => setShareMessage(e.target.value)}
-            placeholder={t('library.addPersonalMessage', 'Add a personal message to accompany these files...')}
-            rows={3}
-            className="resize-none"
+        
+        {/* File Explorer */}
+        <div className="flex-1 overflow-hidden mt-2">
+          <FileExplorer
+            files={libraryFiles}
+            folders={folders}
+            selectedFiles={selectedFiles}
+            onFileSelect={toggleFileSelection}
+            category={selectedCategory}
+            loading={loadingFiles || loadingFolders}
           />
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border pt-4">
+        <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
           <div className="flex items-center gap-2">
             {selectedFiles.length > 0 && (
               <Badge variant="secondary">

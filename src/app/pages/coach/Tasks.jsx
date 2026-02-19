@@ -540,14 +540,12 @@ export default function Tasks() {
                             <div className={`flex items-center ${isMobile ? 'gap-1 mb-0.5' : 'gap-2 mb-1'}`}>
                               <label 
                                 htmlFor={`client-task-${task.id}`} 
-                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all ${
-                                  task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
-                                }`}
+                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all text-foreground`}
                               >
                                 {t('tasks.clientTask', 'Client Task')}
                               </label>
                             </div>
-                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate text-muted-foreground`}>
                               {task.title}
                             </p>
                             <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5' : 'gap-2 mt-1'}`}>
@@ -657,9 +655,7 @@ export default function Tasks() {
                             <div className={`flex items-center ${isMobile ? 'gap-1 mb-0.5' : 'gap-2 mb-1'}`}>
                               <label 
                                 htmlFor={`my-task-${task.id}`} 
-                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all ${
-                                  task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
-                                }`}
+                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all text-foreground`}
                               >
                                 {task.title}
                               </label>
@@ -774,14 +770,12 @@ export default function Tasks() {
                             <div className={`flex items-center ${isMobile ? 'gap-1 mb-0.5' : 'gap-2 mb-1'}`}>
                               <label 
                                 htmlFor={`group-task-${task.id}`} 
-                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all ${
-                                  task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
-                                }`}
+                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all text-foreground`}
                               >
                                 {t('tasks.groupTask', 'Group Task')}
                               </label>
                             </div>
-                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate text-muted-foreground`}>
                               {task.title}
                             </p>
                             <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5' : 'gap-2 mt-1'}`}>
@@ -893,14 +887,12 @@ export default function Tasks() {
                             <div className={`flex items-center ${isMobile ? 'gap-1 mb-0.5' : 'gap-2 mb-1'}`}>
                               <label 
                                 htmlFor={`admin-task-${task.id}`} 
-                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all ${
-                                  task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
-                                }`}
+                                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer transition-all text-foreground`}
                               >
                                 {t('tasks.adminTask', 'Admin Task')}
                               </label>
                             </div>
-                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-muted-foreground'}`}>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate text-muted-foreground`}>
                               {task.title}
                             </p>
                             <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5 flex-wrap' : 'gap-2 mt-1'}`}>

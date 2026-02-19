@@ -384,9 +384,7 @@ export default function ClientTasks() {
                       
                       <div className="flex-1 space-y-2">
                         <div className="flex items-start justify-between">
-                          <h3 className={`font-medium text-base ${
-                            task.isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'
-                          }`}>
+                          <h3 className="font-medium text-base text-foreground">
                             {task.title}
                           </h3>
                           <div className="flex items-center gap-2">
@@ -405,9 +403,7 @@ export default function ClientTasks() {
                           </div>
                         </div>
                         
-                        <p className={`text-sm ${
-                          task.isCompleted ? 'text-muted-foreground line-through' : 'text-muted-foreground'
-                        }`}>
+                        <p className="text-sm text-muted-foreground">
                           {task.description}
                         </p>
                         
