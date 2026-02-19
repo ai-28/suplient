@@ -47,11 +47,13 @@ import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useGroups } from "@/app/hooks/useGroups";
 import { toast } from "sonner";
-import { isIOS } from "@/lib/capacitor";
+import { isIOS, isNative } from "@/lib/capacitor";
 import { pickAvatarImage, convertHeicToJpeg, validateImageFile } from "@/lib/photoPicker";
 import { LanguageSelector } from "@/app/components/LanguageSelector";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { Globe } from "lucide-react";
+import { useWebPushNotifications } from "@/app/hooks/useWebPushNotifications";
+import { Separator } from "@/app/components/ui/separator";
 
 // Demo data for goals and habits
 const demoGoals = [
@@ -751,6 +753,16 @@ export default function ClientProfile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Web push notifications (only for web, not native apps)
+  const isNativeApp = isNative();
+  const {
+    isSupported: webPushSupported,
+    isSubscribed: webPushSubscribed,
+    isLoading: webPushLoading,
+    subscribe: subscribeToWebPush,
+    unsubscribe: unsubscribeFromWebPush
+  } = useWebPushNotifications();
+
   // Form state
   const [formData, setFormData] = useState({
     name: "",
@@ -1083,6 +1095,31 @@ export default function ClientProfile() {
       toast.error(t('client.profile.failedToSaveNotificationPreference', 'Failed to save notification preference'));
       // Revert state on error
       setNotificationsEnabled(!enabled);
+    }
+  };
+
+  const handleWebPushToggle = async (enabled) => {
+    if (isNativeApp) {
+      toast.info(t('client.settings.notifications.nativeAppOnly', 'Push notifications are automatically managed on native apps'));
+      return;
+    }
+
+    if (!webPushSupported) {
+      toast.error(t('client.settings.notifications.webPushNotSupported', 'Web push notifications are not supported in this browser'));
+      return;
+    }
+
+    try {
+      if (enabled) {
+        await subscribeToWebPush();
+        toast.success(t('client.settings.notifications.webPushEnabled', 'Web push notifications enabled'));
+      } else {
+        await unsubscribeFromWebPush();
+        toast.success(t('client.settings.notifications.webPushDisabled', 'Web push notifications disabled'));
+      }
+    } catch (error) {
+      console.error('Error toggling web push notifications:', error);
+      toast.error(t('client.settings.notifications.webPushToggleFailed', 'Failed to toggle web push notifications'));
     }
   };
 
@@ -2463,6 +2500,28 @@ export default function ClientProfile() {
                     className={`${isMobile ? 'self-end' : ''}`} 
                   />
                 </div>
+
+                {!isNativeApp && (
+                  <>
+                    <Separator className={`${isMobile ? 'my-3' : 'my-4'}`} />
+                    <div className={`flex items-center justify-between ${isMobile ? 'flex-col items-start gap-2' : ''}`}>
+                      <div className="space-y-0.5">
+                        <Label className={`${isMobile ? 'text-sm' : ''}`}>
+                          {t('client.settings.notifications.webPush', 'Web Push Notifications')}
+                        </Label>
+                        <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          {t('client.settings.notifications.webPushDescription', 'Receive browser push notifications even when the app is closed')}
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={webPushSubscribed} 
+                        onCheckedChange={handleWebPushToggle}
+                        disabled={!webPushSupported || webPushLoading}
+                        className={`${isMobile ? 'self-end' : ''}`} 
+                      />
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

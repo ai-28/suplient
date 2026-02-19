@@ -568,7 +568,7 @@
         "selectDateFirst": "Please select a date first",
         "loadingAvailableTimes": "Loading available times...",
         "noAvailableTimes": "No available times for this date. Please select another date.",
-        "timesShownIn": "Times shown in {timezone} ({offset})",
+        "timesShownIn": "Times shown in",
         "sessionDuration": "Session Duration",
         "sessionDurationDescription": "How long should this session be?",
         "minutes": "{minutes} minutes",
@@ -1789,7 +1789,14 @@
                 "title": "Notifications",
                 "description": "Choose what notifications you receive",
                 "enable": "Enable Notifications",
-                "enableDescription": "Receive notifications for messages, tasks, sessions, and updates"
+                "enableDescription": "Receive notifications for messages, tasks, sessions, and updates",
+                "webPush": "Web Push Notifications",
+                "webPushDescription": "Receive browser push notifications even when the app is closed",
+                "webPushNotSupported": "Web push notifications are not supported in this browser",
+                "webPushEnabled": "Web push notifications enabled",
+                "webPushDisabled": "Web push notifications disabled",
+                "webPushToggleFailed": "Failed to toggle web push notifications",
+                "nativeAppOnly": "Push notifications are automatically managed on native apps"
             },
             "logout": {
                 "title": "Log Out",

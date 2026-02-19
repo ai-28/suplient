@@ -637,7 +637,7 @@
         "selectDateFirst": "Vælg venligst en dato først",
         "loadingAvailableTimes": "Indlæser tilgængelige tidspunkter...",
         "noAvailableTimes": "Ingen tilgængelige tidspunkter for denne dato. Vælg venligst en anden dato.",
-        "timesShownIn": "Tidspunkter vist i {timezone} ({offset})",
+        "timesShownIn": "Tidspunkter vist i",
         "sessionDuration": "Sessionvarighed",
         "sessionDurationDescription": "Hvor lang skal denne session være?",
         "minutes": "{minutes} minutter",
@@ -1872,7 +1872,14 @@
                 "title": "Notifikationer",
                 "description": "Vælg hvilke notifikationer du modtager",
                 "enable": "Aktiver Notifikationer",
-                "enableDescription": "Modtag notifikationer for beskeder, opgaver, sessioner og opdateringer"
+                "enableDescription": "Modtag notifikationer for beskeder, opgaver, sessioner og opdateringer",
+                "webPush": "Web Push Notifikationer",
+                "webPushDescription": "Modtag browser push-notifikationer selv når appen er lukket",
+                "webPushNotSupported": "Web push-notifikationer understøttes ikke i denne browser",
+                "webPushEnabled": "Web push-notifikationer aktiveret",
+                "webPushDisabled": "Web push-notifikationer deaktiveret",
+                "webPushToggleFailed": "Kunne ikke skifte web push-notifikationer",
+                "nativeAppOnly": "Push-notifikationer administreres automatisk på native apps"
             },
             "logout": {
                 "title": "Log Ud",

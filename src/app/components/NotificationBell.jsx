@@ -9,9 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { ScrollArea } from '@/app/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { useNotifications } from '@/app/hooks/useNotifications';
-import { useWebPushNotifications } from '@/app/hooks/useWebPushNotifications';
-import { useNativePushNotifications } from '@/app/hooks/useNativePushNotifications';
-import { isNative } from '@/lib/capacitor';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { MessageWithLinks } from './MessageWithLinks';
@@ -48,31 +45,6 @@ export function NotificationBell({ userRole = 'client' }) {
     markAllAsRead, 
     deleteNotification 
   } = useNotifications({ limit: 50 }); // Fetch all notifications (read and unread)
-
-  // Web push notifications (for web platform)
-  const {
-    isSupported: isWebPushSupported,
-    isSubscribed: isWebPushSubscribed,
-    isLoading: isWebPushLoading,
-    subscribe: subscribeToWebPush,
-    unsubscribe: unsubscribeFromWebPush
-  } = useWebPushNotifications();
-
-  // Native push notifications (for iOS/Android apps)
-  const {
-    isSupported: isNativePushSupported,
-    isRegistered: isNativePushRegistered,
-    isLoading: isNativePushLoading,
-    unregister: unregisterNativePush
-  } = useNativePushNotifications();
-
-  // Determine which push system to use
-  const isNativeApp = isNative();
-  const pushSupported = isNativeApp ? isNativePushSupported : isWebPushSupported;
-  const pushSubscribed = isNativeApp ? isNativePushRegistered : isWebPushSubscribed;
-  const pushLoading = isNativeApp ? isNativePushLoading : isWebPushLoading;
-  const subscribeToPush = isNativeApp ? null : subscribeToWebPush; // Native auto-registers
-  const unsubscribeFromPush = isNativeApp ? unregisterNativePush : unsubscribeFromWebPush;
 
   // Check notification preference on mount
   useEffect(() => {
