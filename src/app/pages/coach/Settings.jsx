@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { cn } from "@/app/lib/utils";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { GoalHabitTemplateManager } from "@/app/components/GoalHabitTemplateManager";
 import { pickAvatarImage, convertHeicToJpeg, validateImageFile } from "@/lib/photoPicker";
@@ -91,6 +92,7 @@ export default function Settings() {
   // Integration connection state
   const [integrationConnectionStatus, setIntegrationConnectionStatus] = useState({});
   const [isConnectingIntegration, setIsConnectingIntegration] = useState(false);
+  const [defaultMeetingType, setDefaultMeetingType] = useState('none');
 
   // Check existing integrations
   const checkExistingIntegrations = async () => {
@@ -1959,11 +1961,23 @@ export default function Settings() {
                   return meetingTypes.map((meetingType) => {
                     const Icon = meetingType.icon;
                     const isConnected = integrationConnectionStatus[meetingType.id]?.connected;
+                    const isSelected = defaultMeetingType === meetingType.id;
                     
                     return (
                       <div 
                         key={meetingType.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className={cn(
+                          "flex items-center justify-between p-4 border rounded-lg",
+                          isConnected && "cursor-pointer transition-all hover:border-primary/50",
+                          isConnected && isSelected && "border-primary bg-primary/5"
+                        )}
+                        onClick={() => {
+                          if (isConnected) {
+                            setDefaultMeetingType(meetingType.id);
+                            localStorage.setItem('defaultMeetingType', meetingType.id);
+                            toast.success(t('settings.integration.defaultMeetingTypeUpdated', 'Default meeting type updated'));
+                          }
+                        }}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <Icon className={`h-5 w-5 flex-shrink-0 ${meetingType.color}`} />
@@ -1978,10 +1992,16 @@ export default function Settings() {
                             <div className="flex items-center gap-2">
                               <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                               <span className="text-xs text-green-600">{integrationConnectionStatus[meetingType.id]?.email}</span>
+                              {isSelected && (
+                                <div className="w-4 h-4 rounded-full border-2 border-primary bg-primary flex-shrink-0" />
+                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleReconnectIntegration(meetingType.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReconnectIntegration(meetingType.id);
+                                }}
                                 disabled={isConnectingIntegration}
                               >
                                 {isConnectingIntegration ? (
@@ -1993,7 +2013,10 @@ export default function Settings() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => handleDisconnectIntegration(meetingType.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDisconnectIntegration(meetingType.id);
+                                }}
                                 disabled={isConnectingIntegration}
                                 className="text-red-600 hover:text-red-700"
                               >
@@ -2004,7 +2027,10 @@ export default function Settings() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleConnectIntegration(meetingType.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleConnectIntegration(meetingType.id);
+                              }}
                               disabled={isConnectingIntegration}
                             >
                               {isConnectingIntegration ? (

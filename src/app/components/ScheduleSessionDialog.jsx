@@ -541,7 +541,12 @@ export function ScheduleSessionDialog({
         mood: 'neutral',
         notes: null,
         meetingType: (() => {
-          // Auto-select first connected integration (prefer Google Meet, then Zoom, then Teams)
+          // Use default meeting type from Settings (stored in localStorage)
+          const defaultMeetingType = localStorage.getItem('defaultMeetingType');
+          if (defaultMeetingType && connectionStatus[defaultMeetingType]?.connected) {
+            return defaultMeetingType;
+          }
+          // Fallback: Auto-select first connected integration (prefer Google Meet, then Zoom, then Teams)
           if (connectionStatus.google_meet?.connected) return 'google_meet';
           if (connectionStatus.zoom?.connected) return 'zoom';
           if (connectionStatus.teams?.connected) return 'teams';
@@ -601,9 +606,12 @@ export function ScheduleSessionDialog({
           
           let integrationResult;
           
+          // Get the meeting type from sessionData (which uses default from Settings)
+          const selectedMeetingType = sessionData.meetingType;
+          
           // For all meeting types, use the original logic
-            const platformForAPI = selectedMeetingType === 'google_meet' ? 'google_calendar' : selectedMeetingType;
-            integrationResult = await createExternalMeeting(result.session.id, sessionData, platformForAPI);
+          const platformForAPI = selectedMeetingType === 'google_meet' ? 'google_calendar' : selectedMeetingType;
+          integrationResult = await createExternalMeeting(result.session.id, sessionData, platformForAPI);
 
           
           // Check if any integrations failed due to missing connections
