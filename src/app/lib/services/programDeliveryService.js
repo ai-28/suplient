@@ -165,28 +165,46 @@ function getFileTypeLinkText(url) {
 }
 
 /**
+ * Replace placeholders in content with actual client names
+ * @param {string} content - Content with placeholders
+ * @param {string} clientName - Client's full name
+ * @returns {string} Content with placeholders replaced
+ */
+function replaceNamePlaceholders(content, clientName = '') {
+    if (!content || !clientName) return content;
+
+    // Get first name (first word of the full name)
+    const firstName = clientName.split(' ')[0] || clientName;
+
+    // Replace placeholders
+    content = content.replace(/{client First Name}/g, firstName);
+    content = content.replace(/{client Full Name}/g, clientName);
+
+    return content;
+}
+
+/**
  * Format combined message from elements
  * @param {Array} elements - Array of program elements
  * @param {number} programDay - Program day
  * @param {string} clientName - Client's name
+ * @param {boolean} replacePlaceholders - Whether to replace placeholders with actual names (default: true)
  * @returns {string} Formatted message content
  */
-export function formatCombinedMessage(elements, programDay, clientName = '') {
+export function formatCombinedMessage(elements, programDay, clientName = '', replacePlaceholders = true) {
     const parts = [];
 
-    // Add greeting with client name
-    if (clientName) {
-        parts.push(`Hi ${clientName},\n\n`);
-    }
-
     // Add day header (no markdown formatting)
-    parts.push(`📅 Day ${programDay} of Your Program\n`);
+    // parts.push(`📅 Day ${programDay} of Your Program\n`);
 
     // Message elements
     const messages = elements.filter(e => e.type === 'message');
     messages.forEach(msg => {
-        const content = msg.elementData?.message || msg.title;
+        let content = msg.elementData?.message || msg.title;
         if (content) {
+            if (replacePlaceholders) {
+                content = replaceNamePlaceholders(content, clientName);
+            }
             parts.push(content);
         }
     });
@@ -198,7 +216,11 @@ export function formatCombinedMessage(elements, programDay, clientName = '') {
         tasks.forEach(task => {
             parts.push(`• ${task.title}`);
             if (task.elementData?.description) {
-                parts.push(`  ${task.elementData.description}`);
+                let description = task.elementData.description;
+                if (replacePlaceholders) {
+                    description = replaceNamePlaceholders(description, clientName);
+                }
+                parts.push(`  ${description}`);
             }
         });
     }
@@ -213,9 +235,25 @@ export function formatCombinedMessage(elements, programDay, clientName = '') {
             if (file.elementData?.url || file.elementData?.fileUrl) {
                 const url = file.elementData.url || file.elementData.fileUrl;
                 const linkText = getFileTypeLinkText(url);
-                parts.push(`\n📄 You can find the detailed guide in the library. [${linkText}](${url})`);
+                let description = `\n📄 You can find the detailed guide in the library. [${linkText}](${url})`;
+                if (file.elementData?.description) {
+                    let descText = file.elementData.description;
+                    if (replacePlaceholders) {
+                        descText = replaceNamePlaceholders(descText, clientName);
+                    }
+                    description = descText + description;
+                }
+                parts.push(description);
             } else {
-                parts.push(`\n📄 ${fileTitle}`);
+                let description = `\n📄 ${fileTitle}`;
+                if (file.elementData?.description) {
+                    let descText = file.elementData.description;
+                    if (replacePlaceholders) {
+                        descText = replaceNamePlaceholders(descText, clientName);
+                    }
+                    description = descText + description;
+                }
+                parts.push(description);
             }
         });
     }

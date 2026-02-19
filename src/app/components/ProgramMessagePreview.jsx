@@ -72,7 +72,7 @@ export function ProgramMessagePreview({ elements, programDay, onClose, isMobile 
     const parts = [];
 
     // Add day header (no markdown formatting)
-    parts.push(`📅 Day ${programDay} of Your Program\n`);
+    // parts.push(`📅 Day ${programDay} of Your Program\n`);
 
     // Message elements
     const messages = elements.filter(e => e.type === 'message');
@@ -138,9 +138,17 @@ export function ProgramMessagePreview({ elements, programDay, onClose, isMobile 
         if (elementData?.url || elementData?.fileUrl) {
           const url = elementData.url || elementData.fileUrl;
           const linkText = getFileTypeLinkText(url);
-          parts.push(`\n📄 You can find the detailed guide in the library. [${linkText}](${url})`);
+          let description = `\n📄 You can find the detailed guide in the library. [${linkText}](${url})`;
+          if (elementData?.description) {
+            description = elementData.description + description;
+          }
+          parts.push(description);
         } else {
-          parts.push(`\n📄 ${fileTitle}`);
+          let description = `\n📄 ${fileTitle}`;
+          if (elementData?.description) {
+            description = elementData.description + description;
+          }
+          parts.push(description);
         }
       });
     }

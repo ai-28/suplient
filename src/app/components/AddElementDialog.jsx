@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Checkbox } from "@/app/components/ui/checkbox";
-import { Upload, CheckSquare, MessageSquare, FileText, Image, Video, Music } from "lucide-react";
+import { Upload, CheckSquare, MessageSquare, FileText, Image, Video, Music, ChevronDown } from "lucide-react";
 import { FileExplorer } from "@/app/components/FileExplorer";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
 
 export function AddElementDialog({
   open,
@@ -54,6 +55,45 @@ export function AddElementDialog({
   
   // Message state
   const [messageText, setMessageText] = useState('');
+  
+  // Content state
+  const [contentDescription, setContentDescription] = useState('');
+  
+  // Helper function to add greeting to content
+  const addGreetingToContent = (content, greetingType) => {
+    if (!content) return '';
+    
+    let greeting = '';
+    if (greetingType === 'firstName') {
+      greeting = 'Hi {client First Name},\n\n';
+    } else if (greetingType === 'fullName') {
+      greeting = 'Hi {client Full Name},\n\n';
+    }
+    
+    // Check if greeting already exists at the start
+    if (content.startsWith('Hi {client First Name}') || content.startsWith('Hi {client Full Name}')) {
+      // Replace existing greeting
+      const lines = content.split('\n');
+      if (lines[0].startsWith('Hi {client')) {
+        lines[0] = greeting.trim();
+        return lines.join('\n');
+      }
+    }
+    
+    // Add greeting at the top
+    return greeting + content;
+  };
+  
+  // Handle greeting selection
+  const handleGreetingSelect = (greetingType) => {
+    if (elementType === 'message') {
+      setMessageText(addGreetingToContent(messageText, greetingType));
+    } else if (elementType === 'task') {
+      setTaskDescription(addGreetingToContent(taskDescription, greetingType));
+    } else if (elementType === 'content') {
+      setContentDescription(addGreetingToContent(contentDescription, greetingType));
+    }
+  };
 
   const getElementInfo = (type) => {
     switch (type) {
@@ -182,7 +222,7 @@ export function AddElementDialog({
       case 'content':
         return {
           title: selectedFiles[0]?.name || '',
-          description: '',
+          description: contentDescription,
           assignedTo: 'client',
           libraryFileId: selectedFiles[0]?.id || '',
           url: selectedFiles[0]?.url || null
@@ -247,6 +287,7 @@ export function AddElementDialog({
     setTaskDescription('');
     setTaskAssignedTo('client');
     setMessageText('');
+    setContentDescription('');
     setSelectedWeek(preselectedWeek || defaultWeek);
     setSelectedDayOfWeek(preselectedDay || 1);
     setSelectedTime('09:00');
@@ -367,6 +408,34 @@ export function AddElementDialog({
                 </div>
               </div>
             )}
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="contentDescription">{t('common.labels.description', 'Description')}</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="outline" size="sm" className="h-8">
+                      Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
+                      First Name
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
+                      Full Name
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <Textarea
+                id="contentDescription"
+                value={contentDescription}
+                onChange={(e) => setContentDescription(e.target.value)}
+                placeholder={t('programs.enterDescription', 'Enter description (optional)...')}
+                rows={3}
+              />
+            </div>
           </div>
         );
         
@@ -384,7 +453,24 @@ export function AddElementDialog({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="taskDescription">{t('common.labels.description', 'Description')}</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="taskDescription">{t('common.labels.description', 'Description')}</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="outline" size="sm" className="h-8">
+                      Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
+                      First Name
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
+                      Full Name
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <Textarea
                 id="taskDescription"
                 value={taskDescription}
@@ -400,7 +486,24 @@ export function AddElementDialog({
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="messageText">{t('common.labels.message', 'Message')}</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="messageText">{t('common.labels.message', 'Message')}</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button type="button" variant="outline" size="sm" className="h-8">
+                      Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
+                      First Name
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
+                      Full Name
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <Textarea
                 id="messageText"
                 value={messageText}
