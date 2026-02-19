@@ -225,22 +225,32 @@ export default function ProgramEditor() {
 
     // Calculate which elements belong to this day
     try {
-      const dayElements = elements.filter(el => {
-        if (!el) return false;
-        
-        // Handle both scheduledDay (absolute day) and week/day format
-        if (el.scheduledDay !== undefined && el.scheduledDay !== null) {
-          return el.scheduledDay === selectedDay;
-        }
-        
-        if (el.week !== undefined && el.week !== null && 
-            el.day !== undefined && el.day !== null) {
-          const elementDay = ((el.week - 1) * 7) + el.day;
-          return elementDay === selectedDay;
-        }
-        
-        return false;
-      });
+      const dayElements = elements
+        .filter(el => {
+          if (!el) return false;
+          
+          // Handle both scheduledDay (absolute day) and week/day format
+          if (el.scheduledDay !== undefined && el.scheduledDay !== null) {
+            return el.scheduledDay === selectedDay;
+          }
+          
+          if (el.week !== undefined && el.week !== null && 
+              el.day !== undefined && el.day !== null) {
+            const elementDay = ((el.week - 1) * 7) + el.day;
+            return elementDay === selectedDay;
+          }
+          
+          return false;
+        })
+        .map(el => {
+          // Ensure both data and elementData are available for preview
+          // Create a new object to ensure React detects the change
+          return {
+            ...el,
+            elementData: el.data || el.elementData || {},
+            data: el.data || el.elementData || {}
+          };
+        });
       
       setPreviewElements(dayElements);
     } catch (error) {
@@ -318,7 +328,26 @@ export default function ProgramEditor() {
   };
 
   const handleUpdateElement = (updatedElement) => {
-    setElements(prev => prev.map(el => el.id === updatedElement.id ? updatedElement : el));
+    setElements(prev => {
+      const updated = prev.map(el => {
+        if (el.id === updatedElement.id) {
+          // Ensure both data and elementData are in sync for preview
+          // This ensures the preview component can read from either property
+          const normalizedElement = {
+            ...updatedElement,
+            // Keep elementData in sync with data for backward compatibility
+            elementData: updatedElement.data || updatedElement.elementData || {},
+            // Also ensure data exists
+            data: updatedElement.data || updatedElement.elementData || {}
+          };
+          return normalizedElement;
+        }
+        return el;
+      });
+      return updated;
+    });
+    // Force preview to update by triggering a small state change
+    // The useEffect should handle this, but this ensures it happens
     setEditElementDialog({ open: false, element: null });
   };
 
