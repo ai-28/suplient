@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { Badge } from "@/app/components/ui/badge";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { CreateTaskDialog } from "@/app/components/CreateTaskDialog";
 import { TaskCompletionModal } from "@/app/components/TaskCompletionModal";
@@ -12,6 +13,33 @@ import {
   Users,
   Loader2
 } from "lucide-react";
+
+// Helper: Get task status for display
+const getTaskStatus = (task, t) => {
+  // For group tasks, check if all members completed
+  const isFullyCompleted = task.completedCount === task.assignedCount && task.assignedCount > 0;
+  
+  if (isFullyCompleted) {
+    return { label: t('common.status.completed', 'Completed'), variant: 'success' };
+  }
+  
+  if (!task.dueDate) {
+    return { label: t('tasks.noDueDate', 'No due date'), variant: 'secondary' };
+  }
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dueDate = new Date(task.dueDate);
+  dueDate.setHours(0, 0, 0, 0);
+  
+  if (dueDate < today) {
+    return { label: t('tasks.overdue', 'Overdue'), variant: 'destructive' };
+  }
+  if (dueDate.toDateString() === today.toDateString()) {
+    return { label: t('tasks.dueToday', 'Due Today'), variant: 'default' };
+  }
+  return { label: t('tasks.upcoming', 'Upcoming'), variant: 'secondary' };
+};
 
 export function GroupTasksPanel({ groupId, memberCount }) {
   const t = useTranslation();
@@ -124,46 +152,55 @@ export function GroupTasksPanel({ groupId, memberCount }) {
               </div>
             ) : (
               <div className={`${isMobile ? 'space-y-2 pr-2' : 'space-y-3 pr-4'}`}>
-                {tasks.map((task) => (
-                <div 
-                  key={task.id}
-                  onClick={() => handleTaskClick(task)}
-                  className={`${isMobile ? 'p-2' : 'p-3'} bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer`}
-                >
-                  <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{task.title}</h4>
-                      </div>
-                    </div>
-                    
-                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
-                      {task.description}
-                    </p>
-                    
-                    <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                      <div className="flex items-center gap-1">
-                        <Calendar className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-                        <span className="text-muted-foreground break-words">{task.dueDate}</span>
+                {tasks.map((task) => {
+                  const status = getTaskStatus(task, t);
+                  return (
+                  <div 
+                    key={task.id}
+                    onClick={() => handleTaskClick(task)}
+                    className={`${isMobile ? 'p-2' : 'p-3'} bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer`}
+                  >
+                    <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{task.title}</h4>
+                        </div>
                       </div>
                       
-                      <div className="flex items-center gap-1">
-                        <Users className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-                        <span className="text-muted-foreground break-words">
-                          {task.completedCount}/{task.assignedCount}
-                        </span>
+                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
+                        {task.description}
+                      </p>
+                      
+                      <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                        <div className="flex items-center gap-1">
+                          <Calendar className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                          <span className="text-muted-foreground break-words">{task.dueDate}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                          <Users className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                          <span className="text-muted-foreground break-words">
+                            {task.completedCount}/{task.assignedCount}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
+                          {status.label}
+                        </Badge>
+                      </div>
+                      
+                      <div className="w-full bg-muted rounded-full h-1.5">
+                        <div 
+                          className="bg-primary h-1.5 rounded-full transition-all" 
+                          style={{ width: `${(task.completedCount / task.assignedCount) * 100}%` }}
+                        />
                       </div>
                     </div>
-                    
-                    <div className="w-full bg-muted rounded-full h-1.5">
-                      <div 
-                        className="bg-primary h-1.5 rounded-full transition-all" 
-                        style={{ width: `${(task.completedCount / task.assignedCount) * 100}%` }}
-                      />
-                    </div>
                   </div>
-                </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </ScrollArea>

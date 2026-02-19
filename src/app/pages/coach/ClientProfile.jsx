@@ -63,6 +63,30 @@ const parseAsUTC = (input) => {
   }
   return new Date(input);
 };
+
+// Helper: Get task status for display
+const getTaskStatus = (task, t) => {
+  if (task.completed || task.status === 'completed') {
+    return { label: t('common.status.completed', 'Completed'), variant: 'success' };
+  }
+  
+  if (!task.dueDate) {
+    return { label: t('tasks.noDueDate', 'No due date'), variant: 'secondary' };
+  }
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dueDate = parseAsUTC(task.dueDate);
+  dueDate.setHours(0, 0, 0, 0);
+  
+  if (dueDate < today) {
+    return { label: t('tasks.overdue', 'Overdue'), variant: 'destructive' };
+  }
+  if (dueDate.toDateString() === today.toDateString()) {
+    return { label: t('tasks.dueToday', 'Due Today'), variant: 'default' };
+  }
+  return { label: t('tasks.upcoming', 'Upcoming'), variant: 'secondary' };
+};
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -1197,7 +1221,9 @@ export default function ClientProfile() {
                       <ScrollArea className={`${isMobile ? 'h-[200px]' : 'h-[250px]'}`}>
                         <div className={`space-y-3 ${isMobile ? 'pr-2' : 'pr-4'}`}>
                           {clientTasks.length > 0 ? (
-                            clientTasks.map((task) => (
+                            clientTasks.map((task) => {
+                              const status = getTaskStatus(task, t);
+                              return (
                               <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                                 <Checkbox 
                                   checked={task.completed}
@@ -1207,12 +1233,18 @@ export default function ClientProfile() {
                                   <p className={`text-sm ${task.completed ? 'line-through text-gray-500' : ''}`}>
                                     {task.title}
                                   </p>
-                                  <span className="text-xs text-gray-500">
-                                    {task.dueDate ? parseAsUTC(task.dueDate).toLocaleDateString() : t('tasks.noDueDate', 'No due date')}
-                                  </span>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs text-gray-500">
+                                      {task.dueDate ? parseAsUTC(task.dueDate).toLocaleDateString() : t('tasks.noDueDate', 'No due date')}
+                                    </span>
+                                    <Badge variant={status.variant} className="text-[10px] h-4 px-1.5">
+                                      {status.label}
+                                    </Badge>
+                                  </div>
                                 </div>
                               </div>
-                            ))
+                              );
+                            })
                           ) : (
                             <div className="text-center py-8 text-muted-foreground">
                               <p>{t('tasks.noTasksAssigned', 'No tasks assigned yet')}</p>
