@@ -151,6 +151,7 @@ export default function ProgramEditor() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
+  const isSavingRef = useRef(false);
 
   // Fetch program data
   const fetchProgram = async () => {
@@ -268,6 +269,9 @@ export default function ProgramEditor() {
     if (!hasUnsavedChanges) return;
 
     const handleLinkClick = (e) => {
+      // Don't intercept if we're in the middle of saving
+      if (isSavingRef.current) return;
+      
       // Find the closest <a> element (Next.js Link renders as <a>)
       const linkElement = e.target.closest('a[href]');
       
@@ -312,6 +316,10 @@ export default function ProgramEditor() {
     const originalReplace = router.replace;
     
     router.push = (url, options) => {
+      // Don't intercept if we're in the middle of saving
+      if (isSavingRef.current) {
+        return originalPush.call(router, url, options);
+      }
       if (hasUnsavedChanges) {
         const normalizedUrl = typeof url === 'string' ? url : url.toString();
         setPendingNavigation(normalizedUrl);
@@ -322,6 +330,10 @@ export default function ProgramEditor() {
     };
 
     router.replace = (url, options) => {
+      // Don't intercept if we're in the middle of saving
+      if (isSavingRef.current) {
+        return originalReplace.call(router, url, options);
+      }
       if (hasUnsavedChanges) {
         const normalizedUrl = typeof url === 'string' ? url : url.toString();
         setPendingNavigation(normalizedUrl);
@@ -531,6 +543,7 @@ export default function ProgramEditor() {
 
     try {
       setSaving(true);
+      isSavingRef.current = true; // Set flag to bypass navigation interception
       
       // Use the correct API endpoint based on whether it's a program or template
       const apiEndpoint = isProgram ? `/api/programs/${id}` : `/api/temp_programs/${id}`;
@@ -574,6 +587,7 @@ export default function ProgramEditor() {
       initialFormDataRef.current = JSON.stringify(formData);
       initialElementsRef.current = JSON.stringify(elements);
       setHasUnsavedChanges(false);
+      
       // If there was a pending navigation, use it; otherwise go to programs list
       if (pendingNavigation) {
         router.push(pendingNavigation);
@@ -586,6 +600,10 @@ export default function ProgramEditor() {
       toast.error(error.message || 'Failed to update program');
     } finally {
       setSaving(false);
+      // Reset flag after a short delay to ensure navigation completes
+      setTimeout(() => {
+        isSavingRef.current = false;
+      }, 100);
     }
   };
 
