@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { Smile } from 'lucide-react';
@@ -17,14 +17,19 @@ export const EmojiButton = ({
   const handleEmojiClick = (emoji) => {
     // Insert emoji first
     onEmojiSelect(emoji);
-    // Close popover after a short delay to ensure emoji is inserted
-    setTimeout(() => {
-      setIsOpen(false);
-    }, 50);
+    // Close popover immediately - the emoji should be inserted by now
+    setIsOpen(false);
+  };
+
+  // Prevent popover from closing when clicking inside it or on emoji picker
+  const handleInteractOutside = (e) => {
+    // Always prevent closing on outside interactions
+    // We'll close it manually when emoji is selected
+    e.preventDefault();
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={setIsOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -39,32 +44,26 @@ export const EmojiButton = ({
         className="w-auto p-0 border-0 shadow-lg z-[100]" 
         side="top"
         align="end"
-        onInteractOutside={(e) => {
-          // Check if the click is on the emoji picker or its children
-          const target = e.target;
-          // Prevent closing if clicking inside the emoji picker
-          if (target && (
-            target.closest('epr-emoji-picker') ||
-            target.closest('[class*="emoji-picker"]') ||
-            target.closest('[id*="emoji-picker"]')
-          )) {
-            e.preventDefault();
-          }
+        onInteractOutside={handleInteractOutside}
+        onPointerDownOutside={handleInteractOutside}
+        onEscapeKeyDown={(e) => {
+          setIsOpen(false);
         }}
-        onPointerDownOutside={(e) => {
-          // Check if the click is on the emoji picker or its children
-          const target = e.target;
-          // Prevent closing if clicking inside the emoji picker
-          if (target && (
-            target.closest('epr-emoji-picker') ||
-            target.closest('[class*="emoji-picker"]') ||
-            target.closest('[id*="emoji-picker"]')
-          )) {
-            e.preventDefault();
-          }
+        onClick={(e) => {
+          // Stop propagation to prevent dialog from closing
+          e.stopPropagation();
         }}
       >
-        <div data-emoji-picker onClick={(e) => e.stopPropagation()}>
+        <div 
+          data-emoji-picker 
+          onClick={(e) => {
+            // Don't stop propagation here - let the emoji picker handle it
+          }}
+          onMouseDown={(e) => {
+            // Prevent the popover from closing when clicking inside
+            e.stopPropagation();
+          }}
+        >
           <EmojiPickerComponent onEmojiClick={handleEmojiClick} />
         </div>
       </PopoverContent>
