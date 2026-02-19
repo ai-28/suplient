@@ -50,6 +50,8 @@ import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { GoalHabitTemplateManager } from "@/app/components/GoalHabitTemplateManager";
 import { pickAvatarImage, convertHeicToJpeg, validateImageFile } from "@/lib/photoPicker";
+import { useWebPushNotifications } from "@/app/hooks/useWebPushNotifications";
+import { isNative } from "@/lib/capacitor";
 
 export default function Settings() {
   const { data: session } = useSession();
@@ -68,6 +70,17 @@ export default function Settings() {
   const [selectedFile, setSelectedFile] = useState(null);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  
+  // Web push notifications (only for web, not native apps)
+  const isNativeApp = isNative();
+  const {
+    isSupported: webPushSupported,
+    isSubscribed: webPushSubscribed,
+    isLoading: webPushLoading,
+    subscribe: subscribeToWebPush,
+    unsubscribe: unsubscribeFromWebPush
+  } = useWebPushNotifications();
+  
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -1143,6 +1156,31 @@ export default function Settings() {
     }
   };
 
+  const handleWebPushToggle = async (enabled) => {
+    if (isNativeApp) {
+      toast.info(t('settings.notifications.nativeAppOnly', 'Push notifications are automatically managed on native apps'));
+      return;
+    }
+
+    if (!webPushSupported) {
+      toast.error(t('settings.notifications.webPushNotSupported', 'Web push notifications are not supported in this browser'));
+      return;
+    }
+
+    try {
+      if (enabled) {
+        await subscribeToWebPush();
+        toast.success(t('settings.notifications.webPushEnabled', 'Web push notifications enabled'));
+      } else {
+        await unsubscribeFromWebPush();
+        toast.success(t('settings.notifications.webPushDisabled', 'Web push notifications disabled'));
+      }
+    } catch (error) {
+      console.error('Error toggling web push notifications:', error);
+      toast.error(t('settings.notifications.webPushToggleFailed', 'Failed to toggle web push notifications'));
+    }
+  };
+
   // Handle password input changes
   const handlePasswordChange = (field, value) => {
     setPasswordData(prev => ({
@@ -1834,6 +1872,24 @@ export default function Settings() {
                     onCheckedChange={handleNotificationToggle}
                   />
                 </div>
+                
+                <Separator className="my-4" />
+                
+                {!isNativeApp && (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>{t('settings.notifications.webPush', 'Web Push Notifications')}</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {t('settings.notifications.webPushDescription', 'Receive browser push notifications even when the app is closed')}
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={webPushSubscribed} 
+                      onCheckedChange={handleWebPushToggle}
+                      disabled={!webPushSupported || webPushLoading}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
