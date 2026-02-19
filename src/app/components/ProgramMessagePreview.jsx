@@ -5,6 +5,7 @@ import { MessageWithLinks } from '@/app/components/MessageWithLinks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { X } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
+import { useTranslation } from '@/app/context/LanguageContext';
 
 /**
  * Get file type link text based on file extension
@@ -33,6 +34,8 @@ function getFileTypeLinkText(url) {
  * Matches the exact styling of the chat interface
  */
 export function ProgramMessagePreview({ elements, programDay, onClose, isMobile = false }) {
+  const t = useTranslation();
+  
   // Safety check
   if (!programDay) {
     return null;
@@ -138,10 +141,10 @@ export function ProgramMessagePreview({ elements, programDay, onClose, isMobile 
         if (elementData?.url || elementData?.fileUrl) {
           const url = elementData.url || elementData.fileUrl;
           const linkText = getFileTypeLinkText(url);
-          let description = `\n📄 You can find the detailed guide in the library. [${linkText}](${url})`;
-          if (elementData?.description) {
-            description = elementData.description + description;
-          }
+          // Use description if exists, otherwise use default translatable text
+          const defaultText = t('programs.findDetailedGuideInLibrary', 'You can find the detailed guide in the library.');
+          const guideText = elementData?.description || defaultText;
+          let description = `\n📄 ${guideText} [${linkText}](${url})`;
           parts.push(description);
         } else {
           let description = `\n📄 ${fileTitle}`;

@@ -12,8 +12,10 @@ import { Eye, Download, Trash2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/ui/dropdown-menu';
 import { EmojiButton } from '@/app/components/EmojiButton';
+import { useTranslation } from '@/app/context/LanguageContext';
 
 export function EditElementDialog({ element, open, onOpenChange, onSave, onDelete }) {
+  const t = useTranslation();
   const [formData, setFormData] = useState({});
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
   const [loadingResource, setLoadingResource] = useState(false);
@@ -145,6 +147,12 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
         elementData = {};
       }
       
+      // For content elements, if description is empty, set default translatable text
+      if ((element.type === 'content' || element.type === 'file') && !elementData.description) {
+        const defaultText = t('programs.findDetailedGuideInLibrary', 'You can find the detailed guide in the library.');
+        elementData.description = defaultText;
+      }
+      
       setFormData({
         ...element,
         data: { ...elementData } // Create a fresh copy to avoid reference issues
@@ -153,7 +161,7 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
       // Reset formData when element is null
       setFormData({});
     }
-  }, [element?.id, open]); // Use element.id to ensure proper change detection
+  }, [element?.id, open, t]); // Use element.id to ensure proper change detection
 
   const handleSave = () => {
     if (!formData.id || !formData.type || !formData.scheduledDay) {
@@ -457,7 +465,7 @@ export function EditElementDialog({ element, open, onOpenChange, onSave, onDelet
                         <Textarea
                           id="contentDescription"
                           ref={contentDescriptionRef}
-                          value={formData.data?.description || ''}
+                          value={formData.data?.description || (formData.type === 'content' || formData.type === 'file' ? t('programs.findDetailedGuideInLibrary', 'You can find the detailed guide in the library.') : '')}
                           onChange={(e) => setFormData(prev => ({
                             ...prev,
                             data: { ...(prev.data), description: e.target.value }

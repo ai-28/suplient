@@ -6,6 +6,20 @@ import { savePDF } from '@/app/lib/db/resourceRepo';
 import { s3Client, getCdnUrl } from '@/app/lib/s3Client';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { jsPDF } from 'jspdf';
+import enTranslations from '@/app/lib/translations/en.json';
+import daTranslations from '@/app/lib/translations/da.json';
+
+// Translation helper function
+function getTranslation(language, key, defaultValue) {
+  const translations = language === 'da' ? daTranslations : enTranslations;
+  const keys = key.split('.');
+  let value = translations;
+  for (const k of keys) {
+    value = value?.[k];
+    if (value === undefined) break;
+  }
+  return value !== undefined ? value : defaultValue;
+}
 
 // Helper function to generate PDF using jsPDF
 async function generatePDF(title, content, coachId) {
@@ -127,6 +141,9 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    // Get language from formData, default to 'en'
+    const language = formData.language || 'en';
 
     // Step 1: Generate PDFs for documents (parallel)
     const documentResources = [];
@@ -255,7 +272,8 @@ export async function POST(request) {
         // Append PDF reference with clickable link format
         // Using markdown-style link format: [text](url) - URL is hidden, only text is shown and clickable
         const linkText = getFileTypeLinkText(pdfUrl);
-        const pdfReference = `\n\n📄 You can find the detailed guide in the library. [${linkText}](${pdfUrl})`;
+        const guideText = getTranslation(language, 'programs.findDetailedGuideInLibrary', 'You can find the detailed guide in the library.');
+        const pdfReference = `\n\n📄 ${guideText} [${linkText}](${pdfUrl})`;
         elements.push({
           type: element.type,
           title: element.title,
@@ -297,7 +315,8 @@ export async function POST(request) {
 
           // Create message with clickable PDF link using markdown format
           const linkText = getFileTypeLinkText(pdfUrl);
-          const pdfReference = `📄 Welcome to Week ${week}! You can find the detailed guide in the library. [${linkText}](${pdfUrl})`;
+          const guideText = getTranslation(language, 'programs.findDetailedGuideInLibrary', 'You can find the detailed guide in the library.');
+          const pdfReference = `📄 ${guideText} [${linkText}](${pdfUrl})`;
           elements.push({
             type: 'message',
             title: `Week ${week} Guide Available`,

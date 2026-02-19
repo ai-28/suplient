@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
-import { ChevronLeft, ChevronRight, FileText, CheckSquare, MessageSquare, ClipboardCheck, Plus, Upload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, CheckSquare, MessageSquare, ClipboardCheck, Plus, Upload, Info } from 'lucide-react';
 import { cn } from '@/app/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/app/components/ui/dropdown-menu';
 import { useTranslation } from '@/app/context/LanguageContext';
@@ -117,6 +117,12 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
               <span className="break-words">{t('programs.weeks', 'Weeks')} {currentWeekStart}-{currentWeekEnd} {t('common.of', 'of')} {duration}</span>
               <span className={isMobile ? 'block' : ''}> • {currentViewElements} {t('common.of', 'of')} {totalElements} {t('programs.elements', 'elements')}</span>
             </CardDescription>
+            <div className={`flex items-start gap-1.5 mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground bg-muted/50 rounded-md p-2`}>
+              <Info className={`${isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} flex-shrink-0 mt-0.5`} />
+              <span className="break-words">
+                {t('programs.firstMessageInfo', 'The first message is automatically sent to the client immediately upon enrollment and program start.')}
+              </span>
+            </div>
           </div>
           {duration > 4 && (
             <div className={`flex items-center ${isMobile ? 'gap-1 w-full' : 'gap-2'}`}>

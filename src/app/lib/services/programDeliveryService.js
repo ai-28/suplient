@@ -1,6 +1,20 @@
 import { sql } from '@/app/lib/db/postgresql';
 import { chatRepo } from '@/app/lib/db/chatSchema';
 import { taskRepo } from '@/app/lib/db/taskRepo';
+import enTranslations from '@/app/lib/translations/en.json';
+import daTranslations from '@/app/lib/translations/da.json';
+
+// Translation helper function
+function getTranslation(language, key, defaultValue) {
+    const translations = language === 'da' ? daTranslations : enTranslations;
+    const keys = key.split('.');
+    let value = translations;
+    for (const k of keys) {
+        value = value?.[k];
+        if (value === undefined) break;
+    }
+    return value !== undefined ? value : defaultValue;
+}
 
 /**
  * Calculate program day from start date (date-based, not time-based)
@@ -235,14 +249,14 @@ export function formatCombinedMessage(elements, programDay, clientName = '', rep
             if (file.elementData?.url || file.elementData?.fileUrl) {
                 const url = file.elementData.url || file.elementData.fileUrl;
                 const linkText = getFileTypeLinkText(url);
-                let description = `\n📄 You can find the detailed guide in the library. [${linkText}](${url})`;
-                if (file.elementData?.description) {
-                    let descText = file.elementData.description;
-                    if (replacePlaceholders) {
-                        descText = replaceNamePlaceholders(descText, clientName);
-                    }
-                    description = descText + description;
+                // Use description if exists, otherwise use default translatable text
+                const defaultText = getTranslation(language, 'programs.findDetailedGuideInLibrary', 'You can find the detailed guide in the library.');
+                const guideText = file.elementData?.description || defaultText;
+                let descText = guideText;
+                if (replacePlaceholders) {
+                    descText = replaceNamePlaceholders(descText, clientName);
                 }
+                let description = `\n📄 ${descText} [${linkText}](${url})`;
                 parts.push(description);
             } else {
                 let description = `\n📄 ${fileTitle}`;
@@ -315,14 +329,20 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
         const enrollment = enrollmentResult[0];
         const clientName = enrollment.clientName || '';
 
-        // 2. Get elements for this program day
+        // 2. Get platform language
+        const [platformSettings] = await sql`
+            SELECT language FROM "PlatformSettings" LIMIT 1
+        `;
+        const language = platformSettings?.language || 'en';
+
+        // 3. Get elements for this program day
         const elements = await getElementsForProgramDay(enrollment.programTemplateId, programDay);
 
         if (elements.length === 0) {
             return { delivered: false, reason: 'No elements for this day' };
         }
 
-        // 3. Check if already delivered
+        // 4. Check if already delivered
         const elementIds = elements.map(e => e.id);
         const deliveredIds = await checkElementsDelivered(enrollmentId, elementIds, programDay, deliveryDate);
         const undeliveredElements = elements.filter(e => !deliveredIds.includes(e.id));
@@ -331,7 +351,7 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
             return { delivered: false, reason: 'Already delivered' };
         }
 
-        // 4. Get client's userId from clientId
+        // 5. Get client's userId from clientId
         const clientUser = await sql`
       SELECT "userId" FROM "Client" WHERE id = ${enrollment.clientId}
     `;
@@ -342,16 +362,16 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
 
         const clientUserId = clientUser[0].userId;
 
-        // 5. Get or create client's conversation with coach
+        // 6. Get or create client's conversation with coach
         const conversationId = await chatRepo.createPersonalConversation(
             enrollment.coachId,
             clientUserId
         );
 
-        // 6. Format combined message with client name
-        const messageContent = formatCombinedMessage(undeliveredElements, programDay, clientName);
+        // 7. Format combined message with client name and language
+        const messageContent = formatCombinedMessage(undeliveredElements, programDay, clientName, true, language);
 
-        // 7. Send message via chat system
+        // 8. Send message via chat system
         const message = await chatRepo.sendMessage(
             conversationId,
             enrollment.coachId,
@@ -359,7 +379,7 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
             'text'
         );
 
-        // 8. Create tasks if needed
+        // 9. Create tasks if needed
         const tasks = undeliveredElements.filter(e => e.type === 'task');
         for (const taskElement of tasks) {
             try {
@@ -370,7 +390,7 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
             }
         }
 
-        // 9. Record delivery for all elements
+        // 10. Record delivery for all elements
         const deliveryDateStr = deliveryDate.toISOString().split('T')[0];
         for (const element of undeliveredElements) {
             await sql`
