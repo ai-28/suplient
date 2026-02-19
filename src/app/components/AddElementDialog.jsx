@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
@@ -14,6 +14,8 @@ import { Checkbox } from "@/app/components/ui/checkbox";
 import { Upload, CheckSquare, MessageSquare, FileText, Image, Video, Music, ChevronDown } from "lucide-react";
 import { FileExplorer } from "@/app/components/FileExplorer";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
+import { EmojiButton } from "@/app/components/EmojiButton";
+import { useRef } from "react";
 
 export function AddElementDialog({
   open,
@@ -55,9 +57,31 @@ export function AddElementDialog({
   
   // Message state
   const [messageText, setMessageText] = useState('');
+  const messageTextareaRef = useRef(null);
   
   // Content state
   const [contentDescription, setContentDescription] = useState('');
+  const contentDescriptionRef = useRef(null);
+  const taskDescriptionRef = useRef(null);
+  
+  // Emoji handlers
+  const handleEmojiSelect = (emoji, textareaRef, setter) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart || 0;
+      const end = textarea.selectionEnd || 0;
+      const currentValue = textarea.value || '';
+      const newValue = currentValue.slice(0, start) + emoji + currentValue.slice(end);
+      setter(newValue);
+      // Set cursor position after emoji
+      setTimeout(() => {
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+        textarea.focus();
+      }, 0);
+    } else {
+      setter(prev => prev + emoji);
+    }
+  };
   
   // Helper function to add greeting to content
   const addGreetingToContent = (content, greetingType) => {
@@ -412,29 +436,39 @@ export function AddElementDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="contentDescription">{t('common.labels.description', 'Description')}</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="outline" size="sm" className="h-8">
-                      Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
-                      First Name
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
-                      Full Name
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-2">
+                  <EmojiButton 
+                    onEmojiSelect={(emoji) => handleEmojiSelect(emoji, contentDescriptionRef, setContentDescription)}
+                    className="h-8 w-8"
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" className="h-8">
+                        Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
+                        First Name
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
+                        Full Name
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-              <Textarea
-                id="contentDescription"
-                value={contentDescription}
-                onChange={(e) => setContentDescription(e.target.value)}
-                placeholder={t('programs.enterDescription', 'Enter description (optional)...')}
-                rows={3}
-              />
+              <div className="relative">
+                <Textarea
+                  id="contentDescription"
+                  ref={contentDescriptionRef}
+                  value={contentDescription}
+                  onChange={(e) => setContentDescription(e.target.value)}
+                  placeholder={t('programs.enterDescription', 'Enter description (optional)...')}
+                  rows={3}
+                  className="pr-10"
+                />
+              </div>
             </div>
           </div>
         );
@@ -455,29 +489,39 @@ export function AddElementDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="taskDescription">{t('common.labels.description', 'Description')}</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="outline" size="sm" className="h-8">
-                      Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
-                      First Name
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
-                      Full Name
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-2">
+                  <EmojiButton 
+                    onEmojiSelect={(emoji) => handleEmojiSelect(emoji, taskDescriptionRef, setTaskDescription)}
+                    className="h-8 w-8"
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" className="h-8">
+                        Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
+                        First Name
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
+                        Full Name
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-              <Textarea
-                id="taskDescription"
-                value={taskDescription}
-                onChange={(e) => setTaskDescription(e.target.value)}
-                placeholder={t('tasks.describeWhatNeedsToBeDone', 'Describe what needs to be done...')}
-                rows={4}
-              />
+              <div className="relative">
+                <Textarea
+                  id="taskDescription"
+                  ref={taskDescriptionRef}
+                  value={taskDescription}
+                  onChange={(e) => setTaskDescription(e.target.value)}
+                  placeholder={t('tasks.describeWhatNeedsToBeDone', 'Describe what needs to be done...')}
+                  rows={4}
+                  className="pr-10"
+                />
+              </div>
             </div>
           </div>
         );
@@ -488,29 +532,39 @@ export function AddElementDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="messageText">{t('common.labels.message', 'Message')}</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="outline" size="sm" className="h-8">
-                      Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
-                      First Name
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
-                      Full Name
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-2">
+                  <EmojiButton 
+                    onEmojiSelect={(emoji) => handleEmojiSelect(emoji, messageTextareaRef, setMessageText)}
+                    className="h-8 w-8"
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" className="h-8">
+                        Add Greeting <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleGreetingSelect('firstName')}>
+                        First Name
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleGreetingSelect('fullName')}>
+                        Full Name
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-              <Textarea
-                id="messageText"
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                placeholder={t('programs.enterMessageToClient', 'Enter the message to send to the client...')}
-                rows={4}
-              />
+              <div className="relative">
+                <Textarea
+                  id="messageText"
+                  ref={messageTextareaRef}
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder={t('programs.enterMessageToClient', 'Enter the message to send to the client...')}
+                  rows={4}
+                  className="pr-10"
+                />
+              </div>
             </div>
           </div>
         );
