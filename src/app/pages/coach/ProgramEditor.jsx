@@ -17,6 +17,16 @@ import { useTranslation } from "@/app/context/LanguageContext";
 import { toast } from "sonner";
 import { cn } from "@/app/lib/utils";
 import { MobileDeviceEmulator } from "react-mobile-emulator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
 
 // Responsive wrapper component that calculates scale based on container width
 function ResponsiveMobileEmulator({ children }) {
@@ -159,11 +169,13 @@ export default function ProgramEditor() {
       setProgram(data.program);
       setIsProgram(isProgram);
       
-      setFormData({
+      const initialFormData = {
         name: data.program.name || "",
         description: data.program.description || "",
         duration: data.program.duration || 4
-      });
+      };
+      setFormData(initialFormData);
+      initialFormDataRef.current = JSON.stringify(initialFormData);
       
       // Transform elements to ProgramFlowChart expected format
       const transformedElements = (data.program.elements || []).map(element => {
@@ -198,6 +210,7 @@ export default function ProgramEditor() {
       console.log("transformedElements", transformedElements);
       
       setElements(transformedElements);
+      initialElementsRef.current = JSON.stringify(transformedElements);
     } catch (err) {
       console.error('Error fetching program:', err);
       setError(err.message);
@@ -210,6 +223,48 @@ export default function ProgramEditor() {
       fetchProgram();
     }
   }, [id]);
+
+  // Detect unsaved changes
+  useEffect(() => {
+    if (!initialFormDataRef.current || !initialElementsRef.current) {
+      setHasUnsavedChanges(false);
+      return;
+    }
+
+    const currentFormData = JSON.stringify(formData);
+    const currentElements = JSON.stringify(elements);
+    
+    const formDataChanged = currentFormData !== initialFormDataRef.current;
+    const elementsChanged = currentElements !== initialElementsRef.current;
+    
+    setHasUnsavedChanges(formDataChanged || elementsChanged);
+  }, [formData, elements]);
+
+  // Handle browser navigation (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = ''; // Chrome requires returnValue to be set
+        return ''; // Some browsers require a return value
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+  // Helper function to handle navigation with unsaved changes check
+  const handleNavigation = (url) => {
+    if (hasUnsavedChanges) {
+      setPendingNavigation(url);
+      setShowUnsavedDialog(true);
+    } else {
+      router.push(url);
+    }
+  };
 
   // Refresh preview when elements change and a day is selected
   useEffect(() => {
@@ -417,7 +472,17 @@ export default function ProgramEditor() {
       }
 
       toast.success(isProgram ? 'Program updated successfully!' : 'Program template updated successfully!');
-      router.push('/coach/programs');
+      // Update initial state after successful save
+      initialFormDataRef.current = JSON.stringify(formData);
+      initialElementsRef.current = JSON.stringify(elements);
+      setHasUnsavedChanges(false);
+      // If there was a pending navigation, use it; otherwise go to programs list
+      if (pendingNavigation) {
+        router.push(pendingNavigation);
+        setPendingNavigation(null);
+      } else {
+        router.push('/coach/programs');
+      }
     } catch (error) {
       console.error('Failed to update program:', error);
       toast.error(error.message || 'Failed to update program');
@@ -431,7 +496,7 @@ export default function ProgramEditor() {
       {/* Header */}
       <div className={`flex items-center ${isMobile ? 'flex-col gap-3' : 'justify-between'}`}>
         <div className={`flex items-center ${isMobile ? 'w-full justify-between' : 'gap-4'}`}>
-          <Button variant="ghost" size={isMobile ? "sm" : "sm"} onClick={() => router.push('/coach/programs')} className={isMobile ? 'text-xs px-2 h-8' : ''}>
+          <Button variant="ghost" size={isMobile ? "sm" : "sm"} onClick={() => handleNavigation('/coach/programs')} className={isMobile ? 'text-xs px-2 h-8' : ''}>
             <ArrowLeft className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
             {!isMobile && t('common.buttons.back', 'Back')}
           </Button>
@@ -589,6 +654,49 @@ export default function ProgramEditor() {
         onSave={handleUpdateElement}
         onDelete={handleDeleteElement}
       />
+
+      {/* Unsaved Changes Confirmation Dialog */}
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('programs.unsavedChanges', 'Unsaved Changes')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('programs.unsavedChangesWarning', 'You have unsaved changes. Please save your template before leaving this page. Do you want to save now?')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowUnsavedDialog(false);
+              setPendingNavigation(null);
+            }}>
+              {t('common.buttons.cancel', 'Cancel')}
+            </AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setShowUnsavedDialog(false);
+                await handleSave();
+                if (pendingNavigation) {
+                  router.push(pendingNavigation);
+                  setPendingNavigation(null);
+                }
+              }}
+            >
+              {t('programs.saveAndLeave', 'Save & Leave')}
+            </Button>
+            <AlertDialogAction onClick={() => {
+              setHasUnsavedChanges(false);
+              setShowUnsavedDialog(false);
+              if (pendingNavigation) {
+                router.push(pendingNavigation);
+                setPendingNavigation(null);
+              }
+            }}>
+              {t('programs.leaveWithoutSaving', 'Leave Without Saving')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
