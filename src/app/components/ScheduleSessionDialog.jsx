@@ -163,7 +163,7 @@ export function ScheduleSessionDialog({
     fetchGoogleCalendarEvents();
   }, [date]);
 
-  // Recompute available times whenever date, duration or session list changes
+  // Recompute available times whenever date or session list changes
   useEffect(() => {
     const computeAvailable = () => {
       if (!date) { setAvailableTimes([]); return; }
@@ -754,7 +754,7 @@ export function ScheduleSessionDialog({
                 sessionTitle: sessionData.title,
                 sessionDate: sessionData.sessionDate,
                 sessionTime: sessionData.sessionTime,
-                meetingLink: formData.meetingType !== 'none' ? 'Check your calendar for meeting link' : null
+                meetingLink: selectedMeetingType !== 'none' ? 'Check your calendar for meeting link' : null
               },
               priority: 'high'
             }),
@@ -794,7 +794,7 @@ export function ScheduleSessionDialog({
                     sessionDate: sessionData.sessionDate,
                     sessionTime: sessionData.sessionTime,
                     groupName: selectedGroup?.name,
-                    meetingLink: formData.meetingType !== 'none' ? 'Check your calendar for meeting link' : null
+                    meetingLink: selectedMeetingType !== 'none' ? 'Check your calendar for meeting link' : null
                   },
                   priority: 'high'
                 }),
