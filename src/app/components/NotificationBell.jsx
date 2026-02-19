@@ -415,18 +415,6 @@ export function NotificationBell({ userRole = 'client' }) {
                 Notifications {filteredUnreadCount > 0 && `(${filteredUnreadCount} unread)`}
               </CardTitle>
               <div className="flex items-center gap-2">
-                {pushSupported && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={pushSubscribed ? unsubscribeFromPush : subscribeToPush}
-                    disabled={pushLoading || !subscribeToPush}
-                    className="text-xs"
-                    title={pushSubscribed ? 'Disable push notifications' : 'Enable push notifications'}
-                  >
-                    {pushSubscribed ? '🔔' : '🔕'}
-                  </Button>
-                )}
                 {filteredNotifications.length > 0 && (
                   <Button 
                     variant="ghost" 

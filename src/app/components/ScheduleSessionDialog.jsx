@@ -61,7 +61,6 @@ export function ScheduleSessionDialog({
   const [formData, setFormData] = useState({
     title: "",
     time: "",
-    duration: "60",
     sessionType: "",
     meetingType: "none",
   });
@@ -276,7 +275,7 @@ export function ScheduleSessionDialog({
           return calendarOverlap;
         };
 
-        const dur = parseInt(formData.duration || '60', 10);
+        const dur = 60; // Fixed duration of 60 minutes
         const slots = timeSlots.filter(t => {
           const start = toMinutes(t);
           return !overlaps(start, dur);
@@ -294,7 +293,7 @@ export function ScheduleSessionDialog({
 
     computeAvailable();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, formData.duration, coachSessions, googleCalendarEvents, selectedTimezone]);
+  }, [date, coachSessions, googleCalendarEvents, selectedTimezone]);
 
   // Fetch group members when group is selected
   const fetchGroupMembers = async (groupId) => {
@@ -532,7 +531,7 @@ export function ScheduleSessionDialog({
         sessionDate: date.toISOString().split('T')[0], // YYYY-MM-DD format
         sessionTime: formData.time,
         timeZone: selectedTimezone || 'UTC',
-        duration: parseInt(formData.duration),
+        duration: 60, // Fixed duration of 60 minutes
         sessionType: formData.sessionType,
         clientId: formData.sessionType === 'individual' ? selectedClient.id : null,
         groupId: formData.sessionType === 'group' ? selectedGroup.id : null,
@@ -818,7 +817,6 @@ export function ScheduleSessionDialog({
       setFormData({
         title: "",
         time: "",
-        duration: "60",
         sessionType: "",
         meetingType: "none",
       });
@@ -1063,34 +1061,13 @@ export function ScheduleSessionDialog({
               </div>
             </div>
 
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
-              <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                <Label htmlFor="duration" className={`flex items-center gap-2 ${isMobile ? 'text-xs' : ''}`}>
-                  <Clock className={isMobile ? 'h-3 w-3' : 'h-4 w-4'} />
-                  {t('sessions.durationMinutes', 'Duration (minutes)')}
-                </Label>
-                <Select
-                  onValueChange={(value) => handleInputChange("duration", value)}
-                  value={formData.duration}
-                >
-                  <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="60">60 {t('sessions.minutes', 'minutes')}</SelectItem>
-                    <SelectItem value="90">90 {t('sessions.minutes', 'minutes')}</SelectItem>
-                    <SelectItem value="120">120 {t('sessions.minutes', 'minutes')}</SelectItem>
-                    <SelectItem value="150">150 {t('sessions.minutes', 'minutes')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-1 gap-4'}`}>
               <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
                 <Label htmlFor="timezone" className={isMobile ? 'text-xs' : ''}>{t('sessions.timezone', 'Timezone')}</Label>
                 <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
                   <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue>
-                      {timezones.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone} ({getTimezoneOffset(selectedTimezone)})
+                      {timezones.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
@@ -1102,7 +1079,7 @@ export function ScheduleSessionDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t('sessions.timesShownIn', 'Times shown in')} {getTimezoneOffset(selectedTimezone)}
+                  {t('sessions.timesShownIn', 'Times shown in')} {timezones.find(tz => tz.value === selectedTimezone)?.label?.split('(')[0]?.trim() || selectedTimezone}
                 </p>
               </div>
             </div>
