@@ -1112,14 +1112,14 @@ export default function ClientProfile() {
     try {
       if (enabled) {
         await subscribeToWebPush();
-        toast.success(t('client.settings.notifications.webPushEnabled', 'Web push notifications enabled'));
+        // Toast is already shown by the hook
       } else {
         await unsubscribeFromWebPush();
-        toast.success(t('client.settings.notifications.webPushDisabled', 'Web push notifications disabled'));
+        // Toast is already shown by the hook
       }
     } catch (error) {
       console.error('Error toggling web push notifications:', error);
-      toast.error(t('client.settings.notifications.webPushToggleFailed', 'Failed to toggle web push notifications'));
+      // Error toast is already shown by the hook
     }
   };
 
