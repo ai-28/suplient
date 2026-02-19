@@ -580,9 +580,11 @@ export function ScheduleSessionDialog({
 
       const result = await response.json();
 
+      // Get the meeting type from sessionData (which uses default from Settings)
+      const selectedMeetingType = sessionData.meetingType;
       
       // If meeting type is selected, create external meeting
-      if (formData.meetingType !== 'none') {
+      if (selectedMeetingType !== 'none') {
         
         try {
           // Add client email to attendees if it's an individual session
@@ -605,9 +607,6 @@ export function ScheduleSessionDialog({
           }
           
           let integrationResult;
-          
-          // Get the meeting type from sessionData (which uses default from Settings)
-          const selectedMeetingType = sessionData.meetingType;
           
           // For all meeting types, use the original logic
           const platformForAPI = selectedMeetingType === 'google_meet' ? 'google_calendar' : selectedMeetingType;
@@ -668,7 +667,7 @@ export function ScheduleSessionDialog({
           }
           
           // Show success message with meeting details
-          if (formData.meetingType === 'zoom' && integrationResult.results?.zoom?.meetingLink) {
+          if (selectedMeetingType === 'zoom' && integrationResult.results?.zoom?.meetingLink) {
             const clientMessage = formData.sessionType === 'individual' && selectedClient ? 
               `Client ${selectedClient.name} will receive calendar invitation with Zoom meeting link and notification.` : 
               formData.sessionType === 'group' && fetchedGroupMembers.length > 0 ?
@@ -679,8 +678,8 @@ export function ScheduleSessionDialog({
               description: `${clientMessage} Zoom link: ${integrationResult.results.zoom.meetingLink}`,
               duration: 8000,
             });
-          } else if (integrationResult.results && integrationResult.results[formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType]) {
-            const platformForAPI = formData.meetingType === 'google_meet' ? 'google_calendar' : formData.meetingType;
+          } else if (integrationResult.results && integrationResult.results[selectedMeetingType === 'google_meet' ? 'google_calendar' : selectedMeetingType]) {
+            const platformForAPI = selectedMeetingType === 'google_meet' ? 'google_calendar' : selectedMeetingType;
             const meetingResult = integrationResult.results[platformForAPI];
             if (meetingResult.meetingLink) {
               const clientMessage = formData.sessionType === 'individual' && selectedClient ? 
