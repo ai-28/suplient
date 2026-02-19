@@ -1404,6 +1404,8 @@
         "unsavedChangesWarning": "Du har ugemte ændringer. Gem venligst din skabelon før du forlader denne side. Vil du gemme nu?",
         "saveAndLeave": "Gem & Forlad",
         "leaveWithoutSaving": "Forlad Uden at Gemme",
+        "elementMoved": "Element flyttet til Dag {day}",
+        "dragToMove": "Træk for at flytte",
         "closeWithoutSaving": "Luk Uden at Gemme",
         "saveDraftAndClose": "Gem Kladde & Luk",
         "deleteDraft": "Slet Kladde?",

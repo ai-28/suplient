@@ -24,11 +24,13 @@ const ELEMENT_ICONS = {
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export function ProgramFlowChart({ elements, duration, highlightedElementId, onElementClick, onAddElementToDay, onDayClick, selectedDay, forceCloseDropdowns = false }) {
+export function ProgramFlowChart({ elements, duration, highlightedElementId, onElementClick, onAddElementToDay, onDayClick, selectedDay, forceCloseDropdowns = false, onElementMove }) {
   const t = useTranslation();
   const [currentWeekStart, setCurrentWeekStart] = useState(1);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [draggedElement, setDraggedElement] = useState(null);
+  const [dragOverDay, setDragOverDay] = useState(null);
   console.log("elements", elements)
 
   // Define ELEMENT_TYPES with translations
@@ -192,6 +194,31 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                   <div
                     key={day}
                     onClick={() => onDayClick && onDayClick(day)}
+                    onDragOver={(e) => {
+                      if (draggedElement && onElementMove) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOverDay(day);
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      // Only clear if we're leaving the day cell itself, not a child
+                      if (!e.currentTarget.contains(e.relatedTarget)) {
+                        setDragOverDay(null);
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (draggedElement && onElementMove) {
+                        // Calculate new week and day-of-week from absolute day
+                        const newWeek = Math.ceil(day / 7);
+                        const newDayOfWeek = ((day - 1) % 7) + 1;
+                        onElementMove(draggedElement, day, newWeek, newDayOfWeek);
+                        setDraggedElement(null);
+                        setDragOverDay(null);
+                      }
+                    }}
                     className={cn(
                       `${isMobile ? 'min-h-[100px] p-1.5' : 'min-h-[80px] p-2'} border rounded-lg bg-card relative group transition-all`,
                       isSelected 
@@ -199,7 +226,8 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                         : dayElements.length > 0 
                           ? "border-primary/20 bg-primary/5 hover:border-primary/40 hover:bg-primary/10 cursor-pointer" 
                           : "border-dashed hover:border-primary/40 hover:bg-primary/10 cursor-pointer",
-                      onDayClick && "cursor-pointer"
+                      onDayClick && "cursor-pointer",
+                      dragOverDay === day && draggedElement && "ring-2 ring-primary border-primary bg-primary/20"
                     )}
                   >
                     {/* Day Header */}
@@ -259,14 +287,33 @@ export function ProgramFlowChart({ elements, duration, highlightedElementId, onE
                         return (
                           <div
                             key={element.id}
+                            draggable={!!onElementMove}
+                            onDragStart={(e) => {
+                              if (onElementMove) {
+                                setDraggedElement(element);
+                                e.dataTransfer.effectAllowed = 'move';
+                                // Set a custom drag image or use default
+                                e.dataTransfer.setData('text/plain', element.id);
+                              }
+                            }}
+                            onDragEnd={() => {
+                              setDraggedElement(null);
+                              setDragOverDay(null);
+                            }}
                             className={cn(
                               `${isMobile ? 'text-[10px] p-1' : 'text-xs p-1.5'} rounded cursor-pointer transition-all hover:scale-105 hover:shadow-sm relative`,
                               ELEMENT_COLORS[element.type],
                               "text-white",
-                              highlightedElementId === element.id ? 'ring-2 ring-yellow-400 animate-pulse scale-110' : ''
+                              highlightedElementId === element.id ? 'ring-2 ring-yellow-400 animate-pulse scale-110' : '',
+                              draggedElement?.id === element.id ? 'opacity-50 cursor-grabbing' : onElementMove ? 'cursor-grab' : ''
                             )}
-                            onClick={() => onElementClick?.(element)}
-                            title={`${element.title || ELEMENT_TYPES[element.type]}${isCoachTask ? ` (${t('programs.coachTask', 'Coach Task')})` : ''}`}
+                            onClick={(e) => {
+                              // Don't trigger click if we're dragging
+                              if (!draggedElement) {
+                                onElementClick?.(element);
+                              }
+                            }}
+                            title={`${element.title || ELEMENT_TYPES[element.type]}${isCoachTask ? ` (${t('programs.coachTask', 'Coach Task')})` : ''}${onElementMove ? ` - ${t('programs.dragToMove', 'Drag to move')}` : ''}`}
                           >
                             <div className="flex items-center gap-1">
                               <Icon className={isMobile ? 'w-2.5 h-2.5 flex-shrink-0' : 'w-3 h-3 flex-shrink-0'} />

@@ -1324,6 +1324,8 @@
         "unsavedChangesWarning": "You have unsaved changes. Please save your template before leaving this page. Do you want to save now?",
         "saveAndLeave": "Save & Leave",
         "leaveWithoutSaving": "Leave Without Saving",
+        "elementMoved": "Element moved to Day {day}",
+        "dragToMove": "Drag to move",
         "closeWithoutSaving": "Close Without Saving",
         "saveDraftAndClose": "Save Draft & Close",
         "deleteDraft": "Delete Draft?",

@@ -494,6 +494,22 @@ export default function ProgramEditor() {
     toast.success('Element deleted. Click Save to apply changes.');
   };
 
+  const handleElementMove = (element, newScheduledDay, newWeek, newDayOfWeek) => {
+    setElements(prev => prev.map(el => {
+      if (el.id === element.id) {
+        return {
+          ...el,
+          scheduledDay: newScheduledDay,
+          week: newWeek,
+          day: newDayOfWeek
+        };
+      }
+      return el;
+    }));
+    const message = t('programs.elementMoved', 'Element moved to Day {day}').replace('{day}', newScheduledDay);
+    toast.success(message);
+  };
+
   // Handle day click to show preview
   const handleDayClick = (day) => {
     setSelectedDay(day);
@@ -677,6 +693,7 @@ export default function ProgramEditor() {
             onAddElementToDay={handleAddElementToDay}
             onDayClick={handleDayClick}
             selectedDay={selectedDay}
+            onElementMove={handleElementMove}
           />
         </div>
 
