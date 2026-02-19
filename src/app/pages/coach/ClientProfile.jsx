@@ -940,6 +940,11 @@ export default function ClientProfile() {
     setClientTasks(prev => [newTask, ...prev]);
   };
 
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setTaskDetailModalOpen(true);
+  };
+
   const handleTaskToggle = async (taskId) => {
     try {
       // Find the current task to get its current status
