@@ -194,18 +194,13 @@ export function useWebPushNotifications() {
             // Get VAPID public key
             const response = await fetch('/api/push/vapid-public-key');
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Failed to get VAPID public key');
+                throw new Error('Failed to get VAPID public key');
             }
 
-            const data = await response.json();
-            const publicKey = data?.publicKey;
+            const { publicKey } = await response.json();
             if (!publicKey) {
-                console.error('[Web Push] VAPID public key response:', data);
-                throw new Error('VAPID public key not available in response');
+                throw new Error('VAPID public key not available');
             }
-
-            console.log('[Web Push] VAPID public key retrieved:', publicKey.substring(0, 20) + '...');
 
             // Check document state again before accessing service worker
             if (document.readyState === 'unloading' || document.readyState === 'closed') {
@@ -224,31 +219,11 @@ export function useWebPushNotifications() {
                 // Still send to server to update
             }
 
-            // Convert public key to Uint8Array
-            let applicationServerKey;
-            try {
-                applicationServerKey = urlBase64ToUint8Array(publicKey);
-                console.log('[Web Push] Converted public key to Uint8Array, length:', applicationServerKey.length);
-            } catch (keyError) {
-                console.error('[Web Push] Error converting public key:', keyError);
-                throw new Error('Invalid VAPID public key format');
-            }
-
             // Subscribe to push
-            let subscription;
-            try {
-                subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: applicationServerKey
-                });
-            } catch (subscribeError) {
-                console.error('[Web Push] Error during pushManager.subscribe:', subscribeError);
-                // Provide more helpful error message
-                if (subscribeError.message?.includes('public key')) {
-                    throw new Error('Failed to subscribe: Invalid public key format. Please check VAPID key configuration.');
-                }
-                throw subscribeError;
-            }
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey)
+            });
 
             console.log('[Web Push] Push subscription created:', {
                 endpoint: subscription.endpoint.substring(0, 50) + '...',

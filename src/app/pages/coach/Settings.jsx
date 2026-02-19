@@ -50,9 +50,6 @@ import { useTranslation } from "@/app/context/LanguageContext";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { GoalHabitTemplateManager } from "@/app/components/GoalHabitTemplateManager";
 import { pickAvatarImage, convertHeicToJpeg, validateImageFile } from "@/lib/photoPicker";
-import { useWebPushNotifications } from "@/app/hooks/useWebPushNotifications";
-import { useNativePushNotifications } from "@/app/hooks/useNativePushNotifications";
-import { isNative } from "@/lib/capacitor";
 
 export default function Settings() {
   const { data: session } = useSession();
@@ -77,31 +74,6 @@ export default function Settings() {
     confirmPassword: ''
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
-
-  // Web push notifications (for web platform)
-  const {
-    isSupported: isWebPushSupported,
-    isSubscribed: isWebPushSubscribed,
-    isLoading: isWebPushLoading,
-    subscribe: subscribeToWebPush,
-    unsubscribe: unsubscribeFromWebPush
-  } = useWebPushNotifications();
-
-  // Native push notifications (for iOS/Android apps)
-  const {
-    isSupported: isNativePushSupported,
-    isRegistered: isNativePushRegistered,
-    isLoading: isNativePushLoading,
-    unregister: unregisterNativePush
-  } = useNativePushNotifications();
-
-  // Determine which push system to use
-  const isNativeApp = isNative();
-  const pushSupported = isNativeApp ? isNativePushSupported : isWebPushSupported;
-  const pushSubscribed = isNativeApp ? isNativePushRegistered : isWebPushSubscribed;
-  const pushLoading = isNativeApp ? isNativePushLoading : isWebPushLoading;
-  const subscribeToPush = isNativeApp ? null : subscribeToWebPush; // Native auto-registers
-  const unsubscribeFromPush = isNativeApp ? unregisterNativePush : unsubscribeFromWebPush;
 
   // Integration connection state
   const [integrationConnectionStatus, setIntegrationConnectionStatus] = useState({});
@@ -1852,9 +1824,9 @@ export default function Settings() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>{t('settings.notifications.enable', 'Enable In-App Notifications')}</Label>
+                    <Label>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      {t('settings.notifications.inAppDescription', 'Receive in-app socket notifications for messages, tasks, sessions, and updates')}
+                      {t('settings.notifications.description', 'Receive notifications for messages, tasks, sessions, and updates')}
                     </p>
                   </div>
                   <Switch 
@@ -1862,28 +1834,6 @@ export default function Settings() {
                     onCheckedChange={handleNotificationToggle}
                   />
                 </div>
-                
-                {pushSupported && (
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="space-y-0.5">
-                      <Label>{t('settings.notifications.webPush', 'Web Push Notifications')}</Label>
-                      <p className="text-sm text-muted-foreground">
-                        {t('settings.notifications.webPushDescription', 'Receive browser push notifications even when the app is closed')}
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={pushSubscribed} 
-                      onCheckedChange={(enabled) => {
-                        if (enabled) {
-                          subscribeToPush?.();
-                        } else {
-                          unsubscribeFromPush?.();
-                        }
-                      }}
-                      disabled={pushLoading || !subscribeToPush}
-                    />
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
