@@ -144,6 +144,13 @@ export default function ProgramEditor() {
   const [highlightedElementId, setHighlightedElementId] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   const [previewElements, setPreviewElements] = useState([]);
+  
+  // Track initial state for unsaved changes detection
+  const initialFormDataRef = useRef(null);
+  const initialElementsRef = useRef(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(null);
 
   // Fetch program data
   const fetchProgram = async () => {
