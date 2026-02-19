@@ -92,7 +92,13 @@ export default function Settings() {
   // Integration connection state
   const [integrationConnectionStatus, setIntegrationConnectionStatus] = useState({});
   const [isConnectingIntegration, setIsConnectingIntegration] = useState(false);
-  const [defaultMeetingType, setDefaultMeetingType] = useState('none');
+  const [defaultMeetingType, setDefaultMeetingType] = useState(() => {
+    // Load from localStorage on initial mount
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('defaultMeetingType') || 'none';
+    }
+    return 'none';
+  });
 
   // Check existing integrations
   const checkExistingIntegrations = async () => {
@@ -114,12 +120,39 @@ export default function Settings() {
         
         setIntegrationConnectionStatus(status);
         localStorage.setItem('integrationConnections', JSON.stringify(status));
+        
+        // Load default meeting type from localStorage and validate it's still connected
+        const savedDefault = localStorage.getItem('defaultMeetingType');
+        if (savedDefault && status[savedDefault]?.connected) {
+          setDefaultMeetingType(savedDefault);
+        } else if (!savedDefault || !status[savedDefault]?.connected) {
+          // Auto-select first connected integration if no preference set or saved one is not connected
+          if (status.google_meet?.connected) {
+            const newDefault = 'google_meet';
+            setDefaultMeetingType(newDefault);
+            localStorage.setItem('defaultMeetingType', newDefault);
+          } else if (status.zoom?.connected) {
+            const newDefault = 'zoom';
+            setDefaultMeetingType(newDefault);
+            localStorage.setItem('defaultMeetingType', newDefault);
+          } else if (status.teams?.connected) {
+            const newDefault = 'teams';
+            setDefaultMeetingType(newDefault);
+            localStorage.setItem('defaultMeetingType', newDefault);
+          }
+        }
       } else {
         const cachedConnections = localStorage.getItem('integrationConnections');
         if (cachedConnections) {
           try {
             const cachedStatus = JSON.parse(cachedConnections);
             setIntegrationConnectionStatus(cachedStatus);
+            
+            // Load default meeting type from localStorage and validate it's still connected
+            const savedDefault = localStorage.getItem('defaultMeetingType');
+            if (savedDefault && cachedStatus[savedDefault]?.connected) {
+              setDefaultMeetingType(savedDefault);
+            }
           } catch (e) {
             console.warn('Failed to parse cached connections:', e);
           }

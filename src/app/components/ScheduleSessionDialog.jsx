@@ -1096,11 +1096,12 @@ export function ScheduleSessionDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t('sessions.timesShownIn', 'Times shown in')} {(() => {
+                  {(() => {
                     const tz = timezones.find(tz => tz.value === selectedTimezone);
-                    if (!tz) return selectedTimezone;
+                    if (!tz) return t('sessions.timesShownIn', 'Times shown in') + ' ' + selectedTimezone;
                     const match = tz.label.match(/\(([^)]+)\)/);
-                    return match ? `${match[1]} (${tz.offset})` : tz.label;
+                    const timezoneName = match ? match[1] : tz.label.split('(')[0]?.trim() || tz.label;
+                    return `${t('sessions.timesShownIn', 'Times shown in')} ${timezoneName} (${tz.offset})`;
                   })()}
                 </p>
               </div>
