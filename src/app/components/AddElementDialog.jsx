@@ -15,7 +15,6 @@ import { Upload, CheckSquare, MessageSquare, FileText, Image, Video, Music, Chev
 import { FileExplorer } from "@/app/components/FileExplorer";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
 import { EmojiButton } from "@/app/components/EmojiButton";
-import { useRef } from "react";
 
 export function AddElementDialog({
   open,
