@@ -552,7 +552,7 @@ export function ScheduleSessionDialog({
           if (connectionStatus.teams?.connected) return 'teams';
           return 'none';
         })(),
-        integrationSettings: {}
+        integrationSettings: {} // Defaults to 24-hour email reminder (popup reminder at 10 minutes is always sent by Google Calendar)
       };
 
       // Create session via API
@@ -1074,19 +1074,34 @@ export function ScheduleSessionDialog({
                 <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
                   <SelectTrigger className={isMobile ? 'text-xs h-8' : ''}>
                     <SelectValue>
-                      {timezones.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone}
+                      {(() => {
+                        const tz = timezones.find(tz => tz.value === selectedTimezone);
+                        if (!tz) return selectedTimezone;
+                        // Extract timezone name (part after offset, before closing paren)
+                        const match = tz.label.match(/\(([^)]+)\)/);
+                        return match ? match[1] : tz.label.split('(')[0]?.trim() || tz.label;
+                      })()}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     {timezones.map(tz => (
                       <SelectItem key={tz.value} value={tz.value}>
-                        {tz.label} ({tz.offset})
+                        {(() => {
+                          // Extract timezone name (part after offset)
+                          const match = tz.label.match(/\(([^)]+)\)/);
+                          return match ? `${match[1]} (${tz.offset})` : `${tz.label} (${tz.offset})`;
+                        })()}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t('sessions.timesShownIn', 'Times shown in')} {timezones.find(tz => tz.value === selectedTimezone)?.label?.split('(')[0]?.trim() || selectedTimezone}
+                  {t('sessions.timesShownIn', 'Times shown in')} {(() => {
+                    const tz = timezones.find(tz => tz.value === selectedTimezone);
+                    if (!tz) return selectedTimezone;
+                    const match = tz.label.match(/\(([^)]+)\)/);
+                    return match ? `${match[1]} (${tz.offset})` : tz.label;
+                  })()}
                 </p>
               </div>
             </div>
