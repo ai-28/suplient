@@ -229,6 +229,25 @@ export function ScheduleSessionDialog({
         const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const currentDayName = dayNames[dayOfWeek];
 
+        // Parse working hours if it's still a string (defensive check)
+        let parsedWorkingHours = workingHours;
+        if (typeof parsedWorkingHours === 'string') {
+          try {
+            const parsed = JSON.parse(parsedWorkingHours);
+            if (parsed.hours) {
+              parsedWorkingHours = parsed.hours;
+            } else {
+              parsedWorkingHours = parsed;
+            }
+            console.log('[Coach Schedule] Parsed working hours from string in computeAvailable');
+          } catch (e) {
+            console.error('[Coach Schedule] Failed to parse working hours in computeAvailable:', e);
+            parsedWorkingHours = null;
+          }
+        } else if (parsedWorkingHours && parsedWorkingHours.hours) {
+          parsedWorkingHours = parsedWorkingHours.hours;
+        }
+
         // Check if current day has working hours enabled
         let dayWorkingHours = null;
         console.log('[Coach Schedule] Computing available times:', {
