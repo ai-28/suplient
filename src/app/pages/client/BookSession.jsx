@@ -256,14 +256,20 @@ export default function BookSession() {
 
     // Check if current day has working hours enabled
     let dayWorkingHours = null;
-    if (workingHours && Array.isArray(workingHours)) {
+    if (workingHours && Array.isArray(workingHours) && workingHours.length > 0) {
       dayWorkingHours = workingHours.find(wh => wh.day === currentDayName);
-    }
-
-    // If day is disabled in working hours, return empty slots immediately
-    if (dayWorkingHours && !dayWorkingHours.enabled) {
-      setAvailableTimes([]);
-      return;
+      
+      // If working hours are configured but this day is not found, treat as disabled
+      if (!dayWorkingHours) {
+        setAvailableTimes([]);
+        return;
+      }
+      
+      // If day is disabled in working hours, return empty slots immediately
+      if (!dayWorkingHours.enabled) {
+        setAvailableTimes([]);
+        return;
+      }
     }
 
     // Convert UTC to local for database sessions
@@ -350,7 +356,9 @@ export default function BookSession() {
       const end = start + dur;
       
       // Check if outside working hours (convert from coach's timezone to viewer's timezone)
-      if (dayWorkingHours && dayWorkingHours.enabled) {
+      // Only filter by working hours if they are configured and day is enabled
+      // (We already checked for disabled days earlier, so if we get here and workingHours exist, day is enabled)
+      if (workingHours && Array.isArray(workingHours) && workingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
         // Convert working hours from coach's timezone to viewer's timezone
         const convertTimeToViewerTZ = (timeHHMM, fromTZ, toTZ, dateStr) => {
           try {
@@ -411,9 +419,6 @@ export default function BookSession() {
         if (start < workStart || end > workEnd) {
           return true; // Outside working hours
         }
-      } else if (dayWorkingHours && !dayWorkingHours.enabled) {
-        // Day is disabled
-        return true;
       }
       
       // Check database sessions

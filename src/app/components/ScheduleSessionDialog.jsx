@@ -191,15 +191,22 @@ export function ScheduleSessionDialog({
 
         // Check if current day has working hours enabled
         let dayWorkingHours = null;
-        if (workingHours && Array.isArray(workingHours)) {
+        if (workingHours && Array.isArray(workingHours) && workingHours.length > 0) {
           dayWorkingHours = workingHours.find(wh => wh.day === currentDayName);
-        }
-
-        // If day is disabled in working hours, return empty slots immediately
-        if (dayWorkingHours && !dayWorkingHours.enabled) {
-          setAvailableTimes([]);
-          setTimesLoading(false);
-          return;
+          
+          // If working hours are configured but this day is not found, treat as disabled
+          if (!dayWorkingHours) {
+            setAvailableTimes([]);
+            setTimesLoading(false);
+            return;
+          }
+          
+          // If day is disabled in working hours, return empty slots immediately
+          if (!dayWorkingHours.enabled) {
+            setAvailableTimes([]);
+            setTimesLoading(false);
+            return;
+          }
         }
 
         // Convert stored UTC date/time to local date/time for comparison and overlap checks
@@ -291,7 +298,9 @@ export function ScheduleSessionDialog({
           const end = start + dur;
           
           // Check if outside working hours (convert from coach's timezone to viewer's timezone)
-          if (dayWorkingHours && dayWorkingHours.enabled) {
+          // Only filter by working hours if they are configured and day is enabled
+          // (We already checked for disabled days earlier, so if we get here and workingHours exist, day is enabled)
+          if (workingHours && Array.isArray(workingHours) && workingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
             // Convert working hours from coach's timezone to viewer's timezone
             const convertTimeToViewerTZ = (timeHHMM, fromTZ, toTZ, dateStr) => {
               try {
@@ -369,9 +378,6 @@ export function ScheduleSessionDialog({
             if (start < workStart || end > workEnd) {
               return true; // Outside working hours
             }
-          } else if (dayWorkingHours && !dayWorkingHours.enabled) {
-            // Day is disabled
-            return true;
           }
           
           // Check database sessions
