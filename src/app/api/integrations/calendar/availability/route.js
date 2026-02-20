@@ -55,15 +55,28 @@ export async function GET(request) {
                 LIMIT 1
             `;
             if (coachData.length > 0 && coachData[0].workingHours) {
-                const whData = coachData[0].workingHours;
-                // Handle both old format (array) and new format (object with timezone)
-                if (Array.isArray(whData)) {
-                    workingHours = whData;
-                } else if (whData.hours) {
-                    workingHours = whData.hours;
-                    coachTimezone = whData.timezone;
-                } else {
-                    workingHours = whData;
+                let whData = coachData[0].workingHours;
+                
+                // If it's a string, parse it first
+                if (typeof whData === 'string') {
+                    try {
+                        whData = JSON.parse(whData);
+                    } catch (e) {
+                        console.error('Failed to parse workingHours string:', e);
+                        whData = null;
+                    }
+                }
+                
+                if (whData) {
+                    // Handle both old format (array) and new format (object with timezone)
+                    if (Array.isArray(whData)) {
+                        workingHours = whData;
+                    } else if (whData.hours) {
+                        workingHours = whData.hours;
+                        coachTimezone = whData.timezone;
+                    } else {
+                        workingHours = whData;
+                    }
                 }
             }
             

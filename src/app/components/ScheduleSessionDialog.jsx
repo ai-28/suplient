@@ -153,16 +153,50 @@ export function ScheduleSessionDialog({
         
         if (response.ok) {
           const data = await response.json();
+          
+          // Parse working hours if it's a string
+          let parsedWorkingHours = data.workingHours;
+          let parsedCoachTimezone = data.coachTimezone;
+          
+          if (typeof parsedWorkingHours === 'string') {
+            try {
+              const parsed = JSON.parse(parsedWorkingHours);
+              if (parsed.hours) {
+                parsedWorkingHours = parsed.hours;
+                parsedCoachTimezone = parsed.timezone || parsedCoachTimezone;
+              } else {
+                parsedWorkingHours = parsed;
+              }
+            } catch (e) {
+              console.error('[Coach Schedule] Failed to parse working hours:', e);
+              parsedWorkingHours = null;
+            }
+          } else if (parsedWorkingHours && parsedWorkingHours.hours) {
+            // If it's an object with hours property
+            parsedCoachTimezone = parsedWorkingHours.timezone || parsedCoachTimezone;
+            parsedWorkingHours = parsedWorkingHours.hours;
+          }
+          
           console.log('[Coach Schedule] Fetched availability data:', {
-            workingHours: data.workingHours,
-            coachTimezone: data.coachTimezone,
+            workingHours: parsedWorkingHours,
+            coachTimezone: parsedCoachTimezone,
             eventsCount: data.events?.length || 0,
-            connected: data.connected
+            connected: data.connected,
+            originalWorkingHours: data.workingHours,
+            originalWorkingHoursType: typeof data.workingHours
           });
+          
           setGoogleCalendarEvents(data.events || []);
           setCalendarConnected(data.connected || false);
-          setWorkingHours(data.workingHours || null);
-          setCoachTimezone(data.coachTimezone || null);
+          setWorkingHours(parsedWorkingHours || null);
+          setCoachTimezone(parsedCoachTimezone || null);
+          
+          // Also trigger computation immediately with parsed data
+          // This ensures we use the parsed data even if state hasn't updated yet
+          if (date) {
+            // We'll compute in the useEffect that depends on workingHours
+            // But we need to make sure the state is set correctly
+          }
         } else {
           setGoogleCalendarEvents([]);
           setCalendarConnected(false);
@@ -200,17 +234,19 @@ export function ScheduleSessionDialog({
         console.log('[Coach Schedule] Computing available times:', {
           date: dateStr,
           currentDayName,
-          workingHours,
-          workingHoursType: Array.isArray(workingHours) ? 'array' : typeof workingHours,
-          workingHoursLength: Array.isArray(workingHours) ? workingHours.length : 'N/A'
+          workingHours: parsedWorkingHours,
+          workingHoursType: Array.isArray(parsedWorkingHours) ? 'array' : typeof parsedWorkingHours,
+          workingHoursLength: Array.isArray(parsedWorkingHours) ? parsedWorkingHours.length : 'N/A',
+          originalWorkingHours: workingHours,
+          originalWorkingHoursType: typeof workingHours
         });
         
-        if (workingHours && Array.isArray(workingHours) && workingHours.length > 0) {
-          dayWorkingHours = workingHours.find(wh => wh.day === currentDayName);
+        if (parsedWorkingHours && Array.isArray(parsedWorkingHours) && parsedWorkingHours.length > 0) {
+          dayWorkingHours = parsedWorkingHours.find(wh => wh.day === currentDayName);
           console.log('[Coach Schedule] Day working hours found:', {
             dayWorkingHours,
             currentDayName,
-            allDays: workingHours.map(wh => ({ day: wh.day, enabled: wh.enabled }))
+            allDays: parsedWorkingHours.map(wh => ({ day: wh.day, enabled: wh.enabled }))
           });
           
           // If working hours are configured but this day is not found, treat as disabled
@@ -323,7 +359,9 @@ export function ScheduleSessionDialog({
           // Check if outside working hours (convert from coach's timezone to viewer's timezone)
           // Only filter by working hours if they are configured and day is enabled
           // (We already checked for disabled days earlier, so if we get here and workingHours exist, day is enabled)
-          if (workingHours && Array.isArray(workingHours) && workingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
+          // Use parsedWorkingHours instead of workingHours state
+          const effectiveWorkingHours = typeof workingHours === 'string' ? parsedWorkingHours : workingHours;
+          if (effectiveWorkingHours && Array.isArray(effectiveWorkingHours) && effectiveWorkingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
             console.log('[Coach Schedule] Filtering by working hours:', {
               dayWorkingHours,
               coachTZ,

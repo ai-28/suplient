@@ -213,13 +213,40 @@ export default function BookSession() {
 
         if (response.ok) {
           const data = await response.json();
+          
+          // Parse working hours if it's a string
+          let parsedWorkingHours = data.workingHours;
+          let parsedCoachTimezone = data.coachTimezone;
+          
+          if (typeof parsedWorkingHours === 'string') {
+            try {
+              const parsed = JSON.parse(parsedWorkingHours);
+              if (parsed.hours) {
+                parsedWorkingHours = parsed.hours;
+                parsedCoachTimezone = parsed.timezone || parsedCoachTimezone;
+              } else {
+                parsedWorkingHours = parsed;
+              }
+            } catch (e) {
+              console.error('[Client Book] Failed to parse working hours:', e);
+              parsedWorkingHours = null;
+            }
+          } else if (parsedWorkingHours && parsedWorkingHours.hours) {
+            // If it's an object with hours property
+            parsedCoachTimezone = parsedWorkingHours.timezone || parsedCoachTimezone;
+            parsedWorkingHours = parsedWorkingHours.hours;
+          }
+          
           console.log('[Client Book] Fetched availability data:', {
-            workingHours: data.workingHours,
-            coachTimezone: data.coachTimezone,
+            workingHours: parsedWorkingHours,
+            coachTimezone: parsedCoachTimezone,
             sessionsCount: data.coachSessions?.length || 0,
             eventsCount: data.googleCalendarEvents?.length || 0,
-            connected: data.calendarConnected
+            connected: data.calendarConnected,
+            originalWorkingHours: data.workingHours,
+            originalWorkingHoursType: typeof data.workingHours
           });
+          
           setCoachSessions(data.coachSessions || []);
           setGoogleCalendarEvents(data.googleCalendarEvents || []);
           setCalendarConnected(data.calendarConnected || false);
@@ -228,8 +255,8 @@ export default function BookSession() {
           computeAvailableTimes(
             data.coachSessions || [], 
             data.googleCalendarEvents || [],
-            data.workingHours || null,
-            data.coachTimezone || null
+            parsedWorkingHours || null,
+            parsedCoachTimezone || null
           );
         } else {
           setAvailableTimes([]);
@@ -261,20 +288,41 @@ export default function BookSession() {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const currentDayName = dayNames[dayOfWeek];
 
+    // Parse working hours if it's still a string (defensive check)
+    let parsedWorkingHours = workingHours;
+    if (typeof parsedWorkingHours === 'string') {
+      try {
+        const parsed = JSON.parse(parsedWorkingHours);
+        if (parsed.hours) {
+          parsedWorkingHours = parsed.hours;
+        } else {
+          parsedWorkingHours = parsed;
+        }
+        console.log('[Client Book] Parsed working hours from string in computeAvailableTimes');
+      } catch (e) {
+        console.error('[Client Book] Failed to parse working hours in computeAvailableTimes:', e);
+        parsedWorkingHours = null;
+      }
+    } else if (parsedWorkingHours && parsedWorkingHours.hours) {
+      parsedWorkingHours = parsedWorkingHours.hours;
+    }
+
     // Check if current day has working hours enabled
     let dayWorkingHours = null;
     console.log('[Client Book] Computing available times:', {
       date: dateStr,
       currentDayName,
-      workingHours,
-      workingHoursType: Array.isArray(workingHours) ? 'array' : typeof workingHours,
-      workingHoursLength: Array.isArray(workingHours) ? workingHours.length : 'N/A',
+      workingHours: parsedWorkingHours,
+      workingHoursType: Array.isArray(parsedWorkingHours) ? 'array' : typeof parsedWorkingHours,
+      workingHoursLength: Array.isArray(parsedWorkingHours) ? parsedWorkingHours.length : 'N/A',
       coachTZ,
-      viewerTZ
+      viewerTZ,
+      originalWorkingHours: workingHours,
+      originalWorkingHoursType: typeof workingHours
     });
     
-    if (workingHours && Array.isArray(workingHours) && workingHours.length > 0) {
-      dayWorkingHours = workingHours.find(wh => wh.day === currentDayName);
+    if (parsedWorkingHours && Array.isArray(parsedWorkingHours) && parsedWorkingHours.length > 0) {
+      dayWorkingHours = parsedWorkingHours.find(wh => wh.day === currentDayName);
       console.log('[Client Book] Day working hours found:', {
         dayWorkingHours,
         currentDayName,
@@ -384,7 +432,9 @@ export default function BookSession() {
       // Check if outside working hours (convert from coach's timezone to viewer's timezone)
       // Only filter by working hours if they are configured and day is enabled
       // (We already checked for disabled days earlier, so if we get here and workingHours exist, day is enabled)
-      if (workingHours && Array.isArray(workingHours) && workingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
+      // Use parsedWorkingHours instead of workingHours state
+      const effectiveWorkingHours = typeof workingHours === 'string' ? parsedWorkingHours : workingHours;
+      if (effectiveWorkingHours && Array.isArray(effectiveWorkingHours) && effectiveWorkingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
         console.log('[Client Book] Filtering by working hours:', {
           dayWorkingHours,
           coachTZ,
