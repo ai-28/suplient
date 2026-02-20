@@ -92,8 +92,9 @@ export async function GET(request) {
             }
         }
 
-        // Get coach's working hours
+        // Get coach's working hours and timezone
         let workingHours = null;
+        let coachTimezone = null;
         try {
             const coachData = await sql`
                 SELECT "workingHours"
@@ -102,7 +103,21 @@ export async function GET(request) {
                 LIMIT 1
             `;
             if (coachData.length > 0 && coachData[0].workingHours) {
-                workingHours = coachData[0].workingHours;
+                const whData = coachData[0].workingHours;
+                // Handle both old format (array) and new format (object with timezone)
+                if (Array.isArray(whData)) {
+                    workingHours = whData;
+                } else if (whData.hours) {
+                    workingHours = whData.hours;
+                    coachTimezone = whData.timezone;
+                } else {
+                    workingHours = whData;
+                }
+            }
+            
+            // If no timezone in working hours, get from Google Calendar integration
+            if (!coachTimezone && integration?.settings?.timeZone) {
+                coachTimezone = integration.settings.timeZone;
             }
         } catch (error) {
             // If workingHours column doesn't exist, ignore
@@ -114,7 +129,8 @@ export async function GET(request) {
             coachSessions: coachSessions,
             googleCalendarEvents: googleCalendarEvents,
             calendarConnected: calendarConnected,
-            workingHours: workingHours
+            workingHours: workingHours,
+            coachTimezone: coachTimezone
         });
     } catch (error) {
         console.error('Error fetching coach availability:', error);

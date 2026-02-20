@@ -221,7 +221,8 @@ export default function BookSession() {
           computeAvailableTimes(
             data.coachSessions || [], 
             data.googleCalendarEvents || [],
-            data.workingHours || null
+            data.workingHours || null,
+            data.coachTimezone || null
           );
         } else {
           setAvailableTimes([]);
@@ -237,7 +238,7 @@ export default function BookSession() {
     fetchAvailability();
   }, [selectedDate, coach?.id, duration, selectedTimezone]);
 
-  const computeAvailableTimes = (dbSessions, calendarEvents, workingHours) => {
+  const computeAvailableTimes = (dbSessions, calendarEvents, workingHours, coachTimezone) => {
     if (!selectedDate || !selectedTimezone) {
       setAvailableTimes([]);
       return;
@@ -245,6 +246,7 @@ export default function BookSession() {
 
     const dateStr = selectedDate.toISOString().split('T')[0];
     const viewerTZ = selectedTimezone; // Use selected timezone instead of browser timezone
+    const coachTZ = coachTimezone || viewerTZ; // Use coach's timezone or fallback to viewer's
 
     // Get day of week (0 = Sunday, 1 = Monday, etc.)
     const dateObj = new Date(selectedDate);
@@ -341,10 +343,64 @@ export default function BookSession() {
     const overlaps = (start, dur) => {
       const end = start + dur;
       
-      // Check if outside working hours
+      // Check if outside working hours (convert from coach's timezone to viewer's timezone)
       if (dayWorkingHours && dayWorkingHours.enabled) {
-        const workStart = toMinutes(dayWorkingHours.startTime);
-        const workEnd = toMinutes(dayWorkingHours.endTime);
+        // Convert working hours from coach's timezone to viewer's timezone
+        const convertTimeToViewerTZ = (timeHHMM, fromTZ, toTZ, dateStr) => {
+          try {
+            if (fromTZ === toTZ) {
+              return timeHHMM; // No conversion needed
+            }
+            
+            const [hh, mm] = timeHHMM.split(':').map(Number);
+            const dateParts = dateStr.split('-');
+            const year = parseInt(dateParts[0]);
+            const month = parseInt(dateParts[1]) - 1;
+            const day = parseInt(dateParts[2]);
+            
+            // Create a date string representing the time in coach's timezone
+            const isoStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00`;
+            
+            // Calculate timezone offset difference
+            const refDate = new Date(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T12:00:00Z`);
+            
+            // Get offset in milliseconds for each timezone
+            const getOffset = (tz) => {
+              const testUTC = new Date(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00Z`);
+              const testTZ = new Date(testUTC.toLocaleString('en-US', { timeZone: tz }));
+              return testTZ.getTime() - testUTC.getTime();
+            };
+            
+            const offsetFrom = getOffset(fromTZ);
+            const offsetTo = getOffset(toTZ);
+            const offsetDiff = offsetTo - offsetFrom;
+            
+            // Create date as if the time is in UTC
+            const coachTimeUTC = new Date(`${isoStr}Z`);
+            // Adjust by the offset difference to get the equivalent time in viewer's TZ
+            const viewerTimeUTC = new Date(coachTimeUTC.getTime() - offsetDiff);
+            
+            // Format in viewer's timezone
+            const viewerFmt = new Intl.DateTimeFormat('en-US', {
+              timeZone: toTZ,
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            });
+            const viewerParts = Object.fromEntries(viewerFmt.formatToParts(viewerTimeUTC).map(p => [p.type, p.value]));
+            return `${viewerParts.hour}:${viewerParts.minute}`;
+          } catch (error) {
+            console.warn('Timezone conversion failed, using original time:', error);
+            return timeHHMM; // Fallback to original time if conversion fails
+          }
+        };
+        
+        const workStartViewer = convertTimeToViewerTZ(dayWorkingHours.startTime, coachTZ, viewerTZ, dateStr);
+        const workEndViewer = convertTimeToViewerTZ(dayWorkingHours.endTime, coachTZ, viewerTZ, dateStr);
+        
+        const workStart = toMinutes(workStartViewer);
+        const workEnd = toMinutes(workEndViewer);
+        
         // If session starts before working hours or ends after working hours
         if (start < workStart || end > workEnd) {
           return true; // Outside working hours

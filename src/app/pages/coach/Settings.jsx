@@ -805,6 +805,9 @@ export default function Settings() {
     fetchCoachData();
   }, [session?.user?.id]);
 
+  // Working hours timezone state
+  const [workingHoursTimezone, setWorkingHoursTimezone] = useState(null);
+
   // Fetch working hours on component mount
   useEffect(() => {
     const fetchWorkingHours = async () => {
@@ -816,8 +819,16 @@ export default function Settings() {
         const response = await fetch('/api/user/working-hours');
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.workingHours) {
-            setWorkingHours(data.workingHours);
+          if (data.success) {
+            // Handle both old format (array) and new format (object with timezone)
+            if (Array.isArray(data.workingHours)) {
+              setWorkingHours(data.workingHours);
+            } else if (data.workingHours?.hours) {
+              setWorkingHours(data.workingHours.hours);
+            } else {
+              setWorkingHours(data.workingHours || []);
+            }
+            setWorkingHoursTimezone(data.timezone || null);
           }
         }
       } catch (error) {
@@ -1266,12 +1277,32 @@ export default function Settings() {
   const handleSaveWorkingHours = async () => {
     setSavingWorkingHours(true);
     try {
+      // Get coach's timezone from browser or Google Calendar integration
+      let coachTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      
+      // Try to get from Google Calendar integration if available
+      try {
+        const integrationResponse = await fetch('/api/integrations');
+        if (integrationResponse.ok) {
+          const integrationData = await integrationResponse.json();
+          const googleIntegration = integrationData.integrations?.find(i => i.platform === 'google_calendar');
+          if (googleIntegration?.settings?.timeZone) {
+            coachTimezone = googleIntegration.settings.timeZone;
+          }
+        }
+      } catch (error) {
+        console.warn('Could not fetch integration timezone, using browser timezone');
+      }
+
       const response = await fetch('/api/user/working-hours', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ workingHours }),
+        body: JSON.stringify({ 
+          workingHours,
+          timezone: coachTimezone
+        }),
       });
 
       const data = await response.json();

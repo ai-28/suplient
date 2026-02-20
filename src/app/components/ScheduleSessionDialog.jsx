@@ -130,12 +130,18 @@ export function ScheduleSessionDialog({
     }
   }, [open]);
 
-  // Fetch Google Calendar events when date changes
+  // Working hours state
+  const [workingHours, setWorkingHours] = useState(null);
+  const [coachTimezone, setCoachTimezone] = useState(null);
+
+  // Fetch Google Calendar events and working hours when date changes
   useEffect(() => {
     const fetchGoogleCalendarEvents = async () => {
       if (!date) {
         setGoogleCalendarEvents([]);
         setCalendarConnected(false);
+        setWorkingHours(null);
+        setCoachTimezone(null);
         return;
       }
       
@@ -149,14 +155,20 @@ export function ScheduleSessionDialog({
           const data = await response.json();
           setGoogleCalendarEvents(data.events || []);
           setCalendarConnected(data.connected || false);
+          setWorkingHours(data.workingHours || null);
+          setCoachTimezone(data.coachTimezone || null);
         } else {
           setGoogleCalendarEvents([]);
           setCalendarConnected(false);
+          setWorkingHours(null);
+          setCoachTimezone(null);
         }
       } catch (error) {
         console.error('Failed to fetch Google Calendar events:', error);
         setGoogleCalendarEvents([]);
         setCalendarConnected(false);
+        setWorkingHours(null);
+        setCoachTimezone(null);
       }
     };
     
@@ -171,8 +183,21 @@ export function ScheduleSessionDialog({
       try {
         const dateStr = date.toISOString().split('T')[0];
 
+        // Get day of week (0 = Sunday, 1 = Monday, etc.)
+        const dateObj = new Date(date);
+        const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDayName = dayNames[dayOfWeek];
+
+        // Check if current day has working hours enabled
+        let dayWorkingHours = null;
+        if (workingHours && Array.isArray(workingHours)) {
+          dayWorkingHours = workingHours.find(wh => wh.day === currentDayName);
+        }
+
         // Convert stored UTC date/time to local date/time for comparison and overlap checks
         const viewerTZ = selectedTimezone || 'UTC';
+        const coachTZ = coachTimezone || viewerTZ; // Use coach's timezone or fallback to viewer's
         const utcToLocalParts = (dateStrUTC, timeHHMMUTC) => {
           try {
             const iso = `${String(dateStrUTC).slice(0,10)}T${(timeHHMMUTC||'').substring(0,5)}:00Z`;
@@ -258,6 +283,90 @@ export function ScheduleSessionDialog({
         const overlaps = (start, dur) => {
           const end = start + dur;
           
+          // Check if outside working hours (convert from coach's timezone to viewer's timezone)
+          if (dayWorkingHours && dayWorkingHours.enabled) {
+            // Convert working hours from coach's timezone to viewer's timezone
+            const convertTimeToViewerTZ = (timeHHMM, fromTZ, toTZ, dateStr) => {
+              try {
+                if (fromTZ === toTZ) {
+                  return timeHHMM; // No conversion needed
+                }
+                
+                const [hh, mm] = timeHHMM.split(':').map(Number);
+                const dateParts = dateStr.split('-');
+                const year = parseInt(dateParts[0]);
+                const month = parseInt(dateParts[1]) - 1;
+                const day = parseInt(dateParts[2]);
+                
+                // Create a date string representing the time in coach's timezone
+                const isoStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00`;
+                
+                // Calculate timezone offset difference
+                // We'll use a reference UTC date and calculate offsets for both timezones
+                const refDate = new Date(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T12:00:00Z`);
+                
+                // Get offset in milliseconds for each timezone
+                const getOffset = (tz) => {
+                  // Create a formatter for the timezone
+                  const formatter = new Intl.DateTimeFormat('en', {
+                    timeZone: tz,
+                    timeZoneName: 'longOffset'
+                  });
+                  // Get the offset by comparing UTC and TZ representations
+                  const utcTime = refDate.getTime();
+                  const tzTimeStr = refDate.toLocaleString('en-US', { timeZone: tz });
+                  const utcTimeStr = refDate.toLocaleString('en-US', { timeZone: 'UTC' });
+                  
+                  // Parse and calculate offset
+                  // Simpler: use Date constructor with timezone
+                  const testUTC = new Date(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00Z`);
+                  const testTZ = new Date(testUTC.toLocaleString('en-US', { timeZone: tz }));
+                  return testTZ.getTime() - testUTC.getTime();
+                };
+                
+                const offsetFrom = getOffset(fromTZ);
+                const offsetTo = getOffset(toTZ);
+                const offsetDiff = offsetTo - offsetFrom;
+                
+                // Create a date representing the time (treating it as if in coach's TZ)
+                // We need to find the UTC time that, when formatted in coach's TZ, gives us this time
+                // Then format that UTC time in viewer's TZ
+                
+                // Create date as if the time is in UTC
+                const coachTimeUTC = new Date(`${isoStr}Z`);
+                // Adjust by the offset difference to get the equivalent time in viewer's TZ
+                const viewerTimeUTC = new Date(coachTimeUTC.getTime() - offsetDiff);
+                
+                // Format in viewer's timezone
+                const viewerFmt = new Intl.DateTimeFormat('en-US', {
+                  timeZone: toTZ,
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                });
+                const viewerParts = Object.fromEntries(viewerFmt.formatToParts(viewerTimeUTC).map(p => [p.type, p.value]));
+                return `${viewerParts.hour}:${viewerParts.minute}`;
+              } catch (error) {
+                console.warn('Timezone conversion failed, using original time:', error);
+                return timeHHMM; // Fallback to original time if conversion fails
+              }
+            };
+            
+            const workStartViewer = convertTimeToViewerTZ(dayWorkingHours.startTime, coachTZ, viewerTZ, dateStr);
+            const workEndViewer = convertTimeToViewerTZ(dayWorkingHours.endTime, coachTZ, viewerTZ, dateStr);
+            
+            const workStart = toMinutes(workStartViewer);
+            const workEnd = toMinutes(workEndViewer);
+            
+            // If session starts before working hours or ends after working hours
+            if (start < workStart || end > workEnd) {
+              return true; // Outside working hours
+            }
+          } else if (dayWorkingHours && !dayWorkingHours.enabled) {
+            // Day is disabled
+            return true;
+          }
+          
           // Check database sessions
           const dbOverlap = daySessions.some(s => {
             const sStart = toMinutes((s._localTime||'').substring(0,5));
@@ -293,7 +402,7 @@ export function ScheduleSessionDialog({
 
     computeAvailable();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, coachSessions, googleCalendarEvents, selectedTimezone]);
+  }, [date, coachSessions, googleCalendarEvents, selectedTimezone, workingHours, coachTimezone]);
 
   // Fetch group members when group is selected
   const fetchGroupMembers = async (groupId) => {

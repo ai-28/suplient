@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import authOptions from '@/app/lib/authoption';
 import { sql } from '@/app/lib/db/postgresql';
+import { integrationRepo } from '@/app/lib/db/integrationSchema';
 
 // GET - Fetch working hours
 export async function GET() {
@@ -30,18 +31,59 @@ export async function GET() {
       }
 
       // Return working hours or default structure
-      const workingHours = user[0].workingHours || getDefaultWorkingHours();
+      let workingHoursData = user[0].workingHours;
+      
+      // Handle both old format (array) and new format (object with timezone)
+      let workingHours, timezone;
+      if (Array.isArray(workingHoursData)) {
+        // Old format - just array of hours
+        workingHours = workingHoursData;
+        timezone = null; // Will need to get from integration
+      } else if (workingHoursData && workingHoursData.hours) {
+        // New format - object with hours and timezone
+        workingHours = workingHoursData.hours;
+        timezone = workingHoursData.timezone;
+      } else {
+        // No working hours set - return default
+        workingHours = getDefaultWorkingHours();
+        timezone = null;
+      }
+
+      // If no timezone in stored data, try to get from Google Calendar integration
+      if (!timezone) {
+        try {
+          const integration = await integrationRepo.getCoachIntegration(session.user.id, 'google_calendar');
+          if (integration?.settings?.timeZone) {
+            timezone = integration.settings.timeZone;
+          }
+        } catch (error) {
+          console.warn('Failed to get timezone from integration:', error);
+        }
+      }
 
       return NextResponse.json({
         success: true,
-        workingHours: workingHours
+        workingHours: workingHours,
+        timezone: timezone
       });
     } catch (error) {
       // If column doesn't exist, return default
       if (error.message?.includes('column "workingHours" does not exist')) {
+        // Try to get timezone from integration
+        let timezone = null;
+        try {
+          const integration = await integrationRepo.getCoachIntegration(session.user.id, 'google_calendar');
+          if (integration?.settings?.timeZone) {
+            timezone = integration.settings.timeZone;
+          }
+        } catch (err) {
+          // Ignore
+        }
+        
         return NextResponse.json({
           success: true,
-          workingHours: getDefaultWorkingHours()
+          workingHours: getDefaultWorkingHours(),
+          timezone: timezone
         });
       }
       throw error;
@@ -70,7 +112,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json();
-    const { workingHours } = body;
+    const { workingHours, timezone } = body;
 
     if (!workingHours || !Array.isArray(workingHours)) {
       return NextResponse.json(
@@ -96,6 +138,23 @@ export async function PUT(request) {
       }
     }
 
+    // Get coach's timezone from Google Calendar integration if not provided
+    let coachTimezone = timezone;
+    if (!coachTimezone) {
+      try {
+        const integration = await integrationRepo.getCoachIntegration(session.user.id, 'google_calendar');
+        if (integration?.settings?.timeZone) {
+          coachTimezone = integration.settings.timeZone;
+        } else {
+          // Fallback to UTC if no timezone found
+          coachTimezone = 'UTC';
+        }
+      } catch (error) {
+        console.warn('Failed to get coach timezone from integration:', error);
+        coachTimezone = 'UTC';
+      }
+    }
+
     // Ensure workingHours column exists
     try {
       await sql`
@@ -107,11 +166,17 @@ export async function PUT(request) {
       console.log('Migration check for workingHours:', migrationError.message);
     }
 
+    // Store working hours with timezone info
+    const workingHoursWithTimezone = {
+      hours: workingHours,
+      timezone: coachTimezone
+    };
+
     // Update working hours
     const updatedUser = await sql`
       UPDATE "User" 
       SET 
-        "workingHours" = ${JSON.stringify(workingHours)}::jsonb,
+        "workingHours" = ${JSON.stringify(workingHoursWithTimezone)}::jsonb,
         "updatedAt" = CURRENT_TIMESTAMP
       WHERE id = ${session.user.id}
       RETURNING 
