@@ -105,6 +105,11 @@
             "saturday": "Lørdag",
             "sunday": "Søndag"
         },
+        "actions": {
+            "save": "Gem",
+            "saving": "Gemmer...",
+            "saveWorkingHours": "Gem Arbejdstimer"
+        },
         "note": "Bemærk",
         "preview": "Forhåndsvisning",
         "notSpecified": "Ikke angivet",

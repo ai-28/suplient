@@ -168,7 +168,6 @@ export function ScheduleSessionDialog({
                 parsedWorkingHours = parsed;
               }
             } catch (e) {
-              console.error('[Coach Schedule] Failed to parse working hours:', e);
               parsedWorkingHours = null;
             }
           } else if (parsedWorkingHours && parsedWorkingHours.hours) {
@@ -176,15 +175,6 @@ export function ScheduleSessionDialog({
             parsedCoachTimezone = parsedWorkingHours.timezone || parsedCoachTimezone;
             parsedWorkingHours = parsedWorkingHours.hours;
           }
-          
-          console.log('[Coach Schedule] Fetched availability data:', {
-            workingHours: parsedWorkingHours,
-            coachTimezone: parsedCoachTimezone,
-            eventsCount: data.events?.length || 0,
-            connected: data.connected,
-            originalWorkingHours: data.workingHours,
-            originalWorkingHoursType: typeof data.workingHours
-          });
           
           setGoogleCalendarEvents(data.events || []);
           setCalendarConnected(data.connected || false);
@@ -239,9 +229,7 @@ export function ScheduleSessionDialog({
             } else {
               parsedWorkingHours = parsed;
             }
-            console.log('[Coach Schedule] Parsed working hours from string in computeAvailable');
           } catch (e) {
-            console.error('[Coach Schedule] Failed to parse working hours in computeAvailable:', e);
             parsedWorkingHours = null;
           }
         } else if (parsedWorkingHours && parsedWorkingHours.hours) {
@@ -250,27 +238,11 @@ export function ScheduleSessionDialog({
 
         // Check if current day has working hours enabled
         let dayWorkingHours = null;
-        console.log('[Coach Schedule] Computing available times:', {
-          date: dateStr,
-          currentDayName,
-          workingHours: parsedWorkingHours,
-          workingHoursType: Array.isArray(parsedWorkingHours) ? 'array' : typeof parsedWorkingHours,
-          workingHoursLength: Array.isArray(parsedWorkingHours) ? parsedWorkingHours.length : 'N/A',
-          originalWorkingHours: workingHours,
-          originalWorkingHoursType: typeof workingHours
-        });
-        
         if (parsedWorkingHours && Array.isArray(parsedWorkingHours) && parsedWorkingHours.length > 0) {
           dayWorkingHours = parsedWorkingHours.find(wh => wh.day === currentDayName);
-          console.log('[Coach Schedule] Day working hours found:', {
-            dayWorkingHours,
-            currentDayName,
-            allDays: parsedWorkingHours.map(wh => ({ day: wh.day, enabled: wh.enabled }))
-          });
           
           // If working hours are configured but this day is not found, treat as disabled
           if (!dayWorkingHours) {
-            console.log('[Coach Schedule] Day not found in working hours, returning empty slots');
             setAvailableTimes([]);
             setTimesLoading(false);
             return;
@@ -278,13 +250,10 @@ export function ScheduleSessionDialog({
           
           // If day is disabled in working hours, return empty slots immediately
           if (!dayWorkingHours.enabled) {
-            console.log('[Coach Schedule] Day is disabled in working hours, returning empty slots');
             setAvailableTimes([]);
             setTimesLoading(false);
             return;
           }
-        } else {
-          console.log('[Coach Schedule] No working hours configured, showing all slots');
         }
 
         // Convert stored UTC date/time to local date/time for comparison and overlap checks
@@ -381,14 +350,6 @@ export function ScheduleSessionDialog({
           // Use parsedWorkingHours instead of workingHours state
           const effectiveWorkingHours = typeof workingHours === 'string' ? parsedWorkingHours : workingHours;
           if (effectiveWorkingHours && Array.isArray(effectiveWorkingHours) && effectiveWorkingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
-            console.log('[Coach Schedule] Filtering by working hours:', {
-              dayWorkingHours,
-              coachTZ,
-              viewerTZ,
-              slotStart: start,
-              slotEnd: end
-            });
-            
             // Convert working hours from coach's timezone to viewer's timezone
             const convertTimeToViewerTZ = (timeHHMM, fromTZ, toTZ, dateStr) => {
               try {
@@ -462,19 +423,8 @@ export function ScheduleSessionDialog({
             const workStart = toMinutes(workStartViewer);
             const workEnd = toMinutes(workEndViewer);
             
-            console.log('[Coach Schedule] Working hours check:', {
-              workStartViewer,
-              workEndViewer,
-              workStart,
-              workEnd,
-              slotStart: start,
-              slotEnd: end,
-              outsideWorkingHours: start < workStart || end > workEnd
-            });
-            
             // If session starts before working hours or ends after working hours
             if (start < workStart || end > workEnd) {
-              console.log('[Coach Schedule] Slot outside working hours, filtering out');
               return true; // Outside working hours
             }
           }
@@ -512,23 +462,9 @@ export function ScheduleSessionDialog({
 
         const allTimeSlots = generateTimeSlots();
         const dur = 60; // Fixed duration of 60 minutes
-        console.log('[Coach Schedule] Filtering time slots:', {
-          totalSlots: allTimeSlots.length,
-          dayWorkingHours,
-          coachTZ,
-          viewerTZ
-        });
-        
         const slots = allTimeSlots.filter(t => {
           const start = toMinutes(t);
-          const isOverlap = overlaps(start, dur);
-          return !isOverlap;
-        });
-        
-        console.log('[Coach Schedule] Available slots after filtering:', {
-          totalSlots: allTimeSlots.length,
-          availableSlots: slots.length,
-          slots: slots.slice(0, 10) // Show first 10 slots
+          return !overlaps(start, dur);
         });
         
         setAvailableTimes(slots);

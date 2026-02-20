@@ -33,20 +33,51 @@ export async function GET(request) {
             LIMIT 1
         `;
         
-        // Get coach's timezone from Google Calendar integration if available
+        // Get coach's timezone and default meeting type
         let coachTimezone = 'UTC';
+        let defaultMeetingType = 'none';
         if (result.length > 0) {
             try {
                 const { integrationRepo } = await import('@/app/lib/db/integrationSchema');
-                const googleIntegration = await integrationRepo.getCoachIntegration(result[0].coachUserId, 'google_calendar');
+                
+                // Get all coach integrations
+                const integrations = await integrationRepo.getCoachIntegrations(result[0].coachUserId);
+                
+                // Get timezone from Google Calendar integration
+                const googleIntegration = integrations.find(i => i.platform === 'google_calendar');
                 if (googleIntegration?.settings?.timeZone) {
                     coachTimezone = googleIntegration.settings.timeZone;
-                } else {
-                    // Fallback to browser timezone detection (we'll use UTC as default)
-                    coachTimezone = 'UTC';
+                }
+                
+                // Get default meeting type from database
+                try {
+                    const userData = await sql`
+                        SELECT "defaultMeetingType"
+                        FROM "User"
+                        WHERE id = ${result[0].coachUserId}
+                    `;
+                    if (userData.length > 0 && userData[0].defaultMeetingType) {
+                        defaultMeetingType = userData[0].defaultMeetingType;
+                    }
+                } catch (dbError) {
+                    // If column doesn't exist, fallback to determining from integrations
+                    if (dbError.message?.includes('column "defaultMeetingType" does not exist')) {
+                        // Determine default meeting type based on connected integrations
+                        // Priority: Google Meet > Zoom > Teams
+                        const connectedIntegrations = integrations.filter(i => i.isActive);
+                        if (connectedIntegrations.some(i => i.platform === 'google_calendar')) {
+                            defaultMeetingType = 'google_meet';
+                        } else if (connectedIntegrations.some(i => i.platform === 'zoom')) {
+                            defaultMeetingType = 'zoom';
+                        } else if (connectedIntegrations.some(i => i.platform === 'teams')) {
+                            defaultMeetingType = 'teams';
+                        }
+                    } else {
+                        console.warn('Failed to get default meeting type from database:', dbError);
+                    }
                 }
             } catch (error) {
-                console.warn('Failed to get coach timezone from integration:', error);
+                console.warn('Failed to get coach integrations:', error);
             }
         }
 
@@ -87,7 +118,8 @@ export async function GET(request) {
             email: clientCoachData.coachEmail,
             phone: clientCoachData.coachPhone,
             avatar: clientCoachData.coachAvatar,
-            timezone: coachTimezone
+            timezone: coachTimezone,
+            defaultMeetingType: defaultMeetingType
         };
 
         return NextResponse.json({

@@ -30,6 +30,7 @@ async function seedUser() {
         "coachId" UUID REFERENCES "User"("id"),
         "notificationsEnabled" BOOLEAN DEFAULT true,
         "workingHours" JSONB DEFAULT '[]'::jsonb,
+        "defaultMeetingType" VARCHAR(50) DEFAULT 'none',
         "lastLogin" TIMESTAMP,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP

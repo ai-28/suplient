@@ -134,24 +134,111 @@ export default function Settings() {
         setIntegrationConnectionStatus(status);
         localStorage.setItem('integrationConnections', JSON.stringify(status));
         
-        // Load default meeting type from localStorage and validate it's still connected
-        const savedDefault = localStorage.getItem('defaultMeetingType');
-        if (savedDefault && status[savedDefault]?.connected) {
-          setDefaultMeetingType(savedDefault);
-        } else if (!savedDefault || !status[savedDefault]?.connected) {
-          // Auto-select first connected integration if no preference set or saved one is not connected
-          if (status.google_meet?.connected) {
-            const newDefault = 'google_meet';
-            setDefaultMeetingType(newDefault);
-            localStorage.setItem('defaultMeetingType', newDefault);
-          } else if (status.zoom?.connected) {
-            const newDefault = 'zoom';
-            setDefaultMeetingType(newDefault);
-            localStorage.setItem('defaultMeetingType', newDefault);
-          } else if (status.teams?.connected) {
-            const newDefault = 'teams';
-            setDefaultMeetingType(newDefault);
-            localStorage.setItem('defaultMeetingType', newDefault);
+        // Load default meeting type from database first, then fallback to localStorage
+        try {
+          const defaultMeetingTypeResponse = await fetch('/api/user/default-meeting-type');
+          if (defaultMeetingTypeResponse.ok) {
+            const defaultData = await defaultMeetingTypeResponse.json();
+            if (defaultData.success && defaultData.defaultMeetingType) {
+              const dbDefault = defaultData.defaultMeetingType;
+              // Validate it's still connected
+              if (status[dbDefault]?.connected) {
+                setDefaultMeetingType(dbDefault);
+                localStorage.setItem('defaultMeetingType', dbDefault);
+              } else {
+                // If saved default is not connected, auto-select first connected integration
+                if (status.google_meet?.connected) {
+                  const newDefault = 'google_meet';
+                  setDefaultMeetingType(newDefault);
+                  localStorage.setItem('defaultMeetingType', newDefault);
+                  // Save to database
+                  await fetch('/api/user/default-meeting-type', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ defaultMeetingType: newDefault }),
+                  });
+                } else if (status.zoom?.connected) {
+                  const newDefault = 'zoom';
+                  setDefaultMeetingType(newDefault);
+                  localStorage.setItem('defaultMeetingType', newDefault);
+                  await fetch('/api/user/default-meeting-type', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ defaultMeetingType: newDefault }),
+                  });
+                } else if (status.teams?.connected) {
+                  const newDefault = 'teams';
+                  setDefaultMeetingType(newDefault);
+                  localStorage.setItem('defaultMeetingType', newDefault);
+                  await fetch('/api/user/default-meeting-type', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ defaultMeetingType: newDefault }),
+                  });
+                }
+              }
+            } else {
+              // No default in database, try localStorage
+              const savedDefault = localStorage.getItem('defaultMeetingType');
+              if (savedDefault && status[savedDefault]?.connected) {
+                setDefaultMeetingType(savedDefault);
+                // Save to database for future use
+                await fetch('/api/user/default-meeting-type', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ defaultMeetingType: savedDefault }),
+                });
+              } else {
+                // Auto-select first connected integration
+                if (status.google_meet?.connected) {
+                  const newDefault = 'google_meet';
+                  setDefaultMeetingType(newDefault);
+                  localStorage.setItem('defaultMeetingType', newDefault);
+                  await fetch('/api/user/default-meeting-type', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ defaultMeetingType: newDefault }),
+                  });
+                } else if (status.zoom?.connected) {
+                  const newDefault = 'zoom';
+                  setDefaultMeetingType(newDefault);
+                  localStorage.setItem('defaultMeetingType', newDefault);
+                  await fetch('/api/user/default-meeting-type', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ defaultMeetingType: newDefault }),
+                  });
+                } else if (status.teams?.connected) {
+                  const newDefault = 'teams';
+                  setDefaultMeetingType(newDefault);
+                  localStorage.setItem('defaultMeetingType', newDefault);
+                  await fetch('/api/user/default-meeting-type', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ defaultMeetingType: newDefault }),
+                  });
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to fetch default meeting type from database, using localStorage:', error);
+          // Fallback to localStorage
+          const savedDefault = localStorage.getItem('defaultMeetingType');
+          if (savedDefault && status[savedDefault]?.connected) {
+            setDefaultMeetingType(savedDefault);
+          } else {
+            // Auto-select first connected integration
+            if (status.google_meet?.connected) {
+              setDefaultMeetingType('google_meet');
+              localStorage.setItem('defaultMeetingType', 'google_meet');
+            } else if (status.zoom?.connected) {
+              setDefaultMeetingType('zoom');
+              localStorage.setItem('defaultMeetingType', 'zoom');
+            } else if (status.teams?.connected) {
+              setDefaultMeetingType('teams');
+              localStorage.setItem('defaultMeetingType', 'teams');
+            }
           }
         }
       } else {
@@ -161,7 +248,7 @@ export default function Settings() {
             const cachedStatus = JSON.parse(cachedConnections);
             setIntegrationConnectionStatus(cachedStatus);
             
-            // Load default meeting type from localStorage and validate it's still connected
+            // Load default meeting type from localStorage as fallback
             const savedDefault = localStorage.getItem('defaultMeetingType');
             if (savedDefault && cachedStatus[savedDefault]?.connected) {
               setDefaultMeetingType(savedDefault);
@@ -2118,11 +2205,30 @@ export default function Settings() {
                           isConnected && "cursor-pointer transition-all hover:border-primary/50",
                           isConnected && isSelected && "border-primary bg-primary/5"
                         )}
-                        onClick={() => {
+                        onClick={async () => {
                           if (isConnected) {
-                            setDefaultMeetingType(meetingType.id);
-                            localStorage.setItem('defaultMeetingType', meetingType.id);
-                            toast.success(t('settings.integration.defaultMeetingTypeUpdated', 'Default meeting type updated'));
+                            try {
+                              // Save to database
+                              const response = await fetch('/api/user/default-meeting-type', {
+                                method: 'PUT',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ defaultMeetingType: meetingType.id }),
+                              });
+
+                              if (response.ok) {
+                                setDefaultMeetingType(meetingType.id);
+                                // Also save to localStorage for backward compatibility
+                                localStorage.setItem('defaultMeetingType', meetingType.id);
+                                toast.success(t('settings.integration.defaultMeetingTypeUpdated', 'Default meeting type updated'));
+                              } else {
+                                throw new Error('Failed to save default meeting type');
+                              }
+                            } catch (error) {
+                              console.error('Error saving default meeting type:', error);
+                              toast.error(t('settings.integration.defaultMeetingTypeUpdateFailed', 'Failed to update default meeting type'));
+                            }
                           }
                         }}
                       >
@@ -2309,7 +2415,7 @@ export default function Settings() {
                       {t('common.actions.saving', 'Saving...')}
                     </>
                   ) : (
-                    t('common.actions.save', 'Save Working Hours')
+                    t('common.actions.saveWorkingHours', 'Save Working Hours')
                   )}
                 </Button>
               </CardContent>

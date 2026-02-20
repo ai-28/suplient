@@ -5,12 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Textarea } from "@/app/components/ui/textarea";
 import { Calendar } from "@/app/components/ui/calendar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
-import { Checkbox } from "@/app/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { ArrowLeft, Clock, User, CheckCircle, Video, Calendar as CalendarIcon, Loader2, AlertCircle, CreditCard } from "lucide-react";
+import { ArrowLeft, Clock, User, CheckCircle, Video, Loader2, AlertCircle, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { useClientCoach } from "@/app/hooks/useClientCoach";
@@ -40,38 +38,6 @@ const timeSlots = generateTimeSlots();
 export default function BookSession() {
   const router = useRouter();
   const t = useTranslation();
-  
-  // Meeting type options
-  const meetingTypes = [
-    { 
-      id: "none", 
-      name: t('sessions.meetingTypes.none', "No Meeting Link"), 
-      description: t('sessions.meetingTypes.noneDescription', "Schedule without creating a meeting link"),
-      icon: CalendarIcon,
-      color: "text-gray-500"
-    },
-    { 
-      id: "google_meet", 
-      name: t('sessions.meetingTypes.googleMeet', "Google Meet"), 
-      description: t('sessions.meetingTypes.googleMeetDescription', "Create Google Calendar event with Meet link"),
-      icon: Video,
-      color: "text-blue-500"
-    },
-    { 
-      id: "zoom", 
-      name: t('sessions.meetingTypes.zoom', "Zoom Meeting"), 
-      description: t('sessions.meetingTypes.zoomDescription', "Create Zoom meeting with join link"),
-      icon: Video,
-      color: "text-blue-600"
-    },
-    { 
-      id: "teams", 
-      name: t('sessions.meetingTypes.teams', "Microsoft Teams"), 
-      description: t('sessions.meetingTypes.teamsDescription', "Create Teams meeting with join link"),
-      icon: Video,
-      color: "text-purple-500"
-    }
-  ];
   const { data: session } = useSession();
   const { coach, loading: coachLoading, error: coachError } = useClientCoach();
   
@@ -84,12 +50,10 @@ export default function BookSession() {
   
   const [selectedDate, setSelectedDate] = useState();
   const [selectedTime, setSelectedTime] = useState("");
-  const [sessionTopic, setSessionTopic] = useState("");
-  const [acceptedConditions, setAcceptedConditions] = useState(false);
+  const [sessionTopic, setSessionTopic] = useState(""); // Not shown in UI, but used for booking
   const [isBooking, setIsBooking] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
   const [meetingType, setMeetingType] = useState("none");
-  const [duration, setDuration] = useState("60");
   const [selectedTimezone, setSelectedTimezone] = useState("UTC");
   
   // Payment state
@@ -111,7 +75,7 @@ export default function BookSession() {
     setSelectedDate(new Date());
   }, []);
 
-  // Set default timezone to coach's timezone when coach loads
+  // Set default timezone and meeting type to coach's settings when coach loads
   useEffect(() => {
     if (coach?.timezone) {
       setSelectedTimezone(coach.timezone);
@@ -119,7 +83,12 @@ export default function BookSession() {
       // Fallback to browser timezone
       setSelectedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
     }
-  }, [coach?.timezone]);
+    
+    // Set default meeting type from coach's settings
+    if (coach?.defaultMeetingType) {
+      setMeetingType(coach.defaultMeetingType);
+    }
+  }, [coach?.timezone, coach?.defaultMeetingType]);
 
   // Check payment requirement and handle payment success callback
   useEffect(() => {
@@ -228,7 +197,6 @@ export default function BookSession() {
                 parsedWorkingHours = parsed;
               }
             } catch (e) {
-              console.error('[Client Book] Failed to parse working hours:', e);
               parsedWorkingHours = null;
             }
           } else if (parsedWorkingHours && parsedWorkingHours.hours) {
@@ -236,16 +204,6 @@ export default function BookSession() {
             parsedCoachTimezone = parsedWorkingHours.timezone || parsedCoachTimezone;
             parsedWorkingHours = parsedWorkingHours.hours;
           }
-          
-          console.log('[Client Book] Fetched availability data:', {
-            workingHours: parsedWorkingHours,
-            coachTimezone: parsedCoachTimezone,
-            sessionsCount: data.coachSessions?.length || 0,
-            eventsCount: data.googleCalendarEvents?.length || 0,
-            connected: data.calendarConnected,
-            originalWorkingHours: data.workingHours,
-            originalWorkingHoursType: typeof data.workingHours
-          });
           
           setCoachSessions(data.coachSessions || []);
           setGoogleCalendarEvents(data.googleCalendarEvents || []);
@@ -270,7 +228,7 @@ export default function BookSession() {
     };
 
     fetchAvailability();
-  }, [selectedDate, coach?.id, duration, selectedTimezone]);
+  }, [selectedDate, coach?.id, selectedTimezone]);
 
   const computeAvailableTimes = (dbSessions, calendarEvents, workingHours, coachTimezone) => {
     if (!selectedDate || !selectedTimezone) {
@@ -298,9 +256,7 @@ export default function BookSession() {
         } else {
           parsedWorkingHours = parsed;
         }
-        console.log('[Client Book] Parsed working hours from string in computeAvailableTimes');
       } catch (e) {
-        console.error('[Client Book] Failed to parse working hours in computeAvailableTimes:', e);
         parsedWorkingHours = null;
       }
     } else if (parsedWorkingHours && parsedWorkingHours.hours) {
@@ -309,41 +265,20 @@ export default function BookSession() {
 
     // Check if current day has working hours enabled
     let dayWorkingHours = null;
-    console.log('[Client Book] Computing available times:', {
-      date: dateStr,
-      currentDayName,
-      workingHours: parsedWorkingHours,
-      workingHoursType: Array.isArray(parsedWorkingHours) ? 'array' : typeof parsedWorkingHours,
-      workingHoursLength: Array.isArray(parsedWorkingHours) ? parsedWorkingHours.length : 'N/A',
-      coachTZ,
-      viewerTZ,
-      originalWorkingHours: workingHours,
-      originalWorkingHoursType: typeof workingHours
-    });
-    
     if (parsedWorkingHours && Array.isArray(parsedWorkingHours) && parsedWorkingHours.length > 0) {
       dayWorkingHours = parsedWorkingHours.find(wh => wh.day === currentDayName);
-      console.log('[Client Book] Day working hours found:', {
-        dayWorkingHours,
-        currentDayName,
-        allDays: workingHours.map(wh => ({ day: wh.day, enabled: wh.enabled }))
-      });
       
       // If working hours are configured but this day is not found, treat as disabled
       if (!dayWorkingHours) {
-        console.log('[Client Book] Day not found in working hours, returning empty slots');
         setAvailableTimes([]);
         return;
       }
       
       // If day is disabled in working hours, return empty slots immediately
       if (!dayWorkingHours.enabled) {
-        console.log('[Client Book] Day is disabled in working hours, returning empty slots');
         setAvailableTimes([]);
         return;
       }
-    } else {
-      console.log('[Client Book] No working hours configured, showing all slots');
     }
 
     // Convert UTC to local for database sessions
@@ -435,14 +370,6 @@ export default function BookSession() {
       // Use parsedWorkingHours instead of workingHours state
       const effectiveWorkingHours = typeof workingHours === 'string' ? parsedWorkingHours : workingHours;
       if (effectiveWorkingHours && Array.isArray(effectiveWorkingHours) && effectiveWorkingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
-        console.log('[Client Book] Filtering by working hours:', {
-          dayWorkingHours,
-          coachTZ,
-          viewerTZ,
-          slotStart: start,
-          slotEnd: end
-        });
-        
         // Convert working hours from coach's timezone to viewer's timezone
         const convertTimeToViewerTZ = (timeHHMM, fromTZ, toTZ, dateStr) => {
           try {
@@ -499,19 +426,8 @@ export default function BookSession() {
         const workStart = toMinutes(workStartViewer);
         const workEnd = toMinutes(workEndViewer);
         
-        console.log('[Client Book] Working hours check:', {
-          workStartViewer,
-          workEndViewer,
-          workStart,
-          workEnd,
-          slotStart: start,
-          slotEnd: end,
-          outsideWorkingHours: start < workStart || end > workEnd
-        });
-        
         // If session starts before working hours or ends after working hours
         if (start < workStart || end > workEnd) {
-          console.log('[Client Book] Slot outside working hours, filtering out');
           return true; // Outside working hours
         }
       }
@@ -548,25 +464,10 @@ export default function BookSession() {
     };
 
     const allTimeSlots = generateTimeSlots();
-    const dur = parseInt(duration || '60', 10);
-    console.log('[Client Book] Filtering time slots:', {
-      totalSlots: allTimeSlots.length,
-      dayWorkingHours,
-      coachTZ,
-      viewerTZ,
-      duration: dur
-    });
-    
+    const dur = 60; // Fixed duration of 60 minutes
     const slots = allTimeSlots.filter(t => {
       const start = toMinutes(t);
-      const isOverlap = overlaps(start, dur);
-      return !isOverlap;
-    });
-
-    console.log('[Client Book] Available slots after filtering:', {
-      totalSlots: allTimeSlots.length,
-      availableSlots: slots.length,
-      slots: slots.slice(0, 10) // Show first 10 slots
+      return !overlaps(start, dur);
     });
 
     setAvailableTimes(slots);
@@ -618,14 +519,14 @@ export default function BookSession() {
   };
 
   const handleBookSession = async () => {
-    // On iOS native, skip conditions and payment checks
-    if (!isIOSNative && (!selectedDate || !selectedTime || !sessionTopic.trim() || !acceptedConditions)) {
-      toast.error(t('sessions.fillRequiredFieldsAndAccept', "Please fill in all required fields and accept the conditions."));
+    // On iOS native, skip payment checks
+    if (!isIOSNative && (!selectedDate || !selectedTime)) {
+      toast.error(t('sessions.fillRequiredFields', "Please fill in all required fields."));
       return;
     }
     
     // On iOS native, still require basic fields
-    if (isIOSNative && (!selectedDate || !selectedTime || !sessionTopic.trim())) {
+    if (isIOSNative && (!selectedDate || !selectedTime)) {
       toast.error(t('sessions.fillRequiredFields', "Please fill in all required fields."));
       return;
     }
@@ -654,7 +555,7 @@ export default function BookSession() {
         description: sessionTopic,
         sessionDate: selectedDate.toISOString().split('T')[0],
         sessionTime: selectedTime,
-        duration: parseInt(duration),
+        duration: 60, // Fixed duration of 60 minutes
         meetingType: meetingType,
         notes: sessionTopic,
         timeZone: selectedTimezone,
@@ -799,7 +700,7 @@ export default function BookSession() {
             <CardTitle>{t('sessions.selectDate', 'Select Date')}</CardTitle>
             <CardDescription>{t('sessions.chooseDate', 'Choose your preferred date')}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Calendar 
               mode="single" 
               selected={selectedDate} 
@@ -807,35 +708,30 @@ export default function BookSession() {
               disabled={date => date < new Date()} 
               className="rounded-md border" 
             />
-          </CardContent>
-        </Card>
-
-        {/* Timezone Selector */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('sessions.timezone', 'Timezone')}</CardTitle>
-            <CardDescription>{t('sessions.timezoneDescription', "Select timezone for scheduling (defaults to coach's timezone)")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
-              <SelectTrigger>
-                <SelectValue>
-                  {timezones.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone} ({getTimezoneOffset(selectedTimezone)})
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {timezones.map(tz => (
-                  <SelectItem key={tz.value} value={tz.value}>
-                    {tz.label} ({tz.offset})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {coach?.timezone && selectedTimezone === coach.timezone && (
-              <p className="text-xs text-muted-foreground mt-2">
-                {t('sessions.usingCoachTimezone', "Using coach's timezone: {timezone}", { timezone: coach.timezone })}
-              </p>
-            )}
+            
+            {/* Timezone Selector */}
+            <div className="space-y-2 pt-4 border-t">
+              <Label htmlFor="timezone-select">{t('sessions.timezone', 'Timezone')}</Label>
+              <Select value={selectedTimezone} onValueChange={setSelectedTimezone}>
+                <SelectTrigger id="timezone-select">
+                  <SelectValue>
+                    {timezones.find(tz => tz.value === selectedTimezone)?.label || selectedTimezone} ({getTimezoneOffset(selectedTimezone)})
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {timezones.map(tz => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label} ({tz.offset})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {coach?.timezone && selectedTimezone === coach.timezone && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('sessions.usingCoachTimezone', "Using coach's timezone: {timezone}", { timezone: coach.timezone })}
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -905,128 +801,6 @@ export default function BookSession() {
           </CardContent>
         </Card>
 
-        {/* Duration */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('sessions.sessionDuration', 'Session Duration')}</CardTitle>
-            <CardDescription>{t('sessions.sessionDurationDescription', 'How long should this session be?')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="60">{t('sessions.minutes', '{minutes} minutes', { minutes: 60 })}</SelectItem>
-                <SelectItem value="90">{t('sessions.minutes', '{minutes} minutes', { minutes: 90 })}</SelectItem>
-                <SelectItem value="120">{t('sessions.minutes', '{minutes} minutes', { minutes: 120 })}</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        {/* Meeting Type */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('sessions.meetingLink', 'Meeting Link')}</CardTitle>
-            <CardDescription>{t('sessions.meetingLinkDescription', "Choose how you'd like to meet (optional)")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {meetingTypes.map((type) => {
-                const Icon = type.icon;
-                const isSelected = meetingType === type.id;
-                
-                return (
-                  <div 
-                    key={type.id}
-                    className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
-                      isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                    }`}
-                    onClick={() => setMeetingType(type.id)}
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <Icon className={`h-5 w-5 ${type.color}`} />
-                      <div>
-                        <div className="text-sm font-medium">{type.name}</div>
-                        <div className="text-xs text-muted-foreground">{type.description}</div>
-                      </div>
-                    </div>
-                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
-                      isSelected ? "border-primary bg-primary" : "border-gray-300"
-                    }`} />
-                  </div>
-                );
-              })}
-            </div>
-            {meetingType !== 'none' && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                {t('sessions.meetingLinkNote', "Note: Meeting link will be created using your coach's calendar integration.")}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Session Topic */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('sessions.discussTopic', 'What would you like to discuss?')}</CardTitle>
-            <CardDescription>{t('sessions.topicDescription', 'Brief topic to help me prepare for our session')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea 
-              placeholder={t('sessions.topicPlaceholder', 'e.g., Work anxiety and coping strategies')} 
-              value={sessionTopic} 
-              onChange={e => setSessionTopic(e.target.value)} 
-              className="w-full min-h-[100px]"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Conditions - Hidden on iOS native */}
-        {!isIOSNative && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('sessions.conditions', 'Session Conditions')}</CardTitle>
-              <CardDescription>{t('sessions.conditionsDescription', 'Please review and accept the terms for your 1-1 video session request.')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm font-medium mb-2">{t('sessions.details', 'Session Details')}:</p>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• {t('sessions.duration', 'Duration')}: {duration} {t('sessions.minutesShort', 'minutes')}</li>
-                    <li>• {t('sessions.price', 'Price')}: {sessionPrice ? `${sessionPrice.toFixed(2)} DKK` : (paymentRequired ? t('sessions.priceLoading', 'Price will be shown after loading...') : t('sessions.free', 'Free'))}</li>
-                    <li>• {t('sessions.cancellation', 'Cancellation')}: {t('sessions.cancellationNotice', '24 hours notice required')}</li>
-                  </ul>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="conditions" 
-                    checked={acceptedConditions} 
-                    onCheckedChange={async (checked) => {
-                      setAcceptedConditions(checked);
-                      // If payment is required and conditions are accepted, redirect to payment
-                      if (checked && paymentRequired && !paymentIntentId && sessionPrice) {
-                        await handlePayment();
-                      }
-                    }} 
-                  />
-                  <Label 
-                    htmlFor="conditions" 
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {paymentRequired && sessionPrice 
-                      ? t('sessions.acceptConditionsWithPrice', "I accept the conditions for the paid 1-1 session ({amount} DKK)", { amount: sessionPrice.toFixed(2) })
-                      : t('sessions.acceptConditions', "I accept the conditions for the paid 1-1 session")}
-                  </Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Payment Section - Hidden on iOS native */}
         {!isIOSNative && paymentRequired && (
           <Card className={paymentIntentId ? "border-green-500" : "border-orange-500"}>
@@ -1039,7 +813,7 @@ export default function BookSession() {
                 {paymentIntentId 
                   ? t('sessions.paymentCompletedMessage', "Payment completed! You can now book your session.")
                   : sessionPrice 
-                    ? t('sessions.paymentRequiredMessage', 'Payment of {amount} DKK is required before booking a 1-to-1 session. Click "Accept Conditions" above or the button below to proceed to payment.', { amount: sessionPrice.toFixed(2) })
+                    ? t('sessions.paymentRequiredMessage', 'Payment of {amount} DKK is required before booking a 1-to-1 session. Click the button below to proceed to payment.', { amount: sessionPrice.toFixed(2) })
                     : t('sessions.loadingPaymentInfo', "Loading payment information...")}
               </CardDescription>
             </CardHeader>
@@ -1087,8 +861,6 @@ export default function BookSession() {
             disabled={
               !selectedDate || 
               !selectedTime || 
-              !sessionTopic.trim() || 
-              (!isIOSNative && !acceptedConditions) || 
               isBooking || 
               (!isIOSNative && paymentRequired && !paymentIntentId) ||
               checkingPayment

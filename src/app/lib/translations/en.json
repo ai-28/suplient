@@ -103,6 +103,11 @@
             "saturday": "Saturday",
             "sunday": "Sunday"
         },
+        "actions": {
+            "save": "Save",
+            "saving": "Saving...",
+            "saveWorkingHours": "Save Working Hours"
+        },
         "note": "Note",
         "preview": "Preview",
         "notSpecified": "Not specified",
