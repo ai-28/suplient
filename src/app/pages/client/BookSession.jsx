@@ -551,7 +551,7 @@ export default function BookSession() {
 
     try {
       const sessionData = {
-        title: sessionTopic || t('sessions.sessionWith', 'Session with {name}', { name: coach.name }),
+        title: sessionTopic || t('sessions.sessionWith', 'Session with {name}').replace('{name}', coach.name),
         description: sessionTopic,
         sessionDate: selectedDate.toISOString().split('T')[0],
         sessionTime: selectedTime,
