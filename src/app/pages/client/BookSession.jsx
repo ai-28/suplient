@@ -584,7 +584,11 @@ export default function BookSession() {
               selected={selectedDate} 
               onSelect={setSelectedDate} 
               disabled={date => date < new Date()} 
-              className="rounded-md border" 
+              className="rounded-md border w-full md:w-fit" 
+              classNames={{
+                root: "w-full md:w-fit",
+                month: "w-full"
+              }}
             />
           </CardContent>
         </Card>
