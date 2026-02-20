@@ -539,7 +539,7 @@ export default function BookSession() {
     // On iOS native, skip payment check
     if (!isIOSNative && paymentRequired && !paymentIntentId) {
       if (sessionPrice) {
-        toast.info(t('sessions.completePayment', 'Please complete payment of {amount} DKK to book your session.', { amount: sessionPrice.toFixed(2) }));
+        toast.info(`Please complete payment of ${sessionPrice.toFixed(2)} DKK to book your session.`);
         await handlePayment();
       } else {
         toast.error(t('sessions.paymentPriceNotAvailable', "Payment is required but price information is not available. Please try again."));
@@ -577,7 +577,7 @@ export default function BookSession() {
         if (response.status === 402 && errorData.requiresPayment) {
           setIsBooking(false);
           if (sessionPrice) {
-            toast.info(t('sessions.completePayment', 'Please complete payment of {amount} DKK to book your session.', { amount: sessionPrice.toFixed(2) }));
+            toast.info(`Please complete payment of ${sessionPrice.toFixed(2)} DKK to book your session.`);
             await handlePayment();
           } else {
             toast.error(errorData.message || t('sessions.paymentRequiredBeforeBooking', 'Payment is required before booking'));
@@ -813,7 +813,7 @@ export default function BookSession() {
                 {paymentIntentId 
                   ? t('sessions.paymentCompletedMessage', "Payment completed! You can now book your session.")
                   : sessionPrice 
-                    ? t('sessions.paymentRequiredMessage', 'Payment of {amount} DKK is required before booking a 1-to-1 session. Click the button below to proceed to payment.', { amount: sessionPrice.toFixed(2) })
+                    ? `Payment of ${sessionPrice.toFixed(2)} DKK is required before booking a 1-to-1 session. Click the button below to proceed to payment.`
                     : t('sessions.loadingPaymentInfo', "Loading payment information...")}
               </CardDescription>
             </CardHeader>
@@ -838,7 +838,7 @@ export default function BookSession() {
                   ) : (
                     <>
                       <CreditCard className="h-4 w-4 mr-2" />
-                      {t('sessions.payAmount', 'Pay {amount} DKK', { amount: sessionPrice.toFixed(2) })}
+                      {`Pay ${sessionPrice.toFixed(2)} DKK`}
                     </>
                   )}
                 </Button>
