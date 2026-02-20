@@ -155,50 +155,50 @@ export function GroupTasksPanel({ groupId, memberCount }) {
                 {tasks.map((task) => {
                   const status = getTaskStatus(task, t);
                   return (
-                  <div 
-                    key={task.id}
-                    onClick={() => handleTaskClick(task)}
-                    className={`${isMobile ? 'p-2' : 'p-3'} bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer`}
-                  >
-                    <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{task.title}</h4>
-                        </div>
+                <div 
+                  key={task.id}
+                  onClick={() => handleTaskClick(task)}
+                  className={`${isMobile ? 'p-2' : 'p-3'} bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer`}
+                >
+                  <div className={isMobile ? 'space-y-1.5' : 'space-y-2'}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground font-medium break-words`}>{task.title}</h4>
+                      </div>
+                    </div>
+                    
+                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
+                      {task.description}
+                    </p>
+                    
+                    <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                      <div className="flex items-center gap-1">
+                        <Calendar className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                        <span className="text-muted-foreground break-words">{task.dueDate}</span>
                       </div>
                       
-                      <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground break-words`}>
-                        {task.description}
-                      </p>
-                      
-                      <div className={`flex items-center ${isMobile ? 'flex-wrap gap-1' : 'justify-between'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                        <div className="flex items-center gap-1">
-                          <Calendar className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-                          <span className="text-muted-foreground break-words">{task.dueDate}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-1">
-                          <Users className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-                          <span className="text-muted-foreground break-words">
-                            {task.completedCount}/{task.assignedCount}
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-1">
+                        <Users className={isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+                        <span className="text-muted-foreground break-words">
+                          {task.completedCount}/{task.assignedCount}
+                        </span>
                       </div>
+                    </div>
                       
                       <div className="flex items-center gap-2">
                         <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>
                           {status.label}
                         </Badge>
                       </div>
-                      
-                      <div className="w-full bg-muted rounded-full h-1.5">
-                        <div 
-                          className="bg-primary h-1.5 rounded-full transition-all" 
-                          style={{ width: `${(task.completedCount / task.assignedCount) * 100}%` }}
-                        />
-                      </div>
+                    
+                    <div className="w-full bg-muted rounded-full h-1.5">
+                      <div 
+                        className="bg-primary h-1.5 rounded-full transition-all" 
+                        style={{ width: `${(task.completedCount / task.assignedCount) * 100}%` }}
+                      />
                     </div>
                   </div>
+                </div>
                   );
                 })}
               </div>

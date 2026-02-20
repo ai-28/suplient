@@ -584,15 +584,15 @@ export default function BookSession() {
               selected={selectedDate} 
               onSelect={setSelectedDate} 
               disabled={date => date < new Date()} 
-              className="rounded-md border w-full md:w-fit [--cell-size:3.5rem] md:[--cell-size:2rem] p-2 md:p-3" 
+              className="rounded-md border w-full md:w-fit" 
               classNames={{
                 root: "w-full md:w-fit",
                 month: "w-full",
-                table: "w-full",
+                table: "w-full table-fixed",
                 weekdays: "w-full",
-                weekday: "flex-1 min-w-0",
+                weekday: "w-[calc(100%/7)] text-center",
                 week: "w-full",
-                day: "flex-1 min-w-0"
+                day: "w-[calc(100%/7)] p-0"
               }}
             />
           </CardContent>

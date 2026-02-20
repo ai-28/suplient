@@ -1884,29 +1884,29 @@ export default function Settings() {
             </Card>
           </div>
 
-          {/* Notification Settings */}
+        {/* Notification Settings */}
           <div className="lg:col-span-2 mt-6">
-            <Card className="card-standard">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-primary" />
-                  {t('settings.notifications.title', 'Notifications')}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">{t('settings.notifications.description', 'Choose what notifications you receive')}</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('settings.notifications.description', 'Receive notifications for messages, tasks, sessions, and updates')}
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={notificationsEnabled} 
-                    onCheckedChange={handleNotificationToggle}
-                  />
+          <Card className="card-standard">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                {t('settings.notifications.title', 'Notifications')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">{t('settings.notifications.description', 'Choose what notifications you receive')}</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>{t('settings.notifications.enable', 'Enable Notifications')}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('settings.notifications.description', 'Receive notifications for messages, tasks, sessions, and updates')}
+                  </p>
                 </div>
+                <Switch 
+                  checked={notificationsEnabled} 
+                  onCheckedChange={handleNotificationToggle}
+                />
+              </div>
                 
                 <Separator className="my-4" />
                 
@@ -1925,8 +1925,8 @@ export default function Settings() {
                     />
                   </div>
                 )}
-              </CardContent>
-            </Card>
+            </CardContent>
+          </Card>
           </div>
 
           {/* Logout Section */}

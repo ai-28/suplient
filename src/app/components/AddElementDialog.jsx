@@ -487,7 +487,7 @@ export function AddElementDialog({
             
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="taskDescription">{t('common.labels.description', 'Description')}</Label>
+              <Label htmlFor="taskDescription">{t('common.labels.description', 'Description')}</Label>
                 <div className="flex items-center gap-2">
                   <EmojiButton 
                     onEmojiSelect={(emoji) => handleEmojiSelect(emoji, taskDescriptionRef, setTaskDescription)}
@@ -511,15 +511,15 @@ export function AddElementDialog({
                 </div>
               </div>
               <div className="relative">
-                <Textarea
-                  id="taskDescription"
+              <Textarea
+                id="taskDescription"
                   ref={taskDescriptionRef}
-                  value={taskDescription}
-                  onChange={(e) => setTaskDescription(e.target.value)}
-                  placeholder={t('tasks.describeWhatNeedsToBeDone', 'Describe what needs to be done...')}
-                  rows={4}
+                value={taskDescription}
+                onChange={(e) => setTaskDescription(e.target.value)}
+                placeholder={t('tasks.describeWhatNeedsToBeDone', 'Describe what needs to be done...')}
+                rows={4}
                   className="pr-10"
-                />
+              />
               </div>
             </div>
           </div>
@@ -530,7 +530,7 @@ export function AddElementDialog({
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="messageText">{t('common.labels.message', 'Message')}</Label>
+              <Label htmlFor="messageText">{t('common.labels.message', 'Message')}</Label>
                 <div className="flex items-center gap-2">
                   <EmojiButton 
                     onEmojiSelect={(emoji) => handleEmojiSelect(emoji, messageTextareaRef, setMessageText)}
@@ -554,15 +554,15 @@ export function AddElementDialog({
                 </div>
               </div>
               <div className="relative">
-                <Textarea
-                  id="messageText"
+              <Textarea
+                id="messageText"
                   ref={messageTextareaRef}
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder={t('programs.enterMessageToClient', 'Enter the message to send to the client...')}
-                  rows={4}
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder={t('programs.enterMessageToClient', 'Enter the message to send to the client...')}
+                rows={4}
                   className="pr-10"
-                />
+              />
               </div>
             </div>
           </div>

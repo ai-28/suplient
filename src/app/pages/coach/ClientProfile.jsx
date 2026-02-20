@@ -1249,14 +1249,14 @@ export default function ClientProfile() {
                                     {task.title}
                                   </p>
                                   <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xs text-gray-500">
-                                      {task.dueDate ? parseAsUTC(task.dueDate).toLocaleDateString() : t('tasks.noDueDate', 'No due date')}
-                                    </span>
+                                  <span className="text-xs text-gray-500">
+                                    {task.dueDate ? parseAsUTC(task.dueDate).toLocaleDateString() : t('tasks.noDueDate', 'No due date')}
+                                  </span>
                                     <Badge variant={status.variant} className="text-[10px] h-4 px-1.5">
                                       {status.label}
                                     </Badge>
-                                  </div>
                                 </div>
+                              </div>
                               </div>
                               );
                             })

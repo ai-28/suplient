@@ -376,20 +376,20 @@ export default function ProgramEditor() {
     try {
       const dayElements = elements
         .filter(el => {
-          if (!el) return false;
-          
-          // Handle both scheduledDay (absolute day) and week/day format
-          if (el.scheduledDay !== undefined && el.scheduledDay !== null) {
-            return el.scheduledDay === selectedDay;
-          }
-          
-          if (el.week !== undefined && el.week !== null && 
-              el.day !== undefined && el.day !== null) {
-            const elementDay = ((el.week - 1) * 7) + el.day;
-            return elementDay === selectedDay;
-          }
-          
-          return false;
+        if (!el) return false;
+        
+        // Handle both scheduledDay (absolute day) and week/day format
+        if (el.scheduledDay !== undefined && el.scheduledDay !== null) {
+          return el.scheduledDay === selectedDay;
+        }
+        
+        if (el.week !== undefined && el.week !== null && 
+            el.day !== undefined && el.day !== null) {
+          const elementDay = ((el.week - 1) * 7) + el.day;
+          return elementDay === selectedDay;
+        }
+        
+        return false;
         })
         .map(el => {
           // Ensure both data and elementData are available for preview
@@ -399,7 +399,7 @@ export default function ProgramEditor() {
             elementData: el.data || el.elementData || {},
             data: el.data || el.elementData || {}
           };
-        });
+      });
       
       setPreviewElements(dayElements);
     } catch (error) {
@@ -593,7 +593,7 @@ export default function ProgramEditor() {
         router.push(pendingNavigation);
         setPendingNavigation(null);
       } else {
-        router.push('/coach/programs');
+      router.push('/coach/programs');
       }
     } catch (error) {
       console.error('Failed to update program:', error);
