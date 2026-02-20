@@ -508,7 +508,7 @@ export function UniversalChatInterface({
     : 0;
   
   return <div 
-    className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background ${borderClass} rounded-lg overflow-hidden ${className}`}
+    className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background rounded-lg overflow-hidden ${className}`}
     style={currentUserRole === "client" && isInScrollableContainer ? {
       // No negative margins needed - proper positioning context fixes the gap
       marginTop: '-20px',
