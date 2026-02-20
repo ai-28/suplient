@@ -260,6 +260,12 @@ export default function BookSession() {
       dayWorkingHours = workingHours.find(wh => wh.day === currentDayName);
     }
 
+    // If day is disabled in working hours, return empty slots immediately
+    if (dayWorkingHours && !dayWorkingHours.enabled) {
+      setAvailableTimes([]);
+      return;
+    }
+
     // Convert UTC to local for database sessions
     const utcToLocalParts = (dateStrUTC, timeHHMMUTC) => {
       try {
@@ -427,8 +433,23 @@ export default function BookSession() {
       return calendarOverlap;
     };
 
+    // Generate time slots from 01:00 to 23:30 (30-minute intervals)
+    const generateTimeSlots = () => {
+      const slots = [];
+      // Hours 1-22: each has :00 and :30
+      for (let hour = 1; hour < 23; hour++) {
+        slots.push(`${hour.toString().padStart(2, '0')}:00`);
+        slots.push(`${hour.toString().padStart(2, '0')}:30`);
+      }
+      // Hour 23: has :00 and :30
+      slots.push('23:00');
+      slots.push('23:30');
+      return slots;
+    };
+
+    const allTimeSlots = generateTimeSlots();
     const dur = parseInt(duration || '60', 10);
-    const slots = timeSlots.filter(t => {
+    const slots = allTimeSlots.filter(t => {
       const start = toMinutes(t);
       return !overlaps(start, dur);
     });
