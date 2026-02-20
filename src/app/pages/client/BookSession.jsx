@@ -578,22 +578,13 @@ export default function BookSession() {
             <CardTitle>{t('sessions.selectDate', 'Select Date')}</CardTitle>
             <CardDescription>{t('sessions.chooseDate', 'Choose your preferred date')}</CardDescription>
           </CardHeader>
-          <CardContent className="p-2 md:p-6">
+          <CardContent>
             <Calendar 
               mode="single" 
               selected={selectedDate} 
               onSelect={setSelectedDate} 
               disabled={date => date < new Date()} 
-              className="rounded-md border w-full md:w-fit" 
-              classNames={{
-                root: "w-full md:w-fit",
-                month: "w-full",
-                table: "w-full table-fixed",
-                weekdays: "w-full",
-                weekday: "w-[calc(100%/7)] text-center",
-                week: "w-full",
-                day: "w-[calc(100%/7)] p-0"
-              }}
+              className="rounded-md border" 
             />
           </CardContent>
         </Card>
