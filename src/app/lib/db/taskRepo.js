@@ -83,6 +83,7 @@ async function getTasksByClientId(clientId) {
                 t."createdAt",
                 t."updatedAt",
                 tc."completedAt",
+                tc."clientNotes",
                 CASE 
                     WHEN tc."completedAt" IS NOT NULL THEN true
                     ELSE false
@@ -113,13 +114,42 @@ async function getTasksByClientId(clientId) {
 
 async function getTasksByCoach(coachId) {
     try {
-        let query = sql`
-      SELECT *
-      FROM "Task"
-      WHERE "coachId" = ${coachId}
-    `;
+        // Get all tasks for the coach with client notes
+        // For client tasks, get notes from the specific client
+        // For group tasks, we'll get notes from all clients in the group
+        const result = await sql`
+            SELECT 
+                t.*,
+                -- Get client notes for client-specific tasks
+                CASE 
+                    WHEN t."clientId" IS NOT NULL THEN (
+                        SELECT tc."clientNotes"
+                        FROM "TaskCompletion" tc
+                        WHERE tc."taskId" = t.id 
+                        AND tc."clientId" = t."clientId"
+                        LIMIT 1
+                    )
+                    ELSE NULL
+                END as "clientNotes",
+                -- Get client ID for client tasks
+                t."clientId",
+                -- Get completion status for client tasks
+                CASE 
+                    WHEN t."clientId" IS NOT NULL THEN (
+                        SELECT tc."completedAt" IS NOT NULL
+                        FROM "TaskCompletion" tc
+                        WHERE tc."taskId" = t.id 
+                        AND tc."clientId" = t."clientId"
+                        LIMIT 1
+                    )
+                    ELSE false
+                END as "isCompleted"
+            FROM "Task" t
+            WHERE t."coachId" = ${coachId}
+            AND t.status != 'deleted'
+            ORDER BY t."createdAt" DESC
+        `;
 
-        const result = await query;
         return result;
     } catch (error) {
         console.error("Get tasks by coach error:", error);

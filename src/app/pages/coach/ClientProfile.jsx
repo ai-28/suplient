@@ -1245,9 +1245,14 @@ export default function ClientProfile() {
                                   }}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm">
+                                  <p className="text-sm font-medium">
                                     {task.title}
                                   </p>
+                                  {task.clientNotes && (
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                      {task.clientNotes}
+                                    </p>
+                                  )}
                                   <div className="flex items-center gap-2 mt-1">
                                   <span className="text-xs text-gray-500">
                                     {task.dueDate ? parseAsUTC(task.dueDate).toLocaleDateString() : t('tasks.noDueDate', 'No due date')}

@@ -64,24 +64,34 @@ const useResources = (t) => {
       
       // Determine preview type based on resource type
       let previewType = 'document';
+      let previewTypeLabel = 'document';
       if (resource.type === 'Video') {
         previewType = 'video';
+        previewTypeLabel = 'video';
       } else if (resource.type === 'Image') {
         previewType = 'image';
+        previewTypeLabel = 'image';
       } else if (resource.type === 'Audio' || resource.type === 'Sound') {
         previewType = 'audio';
+        previewTypeLabel = 'audio';
       } else if (resource.type === 'Article') {
         // Check if it's a PDF
         const fileName = resource.fileName || resource.title || '';
         const fileExtension = fileName.split('.').pop()?.toLowerCase();
-        previewType = fileExtension === 'pdf' ? 'pdf' : 'document';
+        if (fileExtension === 'pdf') {
+          previewType = 'pdf';
+          previewTypeLabel = 'PDF';
+        } else {
+          previewType = 'document';
+          previewTypeLabel = 'document';
+        }
       }
       
       // Set preview data
       setPreviewUrl(data.resource.url);
       setPreviewType(previewType);
       
-      toast.success(t('resources.openingPreview', 'Opening {type} preview...', { type: resource.type.toLowerCase() }));
+      toast.success(`Opening ${previewTypeLabel} preview...`);
     } catch (error) {
       console.error('Error accessing resource:', error);
       toast.error(error.message || t('resources.accessFailed', 'Failed to access resource'));

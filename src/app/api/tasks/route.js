@@ -81,6 +81,7 @@ export async function GET(request) {
                 t."createdAt",
                 t."updatedAt",
                 tc."completedAt",
+                tc."clientNotes",
                 CASE 
                     WHEN tc."completedAt" IS NOT NULL THEN true
                     ELSE false
@@ -118,6 +119,7 @@ export async function GET(request) {
             repetitiveFrequency: task.repetitiveFrequency,
             repetitiveCount: task.repetitiveCount,
             completedAt: task.completedAt,
+            clientNotes: task.clientNotes || null,
             createdAt: task.createdAt,
             updatedAt: task.updatedAt
         }));

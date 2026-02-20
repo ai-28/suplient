@@ -451,9 +451,54 @@ export default function ClientTasks() {
                           </div>
                         </div>
                         
-                        <p className="text-sm text-muted-foreground">
-                          {task.description}
-                        </p>
+                        {task.description && (
+                          <div className="text-sm text-muted-foreground leading-relaxed">
+                            {task.description.split('\n').map((line, index, array) => {
+                              const trimmedLine = line.trim();
+                              
+                              // Skip empty lines but preserve spacing
+                              if (!trimmedLine) {
+                                return <div key={index} className="h-2" />;
+                              }
+                              
+                              // Format bullet points (lines starting with - or •)
+                              if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
+                                const content = trimmedLine.substring(1).trim();
+                                return (
+                                  <div key={index} className="flex items-start gap-2 my-1.5 pl-1">
+                                    <span className="text-foreground mt-0.5 flex-shrink-0">•</span>
+                                    <span className="flex-1">{content}</span>
+                                  </div>
+                                );
+                              }
+                              
+                              // Format section headers (lines ending with ":" and short enough to be headers)
+                              if (trimmedLine.endsWith(':') && trimmedLine.length < 60 && !trimmedLine.startsWith('http')) {
+                                return (
+                                  <div key={index} className="font-semibold text-foreground mt-4 mb-2 first:mt-0">
+                                    {trimmedLine}
+                                  </div>
+                                );
+                              }
+                              
+                              // Format action items or emphasized text (lines starting with "Action" or similar)
+                              if (trimmedLine.toLowerCase().startsWith('action') || trimmedLine.toLowerCase().startsWith('note:')) {
+                                return (
+                                  <div key={index} className="mt-3 pt-2 border-t border-border/50">
+                                    <span className="font-medium text-foreground">{trimmedLine}</span>
+                                  </div>
+                                );
+                              }
+                              
+                              // Format regular content lines
+                              return (
+                                <div key={index} className="my-1.5">
+                                  {trimmedLine}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">

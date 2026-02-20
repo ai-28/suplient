@@ -545,9 +545,14 @@ export default function Tasks() {
                                 {t('tasks.clientTask', 'Client Task')}
                               </label>
                             </div>
-                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} truncate text-muted-foreground`}>
+                            <p className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
                               {task.title}
                             </p>
+                            {task.clientNotes && (
+                              <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1 line-clamp-2`}>
+                                {task.clientNotes}
+                              </p>
+                            )}
                             <div className={`flex items-center ${isMobile ? 'gap-1 mt-0.5' : 'gap-2 mt-1'}`}>
                               <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground`}>{formatTaskDueDate(task.dueDate, t)}</span>
                               <Badge variant={status.variant} className={`${isMobile ? 'text-[10px] h-3 px-1' : 'text-xs h-4 px-1.5'}`}>

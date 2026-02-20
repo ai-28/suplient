@@ -52,7 +52,7 @@ export async function getClientById(clientId, coachId) {
 
         const client = clientData[0];
 
-        // Fetch client's tasks
+        // Fetch client's tasks with completion status and notes
         const tasks = await sql`
             SELECT 
                 t.id,
@@ -61,9 +61,17 @@ export async function getClientById(clientId, coachId) {
                 t."dueDate",
                 t.status,
                 t."taskType",
-                t."createdAt"
+                t."createdAt",
+                tc."completedAt",
+                tc."clientNotes",
+                CASE 
+                    WHEN tc."completedAt" IS NOT NULL THEN true
+                    ELSE false
+                END as "isCompleted"
             FROM "Task" t
+            LEFT JOIN "TaskCompletion" tc ON t.id = tc."taskId" AND tc."clientId" = ${clientId}
             WHERE t."clientId" = ${clientId}
+            AND t.status != 'deleted'
             ORDER BY t."createdAt" DESC
             LIMIT 20
         `;
@@ -136,7 +144,8 @@ export async function getClientById(clientId, coachId) {
                 status: task.status,
                 taskType: task.taskType,
                 createdAt: task.createdAt,
-                completed: task.status === 'completed'
+                completed: task.isCompleted || task.status === 'completed',
+                clientNotes: task.clientNotes || null
             })),
             sessions: sessions.map(session => ({
                 id: session.id,
