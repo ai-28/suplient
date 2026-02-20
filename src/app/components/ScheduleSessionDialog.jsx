@@ -153,6 +153,12 @@ export function ScheduleSessionDialog({
         
         if (response.ok) {
           const data = await response.json();
+          console.log('[Coach Schedule] Fetched availability data:', {
+            workingHours: data.workingHours,
+            coachTimezone: data.coachTimezone,
+            eventsCount: data.events?.length || 0,
+            connected: data.connected
+          });
           setGoogleCalendarEvents(data.events || []);
           setCalendarConnected(data.connected || false);
           setWorkingHours(data.workingHours || null);
@@ -191,11 +197,25 @@ export function ScheduleSessionDialog({
 
         // Check if current day has working hours enabled
         let dayWorkingHours = null;
+        console.log('[Coach Schedule] Computing available times:', {
+          date: dateStr,
+          currentDayName,
+          workingHours,
+          workingHoursType: Array.isArray(workingHours) ? 'array' : typeof workingHours,
+          workingHoursLength: Array.isArray(workingHours) ? workingHours.length : 'N/A'
+        });
+        
         if (workingHours && Array.isArray(workingHours) && workingHours.length > 0) {
           dayWorkingHours = workingHours.find(wh => wh.day === currentDayName);
+          console.log('[Coach Schedule] Day working hours found:', {
+            dayWorkingHours,
+            currentDayName,
+            allDays: workingHours.map(wh => ({ day: wh.day, enabled: wh.enabled }))
+          });
           
           // If working hours are configured but this day is not found, treat as disabled
           if (!dayWorkingHours) {
+            console.log('[Coach Schedule] Day not found in working hours, returning empty slots');
             setAvailableTimes([]);
             setTimesLoading(false);
             return;
@@ -203,10 +223,13 @@ export function ScheduleSessionDialog({
           
           // If day is disabled in working hours, return empty slots immediately
           if (!dayWorkingHours.enabled) {
+            console.log('[Coach Schedule] Day is disabled in working hours, returning empty slots');
             setAvailableTimes([]);
             setTimesLoading(false);
             return;
           }
+        } else {
+          console.log('[Coach Schedule] No working hours configured, showing all slots');
         }
 
         // Convert stored UTC date/time to local date/time for comparison and overlap checks
@@ -301,6 +324,14 @@ export function ScheduleSessionDialog({
           // Only filter by working hours if they are configured and day is enabled
           // (We already checked for disabled days earlier, so if we get here and workingHours exist, day is enabled)
           if (workingHours && Array.isArray(workingHours) && workingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
+            console.log('[Coach Schedule] Filtering by working hours:', {
+              dayWorkingHours,
+              coachTZ,
+              viewerTZ,
+              slotStart: start,
+              slotEnd: end
+            });
+            
             // Convert working hours from coach's timezone to viewer's timezone
             const convertTimeToViewerTZ = (timeHHMM, fromTZ, toTZ, dateStr) => {
               try {
@@ -374,8 +405,19 @@ export function ScheduleSessionDialog({
             const workStart = toMinutes(workStartViewer);
             const workEnd = toMinutes(workEndViewer);
             
+            console.log('[Coach Schedule] Working hours check:', {
+              workStartViewer,
+              workEndViewer,
+              workStart,
+              workEnd,
+              slotStart: start,
+              slotEnd: end,
+              outsideWorkingHours: start < workStart || end > workEnd
+            });
+            
             // If session starts before working hours or ends after working hours
             if (start < workStart || end > workEnd) {
+              console.log('[Coach Schedule] Slot outside working hours, filtering out');
               return true; // Outside working hours
             }
           }
@@ -413,10 +455,25 @@ export function ScheduleSessionDialog({
 
         const allTimeSlots = generateTimeSlots();
         const dur = 60; // Fixed duration of 60 minutes
+        console.log('[Coach Schedule] Filtering time slots:', {
+          totalSlots: allTimeSlots.length,
+          dayWorkingHours,
+          coachTZ,
+          viewerTZ
+        });
+        
         const slots = allTimeSlots.filter(t => {
           const start = toMinutes(t);
-          return !overlaps(start, dur);
+          const isOverlap = overlaps(start, dur);
+          return !isOverlap;
         });
+        
+        console.log('[Coach Schedule] Available slots after filtering:', {
+          totalSlots: allTimeSlots.length,
+          availableSlots: slots.length,
+          slots: slots.slice(0, 10) // Show first 10 slots
+        });
+        
         setAvailableTimes(slots);
 
         // If current time is no longer valid, clear it

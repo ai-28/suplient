@@ -213,6 +213,13 @@ export default function BookSession() {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('[Client Book] Fetched availability data:', {
+            workingHours: data.workingHours,
+            coachTimezone: data.coachTimezone,
+            sessionsCount: data.coachSessions?.length || 0,
+            eventsCount: data.googleCalendarEvents?.length || 0,
+            connected: data.calendarConnected
+          });
           setCoachSessions(data.coachSessions || []);
           setGoogleCalendarEvents(data.googleCalendarEvents || []);
           setCalendarConnected(data.calendarConnected || false);
@@ -256,20 +263,39 @@ export default function BookSession() {
 
     // Check if current day has working hours enabled
     let dayWorkingHours = null;
+    console.log('[Client Book] Computing available times:', {
+      date: dateStr,
+      currentDayName,
+      workingHours,
+      workingHoursType: Array.isArray(workingHours) ? 'array' : typeof workingHours,
+      workingHoursLength: Array.isArray(workingHours) ? workingHours.length : 'N/A',
+      coachTZ,
+      viewerTZ
+    });
+    
     if (workingHours && Array.isArray(workingHours) && workingHours.length > 0) {
       dayWorkingHours = workingHours.find(wh => wh.day === currentDayName);
+      console.log('[Client Book] Day working hours found:', {
+        dayWorkingHours,
+        currentDayName,
+        allDays: workingHours.map(wh => ({ day: wh.day, enabled: wh.enabled }))
+      });
       
       // If working hours are configured but this day is not found, treat as disabled
       if (!dayWorkingHours) {
+        console.log('[Client Book] Day not found in working hours, returning empty slots');
         setAvailableTimes([]);
         return;
       }
       
       // If day is disabled in working hours, return empty slots immediately
       if (!dayWorkingHours.enabled) {
+        console.log('[Client Book] Day is disabled in working hours, returning empty slots');
         setAvailableTimes([]);
         return;
       }
+    } else {
+      console.log('[Client Book] No working hours configured, showing all slots');
     }
 
     // Convert UTC to local for database sessions
@@ -359,6 +385,14 @@ export default function BookSession() {
       // Only filter by working hours if they are configured and day is enabled
       // (We already checked for disabled days earlier, so if we get here and workingHours exist, day is enabled)
       if (workingHours && Array.isArray(workingHours) && workingHours.length > 0 && dayWorkingHours && dayWorkingHours.enabled) {
+        console.log('[Client Book] Filtering by working hours:', {
+          dayWorkingHours,
+          coachTZ,
+          viewerTZ,
+          slotStart: start,
+          slotEnd: end
+        });
+        
         // Convert working hours from coach's timezone to viewer's timezone
         const convertTimeToViewerTZ = (timeHHMM, fromTZ, toTZ, dateStr) => {
           try {
@@ -415,8 +449,19 @@ export default function BookSession() {
         const workStart = toMinutes(workStartViewer);
         const workEnd = toMinutes(workEndViewer);
         
+        console.log('[Client Book] Working hours check:', {
+          workStartViewer,
+          workEndViewer,
+          workStart,
+          workEnd,
+          slotStart: start,
+          slotEnd: end,
+          outsideWorkingHours: start < workStart || end > workEnd
+        });
+        
         // If session starts before working hours or ends after working hours
         if (start < workStart || end > workEnd) {
+          console.log('[Client Book] Slot outside working hours, filtering out');
           return true; // Outside working hours
         }
       }
@@ -454,9 +499,24 @@ export default function BookSession() {
 
     const allTimeSlots = generateTimeSlots();
     const dur = parseInt(duration || '60', 10);
+    console.log('[Client Book] Filtering time slots:', {
+      totalSlots: allTimeSlots.length,
+      dayWorkingHours,
+      coachTZ,
+      viewerTZ,
+      duration: dur
+    });
+    
     const slots = allTimeSlots.filter(t => {
       const start = toMinutes(t);
-      return !overlaps(start, dur);
+      const isOverlap = overlaps(start, dur);
+      return !isOverlap;
+    });
+
+    console.log('[Client Book] Available slots after filtering:', {
+      totalSlots: allTimeSlots.length,
+      availableSlots: slots.length,
+      slots: slots.slice(0, 10) // Show first 10 slots
     });
 
     setAvailableTimes(slots);
