@@ -201,7 +201,9 @@ async function seedTask() {
         "taskId" UUID NOT NULL REFERENCES "Task"(id) ON DELETE CASCADE,
         "clientId" UUID NOT NULL REFERENCES "Client"(id) ON DELETE CASCADE,
         "completedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "clientNotes" TEXT,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE("taskId", "clientId")
       );
     `;

@@ -161,7 +161,7 @@ export default function ClientLayout({ children }) {
             onClick={() => router.push('/client/tasks')}
           >
             <CheckCircle className={`h-6 w-6 ${isActiveRoute('/client/tasks') ? 'text-primary' : ''}`} />
-            <span className={`text-xs ${isActiveRoute('/client/tasks') ? 'text-primary font-medium' : ''}`}>{t('client.navigation.action', 'Action')}</span>
+            <span className={`text-xs ${isActiveRoute('/client/tasks') ? 'text-primary font-medium' : ''}`}>{t('client.navigation.task', 'Task')}</span>
           </Button>
           
           <Button 
@@ -170,7 +170,7 @@ export default function ClientLayout({ children }) {
             onClick={() => router.push('/client/resources')}
           >
             <Play className={`h-6 w-6 ${isActiveRoute('/client/resources') ? 'text-primary' : ''}`} />
-            <span className={`text-xs ${isActiveRoute('/client/resources') ? 'text-primary font-medium' : ''}`}>{t('client.navigation.explore', 'Explore')}</span>
+            <span className={`text-xs ${isActiveRoute('/client/resources') ? 'text-primary font-medium' : ''}`}>{t('client.navigation.library', 'Library')}</span>
           </Button>
         </div>
       </div>

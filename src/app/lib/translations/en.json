@@ -1589,8 +1589,8 @@
         "navigation": {
             "today": "Today",
             "chat": "Chat",
-            "action": "Action",
-            "explore": "Explore",
+            "task": "Task",
+            "library": "Library",
             "profile": "Profile",
             "signOut": "Sign Out"
         },

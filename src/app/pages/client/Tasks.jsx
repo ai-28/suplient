@@ -5,7 +5,8 @@ import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
-import { ArrowLeft, CheckCircle, Circle, Clock, Target, Calendar, AlertTriangle, ChevronDown } from "lucide-react";
+import { Textarea } from "@/app/components/ui/textarea";
+import { ArrowLeft, CheckCircle, Circle, Clock, Target, Calendar, AlertTriangle, ChevronDown, Save, Loader2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { TaskCelebration } from "@/app/components/TaskCelebration";
@@ -214,6 +215,8 @@ export default function ClientTasks() {
   const [filter, setFilter] = useState("open");
   const [expandedTasks, setExpandedTasks] = useState(new Set());
   const [showCelebration, setShowCelebration] = useState(false);
+  const [taskNotes, setTaskNotes] = useState({}); // Store notes for each task
+  const [savingNotes, setSavingNotes] = useState({}); // Track which tasks are being saved
   
   const { visibleTasks, filterTasks, taskStats, toggleTaskCompletion, isLoading, error } = useClientTasks();
   
@@ -255,14 +258,59 @@ export default function ClientTasks() {
     });
   };
 
-  const toggleTaskExpansion = (taskId) => {
+  const toggleTaskExpansion = async (taskId) => {
     const newExpanded = new Set(expandedTasks);
     if (newExpanded.has(taskId)) {
       newExpanded.delete(taskId);
     } else {
       newExpanded.add(taskId);
+      // Load existing notes when expanding
+      if (!taskNotes[taskId]) {
+        await loadTaskNotes(taskId);
+      }
     }
     setExpandedTasks(newExpanded);
+  };
+
+  const loadTaskNotes = async (taskId) => {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/notes`);
+      if (response.ok) {
+        const data = await response.json();
+        setTaskNotes(prev => ({
+          ...prev,
+          [taskId]: data.notes || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading task notes:', error);
+    }
+  };
+
+  const handleSaveNotes = async (taskId) => {
+    const notes = taskNotes[taskId] || '';
+    setSavingNotes(prev => ({ ...prev, [taskId]: true }));
+    
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/notes`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save notes');
+      }
+
+      toast.success(t('tasks.notesSaved', 'Notes saved successfully'));
+    } catch (error) {
+      console.error('Error saving notes:', error);
+      toast.error(t('tasks.notesSaveFailed', 'Failed to save notes'));
+    } finally {
+      setSavingNotes(prev => ({ ...prev, [taskId]: false }));
+    }
   };
 
   const filteredTasks = (() => {
@@ -435,21 +483,39 @@ export default function ClientTasks() {
                         
                         <CollapsibleContent className="space-y-3">
                           <div className="pt-2 border-t border-border">
-                            <div className="space-y-2">
-                              <p className="text-sm font-medium text-foreground">{t('tasks.details', 'Task Details')}</p>
-                              <div className="space-y-1 text-sm text-muted-foreground">
-                                {task.category && (
-                                  <div className="flex items-center gap-2">
-                                    <Target className="h-4 w-4" />
-                                    <span>{t('tasks.category', 'Category')}: {task.category}</span>
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-2">
-                                  <Target className="h-4 w-4" />
-                                  <span>{t('tasks.type', 'Type')}: {task.category === 'daily' ? t('tasks.dailyActivity', 'Daily Activity') : t('tasks.weeklyGoal', 'Weekly Goal')}</span>
-                                </div>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-sm font-medium text-foreground mb-2 block">
+                                  {t('tasks.writeNotes', 'Write your notes')}
+                                </label>
+                                <Textarea
+                                  value={taskNotes[task.id] || ''}
+                                  onChange={(e) => setTaskNotes(prev => ({
+                                    ...prev,
+                                    [task.id]: e.target.value
+                                  }))}
+                                  placeholder={t('tasks.notesPlaceholder', 'Write your thoughts, progress, or any notes about this task...')}
+                                  className="min-h-[100px] resize-none"
+                                />
+                                <Button
+                                  onClick={() => handleSaveNotes(task.id)}
+                                  disabled={savingNotes[task.id]}
+                                  className="mt-2 w-full"
+                                  size="sm"
+                                >
+                                  {savingNotes[task.id] ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      {t('tasks.saving', 'Saving...')}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Save className="h-4 w-4 mr-2" />
+                                      {t('tasks.saveNotes', 'Save Notes')}
+                                    </>
+                                  )}
+                                </Button>
                               </div>
-                              
                               
                               {/* Progress Note for Completed Tasks */}
                               {task.isCompleted && (

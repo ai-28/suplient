@@ -1672,8 +1672,8 @@
         "navigation": {
             "today": "I Dag",
             "chat": "Beskeder",
-            "action": "Handling",
-            "explore": "Udforsk",
+            "task": "Opgave",
+            "library": "Bibliotek",
             "profile": "Profil",
             "signOut": "Log Ud"
         },

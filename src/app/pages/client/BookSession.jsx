@@ -726,11 +726,6 @@ export default function BookSession() {
                   ))}
                 </SelectContent>
               </Select>
-              {coach?.timezone && selectedTimezone === coach.timezone && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t('sessions.usingCoachTimezone', "Using coach's timezone: {timezone}", { timezone: coach.timezone })}
-                </p>
-              )}
             </div>
           </CardContent>
         </Card>
