@@ -91,12 +91,30 @@ export async function GET(request) {
                 console.error('Error fetching Google Calendar events:', error);
             }
         }
+
+        // Get coach's working hours
+        let workingHours = null;
+        try {
+            const coachData = await sql`
+                SELECT "workingHours"
+                FROM "User"
+                WHERE id = ${actualCoachId} AND role = 'coach'
+                LIMIT 1
+            `;
+            if (coachData.length > 0 && coachData[0].workingHours) {
+                workingHours = coachData[0].workingHours;
+            }
+        } catch (error) {
+            // If workingHours column doesn't exist, ignore
+            console.log('Working hours not available:', error.message);
+        }
         
         return NextResponse.json({
             success: true,
             coachSessions: coachSessions,
             googleCalendarEvents: googleCalendarEvents,
-            calendarConnected: calendarConnected
+            calendarConnected: calendarConnected,
+            workingHours: workingHours
         });
     } catch (error) {
         console.error('Error fetching coach availability:', error);

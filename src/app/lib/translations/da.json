@@ -955,6 +955,17 @@
             "failedToProcessImage": "Kunne ikke behandle billede",
             "imageProcessError": "En uventet fejl opstod. Prøv venligst igen eller brug et andet billede."
         },
+        "integration": {
+            "title": "Mødeintegrationer",
+            "description": "Forbind din kalender og mødeplatforme for automatisk at oprette mødelinks ved planlægning af sessioner",
+            "defaultMeetingTypeUpdated": "Standard mødetype opdateret",
+            "workingHours": "Arbejdstimer",
+            "workingHoursDescription": "Indstil dine tilgængelige arbejdstimer. Klienter kan kun booke sessioner i disse tider.",
+            "startTime": "Start",
+            "endTime": "Slut",
+            "workingHoursSaved": "Arbejdstimer gemt succesfuldt",
+            "workingHoursSaveFailed": "Kunne ikke gemme arbejdstimer"
+        },
         "security": {
             "title": "Sikkerhed",
             "passwordAuth": "Adgangskode Autentificering",

@@ -1096,6 +1096,17 @@
             "imagePickError": "An unexpected error occurred. Please try again or use a different image.",
             "failedToProcessImage": "Failed to process image",
             "imageProcessError": "An unexpected error occurred. Please try again or use a different image."
+        },
+        "integration": {
+            "title": "Meeting Integrations",
+            "description": "Connect your calendar and meeting platforms to automatically create meeting links when scheduling sessions",
+            "defaultMeetingTypeUpdated": "Default meeting type updated",
+            "workingHours": "Working Hours",
+            "workingHoursDescription": "Set your available working hours. Clients can only book sessions during these times.",
+            "startTime": "Start",
+            "endTime": "End",
+            "workingHoursSaved": "Working hours saved successfully",
+            "workingHoursSaveFailed": "Failed to save working hours"
         }
     },
     "profile": {

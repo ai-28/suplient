@@ -100,6 +100,18 @@ export default function Settings() {
     return 'none';
   });
 
+  // Working hours state
+  const [workingHours, setWorkingHours] = useState([
+    { day: 'monday', enabled: true, startTime: '09:00', endTime: '17:00' },
+    { day: 'tuesday', enabled: true, startTime: '09:00', endTime: '17:00' },
+    { day: 'wednesday', enabled: true, startTime: '09:00', endTime: '17:00' },
+    { day: 'thursday', enabled: true, startTime: '09:00', endTime: '17:00' },
+    { day: 'friday', enabled: true, startTime: '09:00', endTime: '17:00' },
+    { day: 'saturday', enabled: false, startTime: '09:00', endTime: '17:00' },
+    { day: 'sunday', enabled: false, startTime: '09:00', endTime: '17:00' }
+  ]);
+  const [savingWorkingHours, setSavingWorkingHours] = useState(false);
+
   // Check existing integrations
   const checkExistingIntegrations = async () => {
     try {
@@ -793,6 +805,29 @@ export default function Settings() {
     fetchCoachData();
   }, [session?.user?.id]);
 
+  // Fetch working hours on component mount
+  useEffect(() => {
+    const fetchWorkingHours = async () => {
+      if (!session?.user?.id || session.user.role !== 'coach') {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/user/working-hours');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.workingHours) {
+            setWorkingHours(data.workingHours);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching working hours:', error);
+      }
+    };
+
+    fetchWorkingHours();
+  }, [session?.user?.id]);
+
   // Fetch subscription status
   const fetchSubscriptionStatus = async () => {
     if (!session?.user?.id || session.user.role !== 'coach') return;
@@ -1213,6 +1248,44 @@ export default function Settings() {
     } catch (error) {
       console.error('Error toggling web push notifications:', error);
       // Error toast is already shown by the hook
+    }
+  };
+
+  // Working hours handlers
+  const handleWorkingHoursChange = (dayIndex, field, value) => {
+    setWorkingHours(prev => {
+      const updated = [...prev];
+      updated[dayIndex] = {
+        ...updated[dayIndex],
+        [field]: value
+      };
+      return updated;
+    });
+  };
+
+  const handleSaveWorkingHours = async () => {
+    setSavingWorkingHours(true);
+    try {
+      const response = await fetch('/api/user/working-hours', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ workingHours }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(t('settings.integration.workingHoursSaved', 'Working hours saved successfully'));
+      } else {
+        throw new Error(data.error || 'Failed to save working hours');
+      }
+    } catch (error) {
+      console.error('Error saving working hours:', error);
+      toast.error(t('settings.integration.workingHoursSaveFailed', 'Failed to save working hours'));
+    } finally {
+      setSavingWorkingHours(false);
     }
   };
 
@@ -2078,6 +2151,85 @@ export default function Settings() {
                     );
                   });
                 })()}
+              </CardContent>
+            </Card>
+
+            {/* Working Hours */}
+            <Card className="card-standard">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  {t('settings.integration.workingHours', 'Working Hours')}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {t('settings.integration.workingHoursDescription', 'Set your available working hours. Clients can only book sessions during these times.')}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {workingHours.map((day, index) => {
+                  const dayLabels = {
+                    monday: t('common.days.monday', 'Monday'),
+                    tuesday: t('common.days.tuesday', 'Tuesday'),
+                    wednesday: t('common.days.wednesday', 'Wednesday'),
+                    thursday: t('common.days.thursday', 'Thursday'),
+                    friday: t('common.days.friday', 'Friday'),
+                    saturday: t('common.days.saturday', 'Saturday'),
+                    sunday: t('common.days.sunday', 'Sunday')
+                  };
+
+                  return (
+                    <div key={day.day} className="flex items-center gap-4 p-3 border rounded-lg">
+                      <div className="flex items-center gap-2 min-w-[120px]">
+                        <Switch
+                          checked={day.enabled}
+                          onCheckedChange={(checked) => handleWorkingHoursChange(index, 'enabled', checked)}
+                        />
+                        <Label className="font-medium">{dayLabels[day.day]}</Label>
+                      </div>
+                      {day.enabled && (
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Label className="text-sm text-muted-foreground min-w-[60px]">
+                              {t('settings.integration.startTime', 'Start')}
+                            </Label>
+                            <Input
+                              type="time"
+                              value={day.startTime}
+                              onChange={(e) => handleWorkingHoursChange(index, 'startTime', e.target.value)}
+                              className="w-[120px]"
+                            />
+                          </div>
+                          <span className="text-muted-foreground">-</span>
+                          <div className="flex items-center gap-2">
+                            <Label className="text-sm text-muted-foreground min-w-[60px]">
+                              {t('settings.integration.endTime', 'End')}
+                            </Label>
+                            <Input
+                              type="time"
+                              value={day.endTime}
+                              onChange={(e) => handleWorkingHoursChange(index, 'endTime', e.target.value)}
+                              className="w-[120px]"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <Button
+                  onClick={handleSaveWorkingHours}
+                  disabled={savingWorkingHours}
+                  className="w-full mt-4"
+                >
+                  {savingWorkingHours ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t('common.actions.saving', 'Saving...')}
+                    </>
+                  ) : (
+                    t('common.actions.save', 'Save Working Hours')
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
