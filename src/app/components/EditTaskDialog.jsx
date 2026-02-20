@@ -197,6 +197,18 @@ export function EditTaskDialog({ open, onOpenChange, task, onTaskUpdated }) {
               )}
             />
 
+            {/* Client Notes Display - Read Only */}
+            {task?.clientNotes && (
+              <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg">
+                <label className="text-sm font-medium text-primary mb-2 block">
+                  Client Notes
+                </label>
+                <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                  {task.clientNotes}
+                </p>
+              </div>
+            )}
+
             <FormField
               control={form.control}
               name="dueDate"

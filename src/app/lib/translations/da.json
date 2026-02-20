@@ -497,7 +497,14 @@
         "numberOfRepetitions": "Antal Gentagelser",
         "enterNumberOfRepetitions": "Indtast antal gentagelser...",
         "howManyTimesRepeated": "Hvor mange gange skal denne opgave gentages? (1-50)",
-        "nextDueDate": "Næste Forfaldsdato"
+        "nextDueDate": "Næste Forfaldsdato",
+        "clientNotes": "Klientnoter",
+        "writeNotes": "Skriv dine noter",
+        "notesPlaceholder": "Skriv dine tanker, fremskridt eller noter om denne opgave...",
+        "saveNotes": "Gem Noter",
+        "saving": "Gemmer...",
+        "notesSaved": "Noter gemt succesfuldt",
+        "notesSaveFailed": "Kunne ikke gemme noter"
     },
     "sessions": {
         "title": "Sessioner",

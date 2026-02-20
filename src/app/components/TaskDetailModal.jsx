@@ -92,6 +92,16 @@ export function TaskDetailModal({ open, onOpenChange, task, onToggleComplete, sh
             </div>
           )}
 
+          {/* Client Notes */}
+          {task.clientNotes && (
+            <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg">
+              <h3 className="text-sm font-medium mb-2 text-primary">{t('tasks.clientNotes', 'Client Notes')}</h3>
+              <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                {task.clientNotes}
+              </p>
+            </div>
+          )}
+
           {/* Task Details */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">

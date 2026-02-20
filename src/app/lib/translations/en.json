@@ -439,7 +439,14 @@
         "numberOfRepetitions": "Number of Repetitions",
         "enterNumberOfRepetitions": "Enter number of repetitions...",
         "howManyTimesRepeated": "How many times should this task be repeated? (1-50)",
-        "nextDueDate": "Next Due Date"
+        "nextDueDate": "Next Due Date",
+        "clientNotes": "Client Notes",
+        "writeNotes": "Write your notes",
+        "notesPlaceholder": "Write your thoughts, progress, or any notes about this task...",
+        "saveNotes": "Save Notes",
+        "saving": "Saving...",
+        "notesSaved": "Notes saved successfully",
+        "notesSaveFailed": "Failed to save notes"
     },
     "sessions": {
         "title": "Sessions",
