@@ -964,7 +964,9 @@
             "startTime": "Start",
             "endTime": "Slut",
             "workingHoursSaved": "Arbejdstimer gemt succesfuldt",
-            "workingHoursSaveFailed": "Kunne ikke gemme arbejdstimer"
+            "workingHoursSaveFailed": "Kunne ikke gemme arbejdstimer",
+            "timezone": "Tidszone",
+            "timezoneDescription": "Vælg tidszonen for dine arbejdstimer. Tider vil blive konverteret for klienter i forskellige tidszoner."
         },
         "security": {
             "title": "Sikkerhed",

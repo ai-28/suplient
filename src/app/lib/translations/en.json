@@ -1106,7 +1106,9 @@
             "startTime": "Start",
             "endTime": "End",
             "workingHoursSaved": "Working hours saved successfully",
-            "workingHoursSaveFailed": "Failed to save working hours"
+            "workingHoursSaveFailed": "Failed to save working hours",
+            "timezone": "Timezone",
+            "timezoneDescription": "Select the timezone for your working hours. Times will be converted for clients in different timezones."
         }
     },
     "profile": {

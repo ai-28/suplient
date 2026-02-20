@@ -48,6 +48,7 @@ import {
 import { PageHeader } from "@/app/components/PageHeader";
 import { useTranslation } from "@/app/context/LanguageContext";
 import { cn } from "@/app/lib/utils";
+import { timezones, getTimezoneOffset } from "@/app/lib/timezones";
 import { TwoFactorSettings } from "@/app/components/TwoFactorSettings";
 import { GoalHabitTemplateManager } from "@/app/components/GoalHabitTemplateManager";
 import { pickAvatarImage, convertHeicToJpeg, validateImageFile } from "@/lib/photoPicker";
@@ -805,8 +806,13 @@ export default function Settings() {
     fetchCoachData();
   }, [session?.user?.id]);
 
-  // Working hours timezone state
-  const [workingHoursTimezone, setWorkingHoursTimezone] = useState(null);
+  // Working hours timezone state - initialize with browser timezone
+  const [workingHoursTimezone, setWorkingHoursTimezone] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    }
+    return 'UTC';
+  });
 
   // Fetch working hours on component mount
   useEffect(() => {
@@ -828,7 +834,25 @@ export default function Settings() {
             } else {
               setWorkingHours(data.workingHours || []);
             }
-            setWorkingHoursTimezone(data.timezone || null);
+            // Set timezone if available, otherwise try to get from Google Calendar integration
+            if (data.timezone) {
+              setWorkingHoursTimezone(data.timezone);
+            } else {
+              // Try to get from Google Calendar integration
+              try {
+                const integrationResponse = await fetch('/api/integrations');
+                if (integrationResponse.ok) {
+                  const integrationData = await integrationResponse.json();
+                  const googleIntegration = integrationData.integrations?.find(i => i.platform === 'google_calendar');
+                  if (googleIntegration?.settings?.timeZone) {
+                    setWorkingHoursTimezone(googleIntegration.settings.timeZone);
+                  }
+                }
+              } catch (error) {
+                // Keep browser timezone as fallback
+                console.warn('Could not fetch integration timezone');
+              }
+            }
           }
         }
       } catch (error) {
@@ -1277,22 +1301,8 @@ export default function Settings() {
   const handleSaveWorkingHours = async () => {
     setSavingWorkingHours(true);
     try {
-      // Get coach's timezone from browser or Google Calendar integration
-      let coachTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-      
-      // Try to get from Google Calendar integration if available
-      try {
-        const integrationResponse = await fetch('/api/integrations');
-        if (integrationResponse.ok) {
-          const integrationData = await integrationResponse.json();
-          const googleIntegration = integrationData.integrations?.find(i => i.platform === 'google_calendar');
-          if (googleIntegration?.settings?.timeZone) {
-            coachTimezone = googleIntegration.settings.timeZone;
-          }
-        }
-      } catch (error) {
-        console.warn('Could not fetch integration timezone, using browser timezone');
-      }
+      // Use the selected timezone or fallback to browser timezone
+      const coachTimezone = workingHoursTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
       const response = await fetch('/api/user/working-hours', {
         method: 'PUT',
@@ -2197,6 +2207,47 @@ export default function Settings() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Timezone Selector */}
+                <div className="space-y-2 pb-4 border-b">
+                  <Label htmlFor="working-hours-timezone">
+                    {t('settings.integration.timezone', 'Timezone')}
+                  </Label>
+                  <Select 
+                    value={workingHoursTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'} 
+                    onValueChange={(value) => {
+                      setWorkingHoursTimezone(value);
+                    }}
+                  >
+                    <SelectTrigger id="working-hours-timezone">
+                      <SelectValue>
+                        {(() => {
+                          const currentTZ = workingHoursTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+                          const tz = timezones.find(tz => tz.value === currentTZ);
+                          if (!tz) return currentTZ;
+                          // Extract timezone name (part after offset, before closing paren)
+                          const match = tz.label.match(/\(([^)]+)\)/);
+                          return match ? `${match[1]} (${getTimezoneOffset(currentTZ)})` : `${tz.label} (${getTimezoneOffset(currentTZ)})`;
+                        })()}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {timezones.map(tz => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {(() => {
+                            // Extract timezone name (part after offset)
+                            const match = tz.label.match(/\(([^)]+)\)/);
+                            return match ? `${match[1]} (${tz.offset})` : `${tz.label} (${tz.offset})`;
+                          })()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.integration.timezoneDescription', 'Select the timezone for your working hours. Times will be converted for clients in different timezones.')}
+                  </p>
+                </div>
+
+                {/* Working Hours Days */}
                 {workingHours.map((day, index) => {
                   const dayLabels = {
                     monday: t('common.days.monday', 'Monday'),
