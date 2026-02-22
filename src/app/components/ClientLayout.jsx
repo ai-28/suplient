@@ -47,6 +47,60 @@ export default function ClientLayout({ children }) {
     }
   }, [isIOSNative]);
 
+  // Prevent horizontal scroll - ONLY in Capacitor apps (not web)
+  useEffect(() => {
+    // Check if running in Capacitor
+    const isCapacitor = typeof window !== 'undefined' && 
+                       window.Capacitor && 
+                       window.Capacitor.isNativePlatform && 
+                       window.Capacitor.isNativePlatform();
+    
+    // Only run in Capacitor apps
+    if (!isCapacitor) return;
+
+    const preventHorizontalScroll = () => {
+      // Force prevent horizontal scroll on all elements
+      document.documentElement.style.overflowX = 'hidden';
+      document.body.style.overflowX = 'hidden';
+      
+      // Find and fix any elements causing overflow
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach((el) => {
+        if (el instanceof HTMLElement) {
+          const computedStyle = window.getComputedStyle(el);
+          if (computedStyle.overflowX !== 'hidden' && computedStyle.overflowX !== 'clip') {
+            // Only fix elements that might cause horizontal scroll
+            if (el.scrollWidth > el.clientWidth && el.scrollWidth > window.innerWidth) {
+              el.style.overflowX = 'hidden';
+            }
+          }
+        }
+      });
+    };
+
+    // Run immediately
+    preventHorizontalScroll();
+
+    // Run on resize and scroll events
+    window.addEventListener('resize', preventHorizontalScroll);
+    window.addEventListener('scroll', preventHorizontalScroll);
+    
+    // Use MutationObserver to catch dynamically added content
+    const observer = new MutationObserver(preventHorizontalScroll);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+
+    return () => {
+      window.removeEventListener('resize', preventHorizontalScroll);
+      window.removeEventListener('scroll', preventHorizontalScroll);
+      observer.disconnect();
+    };
+  }, []);
+
   const isActiveRoute = (path) => pathname === path;
 
   // Conditional styles based on platform

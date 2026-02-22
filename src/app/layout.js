@@ -37,6 +37,80 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Prevent horizontal scroll in Capacitor apps ONLY (not web)
+              (function() {
+                if (typeof window === 'undefined') return;
+                
+                // Check if running in Capacitor (not web)
+                const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+                
+                // Only apply these fixes in Capacitor apps
+                if (!isCapacitor) return;
+                
+                // Force prevent horizontal scroll
+                document.documentElement.style.overflowX = 'hidden';
+                document.body.style.overflowX = 'hidden';
+                
+                // Add class to body for Capacitor-specific CSS
+                document.body.classList.add('capacitor-app');
+                
+                // Prevent horizontal scroll on touch move (but allow zoom)
+                let lastTouchX = 0;
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let isZooming = false;
+                
+                document.addEventListener('touchstart', function(e) {
+                  if (e.touches.length === 2) {
+                    isZooming = true; // Two fingers = zoom gesture
+                    return;
+                  }
+                  isZooming = false;
+                  touchStartX = e.touches[0].clientX;
+                  touchStartY = e.touches[0].clientY;
+                  lastTouchX = touchStartX;
+                }, { passive: true });
+                
+                document.addEventListener('touchmove', function(e) {
+                  // Don't interfere with zoom gestures
+                  if (isZooming || e.touches.length === 2) {
+                    return;
+                  }
+                  
+                  const touchX = e.touches[0].clientX;
+                  const touchY = e.touches[0].clientY;
+                  const deltaX = Math.abs(touchX - touchStartX);
+                  const deltaY = Math.abs(touchY - touchStartY);
+                  
+                  // Only prevent if horizontal movement is significantly more than vertical
+                  // This allows vertical scrolling and zooming
+                  if (deltaX > 20 && deltaX > deltaY * 1.5) {
+                    // Check if we're at the edge of horizontal scroll
+                    const element = e.target;
+                    if (element && (element.scrollLeft === 0 || 
+                        (element.scrollLeft + element.clientWidth >= element.scrollWidth - 1))) {
+                      e.preventDefault();
+                    }
+                  }
+                  lastTouchX = touchX;
+                }, { passive: false });
+                
+                // Continuously check and fix overflow (only in Capacitor)
+                setInterval(function() {
+                  if (document.documentElement.scrollWidth > window.innerWidth) {
+                    document.documentElement.style.overflowX = 'hidden';
+                  }
+                  if (document.body.scrollWidth > window.innerWidth) {
+                    document.body.style.overflowX = 'hidden';
+                  }
+                }, 100);
+              })();
+            `,
+          }}
+        />
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
         <meta name="application-name" content="Suplient" />
