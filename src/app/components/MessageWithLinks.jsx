@@ -73,16 +73,40 @@ export function MessageWithLinks({ messageText, className = "" }) {
         href={linkUrl}
         target={isFile ? undefined : "_blank"}
         rel={isFile ? undefined : "noopener noreferrer"}
-        className="underline font-medium cursor-pointer break-all"
-        style={{ color: '#001583' }}
+        className={`underline font-medium cursor-pointer break-all ${isMobile ? 'touch-manipulation' : ''}`}
+        style={{ 
+          color: '#001583',
+          ...(isMobile && {
+            WebkitTapHighlightColor: 'rgba(0, 21, 131, 0.2)',
+            touchAction: 'manipulation',
+            minHeight: '44px',
+            display: 'inline-block',
+            padding: '4px 0'
+          })
+        }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.opacity = '0.8';
+          if (!isMobile) {
+            e.currentTarget.style.opacity = '0.8';
+          }
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.opacity = '1';
+          if (!isMobile) {
+            e.currentTarget.style.opacity = '1';
+          }
+        }}
+        onTouchStart={(e) => {
+          if (isMobile) {
+            e.currentTarget.style.opacity = '0.7';
+          }
+        }}
+        onTouchEnd={(e) => {
+          if (isMobile) {
+            e.currentTarget.style.opacity = '1';
+          }
         }}
         onClick={(e) => {
           e.preventDefault();
+          e.stopPropagation();
           if (linkUrl) {
             if (isFile) {
               // Open in modal for file links

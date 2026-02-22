@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/app/components/ui/button';
 import { X } from 'lucide-react';
 
@@ -82,15 +83,28 @@ export function FilePreviewModal({
     ? `/api/library/preview?path=${encodeURIComponent(fileUrl)}`
     : previewUrl;
 
-  return (
+  // Use React portal for mobile to ensure it's at the root level
+  const modalContent = (
     <div 
       className={`fixed inset-0 bg-black/80 flex items-center justify-center ${isMobile ? 'z-[9999]' : 'z-50'} p-2`}
       onClick={() => onOpenChange(false)}
+      onTouchStart={(e) => {
+        // Prevent scrolling when touching the backdrop
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
       style={isMobile ? {
         paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))',
         paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',
         paddingLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
         paddingRight: 'calc(0.5rem + env(safe-area-inset-right, 0px))',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        touchAction: 'none',
       } : {}}
     >
       <div 
@@ -299,4 +313,11 @@ export function FilePreviewModal({
       </div>
     </div>
   );
+
+  // Use portal for mobile to ensure it renders at root level
+  if (isMobile && typeof window !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+
+  return modalContent;
 }
