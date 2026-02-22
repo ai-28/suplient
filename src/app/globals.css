@@ -271,6 +271,25 @@ All colors MUST be HSL.
       width: 100%;
     }
   }
+
+  /* Modal-specific: Prevent horizontal scroll in modals (common pattern in mobile apps) */
+  [role="dialog"],
+  .modal,
+  [data-modal] {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Ensure modal content containers don't overflow */
+  [role="dialog"] > *,
+  .modal > *,
+  [data-modal] > * {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
 }
 
 @layer components {

@@ -14,16 +14,28 @@ export function FilePreviewModal({
 }) {
   const [pdfError, setPdfError] = useState(false);
 
-  // Prevent body scroll when modal is open on mobile
+  // Prevent body scroll and horizontal overflow when modal is open on mobile
   useEffect(() => {
     if (open && isMobile) {
-      // Save current overflow style
-      const originalStyle = window.getComputedStyle(document.body).overflow;
+      // Save current overflow styles
+      const bodyOriginalOverflow = window.getComputedStyle(document.body).overflow;
+      const bodyOriginalOverflowX = window.getComputedStyle(document.body).overflowX;
+      const htmlOriginalOverflowX = window.getComputedStyle(document.documentElement).overflowX;
+      
+      // Lock body scroll and prevent horizontal overflow
       document.body.style.overflow = 'hidden';
+      document.body.style.overflowX = 'hidden';
+      document.documentElement.style.overflowX = 'hidden';
+      document.body.style.width = '100%';
+      document.body.style.maxWidth = '100%';
       
       return () => {
-        // Restore original overflow style
-        document.body.style.overflow = originalStyle;
+        // Restore original overflow styles
+        document.body.style.overflow = bodyOriginalOverflow;
+        document.body.style.overflowX = bodyOriginalOverflowX;
+        document.documentElement.style.overflowX = htmlOriginalOverflowX;
+        document.body.style.width = '';
+        document.body.style.maxWidth = '';
       };
     }
   }, [open, isMobile]);
@@ -86,6 +98,9 @@ export function FilePreviewModal({
   // Use React portal for mobile to ensure it's at the root level
   const modalContent = (
     <div 
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="file-preview-title"
       className={`fixed inset-0 bg-black/80 flex items-center justify-center ${isMobile ? 'z-[9999]' : 'z-50'} p-2`}
       onClick={() => onOpenChange(false)}
       onTouchStart={(e) => {
@@ -104,7 +119,11 @@ export function FilePreviewModal({
         left: 0,
         right: 0,
         bottom: 0,
-        touchAction: 'none',
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'hidden',
+        overflowY: 'hidden',
+        touchAction: 'pan-y pinch-zoom', // Allow vertical scroll and zoom, but prevent horizontal
       } : {}}
     >
       <div 
@@ -112,15 +131,18 @@ export function FilePreviewModal({
         onClick={(e) => e.stopPropagation()}
         style={isMobile ? {
           maxHeight: 'calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
-          maxWidth: 'calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
-          width: 'calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
+          // Use 100% instead of 100vw to avoid scrollbar width issues
+          maxWidth: 'calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
+          width: 'calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
           overflowX: 'hidden',
+          overflowY: 'auto',
           wordWrap: 'break-word',
           overflowWrap: 'break-word',
+          minWidth: 0, // Important for flex items to shrink below content size
         } : {}}
       >
         <div className={`flex items-center justify-between p-4 border-b flex-shrink-0`}>
-          <h3 className={`text-lg font-semibold break-words flex-1 pr-2`} style={{ color: '#1A2D4D' }}>
+          <h3 id="file-preview-title" className={`text-lg font-semibold break-words flex-1 pr-2`} style={{ color: '#1A2D4D' }}>
             {fileName || 'Preview'}
           </h3>
           <Button 
@@ -141,8 +163,12 @@ export function FilePreviewModal({
           className={`p-4 flex-1 overflow-y-auto`} 
           style={isMobile ? { 
             overflowX: 'hidden',
+            overflowY: 'auto',
             wordWrap: 'break-word',
             overflowWrap: 'break-word',
+            minWidth: 0, // Important for flex items
+            width: '100%',
+            maxWidth: '100%',
           } : {}}
         >
           {previewType === 'images' ? (
