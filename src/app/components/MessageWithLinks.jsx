@@ -1,12 +1,19 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FilePreviewModal } from './FilePreviewModal';
+import { isNative } from '@/lib/capacitor';
 
 // Component to render message text with clickable links
 // Parses markdown-style links: [text](url) and renders only the text as clickable
 export function MessageWithLinks({ messageText, className = "" }) {
   const [previewFile, setPreviewFile] = useState({ url: null, name: null });
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if running on native mobile (iOS/Android Capacitor)
+  useEffect(() => {
+    setIsMobile(isNative());
+  }, []);
 
   if (!messageText) return null;
   
@@ -117,6 +124,7 @@ export function MessageWithLinks({ messageText, className = "" }) {
         }}
         fileUrl={previewFile.url}
         fileName={previewFile.name}
+        isMobile={isMobile}
       />
     </>
   );

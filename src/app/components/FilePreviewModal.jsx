@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/app/components/ui/button';
+import { X } from 'lucide-react';
 
 export function FilePreviewModal({ 
   open, 
@@ -11,6 +12,20 @@ export function FilePreviewModal({
   isMobile = false 
 }) {
   const [pdfError, setPdfError] = useState(false);
+
+  // Prevent body scroll when modal is open on mobile
+  useEffect(() => {
+    if (open && isMobile) {
+      // Save current overflow style
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // Restore original overflow style
+        document.body.style.overflow = originalStyle;
+      };
+    }
+  }, [open, isMobile]);
 
   if (!open || !fileUrl) return null;
 
@@ -69,31 +84,41 @@ export function FilePreviewModal({
 
   return (
     <div 
-      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2"
+      className={`fixed inset-0 bg-black/80 flex items-center justify-center ${isMobile ? 'z-[9999]' : 'z-50'} p-2`}
       onClick={() => onOpenChange(false)}
+      style={isMobile ? {
+        paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',
+        paddingLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
+        paddingRight: 'calc(0.5rem + env(safe-area-inset-right, 0px))',
+      } : {}}
     >
       <div 
-        className={`bg-background rounded-lg ${isMobile ? 'max-w-full' : 'max-w-4xl'} max-h-[90vh] w-full overflow-hidden`}
+        className={`bg-background rounded-lg max-w-4xl max-h-[90vh] w-full flex flex-col overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
+        style={isMobile ? {
+          maxHeight: 'calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+        } : {}}
       >
-        <div className={`flex items-center justify-between ${isMobile ? 'p-2' : 'p-4'} border-b`}>
-          <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold break-words`} style={{ color: '#1A2D4D' }}>
+        <div className={`flex items-center justify-between p-4 border-b flex-shrink-0`}>
+          <h3 className={`text-lg font-semibold break-words flex-1 pr-2`} style={{ color: '#1A2D4D' }}>
             {fileName || 'Preview'}
           </h3>
           <Button 
             variant="ghost" 
-            size={isMobile ? "sm" : "sm"}
-            className={isMobile ? 'h-6 w-6 p-0' : ''}
+            size="sm"
+            className="hover:bg-muted"
             style={{ color: '#1A2D4D' }}
             onClick={() => {
               setPdfError(false);
               onOpenChange(false);
             }}
+            aria-label="Close"
           >
-            ✕
+            <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className={isMobile ? 'p-2' : 'p-4'}>
+        <div className={`p-4 flex-1 overflow-y-auto`}>
           {previewType === 'images' ? (
             <div>
               <img 
@@ -161,20 +186,20 @@ export function FilePreviewModal({
             />
           ) : previewType === 'pdf' ? (
             <div>
-              <div className={isMobile ? 'mb-2' : 'mb-4'}>
+              <div className="mb-4">
                 {pdfError ? (
                   <div className="text-center py-8">
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} mb-4`} style={{ color: '#1A2D4D' }}>
+                    <p className="text-sm mb-4" style={{ color: '#1A2D4D' }}>
                       PDF preview failed to load in iframe
                     </p>
-                    <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} mb-4`} style={{ color: '#1A2D4D' }}>
+                    <p className="text-xs mb-4" style={{ color: '#1A2D4D' }}>
                       This may be due to browser security settings. Please use the button below to open in a new tab.
                     </p>
                   </div>
                 ) : (
                   <iframe
                     src={previewUrl}
-                    className={`w-full ${isMobile ? 'h-[50vh]' : 'h-[60vh]'} border rounded`}
+                    className="w-full h-[60vh] border rounded"
                     title="PDF Preview"
                     onLoad={() => {
                       setPdfError(false);
@@ -189,8 +214,8 @@ export function FilePreviewModal({
                 {pdfError && (
                   <Button 
                     variant="outline" 
-                    className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
-                    size={isMobile ? "sm" : "default"}
+                    className="w-full"
+                    size="default"
                     style={{ color: '#1A2D4D' }}
                     onClick={() => {
                       setPdfError(false);
@@ -204,8 +229,8 @@ export function FilePreviewModal({
                 )}
                 <Button 
                   variant="outline" 
-                  className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
-                  size={isMobile ? "sm" : "default"}
+                  className="w-full"
+                  size="default"
                   style={{ color: '#1A2D4D' }}
                   onClick={() => {
                     window.open(previewUrl, '_blank');
@@ -217,21 +242,21 @@ export function FilePreviewModal({
             </div>
           ) : previewType === 'document' ? (
             <div>
-              <div className={isMobile ? 'mb-2' : 'mb-4'}>
-                <div className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
-                  <p className={`${isMobile ? 'text-xs' : 'text-sm'} mb-2 break-words`} style={{ color: '#1A2D4D' }}>
+              <div className="mb-4">
+                <div className="text-center py-8">
+                  <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
                     Document preview not available
                   </p>
-                  <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} mb-2 break-words`} style={{ color: '#1A2D4D' }}>
+                  <p className="text-xs mb-2 break-words" style={{ color: '#1A2D4D' }}>
                     This file type cannot be previewed inline. Please download or open in a new tab.
                   </p>
                 </div>
               </div>
-              <div className={isMobile ? 'space-y-2' : 'space-y-3'}>
+              <div className="space-y-3">
                 <Button 
                   variant="outline" 
-                  className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
-                  size={isMobile ? "sm" : "default"}
+                  className="w-full"
+                  size="default"
                   style={{ color: '#1A2D4D' }}
                   onClick={() => {
                     window.open(previewUrl, '_blank');
@@ -242,8 +267,8 @@ export function FilePreviewModal({
                 {fileUrl.startsWith('http://') || fileUrl.startsWith('https://') ? (
                   <Button 
                     variant="outline" 
-                    className={`w-full ${isMobile ? 'text-xs h-8' : ''}`}
-                    size={isMobile ? "sm" : "default"}
+                    className="w-full"
+                    size="default"
                     style={{ color: '#1A2D4D' }}
                     onClick={() => {
                       window.open(fileUrl, '_blank');
@@ -255,14 +280,14 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : (
-            <div className={`text-center ${isMobile ? 'py-4' : 'py-8'}`}>
-              <p className={`${isMobile ? 'text-xs' : 'text-sm'} mb-2 break-words`} style={{ color: '#1A2D4D' }}>
+            <div className="text-center py-8">
+              <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
                 Preview not available for this file type
               </p>
               <Button 
                 variant="outline" 
-                className={`mt-4 ${isMobile ? 'text-xs h-8' : ''}`}
-                size={isMobile ? "sm" : "default"}
+                className="mt-4"
+                size="default"
                 style={{ color: '#1A2D4D' }}
                 onClick={() => window.open(fileUrl, '_blank')}
               >
