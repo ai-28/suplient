@@ -15,6 +15,7 @@ export function FilePreviewModal({
   const [pdfError, setPdfError] = useState(false);
 
   // Prevent body scroll and horizontal overflow when modal is open on mobile
+  // Also handle zoom changes to maintain proper layout
   useEffect(() => {
     if (open && isMobile) {
       // Save current overflow styles
@@ -29,6 +30,16 @@ export function FilePreviewModal({
       document.body.style.width = '100%';
       document.body.style.maxWidth = '100%';
       
+      // Handle zoom changes - ensure no horizontal scroll even when zoomed
+      const handleResize = () => {
+        // Re-check overflow when viewport changes (zoom)
+        document.body.style.overflowX = 'hidden';
+        document.documentElement.style.overflowX = 'hidden';
+      };
+      
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
+      
       return () => {
         // Restore original overflow styles
         document.body.style.overflow = bodyOriginalOverflow;
@@ -36,6 +47,8 @@ export function FilePreviewModal({
         document.documentElement.style.overflowX = htmlOriginalOverflowX;
         document.body.style.width = '';
         document.body.style.maxWidth = '';
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
       };
     }
   }, [open, isMobile]);
@@ -130,8 +143,9 @@ export function FilePreviewModal({
         className={`bg-background rounded-lg max-w-4xl max-h-[90vh] w-full flex flex-col overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
         style={isMobile ? {
+          // Use 100% instead of 100vw to work correctly with zoom
+          // When zoomed, 100vw includes the zoomed viewport, but 100% scales correctly
           maxHeight: 'calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
-          // Use 100% instead of 100vw to avoid scrollbar width issues
           maxWidth: 'calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
           width: 'calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
           overflowX: 'hidden',
@@ -139,6 +153,8 @@ export function FilePreviewModal({
           wordWrap: 'break-word',
           overflowWrap: 'break-word',
           minWidth: 0, // Important for flex items to shrink below content size
+          // Ensure modal adapts to zoom level
+          boxSizing: 'border-box',
         } : {}}
       >
         <div className={`flex items-center justify-between p-4 border-b flex-shrink-0`}>
@@ -172,7 +188,7 @@ export function FilePreviewModal({
           } : {}}
         >
           {previewType === 'images' ? (
-            <div style={isMobile ? { width: '100%', overflow: 'hidden' } : {}}>
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden', overflowX: 'hidden' } : {}}>
               <img 
                 src={previewUrl}
                 alt="Preview"
@@ -181,7 +197,8 @@ export function FilePreviewModal({
                   width: '100%', 
                   height: 'auto',
                   maxWidth: '100%',
-                  objectFit: 'contain'
+                  objectFit: 'contain',
+                  display: 'block'
                 } : {}}
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -201,7 +218,7 @@ export function FilePreviewModal({
               />
             </div>
           ) : previewType === 'videos' ? (
-            <div style={isMobile ? { width: '100%', overflow: 'hidden' } : {}}>
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden', overflowX: 'hidden' } : {}}>
               <video 
                 src={previewUrl}
                 controls
@@ -209,7 +226,8 @@ export function FilePreviewModal({
                 style={isMobile ? { 
                   width: '100%', 
                   height: 'auto',
-                  maxWidth: '100%'
+                  maxWidth: '100%',
+                  display: 'block'
                 } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
@@ -229,64 +247,73 @@ export function FilePreviewModal({
             />
             </div>
           ) : previewType === 'sounds' ? (
-            <audio 
-              src={previewUrl}
-              controls
-              className="w-full"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                const fallback = document.createElement('div');
-                fallback.className = 'text-center py-8';
-                fallback.innerHTML = `
-                  <p class="mb-4" style="color: #1A2D4D;">Audio failed to load</p>
-                  <button 
-                    class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                    onclick="window.open('${fileUrl}', '_blank')"
-                  >
-                    Open in New Tab
-                  </button>
-                `;
-                e.target.parentNode.appendChild(fallback);
-              }}
-            />
+            <div style={isMobile ? { width: '100%', overflow: 'hidden', maxWidth: '100%' } : {}}>
+              <audio 
+                src={previewUrl}
+                controls
+                className="w-full"
+                style={isMobile ? { 
+                  width: '100%', 
+                  maxWidth: '100%'
+                } : {}}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  const fallback = document.createElement('div');
+                  fallback.className = 'text-center py-8';
+                  fallback.innerHTML = `
+                    <p class="mb-4" style="color: #1A2D4D;">Audio failed to load</p>
+                    <button 
+                      class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                      onclick="window.open('${fileUrl}', '_blank')"
+                    >
+                      Open in New Tab
+                    </button>
+                  `;
+                  e.target.parentNode.appendChild(fallback);
+                }}
+              />
+            </div>
           ) : previewType === 'pdf' ? (
-            <div>
-              <div className="mb-4">
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflowX: 'hidden' } : {}}>
+              <div className="mb-4" style={isMobile ? { width: '100%', maxWidth: '100%', overflowX: 'hidden' } : {}}>
                 {pdfError ? (
-                  <div className="text-center py-8">
-                    <p className="text-sm mb-4" style={{ color: '#1A2D4D' }}>
+                  <div className="text-center py-8" style={isMobile ? { width: '100%', maxWidth: '100%' } : {}}>
+                    <p className="text-sm mb-4 break-words" style={{ color: '#1A2D4D' }}>
                       PDF preview failed to load in iframe
                     </p>
-                    <p className="text-xs mb-4" style={{ color: '#1A2D4D' }}>
+                    <p className="text-xs mb-4 break-words" style={{ color: '#1A2D4D' }}>
                       This may be due to browser security settings. Please use the button below to open in a new tab.
                     </p>
                   </div>
                 ) : (
-                  <iframe
-                    src={previewUrl}
-                    className="w-full h-[60vh] border rounded"
-                    title="PDF Preview"
-                    style={isMobile ? { 
-                      maxWidth: '100%',
-                      width: '100%',
-                      overflow: 'hidden'
-                    } : {}}
-                    onLoad={() => {
-                      setPdfError(false);
-                    }}
-                    onError={() => {
-                      setPdfError(true);
-                    }}
-                  />
+                  <div style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden' } : {}}>
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-[60vh] border rounded"
+                      title="PDF Preview"
+                      style={isMobile ? { 
+                        maxWidth: '100%',
+                        width: '100%',
+                        overflow: 'hidden',
+                        border: 'none'
+                      } : {}}
+                      onLoad={() => {
+                        setPdfError(false);
+                      }}
+                      onError={() => {
+                        setPdfError(true);
+                      }}
+                    />
+                  </div>
                 )}
               </div>
-              <div className="text-center space-y-2">
+              <div className="text-center space-y-2" style={isMobile ? { width: '100%', maxWidth: '100%' } : {}}>
                 {pdfError && (
                   <Button 
                     variant="outline" 
                     className="w-full"
                     size="default"
-                    style={{ color: '#1A2D4D' }}
+                    style={{ color: '#1A2D4D', width: '100%', maxWidth: '100%' }}
                     onClick={() => {
                       setPdfError(false);
                       // Try preview API as fallback
@@ -301,7 +328,7 @@ export function FilePreviewModal({
                   variant="outline" 
                   className="w-full"
                   size="default"
-                  style={{ color: '#1A2D4D' }}
+                  style={{ color: '#1A2D4D', width: '100%', maxWidth: '100%' }}
                   onClick={() => {
                     window.open(previewUrl, '_blank');
                   }}
@@ -311,9 +338,9 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : previewType === 'document' ? (
-            <div>
-              <div className="mb-4">
-                <div className="text-center py-8">
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflowX: 'hidden' } : {}}>
+              <div className="mb-4" style={isMobile ? { width: '100%', maxWidth: '100%' } : {}}>
+                <div className="text-center py-8" style={isMobile ? { width: '100%', maxWidth: '100%' } : {}}>
                   <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
                     Document preview not available
                   </p>
@@ -322,12 +349,12 @@ export function FilePreviewModal({
                   </p>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3" style={isMobile ? { width: '100%', maxWidth: '100%' } : {}}>
                 <Button 
                   variant="outline" 
                   className="w-full"
                   size="default"
-                  style={{ color: '#1A2D4D' }}
+                  style={{ color: '#1A2D4D', width: '100%', maxWidth: '100%' }}
                   onClick={() => {
                     window.open(previewUrl, '_blank');
                   }}
@@ -339,7 +366,7 @@ export function FilePreviewModal({
                     variant="outline" 
                     className="w-full"
                     size="default"
-                    style={{ color: '#1A2D4D' }}
+                    style={{ color: '#1A2D4D', width: '100%', maxWidth: '100%' }}
                     onClick={() => {
                       window.open(fileUrl, '_blank');
                     }}
@@ -350,7 +377,7 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : (
-            <div className="text-center py-8">
+            <div className="text-center py-8" style={isMobile ? { width: '100%', maxWidth: '100%', overflowX: 'hidden' } : {}}>
               <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
                 Preview not available for this file type
               </p>
@@ -358,7 +385,7 @@ export function FilePreviewModal({
                 variant="outline" 
                 className="mt-4"
                 size="default"
-                style={{ color: '#1A2D4D' }}
+                style={{ color: '#1A2D4D', width: isMobile ? '100%' : 'auto', maxWidth: isMobile ? '100%' : 'none' }}
                 onClick={() => window.open(fileUrl, '_blank')}
               >
                 Open in New Tab
