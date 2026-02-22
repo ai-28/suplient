@@ -105,14 +105,22 @@ export function FilePreviewModal({
         right: 0,
         bottom: 0,
         touchAction: 'none',
+        overflow: 'hidden', // Prevent backdrop from scrolling
       } : {}}
     >
       <div 
-        className={`bg-background rounded-lg max-w-4xl max-h-[90vh] w-full flex flex-col overflow-hidden`}
+        className={`bg-background rounded-lg max-w-4xl max-h-[90vh] flex flex-col overflow-hidden ${isMobile ? '' : 'w-full'}`}
         onClick={(e) => e.stopPropagation()}
         style={isMobile ? {
-          maxHeight: 'calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
-        } : {}}
+          maxHeight: 'calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1rem)',
+          width: 'calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
+          maxWidth: 'min(896px, calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)))',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
+          overflowY: 'hidden',
+        } : {
+          width: '100%',
+        }}
       >
         <div className={`flex items-center justify-between p-4 border-b flex-shrink-0`}>
           <h3 className={`text-lg font-semibold break-words flex-1 pr-2`} style={{ color: '#1A2D4D' }}>
@@ -132,13 +140,27 @@ export function FilePreviewModal({
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className={`p-4 flex-1 overflow-y-auto`}>
+        <div 
+          className={`p-4 flex-1 overflow-y-auto`}
+          style={isMobile ? {
+            overflowX: 'hidden',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
+            minWidth: 0, // Important for flex items to shrink
+            maxWidth: '100%',
+          } : {}}
+        >
           {previewType === 'images' ? (
             <div>
               <img 
                 src={previewUrl}
                 alt="Preview"
                 className="max-w-full max-h-[70vh] object-contain mx-auto"
+                style={isMobile ? {
+                  width: '100%',
+                  height: 'auto',
+                  maxWidth: '100%',
+                } : {}}
                 onError={(e) => {
                   e.target.style.display = 'none';
                   const fallback = document.createElement('div');
@@ -161,6 +183,11 @@ export function FilePreviewModal({
               src={previewUrl}
               controls
               className="max-w-full max-h-[70vh] mx-auto"
+              style={isMobile ? {
+                width: '100%',
+                height: 'auto',
+                maxWidth: '100%',
+              } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -182,6 +209,10 @@ export function FilePreviewModal({
               src={previewUrl}
               controls
               className="w-full"
+              style={isMobile ? {
+                width: '100%',
+                maxWidth: '100%',
+              } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -215,6 +246,11 @@ export function FilePreviewModal({
                     src={previewUrl}
                     className="w-full h-[60vh] border rounded"
                     title="PDF Preview"
+                    style={isMobile ? {
+                      width: '100%',
+                      maxWidth: '100%',
+                      border: 'none',
+                    } : {}}
                     onLoad={() => {
                       setPdfError(false);
                     }}
