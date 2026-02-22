@@ -14,6 +14,66 @@ export function FilePreviewModal({
 }) {
   const [pdfError, setPdfError] = useState(false);
 
+  // Function to inject styles into iframe content to prevent overflow
+  const injectIframeStyles = (iframe) => {
+    try {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (iframeDoc) {
+        // Check if styles already injected
+        if (iframeDoc.getElementById('modal-overflow-prevention')) {
+          return;
+        }
+        
+        const style = iframeDoc.createElement('style');
+        style.id = 'modal-overflow-prevention';
+        style.textContent = `
+          * {
+            max-width: 100% !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            box-sizing: border-box !important;
+          }
+          body {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+            padding: 1rem !important;
+            margin: 0 !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+          }
+          p, div, span, h1, h2, h3, h4, h5, h6, pre, code {
+            max-width: 100% !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            white-space: normal !important;
+            overflow-x: hidden !important;
+          }
+          img, video, audio, iframe, object, embed {
+            max-width: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            box-sizing: border-box !important;
+          }
+          table {
+            max-width: 100% !important;
+            table-layout: auto !important;
+            word-wrap: break-word !important;
+          }
+          td, th {
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            max-width: 100% !important;
+          }
+        `;
+        iframeDoc.head.appendChild(style);
+      }
+    } catch (err) {
+      // Cross-origin iframe, can't inject styles
+      console.log('Cannot inject styles into iframe (cross-origin)');
+    }
+  };
+
   // Prevent body scroll when modal is open on mobile
   useEffect(() => {
     if (open && isMobile) {
@@ -27,6 +87,30 @@ export function FilePreviewModal({
       };
     }
   }, [open, isMobile]);
+
+  // Monitor and fix overflow issues for all iframes when modal opens
+  useEffect(() => {
+    if (open && isMobile) {
+      const fixIframeOverflow = () => {
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+          injectIframeStyles(iframe);
+        });
+      };
+
+      // Fix immediately
+      fixIframeOverflow();
+
+      // Fix after a short delay (in case iframes load asynchronously)
+      const timeout = setTimeout(fixIframeOverflow, 500);
+      const timeout2 = setTimeout(fixIframeOverflow, 1000);
+
+      return () => {
+        clearTimeout(timeout);
+        clearTimeout(timeout2);
+      };
+    }
+  }, [open, isMobile, fileUrl]);
 
   if (!open || !fileUrl) return null;
 
@@ -86,7 +170,7 @@ export function FilePreviewModal({
   // Use React portal for mobile to ensure it's at the root level
   const modalContent = (
     <div 
-      className={`fixed inset-0 bg-black/80 flex items-center justify-center ${isMobile ? 'z-[9999]' : 'z-50'} p-2`}
+      className={`fixed inset-0 bg-black/80 flex items-center justify-center ${isMobile ? 'z-[9999]' : 'z-50'} ${isMobile ? 'p-0' : 'p-2'}`}
       onClick={() => onOpenChange(false)}
       onTouchStart={(e) => {
         // Prevent scrolling when touching the backdrop
@@ -95,10 +179,10 @@ export function FilePreviewModal({
         }
       }}
       style={isMobile ? {
-        paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))',
-        paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',
-        paddingLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
-        paddingRight: 'calc(0.5rem + env(safe-area-inset-right, 0px))',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
         position: 'fixed',
         top: 0,
         left: 0,
@@ -106,15 +190,21 @@ export function FilePreviewModal({
         bottom: 0,
         touchAction: 'none',
         overflow: 'hidden', // Prevent backdrop from scrolling
+        width: '100vw',
+        maxWidth: '100vw',
+        boxSizing: 'border-box',
       } : {}}
     >
       <div 
-        className={`bg-background rounded-lg max-w-4xl max-h-[90vh] flex flex-col overflow-hidden ${isMobile ? '' : 'w-full'}`}
+        className={`bg-background rounded-lg max-h-[90vh] flex flex-col overflow-hidden ${isMobile ? '' : 'w-full max-w-4xl'}`}
         onClick={(e) => e.stopPropagation()}
         style={isMobile ? {
-          maxHeight: 'calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1rem)',
-          width: 'calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
-          maxWidth: 'min(896px, calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)))',
+          maxHeight: 'calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+          width: '100%',
+          maxWidth: '100%',
+          margin: '0.5rem',
+          marginLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
+          marginRight: 'calc(0.5rem + env(safe-area-inset-right, 0px))',
           boxSizing: 'border-box',
           overflowX: 'hidden',
           overflowY: 'hidden',
@@ -122,7 +212,7 @@ export function FilePreviewModal({
           width: '100%',
         }}
       >
-        <div className={`flex items-center justify-between p-4 border-b flex-shrink-0`}>
+        <div className={`flex items-center justify-between p-4 border-b flex-shrink-0`} style={isMobile ? { overflowX: 'hidden', minWidth: 0 } : {}}>
           <h3 className={`text-lg font-semibold break-words flex-1 pr-2`} style={{ color: '#1A2D4D' }}>
             {fileName || 'Preview'}
           </h3>
@@ -148,10 +238,103 @@ export function FilePreviewModal({
             overflowWrap: 'break-word',
             minWidth: 0, // Important for flex items to shrink
             maxWidth: '100%',
-          } : {}}
+            width: '100%',
+            boxSizing: 'border-box',
+          } : {
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
         >
+          {/* Inject styles for all content to prevent overflow */}
+          {isMobile && (
+            <style>{`
+              /* Constrain all iframes in modal */
+              iframe {
+                max-width: 100% !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden !important;
+              }
+              
+              /* Ensure content inside iframe wraps (if same-origin) */
+              iframe[src*="/api/library/preview"],
+              iframe[src*="http://"],
+              iframe[src*="https://"] {
+                max-width: 100% !important;
+                width: 100% !important;
+              }
+              
+              /* Force all direct children to respect width */
+              .modal-content-wrapper > * {
+                max-width: 100% !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden !important;
+              }
+              
+              /* Force all nested elements to respect width */
+              .modal-content-wrapper * {
+                max-width: 100% !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                box-sizing: border-box !important;
+              }
+              
+              /* Prevent horizontal overflow on all elements */
+              .modal-content-wrapper img,
+              .modal-content-wrapper video,
+              .modal-content-wrapper audio,
+              .modal-content-wrapper iframe,
+              .modal-content-wrapper object,
+              .modal-content-wrapper embed {
+                max-width: 100% !important;
+                width: auto !important;
+                height: auto !important;
+                box-sizing: border-box !important;
+              }
+              
+              /* Force text elements to wrap */
+              .modal-content-wrapper p,
+              .modal-content-wrapper div,
+              .modal-content-wrapper span,
+              .modal-content-wrapper h1,
+              .modal-content-wrapper h2,
+              .modal-content-wrapper h3,
+              .modal-content-wrapper h4,
+              .modal-content-wrapper h5,
+              .modal-content-wrapper h6,
+              .modal-content-wrapper pre,
+              .modal-content-wrapper code {
+                max-width: 100% !important;
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                white-space: normal !important;
+                overflow-x: hidden !important;
+              }
+              
+              /* Prevent table overflow */
+              .modal-content-wrapper table {
+                max-width: 100% !important;
+                table-layout: auto !important;
+                word-wrap: break-word !important;
+              }
+              
+              .modal-content-wrapper td,
+              .modal-content-wrapper th {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+                max-width: 100% !important;
+              }
+            `}</style>
+          )}
+          <div className="modal-content-wrapper" style={isMobile ? { 
+            width: '100%', 
+            maxWidth: '100%', 
+            overflowX: 'hidden',
+            boxSizing: 'border-box'
+          } : { width: '100%', boxSizing: 'border-box' }}>
           {previewType === 'images' ? (
-            <div>
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden' } : {}}>
               <img 
                 src={previewUrl}
                 alt="Preview"
@@ -160,6 +343,8 @@ export function FilePreviewModal({
                   width: '100%',
                   height: 'auto',
                   maxWidth: '100%',
+                  display: 'block',
+                  boxSizing: 'border-box',
                 } : {}}
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -179,15 +364,18 @@ export function FilePreviewModal({
               />
             </div>
           ) : previewType === 'videos' ? (
-            <video 
-              src={previewUrl}
-              controls
-              className="max-w-full max-h-[70vh] mx-auto"
-              style={isMobile ? {
-                width: '100%',
-                height: 'auto',
-                maxWidth: '100%',
-              } : {}}
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden' } : {}}>
+              <video 
+                src={previewUrl}
+                controls
+                className="max-w-full max-h-[70vh] mx-auto"
+                style={isMobile ? {
+                  width: '100%',
+                  height: 'auto',
+                  maxWidth: '100%',
+                  display: 'block',
+                  boxSizing: 'border-box',
+                } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -204,15 +392,19 @@ export function FilePreviewModal({
                 e.target.parentNode.appendChild(fallback);
               }}
             />
+            </div>
           ) : previewType === 'sounds' ? (
-            <audio 
-              src={previewUrl}
-              controls
-              className="w-full"
-              style={isMobile ? {
-                width: '100%',
-                maxWidth: '100%',
-              } : {}}
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden' } : {}}>
+              <audio 
+                src={previewUrl}
+                controls
+                className="w-full"
+                style={isMobile ? {
+                  width: '100%',
+                  maxWidth: '100%',
+                  display: 'block',
+                  boxSizing: 'border-box',
+                } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -229,8 +421,9 @@ export function FilePreviewModal({
                 e.target.parentNode.appendChild(fallback);
               }}
             />
+            </div>
           ) : previewType === 'pdf' ? (
-            <div>
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden' } : {}}>
               <div className="mb-4">
                 {pdfError ? (
                   <div className="text-center py-8">
@@ -250,9 +443,15 @@ export function FilePreviewModal({
                       width: '100%',
                       maxWidth: '100%',
                       border: 'none',
-                    } : {}}
-                    onLoad={() => {
+                      display: 'block',
+                      boxSizing: 'border-box',
+                      overflow: 'hidden',
+                    } : {
+                      boxSizing: 'border-box',
+                    }}
+                    onLoad={(e) => {
                       setPdfError(false);
+                      injectIframeStyles(e.target);
                     }}
                     onError={() => {
                       setPdfError(true);
@@ -291,16 +490,28 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : previewType === 'document' ? (
-            <div>
-              <div className="mb-4">
-                <div className="text-center py-8">
-                  <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
-                    Document preview not available
-                  </p>
-                  <p className="text-xs mb-2 break-words" style={{ color: '#1A2D4D' }}>
-                    This file type cannot be previewed inline. Please download or open in a new tab.
-                  </p>
-                </div>
+            <div style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden' } : {}}>
+              <div className="mb-4" style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden', position: 'relative' } : { position: 'relative' }}>
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-[60vh] border rounded"
+                  title="Document Preview"
+                  style={isMobile ? {
+                    width: '100%',
+                    maxWidth: '100%',
+                    border: 'none',
+                    display: 'block',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                  } : {
+                    boxSizing: 'border-box',
+                  }}
+                  sandbox="allow-same-origin allow-scripts"
+                  scrolling="auto"
+                  onLoad={(e) => {
+                    injectIframeStyles(e.target);
+                  }}
+                />
               </div>
               <div className="space-y-3">
                 <Button 
@@ -330,7 +541,7 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : (
-            <div className="text-center py-8">
+            <div className="text-center py-8" style={isMobile ? { width: '100%', maxWidth: '100%', overflow: 'hidden' } : {}}>
               <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
                 Preview not available for this file type
               </p>
@@ -345,6 +556,7 @@ export function FilePreviewModal({
               </Button>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
