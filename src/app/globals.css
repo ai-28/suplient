@@ -210,7 +210,8 @@ All colors MUST be HSL.
     .ios-viewport-fix {
       height: 100vh;
       max-height: 100vh;
-      min-height: -webkit-fill-available; /* iOS Safari fallback */
+      min-height: -webkit-fill-available;
+      /* iOS Safari fallback */
     }
   }
 
@@ -218,18 +219,13 @@ All colors MUST be HSL.
   /* This is handled by the ClientLayout component's overflow: hidden */
   /* We don't want to break web version, so we'll handle it per-component */
 
-  /* Prevent horizontal overflow - Web version (less aggressive) */
-  html {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100vw;
-    min-width: 0;
-  }
-
+  /* Prevent horizontal overflow on mobile Capacitor apps */
+  /* Allow zoom but prevent unwanted horizontal scroll */
+  html,
   body {
     overflow-x: hidden;
     width: 100%;
-    max-width: 100vw;
+    /* Use min-width instead of max-width to allow zoom */
     min-width: 0;
   }
 
@@ -237,18 +233,30 @@ All colors MUST be HSL.
   * {
     word-wrap: break-word;
     overflow-wrap: break-word;
-    box-sizing: border-box;
   }
 
-  /* Prevent horizontal scroll on images and media */
-  img, video, iframe, embed, object {
+  /* Prevent horizontal scroll on images and media, but allow them to scale with zoom */
+  img,
+  video,
+  iframe,
+  embed,
+  object {
     max-width: 100%;
     height: auto;
+    /* Allow scaling with zoom */
     object-fit: contain;
   }
 
   /* Ensure text reflows properly when zoomed */
-  p, span, div, h1, h2, h3, h4, h5, h6, a, button, input, textarea, select {
+  p,
+  span,
+  div,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
@@ -261,61 +269,6 @@ All colors MUST be HSL.
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       width: 100%;
-      max-width: 100%;
-    }
-  }
-
-  /* CAPACITOR-SPECIFIC: More aggressive prevention (only applies when .capacitor-app class is present) */
-  body.capacitor-app html,
-  body.capacitor-app {
-    overflow-x: hidden !important;
-    width: 100% !important;
-    max-width: 100vw !important;
-    min-width: 0;
-    position: relative;
-  }
-
-  body.capacitor-app * {
-    max-width: 100%;
-  }
-
-  body.capacitor-app img,
-  body.capacitor-app video,
-  body.capacitor-app iframe,
-  body.capacitor-app embed,
-  body.capacitor-app object {
-    max-width: 100% !important;
-  }
-
-  body.capacitor-app p,
-  body.capacitor-app span,
-  body.capacitor-app div,
-  body.capacitor-app h1,
-  body.capacitor-app h2,
-  body.capacitor-app h3,
-  body.capacitor-app h4,
-  body.capacitor-app h5,
-  body.capacitor-app h6,
-  body.capacitor-app a,
-  body.capacitor-app button,
-  body.capacitor-app input,
-  body.capacitor-app textarea,
-  body.capacitor-app select {
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-  }
-
-  @media (max-width: 768px) {
-    body.capacitor-app div,
-    body.capacitor-app section,
-    body.capacitor-app article,
-    body.capacitor-app main,
-    body.capacitor-app header,
-    body.capacitor-app footer,
-    body.capacitor-app aside,
-    body.capacitor-app nav {
-      max-width: 100vw !important;
-      overflow-x: hidden !important;
     }
   }
 }

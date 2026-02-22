@@ -509,18 +509,11 @@ export function UniversalChatInterface({
   
   return <div 
     className={`flex flex-col ${currentUserRole === "client" ? "h-full" : "max-h-[calc(100vh-200px)]"} bg-background rounded-lg overflow-hidden ${className}`}
-    style={{
-      ...(currentUserRole === "client" && isInScrollableContainer ? {
-        // No negative margins needed - proper positioning context fixes the gap
-        marginTop: '-20px',
-        paddingTop: 0,
-      } : {}),
-      ...(isMobileNative ? {
-        maxWidth: '100vw',
-        width: '100%',
-        overflowX: 'hidden',
-      } : {})
-    }}
+    style={currentUserRole === "client" && isInScrollableContainer ? {
+      // No negative margins needed - proper positioning context fixes the gap
+      marginTop: '-20px',
+      paddingTop: 0,
+    } : {}}
   >
       {/* Chat Header - Conditionally rendered based on hideHeader prop */}
       {!hideHeader && (
@@ -627,11 +620,6 @@ export function UniversalChatInterface({
       <ScrollArea 
         ref={scrollAreaRef}
         className={`flex-1 scroll-hidden p-4 ${currentUserRole === "client" ? "pt-4" : "pt-4"} ${currentUserRole === "client" ? `${showVoiceRecorder ? "pb-40" : "pb-40"}` : ""}`}
-        style={isMobileNative ? {
-          maxWidth: '100vw',
-          width: '100%',
-          overflowX: 'hidden',
-        } : {}}
       >
         <TooltipProvider>
           <div className="space-y-1">
