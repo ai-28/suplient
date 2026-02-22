@@ -57,21 +57,17 @@ export default function ClientLayout({ children }) {
     maxHeight: '100dvh',
     minHeight: '100dvh',
     overflow: 'hidden',
-    overflowX: 'hidden', // Prevent horizontal scroll
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     width: '100%',
-    maxWidth: '100vw', // Ensure no horizontal overflow
   } : {
     height: '100vh',
     maxHeight: '100vh',
     overflow: 'hidden',
-    overflowX: 'hidden', // Prevent horizontal scroll
     position: 'relative',
-    maxWidth: '100vw', // Ensure no horizontal overflow
   };
 
   // Content area - add bottom padding to account for fixed bottom nav
@@ -80,18 +76,14 @@ export default function ClientLayout({ children }) {
     paddingBottom: 'calc(68px + env(safe-area-inset-bottom, 0px))',
     WebkitOverflowScrolling: 'touch',
     height: '100%',
-    overflowY: 'auto', // Allow vertical scroll
-    overflowX: 'hidden', // Prevent horizontal scroll
+    overflowY: 'hidden',
+    overflowX: 'hidden',
     position: 'relative',
-    width: '100%',
-    maxWidth: '100vw', // Ensure no horizontal overflow
   } : {
     paddingBottom: '68px', // Account for bottom nav height
     height: '100%',
-    overflowY: 'auto', // Allow vertical scroll
-    overflowX: 'hidden', // Prevent horizontal scroll
-    width: '100%',
-    maxWidth: '100vw', // Ensure no horizontal overflow
+    overflowY: 'hidden',
+    overflowX: 'hidden',
   };
 
   // Bottom nav should be fixed, not sticky, to prevent movement

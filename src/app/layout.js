@@ -27,8 +27,8 @@ export const metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5, // Allow zoom up to 5x for accessibility
-  userScalable: true, // Enable zoom for accessibility
+  maximumScale: 1,
+  userScalable: false,
   themeColor: "#3b82f6",
   viewportFit: "cover", // Required for iOS safe area insets to work
 };
@@ -38,7 +38,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
         <meta name="application-name" content="Suplient" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
