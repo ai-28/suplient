@@ -18,23 +18,43 @@ export function FilePreviewModal({
   // Also handle zoom changes to maintain proper layout
   useEffect(() => {
     if (open && isMobile) {
-      // Save current overflow styles
-      const bodyOriginalOverflow = window.getComputedStyle(document.body).overflow;
-      const bodyOriginalOverflowX = window.getComputedStyle(document.body).overflowX;
-      const htmlOriginalOverflowX = window.getComputedStyle(document.documentElement).overflowX;
+      // Save current overflow styles (from computed styles, not inline styles)
+      const bodyComputedOverflow = window.getComputedStyle(document.body).overflow;
+      const bodyComputedOverflowX = window.getComputedStyle(document.body).overflowX;
+      const htmlComputedOverflowX = window.getComputedStyle(document.documentElement).overflowX;
       
-      // Lock body scroll and prevent horizontal overflow
+      // Save original inline styles (if any)
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalBodyOverflowX = document.body.style.overflowX;
+      const originalBodyWidth = document.body.style.width;
+      const originalBodyMaxWidth = document.body.style.maxWidth;
+      const originalHtmlOverflowX = document.documentElement.style.overflowX;
+      const originalHtmlWidth = document.documentElement.style.width;
+      const originalHtmlMaxWidth = document.documentElement.style.maxWidth;
+      
       document.body.style.overflow = 'hidden';
-      document.body.style.overflowX = 'hidden';
-      document.documentElement.style.overflowX = 'hidden';
-      document.body.style.width = '100%';
-      document.body.style.maxWidth = '100%';
+      document.body.style.setProperty('overflow-x', 'hidden', 'important');
+      document.body.style.width = '100vw';
+      document.body.style.maxWidth = '100vw';
+      document.documentElement.style.setProperty('overflow-x', 'hidden', 'important');
+      document.documentElement.style.width = '100vw';
+      document.documentElement.style.maxWidth = '100vw';
       
       // Handle zoom changes - ensure no horizontal scroll even when zoomed
       const handleResize = () => {
         // Re-check overflow when viewport changes (zoom)
-        document.body.style.overflowX = 'hidden';
-        document.documentElement.style.overflowX = 'hidden';
+        document.body.style.setProperty('overflow-x', 'hidden', 'important');
+        document.documentElement.style.setProperty('overflow-x', 'hidden', 'important');
+        // Force recalculation
+        const scrollWidth = Math.max(
+          document.documentElement.scrollWidth,
+          document.body.scrollWidth
+        );
+        const clientWidth = window.innerWidth;
+        if (scrollWidth > clientWidth) {
+          document.body.style.width = `${clientWidth}px`;
+          document.documentElement.style.width = `${clientWidth}px`;
+        }
       };
       
       window.addEventListener('resize', handleResize);
@@ -42,11 +62,13 @@ export function FilePreviewModal({
       
       return () => {
         // Restore original overflow styles
-        document.body.style.overflow = bodyOriginalOverflow;
-        document.body.style.overflowX = bodyOriginalOverflowX;
-        document.documentElement.style.overflowX = htmlOriginalOverflowX;
-        document.body.style.width = '';
-        document.body.style.maxWidth = '';
+        document.body.style.overflow = originalBodyOverflow || '';
+        document.body.style.overflowX = originalBodyOverflowX || '';
+        document.body.style.width = originalBodyWidth || '';
+        document.body.style.maxWidth = originalBodyMaxWidth || '';
+        document.documentElement.style.overflowX = originalHtmlOverflowX || '';
+        document.documentElement.style.width = originalHtmlWidth || '';
+        document.documentElement.style.maxWidth = originalHtmlMaxWidth || '';
         window.removeEventListener('resize', handleResize);
         window.removeEventListener('orientationchange', handleResize);
       };
@@ -123,6 +145,7 @@ export function FilePreviewModal({
         }
       }}
       style={isMobile ? {
+        // Keep same padding as web (p-2 = 0.5rem), but add safe-area-insets for mobile
         paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))',
         paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',
         paddingLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
@@ -132,30 +155,37 @@ export function FilePreviewModal({
         left: 0,
         right: 0,
         bottom: 0,
-        width: '100%',
-        maxWidth: '100%',
+        width: '100vw', // Use 100vw to ensure full coverage
+        maxWidth: '100vw', // Prevent any overflow
+        height: '100vh',
+        maxHeight: '100vh',
         overflowX: 'hidden',
         overflowY: 'hidden',
         touchAction: 'pan-y pinch-zoom', // Allow vertical scroll and zoom, but prevent horizontal
-      } : {}}
+      } : {
+        // Web: standard padding (p-2 = 0.5rem)
+        padding: '0.5rem',
+      }}
     >
       <div 
         className={`bg-background rounded-lg max-w-4xl max-h-[90vh] w-full flex flex-col overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
         style={isMobile ? {
-          // Use 100% instead of 100vw to work correctly with zoom
-          // When zoomed, 100vw includes the zoomed viewport, but 100% scales correctly
+          // Mobile: Keep same max-width as web (max-w-4xl), but ensure it fits on mobile
           maxHeight: 'calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
-          maxWidth: 'calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
-          width: 'calc(100% - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
+          // On mobile, ensure it doesn't exceed viewport - use min() to respect both constraints
+          maxWidth: 'min(calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 56rem)',
+          width: 'min(calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)), 56rem)',
           overflowX: 'hidden',
           overflowY: 'auto',
           wordWrap: 'break-word',
           overflowWrap: 'break-word',
           minWidth: 0, // Important for flex items to shrink below content size
-          // Ensure modal adapts to zoom level
           boxSizing: 'border-box',
-        } : {}}
+        } : {
+          // Web: Keep original simple styles - no changes
+          // Uses className defaults: max-w-4xl, max-h-[90vh], w-full
+        }}
       >
         <div className={`flex items-center justify-between p-4 border-b flex-shrink-0`}>
           <h3 id="file-preview-title" className={`text-lg font-semibold break-words flex-1 pr-2`} style={{ color: '#1A2D4D' }}>
