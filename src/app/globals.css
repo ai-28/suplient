@@ -217,6 +217,46 @@ All colors MUST be HSL.
   /* Prevent body scroll on iOS Capacitor - only apply when in Capacitor */
   /* This is handled by the ClientLayout component's overflow: hidden */
   /* We don't want to break web version, so we'll handle it per-component */
+
+  /* Prevent horizontal overflow on mobile Capacitor apps */
+  /* Allow zoom but prevent unwanted horizontal scroll */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    /* Use min-width instead of max-width to allow zoom */
+    min-width: 0;
+  }
+
+  /* Ensure content reflows when zoomed */
+  * {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Prevent horizontal scroll on images and media, but allow them to scale with zoom */
+  img, video, iframe, embed, object {
+    max-width: 100%;
+    height: auto;
+    /* Allow scaling with zoom */
+    object-fit: contain;
+  }
+
+  /* Ensure text reflows properly when zoomed */
+  p, span, div, h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  /* Prevent fixed-width elements from causing horizontal scroll when zoomed */
+  @media (max-width: 768px) {
+    table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+  }
 }
 
 @layer components {

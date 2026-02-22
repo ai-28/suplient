@@ -112,6 +112,11 @@ export function FilePreviewModal({
         onClick={(e) => e.stopPropagation()}
         style={isMobile ? {
           maxHeight: 'calc(90vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))',
+          maxWidth: 'calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
+          width: 'calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))',
+          overflowX: 'hidden',
+          wordWrap: 'break-word',
+          overflowWrap: 'break-word',
         } : {}}
       >
         <div className={`flex items-center justify-between p-4 border-b flex-shrink-0`}>
@@ -132,13 +137,26 @@ export function FilePreviewModal({
             <X className="h-4 w-4" />
           </Button>
         </div>
-        <div className={`p-4 flex-1 overflow-y-auto`}>
+        <div 
+          className={`p-4 flex-1 overflow-y-auto`} 
+          style={isMobile ? { 
+            overflowX: 'hidden',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
+          } : {}}
+        >
           {previewType === 'images' ? (
-            <div>
+            <div style={isMobile ? { width: '100%', overflow: 'hidden' } : {}}>
               <img 
                 src={previewUrl}
                 alt="Preview"
                 className="max-w-full max-h-[70vh] object-contain mx-auto"
+                style={isMobile ? { 
+                  width: '100%', 
+                  height: 'auto',
+                  maxWidth: '100%',
+                  objectFit: 'contain'
+                } : {}}
                 onError={(e) => {
                   e.target.style.display = 'none';
                   const fallback = document.createElement('div');
@@ -157,10 +175,16 @@ export function FilePreviewModal({
               />
             </div>
           ) : previewType === 'videos' ? (
-            <video 
-              src={previewUrl}
-              controls
-              className="max-w-full max-h-[70vh] mx-auto"
+            <div style={isMobile ? { width: '100%', overflow: 'hidden' } : {}}>
+              <video 
+                src={previewUrl}
+                controls
+                className="max-w-full max-h-[70vh] mx-auto"
+                style={isMobile ? { 
+                  width: '100%', 
+                  height: 'auto',
+                  maxWidth: '100%'
+                } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -177,6 +201,7 @@ export function FilePreviewModal({
                 e.target.parentNode.appendChild(fallback);
               }}
             />
+            </div>
           ) : previewType === 'sounds' ? (
             <audio 
               src={previewUrl}
@@ -215,6 +240,11 @@ export function FilePreviewModal({
                     src={previewUrl}
                     className="w-full h-[60vh] border rounded"
                     title="PDF Preview"
+                    style={isMobile ? { 
+                      maxWidth: '100%',
+                      width: '100%',
+                      overflow: 'hidden'
+                    } : {}}
                     onLoad={() => {
                       setPdfError(false);
                     }}
