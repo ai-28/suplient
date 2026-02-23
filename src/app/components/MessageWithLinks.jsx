@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { FilePreviewModal } from './FilePreviewModal';
 import { isNative } from '@/lib/capacitor';
+import { FileViewer } from '@capacitor/file-viewer';
+import { Capacitor } from '@capacitor/core';
 
 // Component to render message text with clickable links
 // Parses markdown-style links: [text](url) and renders only the text as clickable
@@ -14,6 +16,31 @@ export function MessageWithLinks({ messageText, className = "" }) {
   useEffect(() => {
     setIsMobile(isNative());
   }, []);
+
+  // Function to open PDF directly from URL (for native apps)
+  const openPdfDirectly = async (fileUrl, fileName) => {
+    if (!Capacitor.isNativePlatform()) {
+      // Web: use modal
+      setPreviewFile({ url: fileUrl, name: fileName });
+      return;
+    }
+
+    try {
+      // Get preview URL (same logic as FilePreviewModal)
+      const previewUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
+        ? fileUrl
+        : `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+      
+      // Open directly in native PDF viewer
+      await FileViewer.openDocumentFromUrl({
+        url: previewUrl,
+      });
+    } catch (error) {
+      console.error('Error opening PDF:', error);
+      // Fallback: open in modal
+      setPreviewFile({ url: fileUrl, name: fileName });
+    }
+  };
 
   if (!messageText) return null;
   
@@ -109,8 +136,15 @@ export function MessageWithLinks({ messageText, className = "" }) {
           e.stopPropagation();
           if (linkUrl) {
             if (isFile) {
-              // Open in modal for file links
-              setPreviewFile({ url: linkUrl, name: linkText });
+              // Check if it's a PDF on native platform
+              const fileExtension = linkUrl.split('.').pop()?.toLowerCase();
+              if (fileExtension === 'pdf' && isMobile && Capacitor.isNativePlatform()) {
+                // Open directly in native PDF viewer
+                openPdfDirectly(linkUrl, linkText);
+              } else {
+                // For other files or web, use modal
+                setPreviewFile({ url: linkUrl, name: linkText });
+              }
             } else {
               // Open in new tab for regular links
               window.open(linkUrl, '_blank', 'noopener,noreferrer');

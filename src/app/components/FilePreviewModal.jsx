@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/app/components/ui/button';
 import { X } from 'lucide-react';
+import { FileViewer } from '@capacitor/file-viewer';
+import { Capacitor } from '@capacitor/core';
 
 export function FilePreviewModal({ 
   open, 
@@ -13,56 +15,18 @@ export function FilePreviewModal({
   isMobile = false 
 }) {
   const [pdfError, setPdfError] = useState(false);
+  const [openingNative, setOpeningNative] = useState(false);
 
   // Prevent body scroll when modal is open on mobile
   useEffect(() => {
     if (open && isMobile) {
       // Save current overflow style
       const originalStyle = window.getComputedStyle(document.body).overflow;
-      const originalOverflowX = window.getComputedStyle(document.body).overflowX;
-      const originalPosition = window.getComputedStyle(document.body).position;
-      
       document.body.style.overflow = 'hidden';
-      document.body.style.overflowX = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      
-      // Inject global style to prevent overflow in Capacitor
-      const styleId = 'capacitor-modal-overflow-fix';
-      let styleElement = document.getElementById(styleId);
-      if (!styleElement) {
-        styleElement = document.createElement('style');
-        styleElement.id = styleId;
-        styleElement.textContent = `
-          /* Prevent overflow in Capacitor WebView */
-          body {
-            overflow-x: hidden !important;
-            max-width: 100vw !important;
-          }
-          * {
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-          }
-          iframe {
-            max-width: 100% !important;
-            width: 100% !important;
-          }
-        `;
-        document.head.appendChild(styleElement);
-      }
       
       return () => {
-        // Restore original styles
+        // Restore original overflow style
         document.body.style.overflow = originalStyle;
-        document.body.style.overflowX = originalOverflowX;
-        document.body.style.position = originalPosition;
-        document.body.style.width = '';
-        
-        // Remove injected style
-        const style = document.getElementById(styleId);
-        if (style) {
-          style.remove();
-        }
       };
     }
   }, [open, isMobile]);
@@ -122,6 +86,33 @@ export function FilePreviewModal({
     ? `/api/library/preview?path=${encodeURIComponent(fileUrl)}`
     : previewUrl;
 
+  // Function to open PDF in native viewer (only for Capacitor native apps)
+  const openPdfNative = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      // Fallback to browser for web
+      window.open(previewUrl, '_blank');
+      return;
+    }
+
+    try {
+      setOpeningNative(true);
+      
+      // Open PDF directly in native viewer from S3 URL
+      await FileViewer.openDocumentFromUrl({
+        url: previewUrl,
+      });
+      
+      // Close modal after opening
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error opening PDF:', error);
+      // Fallback to browser
+      window.open(previewUrl, '_blank');
+    } finally {
+      setOpeningNative(false);
+    }
+  };
+
   // Use React portal for mobile to ensure it's at the root level
   const modalContent = (
     <div 
@@ -157,10 +148,6 @@ export function FilePreviewModal({
           boxSizing: 'border-box',
           overflowX: 'hidden',
           overflowY: 'hidden',
-          // Critical for Capacitor: ensure container doesn't allow horizontal overflow
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
         } : {
           width: '100%',
         }}
@@ -189,29 +176,12 @@ export function FilePreviewModal({
             overflowX: 'hidden',
             wordWrap: 'break-word',
             overflowWrap: 'break-word',
-            wordBreak: 'break-word',
             minWidth: 0, // Important for flex items to shrink
             maxWidth: '100%',
-            width: '100%',
-            boxSizing: 'border-box',
-            // Prevent any horizontal scrolling in Capacitor
-            WebkitOverflowScrolling: 'touch',
-            // Ensure content respects container bounds
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-          } : {
-            wordWrap: 'break-word',
-            overflowWrap: 'break-word',
-          }}
+          } : {}}
         >
           {previewType === 'images' ? (
-            <div style={isMobile ? {
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflowX: 'hidden',
-            } : {}}>
+            <div>
               <img 
                 src={previewUrl}
                 alt="Preview"
@@ -220,8 +190,6 @@ export function FilePreviewModal({
                   width: '100%',
                   height: 'auto',
                   maxWidth: '100%',
-                  boxSizing: 'border-box',
-                  display: 'block',
                 } : {}}
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -241,23 +209,15 @@ export function FilePreviewModal({
               />
             </div>
           ) : previewType === 'videos' ? (
-            <div style={isMobile ? {
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflowX: 'hidden',
-            } : {}}>
-              <video 
-                src={previewUrl}
-                controls
-                className="max-w-full max-h-[70vh] mx-auto"
-                style={isMobile ? {
-                  width: '100%',
-                  height: 'auto',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box',
-                  display: 'block',
-                } : {}}
+            <video 
+              src={previewUrl}
+              controls
+              className="max-w-full max-h-[70vh] mx-auto"
+              style={isMobile ? {
+                width: '100%',
+                height: 'auto',
+                maxWidth: '100%',
+              } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -274,23 +234,15 @@ export function FilePreviewModal({
                 e.target.parentNode.appendChild(fallback);
               }}
             />
-            </div>
           ) : previewType === 'sounds' ? (
-            <div style={isMobile ? {
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflowX: 'hidden',
-            } : {}}>
-              <audio 
-                src={previewUrl}
-                controls
-                className="w-full"
-                style={isMobile ? {
-                  width: '100%',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box',
-                } : {}}
+            <audio 
+              src={previewUrl}
+              controls
+              className="w-full"
+              style={isMobile ? {
+                width: '100%',
+                maxWidth: '100%',
+              } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -307,111 +259,60 @@ export function FilePreviewModal({
                 e.target.parentNode.appendChild(fallback);
               }}
             />
-            </div>
           ) : previewType === 'pdf' ? (
-            <div style={isMobile ? {
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflowX: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            } : {}}>
-              <div className="mb-4" style={isMobile ? {
-                width: '100%',
-                maxWidth: '100%',
-                boxSizing: 'border-box',
-                overflowX: 'hidden',
-                flex: '1 1 auto',
-                minHeight: 0,
-              } : {}}>
-                {pdfError ? (
-                  <div className="text-center py-8">
+            <div>
+              <div className="mb-4">
+                {/* For native Capacitor apps, show button to open in native PDF viewer */}
+                {isMobile && Capacitor.isNativePlatform() ? (
+                  <div className="text-center py-8 space-y-4">
                     <p className="text-sm mb-4" style={{ color: '#1A2D4D' }}>
-                      PDF preview failed to load in iframe
+                      {openingNative ? 'Opening PDF in native viewer...' : 'Tap to open PDF in native viewer'}
                     </p>
-                    <p className="text-xs mb-4" style={{ color: '#1A2D4D' }}>
-                      This may be due to browser security settings. Please use the button below to open in a new tab.
-                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      size="default"
+                      style={{ color: '#1A2D4D' }}
+                      onClick={openPdfNative}
+                      disabled={openingNative}
+                    >
+                      {openingNative ? 'Opening...' : 'Open in PDF Viewer'}
+                    </Button>
                   </div>
                 ) : (
-                  <iframe
-                    src={previewUrl}
-                    className="w-full h-[60vh] border rounded"
-                    title="PDF Preview"
-                    style={isMobile ? {
-                      width: '100%',
-                      maxWidth: '100%',
-                      minWidth: 0,
-                      border: 'none',
-                      boxSizing: 'border-box',
-                      // Critical for Capacitor: prevent iframe from overflowing
-                      flexShrink: 1,
-                      overflow: 'hidden',
-                      // Ensure iframe respects parent container
-                      position: 'relative',
-                    } : {
-                      boxSizing: 'border-box',
-                    }}
-                    onLoad={() => {
-                      setPdfError(false);
-                      // Try to inject viewport meta into iframe if accessible (same-origin)
-                      if (isMobile) {
-                        try {
-                          const iframe = document.querySelector('iframe[title="PDF Preview"]');
-                          if (iframe && iframe.contentDocument) {
-                            const iframeDoc = iframe.contentDocument;
-                            // Check if viewport meta exists
-                            let viewportMeta = iframeDoc.querySelector('meta[name="viewport"]');
-                            if (!viewportMeta) {
-                              viewportMeta = iframeDoc.createElement('meta');
-                              viewportMeta.setAttribute('name', 'viewport');
-                              viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover');
-                              iframeDoc.head.insertBefore(viewportMeta, iframeDoc.head.firstChild);
-                            }
-                            
-                            // Inject responsive CSS for PDF content
-                            const styleId = 'capacitor-pdf-responsive-styles';
-                            if (!iframeDoc.getElementById(styleId)) {
-                              const style = iframeDoc.createElement('style');
-                              style.id = styleId;
-                              style.textContent = `
-                                * {
-                                  box-sizing: border-box;
-                                }
-                                body {
-                                  margin: 0;
-                                  padding: 0.5rem;
-                                  word-wrap: break-word;
-                                  overflow-wrap: break-word;
-                                  word-break: break-word;
-                                  -webkit-text-size-adjust: 100%;
-                                  max-width: 100%;
-                                  overflow-x: hidden;
-                                  width: 100%;
-                                }
-                                embed, object, iframe {
-                                  max-width: 100% !important;
-                                  width: 100% !important;
-                                }
-                              `;
-                              iframeDoc.head.appendChild(style);
-                            }
-                          }
-                        } catch (e) {
-                          // Cross-origin or security restriction - this is expected for external PDFs
-                          console.log('Cannot modify iframe content (cross-origin restriction)');
-                        }
-                      }
-                    }}
-                    onError={() => {
-                      setPdfError(true);
-                    }}
-                  />
+                  /* For web, use iframe as before */
+                  pdfError ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm mb-4" style={{ color: '#1A2D4D' }}>
+                        PDF preview failed to load in iframe
+                      </p>
+                      <p className="text-xs mb-4" style={{ color: '#1A2D4D' }}>
+                        This may be due to browser security settings. Please use the button below to open in a new tab.
+                      </p>
+                    </div>
+                  ) : (
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-[60vh] border rounded"
+                      title="PDF Preview"
+                      style={isMobile ? {
+                        width: '100%',
+                        maxWidth: '100%',
+                        border: 'none',
+                      } : {}}
+                      onLoad={() => {
+                        setPdfError(false);
+                      }}
+                      onError={() => {
+                        setPdfError(true);
+                      }}
+                    />
+                  )
                 )}
               </div>
               <div className="text-center space-y-2">
-                {pdfError && (
+                {/* Show fallback button for web, or as alternative for native */}
+                {!Capacitor.isNativePlatform() && pdfError && (
                   <Button 
                     variant="outline" 
                     className="w-full"
@@ -441,30 +342,13 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : previewType === 'document' ? (
-            <div style={isMobile ? {
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflowX: 'hidden',
-            } : {}}>
-              <div className="mb-4" style={isMobile ? {
-                width: '100%',
-                maxWidth: '100%',
-                boxSizing: 'border-box',
-                overflowX: 'hidden',
-              } : {}}>
-                <div className="text-center py-8" style={isMobile ? {
-                  width: '100%',
-                  maxWidth: '100%',
-                  boxSizing: 'border-box',
-                  wordWrap: 'break-word',
-                  overflowWrap: 'break-word',
-                  wordBreak: 'break-word',
-                } : {}}>
-                  <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+            <div>
+              <div className="mb-4">
+                <div className="text-center py-8">
+                  <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
                     Document preview not available
                   </p>
-                  <p className="text-xs mb-2 break-words" style={{ color: '#1A2D4D', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                  <p className="text-xs mb-2 break-words" style={{ color: '#1A2D4D' }}>
                     This file type cannot be previewed inline. Please download or open in a new tab.
                   </p>
                 </div>
@@ -497,16 +381,8 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : (
-            <div className="text-center py-8" style={isMobile ? {
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflowX: 'hidden',
-              wordWrap: 'break-word',
-              overflowWrap: 'break-word',
-              wordBreak: 'break-word',
-            } : {}}>
-              <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+            <div className="text-center py-8">
+              <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
                 Preview not available for this file type
               </p>
               <Button 
