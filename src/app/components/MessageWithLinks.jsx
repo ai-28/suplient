@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FilePreviewModal } from './FilePreviewModal';
 import { isNative } from '@/lib/capacitor';
-import { FileOpener } from '@capacitor-community/file-opener';
-import { Filesystem, Directory } from '@capacitor/filesystem';
+import { FileViewer } from '@capacitor/file-viewer';
 import { Capacitor } from '@capacitor/core';
 
 // Component to render message text with clickable links
@@ -51,10 +50,35 @@ export function MessageWithLinks({ messageText, className = "" }) {
     return mimeTypes[extension] || 'application/octet-stream';
   };
 
+  // Helper function to determine file type
+  const getFileType = (fileName) => {
+    const extension = fileName.split('.').pop()?.toLowerCase() || '';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension)) {
+      return 'images';
+    } else if (['mp4', 'avi', 'mov', 'wmv', 'webm'].includes(extension)) {
+      return 'videos';
+    } else if (['mp3', 'wav', 'ogg', 'm4a', 'aac'].includes(extension)) {
+      return 'sounds';
+    } else if (extension === 'pdf') {
+      return 'pdf';
+    } else if (['doc', 'docx', 'txt', 'rtf'].includes(extension)) {
+      return 'document';
+    }
+    return 'document';
+  };
+
   // Function to open file directly from URL (for native apps)
   const openFileDirectly = async (fileUrl, fileName) => {
     if (!Capacitor.isNativePlatform()) {
       // Web: use modal
+      setPreviewFile({ url: fileUrl, name: fileName });
+      return;
+    }
+
+    // Check if FileViewer is available
+    if (!FileViewer) {
+      console.error('FileViewer plugin not available');
+      // Fallback: open in modal
       setPreviewFile({ url: fileUrl, name: fileName });
       return;
     }
@@ -65,50 +89,47 @@ export function MessageWithLinks({ messageText, className = "" }) {
         ? fileUrl
         : `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
       
-      // Download file to app cache (invisible to user, auto-cleaned)
-      const response = await fetch(previewUrl);
-      if (!response.ok) throw new Error('Failed to download file');
+      const platform = Capacitor.getPlatform();
+      const fileType = getFileType(fileName);
       
-      const blob = await response.blob();
-      const reader = new FileReader();
+      console.log('Opening file directly from URL:', previewUrl);
+      console.log('Platform:', platform);
+      console.log('File type:', fileType);
       
-      reader.onloadend = async () => {
-        try {
-          const base64Data = reader.result.split(',')[1];
-          const fileExtension = fileName.split('.').pop()?.toLowerCase() || 'file';
-          const sanitizedFileName = (fileName || 'file').replace(/[^a-z0-9.-]/gi, '_');
-          const filePath = `${sanitizedFileName}_${Date.now()}.${fileExtension}`;
-          
-          // Write to app cache (private, auto-cleaned)
-          const writeResult = await Filesystem.writeFile({
-            path: filePath,
-            data: base64Data,
-            directory: Directory.Cache,
+      // Use appropriate method based on file type and platform
+      if (fileType === 'videos' || fileType === 'sounds') {
+        // For media files (video/audio), use previewMediaContentFromUrl on iOS
+        // This uses native iOS media player
+        if (platform === 'ios' && FileViewer.previewMediaContentFromUrl) {
+          console.log('Using iOS native media preview');
+          await FileViewer.previewMediaContentFromUrl({
+            url: previewUrl,
+            mimeType: getMimeType(fileName)
           });
-          
-          // Get MIME type for the file
-          const contentType = getMimeType(fileName);
-          
-          // Open with native file opener (shows app chooser on Android)
-          await FileOpener.open({
-            filePath: writeResult.uri,
-            contentType: contentType,
-            openWithDefault: true
+        } else {
+          // For Android or if previewMediaContentFromUrl not available, use openDocumentFromUrl
+          // This will show app chooser on Android
+          console.log('Using document opener for media file');
+          await FileViewer.openDocumentFromUrl({
+            url: previewUrl,
+            filename: fileName || 'media'
           });
-        } catch (error) {
-          console.error('Error opening file:', error);
-          // Fallback: open in modal
-          setPreviewFile({ url: fileUrl, name: fileName });
         }
-      };
+      } else {
+        // For documents, images, PDFs - use openDocumentFromUrl
+        // iOS: Uses native document viewer (Quick Look)
+        // Android: Shows app chooser for compatible apps
+        console.log('Using document opener');
+        await FileViewer.openDocumentFromUrl({
+          url: previewUrl,
+          filename: fileName || 'document'
+        });
+      }
       
-      reader.onerror = () => {
-        setPreviewFile({ url: fileUrl, name: fileName });
-      };
-      
-      reader.readAsDataURL(blob);
+      console.log('File opened successfully in native viewer');
     } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error('Error opening file:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       // Fallback: open in modal
       setPreviewFile({ url: fileUrl, name: fileName });
     }
