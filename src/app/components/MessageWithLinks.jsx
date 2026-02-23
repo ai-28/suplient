@@ -18,8 +18,41 @@ export function MessageWithLinks({ messageText, className = "" }) {
     setIsMobile(isNative());
   }, []);
 
-  // Function to open PDF directly from URL (for native apps)
-  const openPdfDirectly = async (fileUrl, fileName) => {
+  // Helper function to get MIME type from file extension
+  const getMimeType = (fileName) => {
+    const extension = fileName.split('.').pop()?.toLowerCase() || '';
+    const mimeTypes = {
+      // Images
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+      // Videos
+      'mp4': 'video/mp4',
+      'avi': 'video/x-msvideo',
+      'mov': 'video/quicktime',
+      'wmv': 'video/x-ms-wmv',
+      'webm': 'video/webm',
+      // Audio
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'ogg': 'audio/ogg',
+      'm4a': 'audio/mp4',
+      'aac': 'audio/aac',
+      // Documents
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'txt': 'text/plain',
+      'rtf': 'application/rtf',
+    };
+    return mimeTypes[extension] || 'application/octet-stream';
+  };
+
+  // Function to open file directly from URL (for native apps)
+  const openFileDirectly = async (fileUrl, fileName) => {
     if (!Capacitor.isNativePlatform()) {
       // Web: use modal
       setPreviewFile({ url: fileUrl, name: fileName });
@@ -32,9 +65,9 @@ export function MessageWithLinks({ messageText, className = "" }) {
         ? fileUrl
         : `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
       
-      // Download PDF to app cache (invisible to user, auto-cleaned)
+      // Download file to app cache (invisible to user, auto-cleaned)
       const response = await fetch(previewUrl);
-      if (!response.ok) throw new Error('Failed to download PDF');
+      if (!response.ok) throw new Error('Failed to download file');
       
       const blob = await response.blob();
       const reader = new FileReader();
@@ -42,9 +75,9 @@ export function MessageWithLinks({ messageText, className = "" }) {
       reader.onloadend = async () => {
         try {
           const base64Data = reader.result.split(',')[1];
-          const pdfFileName = fileName || 'document.pdf';
-          const sanitizedFileName = pdfFileName.replace(/[^a-z0-9.-]/gi, '_');
-          const filePath = `${sanitizedFileName}_${Date.now()}.pdf`;
+          const fileExtension = fileName.split('.').pop()?.toLowerCase() || 'file';
+          const sanitizedFileName = (fileName || 'file').replace(/[^a-z0-9.-]/gi, '_');
+          const filePath = `${sanitizedFileName}_${Date.now()}.${fileExtension}`;
           
           // Write to app cache (private, auto-cleaned)
           const writeResult = await Filesystem.writeFile({
@@ -53,14 +86,17 @@ export function MessageWithLinks({ messageText, className = "" }) {
             directory: Directory.Cache,
           });
           
+          // Get MIME type for the file
+          const contentType = getMimeType(fileName);
+          
           // Open with native file opener (shows app chooser on Android)
           await FileOpener.open({
             filePath: writeResult.uri,
-            contentType: 'application/pdf',
+            contentType: contentType,
             openWithDefault: true
           });
         } catch (error) {
-          console.error('Error opening PDF:', error);
+          console.error('Error opening file:', error);
           // Fallback: open in modal
           setPreviewFile({ url: fileUrl, name: fileName });
         }
@@ -72,7 +108,7 @@ export function MessageWithLinks({ messageText, className = "" }) {
       
       reader.readAsDataURL(blob);
     } catch (error) {
-      console.error('Error downloading PDF:', error);
+      console.error('Error downloading file:', error);
       // Fallback: open in modal
       setPreviewFile({ url: fileUrl, name: fileName });
     }
@@ -172,13 +208,12 @@ export function MessageWithLinks({ messageText, className = "" }) {
           e.stopPropagation();
           if (linkUrl) {
             if (isFile) {
-              // Check if it's a PDF on native platform
-              const fileExtension = linkUrl.split('.').pop()?.toLowerCase();
-              if (fileExtension === 'pdf' && isMobile && Capacitor.isNativePlatform()) {
-                // Open directly in native PDF viewer
-                openPdfDirectly(linkUrl, linkText);
+              // For native platform, open all file types directly in native viewer
+              if (isMobile && Capacitor.isNativePlatform()) {
+                // Open directly in native file viewer
+                openFileDirectly(linkUrl, linkText);
               } else {
-                // For other files or web, use modal
+                // For web, use modal
                 setPreviewFile({ url: linkUrl, name: linkText });
               }
             } else {

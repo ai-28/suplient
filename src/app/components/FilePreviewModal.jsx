@@ -87,8 +87,41 @@ export function FilePreviewModal({
     ? `/api/library/preview?path=${encodeURIComponent(fileUrl)}`
     : previewUrl;
 
-  // Function to open PDF in native viewer (only for Capacitor native apps)
-  const openPdfNative = async () => {
+  // Helper function to get MIME type from file extension
+  const getMimeType = (fileName) => {
+    const extension = fileName.split('.').pop()?.toLowerCase() || '';
+    const mimeTypes = {
+      // Images
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+      // Videos
+      'mp4': 'video/mp4',
+      'avi': 'video/x-msvideo',
+      'mov': 'video/quicktime',
+      'wmv': 'video/x-ms-wmv',
+      'webm': 'video/webm',
+      // Audio
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'ogg': 'audio/ogg',
+      'm4a': 'audio/mp4',
+      'aac': 'audio/aac',
+      // Documents
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'txt': 'text/plain',
+      'rtf': 'application/rtf',
+    };
+    return mimeTypes[extension] || 'application/octet-stream';
+  };
+
+  // Function to open file in native viewer (only for Capacitor native apps)
+  const openFileNative = async () => {
     if (!Capacitor.isNativePlatform()) {
       // Fallback to browser for web
       window.open(previewUrl, '_blank');
@@ -98,9 +131,9 @@ export function FilePreviewModal({
     try {
       setOpeningNative(true);
       
-      // Download PDF to app cache (invisible to user, auto-cleaned)
+      // Download file to app cache (invisible to user, auto-cleaned)
       const response = await fetch(previewUrl);
-      if (!response.ok) throw new Error('Failed to download PDF');
+      if (!response.ok) throw new Error('Failed to download file');
       
       const blob = await response.blob();
       const reader = new FileReader();
@@ -108,9 +141,9 @@ export function FilePreviewModal({
       reader.onloadend = async () => {
         try {
           const base64Data = reader.result.split(',')[1];
-          const pdfFileName = fileName || 'document.pdf';
-          const sanitizedFileName = pdfFileName.replace(/[^a-z0-9.-]/gi, '_');
-          const filePath = `${sanitizedFileName}_${Date.now()}.pdf`;
+          const fileExtension = fileName.split('.').pop()?.toLowerCase() || 'file';
+          const sanitizedFileName = (fileName || 'file').replace(/[^a-z0-9.-]/gi, '_');
+          const filePath = `${sanitizedFileName}_${Date.now()}.${fileExtension}`;
           
           // Write to app cache (private, auto-cleaned)
           const writeResult = await Filesystem.writeFile({
@@ -119,17 +152,20 @@ export function FilePreviewModal({
             directory: Directory.Cache,
           });
           
+          // Get MIME type for the file
+          const contentType = getMimeType(fileName);
+          
           // Open with native file opener (shows app chooser on Android)
           await FileOpener.open({
             filePath: writeResult.uri,
-            contentType: 'application/pdf',
+            contentType: contentType,
             openWithDefault: true
           });
           
           // Close modal after opening
           onOpenChange(false);
         } catch (error) {
-          console.error('Error opening PDF:', error);
+          console.error('Error opening file:', error);
           window.open(previewUrl, '_blank');
         } finally {
           setOpeningNative(false);
@@ -143,7 +179,7 @@ export function FilePreviewModal({
       
       reader.readAsDataURL(blob);
     } catch (error) {
-      console.error('Error downloading PDF:', error);
+      console.error('Error downloading file:', error);
       setOpeningNative(false);
       window.open(previewUrl, '_blank');
     }
@@ -298,21 +334,21 @@ export function FilePreviewModal({
           ) : previewType === 'pdf' ? (
             <div>
               <div className="mb-4">
-                {/* For native Capacitor apps, show button to open in native PDF viewer */}
+                {/* For native Capacitor apps, show button to open in native viewer */}
                 {isMobile && Capacitor.isNativePlatform() ? (
                   <div className="text-center py-8 space-y-4">
                     <p className="text-sm mb-4" style={{ color: '#1A2D4D' }}>
-                      {openingNative ? 'Opening PDF in native viewer...' : 'Tap to open PDF in native viewer'}
+                      {openingNative ? 'Opening file in native viewer...' : 'Tap to open file in native viewer'}
                     </p>
                     <Button 
                       variant="outline" 
                       className="w-full"
                       size="default"
                       style={{ color: '#1A2D4D' }}
-                      onClick={openPdfNative}
+                      onClick={openFileNative}
                       disabled={openingNative}
                     >
-                      {openingNative ? 'Opening...' : 'Open in PDF Viewer'}
+                      {openingNative ? 'Opening...' : 'Open in Native Viewer'}
                     </Button>
                   </div>
                 ) : (
@@ -380,14 +416,33 @@ export function FilePreviewModal({
           ) : previewType === 'document' ? (
             <div>
               <div className="mb-4">
-                <div className="text-center py-8">
-                  <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
-                    Document preview not available
-                  </p>
-                  <p className="text-xs mb-2 break-words" style={{ color: '#1A2D4D' }}>
-                    This file type cannot be previewed inline. Please download or open in a new tab.
-                  </p>
-                </div>
+                {/* For native Capacitor apps, show button to open in native viewer */}
+                {isMobile && Capacitor.isNativePlatform() ? (
+                  <div className="text-center py-8 space-y-4">
+                    <p className="text-sm mb-4" style={{ color: '#1A2D4D' }}>
+                      {openingNative ? 'Opening file in native viewer...' : 'Tap to open file in native viewer'}
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      size="default"
+                      style={{ color: '#1A2D4D' }}
+                      onClick={openFileNative}
+                      disabled={openingNative}
+                    >
+                      {openingNative ? 'Opening...' : 'Open in Native Viewer'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
+                      Document preview not available
+                    </p>
+                    <p className="text-xs mb-2 break-words" style={{ color: '#1A2D4D' }}>
+                      This file type cannot be previewed inline. Please download or open in a new tab.
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="space-y-3">
                 <Button 
