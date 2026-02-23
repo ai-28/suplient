@@ -19,11 +19,50 @@ export function FilePreviewModal({
     if (open && isMobile) {
       // Save current overflow style
       const originalStyle = window.getComputedStyle(document.body).overflow;
+      const originalOverflowX = window.getComputedStyle(document.body).overflowX;
+      const originalPosition = window.getComputedStyle(document.body).position;
+      
       document.body.style.overflow = 'hidden';
+      document.body.style.overflowX = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      
+      // Inject global style to prevent overflow in Capacitor
+      const styleId = 'capacitor-modal-overflow-fix';
+      let styleElement = document.getElementById(styleId);
+      if (!styleElement) {
+        styleElement = document.createElement('style');
+        styleElement.id = styleId;
+        styleElement.textContent = `
+          /* Prevent overflow in Capacitor WebView */
+          body {
+            overflow-x: hidden !important;
+            max-width: 100vw !important;
+          }
+          * {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          iframe {
+            max-width: 100% !important;
+            width: 100% !important;
+          }
+        `;
+        document.head.appendChild(styleElement);
+      }
       
       return () => {
-        // Restore original overflow style
+        // Restore original styles
         document.body.style.overflow = originalStyle;
+        document.body.style.overflowX = originalOverflowX;
+        document.body.style.position = originalPosition;
+        document.body.style.width = '';
+        
+        // Remove injected style
+        const style = document.getElementById(styleId);
+        if (style) {
+          style.remove();
+        }
       };
     }
   }, [open, isMobile]);
@@ -118,6 +157,10 @@ export function FilePreviewModal({
           boxSizing: 'border-box',
           overflowX: 'hidden',
           overflowY: 'hidden',
+          // Critical for Capacitor: ensure container doesn't allow horizontal overflow
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
         } : {
           width: '100%',
         }}
@@ -146,17 +189,29 @@ export function FilePreviewModal({
             overflowX: 'hidden',
             wordWrap: 'break-word',
             overflowWrap: 'break-word',
+            wordBreak: 'break-word',
             minWidth: 0, // Important for flex items to shrink
             maxWidth: '100%',
             width: '100%',
             boxSizing: 'border-box',
+            // Prevent any horizontal scrolling in Capacitor
+            WebkitOverflowScrolling: 'touch',
+            // Ensure content respects container bounds
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
           } : {
-            overflowX: 'hidden',
-            boxSizing: 'border-box',
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word',
           }}
         >
           {previewType === 'images' ? (
-            <div>
+            <div style={isMobile ? {
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+            } : {}}>
               <img 
                 src={previewUrl}
                 alt="Preview"
@@ -165,6 +220,8 @@ export function FilePreviewModal({
                   width: '100%',
                   height: 'auto',
                   maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  display: 'block',
                 } : {}}
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -184,15 +241,23 @@ export function FilePreviewModal({
               />
             </div>
           ) : previewType === 'videos' ? (
-            <video 
-              src={previewUrl}
-              controls
-              className="max-w-full max-h-[70vh] mx-auto"
-              style={isMobile ? {
-                width: '100%',
-                height: 'auto',
-                maxWidth: '100%',
-              } : {}}
+            <div style={isMobile ? {
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+            } : {}}>
+              <video 
+                src={previewUrl}
+                controls
+                className="max-w-full max-h-[70vh] mx-auto"
+                style={isMobile ? {
+                  width: '100%',
+                  height: 'auto',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  display: 'block',
+                } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -209,15 +274,23 @@ export function FilePreviewModal({
                 e.target.parentNode.appendChild(fallback);
               }}
             />
+            </div>
           ) : previewType === 'sounds' ? (
-            <audio 
-              src={previewUrl}
-              controls
-              className="w-full"
-              style={isMobile ? {
-                width: '100%',
-                maxWidth: '100%',
-              } : {}}
+            <div style={isMobile ? {
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+            } : {}}>
+              <audio 
+                src={previewUrl}
+                controls
+                className="w-full"
+                style={isMobile ? {
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                } : {}}
               onError={(e) => {
                 e.target.style.display = 'none';
                 const fallback = document.createElement('div');
@@ -234,29 +307,24 @@ export function FilePreviewModal({
                 e.target.parentNode.appendChild(fallback);
               }}
             />
+            </div>
           ) : previewType === 'pdf' ? (
-            <div className="w-full" style={isMobile ? {
-              width: '100%',
-              maxWidth: '100%',
-              overflow: 'hidden',
-              boxSizing: 'border-box',
-            } : {
+            <div style={isMobile ? {
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
-            }}>
+              overflowX: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            } : {}}>
               <div className="mb-4" style={isMobile ? {
                 width: '100%',
                 maxWidth: '100%',
-                overflow: 'hidden',
-                position: 'relative',
                 boxSizing: 'border-box',
-              } : {
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden',
-                boxSizing: 'border-box',
-              }}>
+                overflowX: 'hidden',
+                flex: '1 1 auto',
+                minHeight: 0,
+              } : {}}>
                 {pdfError ? (
                   <div className="text-center py-8">
                     <p className="text-sm mb-4" style={{ color: '#1A2D4D' }}>
@@ -267,89 +335,79 @@ export function FilePreviewModal({
                     </p>
                   </div>
                 ) : (
-                  <div style={isMobile ? {
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    boxSizing: 'border-box',
-                  } : {
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    boxSizing: 'border-box',
-                  }}>
-                    <iframe
-                      src={previewUrl}
-                      className="w-full h-[60vh] border rounded pdf-viewer-iframe"
-                      title="PDF Preview"
-                      style={isMobile ? {
-                        width: '100%',
-                        maxWidth: '100%',
-                        height: '60vh',
-                        border: 'none',
-                        overflow: 'hidden',
-                        boxSizing: 'border-box',
-                        display: 'block',
-                      } : {
-                        width: '100%',
-                        maxWidth: '100%',
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                      }}
-                      onLoad={(e) => {
-                        setPdfError(false);
-                        // Try to inject CSS to fix PDF viewer overflow if accessible
-                        if (isMobile && e.target) {
-                          try {
-                            const iframe = e.target;
-                            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                            if (iframeDoc) {
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-[60vh] border rounded"
+                    title="PDF Preview"
+                    style={isMobile ? {
+                      width: '100%',
+                      maxWidth: '100%',
+                      minWidth: 0,
+                      border: 'none',
+                      boxSizing: 'border-box',
+                      // Critical for Capacitor: prevent iframe from overflowing
+                      flexShrink: 1,
+                      overflow: 'hidden',
+                      // Ensure iframe respects parent container
+                      position: 'relative',
+                    } : {
+                      boxSizing: 'border-box',
+                    }}
+                    onLoad={() => {
+                      setPdfError(false);
+                      // Try to inject viewport meta into iframe if accessible (same-origin)
+                      if (isMobile) {
+                        try {
+                          const iframe = document.querySelector('iframe[title="PDF Preview"]');
+                          if (iframe && iframe.contentDocument) {
+                            const iframeDoc = iframe.contentDocument;
+                            // Check if viewport meta exists
+                            let viewportMeta = iframeDoc.querySelector('meta[name="viewport"]');
+                            if (!viewportMeta) {
+                              viewportMeta = iframeDoc.createElement('meta');
+                              viewportMeta.setAttribute('name', 'viewport');
+                              viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover');
+                              iframeDoc.head.insertBefore(viewportMeta, iframeDoc.head.firstChild);
+                            }
+                            
+                            // Inject responsive CSS for PDF content
+                            const styleId = 'capacitor-pdf-responsive-styles';
+                            if (!iframeDoc.getElementById(styleId)) {
                               const style = iframeDoc.createElement('style');
+                              style.id = styleId;
                               style.textContent = `
+                                * {
+                                  box-sizing: border-box;
+                                }
                                 body {
-                                  overflow-x: hidden !important;
+                                  margin: 0;
+                                  padding: 0.5rem;
+                                  word-wrap: break-word;
+                                  overflow-wrap: break-word;
+                                  word-break: break-word;
+                                  -webkit-text-size-adjust: 100%;
+                                  max-width: 100%;
+                                  overflow-x: hidden;
+                                  width: 100%;
+                                }
+                                embed, object, iframe {
+                                  max-width: 100% !important;
                                   width: 100% !important;
-                                  max-width: 100% !important;
-                                  box-sizing: border-box !important;
-                                }
-                                #viewer {
-                                  width: 100% !important;
-                                  max-width: 100% !important;
-                                  overflow-x: hidden !important;
-                                  box-sizing: border-box !important;
-                                }
-                                .textLayer {
-                                  overflow: visible !important;
-                                  white-space: normal !important;
-                                  word-wrap: break-word !important;
-                                  max-width: 100% !important;
-                                  box-sizing: border-box !important;
-                                }
-                                .textLayer > span {
-                                  max-width: 100% !important;
-                                  word-wrap: break-word !important;
-                                  overflow-wrap: break-word !important;
-                                  box-sizing: border-box !important;
-                                }
-                                .page {
-                                  max-width: 100% !important;
-                                  box-sizing: border-box !important;
                                 }
                               `;
                               iframeDoc.head.appendChild(style);
                             }
-                          } catch (err) {
-                            // Cross-origin restrictions may prevent this
-                            console.log('Could not inject PDF viewer styles (cross-origin):', err);
                           }
+                        } catch (e) {
+                          // Cross-origin or security restriction - this is expected for external PDFs
+                          console.log('Cannot modify iframe content (cross-origin restriction)');
                         }
-                      }}
-                      onError={() => {
-                        setPdfError(true);
-                      }}
-                    />
-                  </div>
+                      }
+                    }}
+                    onError={() => {
+                      setPdfError(true);
+                    }}
+                  />
                 )}
               </div>
               <div className="text-center space-y-2">
@@ -383,13 +441,30 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : previewType === 'document' ? (
-            <div>
-              <div className="mb-4">
-                <div className="text-center py-8">
-                  <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
+            <div style={isMobile ? {
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+            } : {}}>
+              <div className="mb-4" style={isMobile ? {
+                width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                overflowX: 'hidden',
+              } : {}}>
+                <div className="text-center py-8" style={isMobile ? {
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  wordBreak: 'break-word',
+                } : {}}>
+                  <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                     Document preview not available
                   </p>
-                  <p className="text-xs mb-2 break-words" style={{ color: '#1A2D4D' }}>
+                  <p className="text-xs mb-2 break-words" style={{ color: '#1A2D4D', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                     This file type cannot be previewed inline. Please download or open in a new tab.
                   </p>
                 </div>
@@ -422,8 +497,16 @@ export function FilePreviewModal({
               </div>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D' }}>
+            <div className="text-center py-8" style={isMobile ? {
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+              wordBreak: 'break-word',
+            } : {}}>
+              <p className="text-sm mb-2 break-words" style={{ color: '#1A2D4D', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 Preview not available for this file type
               </p>
               <Button 
