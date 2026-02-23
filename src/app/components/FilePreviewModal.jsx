@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/app/components/ui/button';
 import { X } from 'lucide-react';
-import { FileViewer } from '@capacitor/file-viewer';
+import { FileOpener } from '@capacitor-community/file-opener';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 
 export function FilePreviewModal({ 
@@ -97,19 +98,54 @@ export function FilePreviewModal({
     try {
       setOpeningNative(true);
       
-      // Open PDF directly in native viewer from S3 URL
-      await FileViewer.openDocumentFromUrl({
-        url: previewUrl,
-      });
+      // Download PDF to app cache (invisible to user, auto-cleaned)
+      const response = await fetch(previewUrl);
+      if (!response.ok) throw new Error('Failed to download PDF');
       
-      // Close modal after opening
-      onOpenChange(false);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      reader.onloadend = async () => {
+        try {
+          const base64Data = reader.result.split(',')[1];
+          const pdfFileName = fileName || 'document.pdf';
+          const sanitizedFileName = pdfFileName.replace(/[^a-z0-9.-]/gi, '_');
+          const filePath = `${sanitizedFileName}_${Date.now()}.pdf`;
+          
+          // Write to app cache (private, auto-cleaned)
+          const writeResult = await Filesystem.writeFile({
+            path: filePath,
+            data: base64Data,
+            directory: Directory.Cache,
+          });
+          
+          // Open with native file opener (shows app chooser on Android)
+          await FileOpener.open({
+            filePath: writeResult.uri,
+            contentType: 'application/pdf',
+            openWithDefault: true
+          });
+          
+          // Close modal after opening
+          onOpenChange(false);
+        } catch (error) {
+          console.error('Error opening PDF:', error);
+          window.open(previewUrl, '_blank');
+        } finally {
+          setOpeningNative(false);
+        }
+      };
+      
+      reader.onerror = () => {
+        setOpeningNative(false);
+        window.open(previewUrl, '_blank');
+      };
+      
+      reader.readAsDataURL(blob);
     } catch (error) {
-      console.error('Error opening PDF:', error);
-      // Fallback to browser
-      window.open(previewUrl, '_blank');
-    } finally {
+      console.error('Error downloading PDF:', error);
       setOpeningNative(false);
+      window.open(previewUrl, '_blank');
     }
   };
 

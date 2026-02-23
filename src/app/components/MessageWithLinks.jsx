@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { FilePreviewModal } from './FilePreviewModal';
 import { isNative } from '@/lib/capacitor';
-import { FileViewer } from '@capacitor/file-viewer';
+import { FileOpener } from '@capacitor-community/file-opener';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 
 // Component to render message text with clickable links
@@ -31,12 +32,47 @@ export function MessageWithLinks({ messageText, className = "" }) {
         ? fileUrl
         : `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
       
-      // Open directly in native PDF viewer
-      await FileViewer.openDocumentFromUrl({
-        url: previewUrl,
-      });
+      // Download PDF to app cache (invisible to user, auto-cleaned)
+      const response = await fetch(previewUrl);
+      if (!response.ok) throw new Error('Failed to download PDF');
+      
+      const blob = await response.blob();
+      const reader = new FileReader();
+      
+      reader.onloadend = async () => {
+        try {
+          const base64Data = reader.result.split(',')[1];
+          const pdfFileName = fileName || 'document.pdf';
+          const sanitizedFileName = pdfFileName.replace(/[^a-z0-9.-]/gi, '_');
+          const filePath = `${sanitizedFileName}_${Date.now()}.pdf`;
+          
+          // Write to app cache (private, auto-cleaned)
+          const writeResult = await Filesystem.writeFile({
+            path: filePath,
+            data: base64Data,
+            directory: Directory.Cache,
+          });
+          
+          // Open with native file opener (shows app chooser on Android)
+          await FileOpener.open({
+            filePath: writeResult.uri,
+            contentType: 'application/pdf',
+            openWithDefault: true
+          });
+        } catch (error) {
+          console.error('Error opening PDF:', error);
+          // Fallback: open in modal
+          setPreviewFile({ url: fileUrl, name: fileName });
+        }
+      };
+      
+      reader.onerror = () => {
+        setPreviewFile({ url: fileUrl, name: fileName });
+      };
+      
+      reader.readAsDataURL(blob);
     } catch (error) {
-      console.error('Error opening PDF:', error);
+      console.error('Error downloading PDF:', error);
       // Fallback: open in modal
       setPreviewFile({ url: fileUrl, name: fileName });
     }
