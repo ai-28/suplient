@@ -148,7 +148,12 @@ export function FilePreviewModal({
             overflowWrap: 'break-word',
             minWidth: 0, // Important for flex items to shrink
             maxWidth: '100%',
-          } : {}}
+            width: '100%',
+            boxSizing: 'border-box',
+          } : {
+            overflowX: 'hidden',
+            boxSizing: 'border-box',
+          }}
         >
           {previewType === 'images' ? (
             <div>
@@ -230,8 +235,28 @@ export function FilePreviewModal({
               }}
             />
           ) : previewType === 'pdf' ? (
-            <div>
-              <div className="mb-4">
+            <div className="w-full" style={isMobile ? {
+              width: '100%',
+              maxWidth: '100%',
+              overflow: 'hidden',
+              boxSizing: 'border-box',
+            } : {
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+            }}>
+              <div className="mb-4" style={isMobile ? {
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                position: 'relative',
+                boxSizing: 'border-box',
+              } : {
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                boxSizing: 'border-box',
+              }}>
                 {pdfError ? (
                   <div className="text-center py-8">
                     <p className="text-sm mb-4" style={{ color: '#1A2D4D' }}>
@@ -242,22 +267,89 @@ export function FilePreviewModal({
                     </p>
                   </div>
                 ) : (
-                  <iframe
-                    src={previewUrl}
-                    className="w-full h-[60vh] border rounded"
-                    title="PDF Preview"
-                    style={isMobile ? {
-                      width: '100%',
-                      maxWidth: '100%',
-                      border: 'none',
-                    } : {}}
-                    onLoad={() => {
-                      setPdfError(false);
-                    }}
-                    onError={() => {
-                      setPdfError(true);
-                    }}
-                  />
+                  <div style={isMobile ? {
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    boxSizing: 'border-box',
+                  } : {
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    boxSizing: 'border-box',
+                  }}>
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-[60vh] border rounded pdf-viewer-iframe"
+                      title="PDF Preview"
+                      style={isMobile ? {
+                        width: '100%',
+                        maxWidth: '100%',
+                        height: '60vh',
+                        border: 'none',
+                        overflow: 'hidden',
+                        boxSizing: 'border-box',
+                        display: 'block',
+                      } : {
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                      }}
+                      onLoad={(e) => {
+                        setPdfError(false);
+                        // Try to inject CSS to fix PDF viewer overflow if accessible
+                        if (isMobile && e.target) {
+                          try {
+                            const iframe = e.target;
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                            if (iframeDoc) {
+                              const style = iframeDoc.createElement('style');
+                              style.textContent = `
+                                body {
+                                  overflow-x: hidden !important;
+                                  width: 100% !important;
+                                  max-width: 100% !important;
+                                  box-sizing: border-box !important;
+                                }
+                                #viewer {
+                                  width: 100% !important;
+                                  max-width: 100% !important;
+                                  overflow-x: hidden !important;
+                                  box-sizing: border-box !important;
+                                }
+                                .textLayer {
+                                  overflow: visible !important;
+                                  white-space: normal !important;
+                                  word-wrap: break-word !important;
+                                  max-width: 100% !important;
+                                  box-sizing: border-box !important;
+                                }
+                                .textLayer > span {
+                                  max-width: 100% !important;
+                                  word-wrap: break-word !important;
+                                  overflow-wrap: break-word !important;
+                                  box-sizing: border-box !important;
+                                }
+                                .page {
+                                  max-width: 100% !important;
+                                  box-sizing: border-box !important;
+                                }
+                              `;
+                              iframeDoc.head.appendChild(style);
+                            }
+                          } catch (err) {
+                            // Cross-origin restrictions may prevent this
+                            console.log('Could not inject PDF viewer styles (cross-origin):', err);
+                          }
+                        }
+                      }}
+                      onError={() => {
+                        setPdfError(true);
+                      }}
+                    />
+                  </div>
                 )}
               </div>
               <div className="text-center space-y-2">
