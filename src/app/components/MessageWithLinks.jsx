@@ -89,14 +89,17 @@ export function MessageWithLinks({ messageText, className = "" }) {
       // Get preview URL - ensure it's absolute for Android
       let previewUrl;
       if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
-        // Already a full URL (CDN URL)
+        // Already a full URL (CDN URL from DigitalOcean Spaces)
+        // Use it directly - FileViewer can handle remote URLs
         previewUrl = fileUrl;
+        console.log('Using direct CDN URL:', previewUrl);
       } else {
         // For library paths, make preview API URL absolute (required for Android)
         if (platform === 'android') {
           // Android requires absolute URLs
           const baseUrl = 'https://app.suplient.com'; // From capacitor.config.json
           previewUrl = `${baseUrl}/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+          console.log('Android: Using preview API URL:', previewUrl);
         } else {
           // iOS can handle relative URLs
           previewUrl = `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
@@ -140,13 +143,27 @@ export function MessageWithLinks({ messageText, className = "" }) {
         console.log('Using document opener');
         
         if (platform === 'android') {
-          // Android-specific: ensure proper parameters
-          await FileViewer.openDocumentFromUrl({
-            url: previewUrl,
-            filename: finalFileName
-          });
+          // Android-specific: openDocumentFromUrl should work with remote URLs
+          // The plugin will download the file and open it with the appropriate app
+          console.log('Android: Opening document from URL:', previewUrl);
+          console.log('Android: Filename:', finalFileName);
+          console.log('Android: MIME type:', mimeType);
+          
+          try {
+            // For Android, openDocumentFromUrl should handle remote URLs directly
+            // It will download the file temporarily and open it with the system's default app
+            await FileViewer.openDocumentFromUrl({
+              url: previewUrl,
+              filename: finalFileName
+            });
+            console.log('Android: File opened successfully in native viewer');
+          } catch (androidError) {
+            console.error('Android: Error opening file with FileViewer:', androidError);
+            // If FileViewer fails, try alternative approach
+            throw androidError;
+          }
         } else {
-          // iOS: unchanged
+          // iOS: unchanged - uses Quick Look
           await FileViewer.openDocumentFromUrl({
             url: previewUrl,
             filename: finalFileName
@@ -158,8 +175,20 @@ export function MessageWithLinks({ messageText, className = "" }) {
     } catch (error) {
       console.error('Error opening file:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
-      // Fallback: open in modal
-      setPreviewFile({ url: fileUrl, name: fileName });
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      
+      // For Android, don't fall back to browser - use modal instead
+      if (platform === 'android') {
+        console.log('Falling back to modal for Android');
+        setPreviewFile({ url: fileUrl, name: fileName });
+      } else {
+        // For iOS, also use modal as fallback
+        setPreviewFile({ url: fileUrl, name: fileName });
+      }
+      
+      // Re-throw to let caller handle if needed
+      throw error;
     }
   };
 
@@ -215,73 +244,124 @@ export function MessageWithLinks({ messageText, className = "" }) {
     const isFile = isFileUrl(linkUrl);
     
     // Add clickable link - only show the text part, URL is hidden
-    // For Android file links, remove href to prevent browser opening
-    const isAndroidFile = isFile && isMobile && Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+    // For Android file links, use span instead of <a> to completely prevent browser opening
+    const platform = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : null;
+    const isAndroidFile = isFile && platform === 'android';
     
-    parts.push(
-      <a
-        key={`link-${keyCounter++}`}
-        href={isAndroidFile ? undefined : linkUrl}
-        target={isFile ? undefined : "_blank"}
-        rel={isFile ? undefined : "noopener noreferrer"}
-        className={`underline font-medium cursor-pointer break-all ${isMobile ? 'touch-manipulation' : ''}`}
-        style={{ 
-          color: '#001583',
-          ...(isMobile && {
+    // Use span for Android file links to prevent any browser navigation
+    if (isAndroidFile) {
+      parts.push(
+        <span
+          key={`link-${keyCounter++}`}
+          className={`underline font-medium cursor-pointer break-all touch-manipulation`}
+          style={{ 
+            color: '#001583',
             WebkitTapHighlightColor: 'rgba(0, 21, 131, 0.2)',
             touchAction: 'manipulation',
             minHeight: '44px',
             display: 'inline-block',
             padding: '4px 0'
-          })
-        }}
-        onMouseEnter={(e) => {
-          if (!isMobile) {
-            e.currentTarget.style.opacity = '0.8';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isMobile) {
-            e.currentTarget.style.opacity = '1';
-          }
-        }}
-        onTouchStart={(e) => {
-          if (isMobile) {
+          }}
+          onTouchStart={(e) => {
             e.currentTarget.style.opacity = '0.7';
-          }
-        }}
-        onTouchEnd={(e) => {
-          if (isMobile) {
+          }}
+          onTouchEnd={(e) => {
             e.currentTarget.style.opacity = '1';
-          }
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (linkUrl) {
-            if (isFile) {
-              // For native platform, open all file types directly in native viewer
-              if (isMobile && Capacitor.isNativePlatform()) {
-                // Open directly in native file viewer
-                openFileDirectly(linkUrl, linkText).catch((error) => {
-                  console.error('Failed to open file in native viewer:', error);
-                  // Fallback to modal if native viewer fails
-                  setPreviewFile({ url: linkUrl, name: linkText });
-                });
-              } else {
-                // For web, use modal
+          }}
+          onClick={(e) => {
+            // Aggressively prevent any default behavior or propagation
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            if (linkUrl) {
+              console.log('Android file link clicked:', linkUrl);
+              console.log('Platform confirmed:', Capacitor.getPlatform());
+              console.log('Is native platform:', Capacitor.isNativePlatform());
+              
+              // Immediately call openFileDirectly - don't let anything else happen
+              openFileDirectly(linkUrl, linkText).catch((error) => {
+                console.error('Failed to open file in native viewer:', error);
+                console.error('Error details:', JSON.stringify(error, null, 2));
+                // Fallback to modal if native viewer fails - never open browser
                 setPreviewFile({ url: linkUrl, name: linkText });
-              }
-            } else {
-              // Open in new tab for regular links
-              window.open(linkUrl, '_blank', 'noopener,noreferrer');
+              });
             }
-          }
-        }}
-      >
-        {linkText}
-      </a>
-    );
+            
+            // Return false as additional prevention
+            return false;
+          }}
+        >
+          {linkText}
+        </span>
+      );
+    } else {
+      // Use <a> tag for web, iOS, and non-file links
+      parts.push(
+        <a
+          key={`link-${keyCounter++}`}
+          href={linkUrl}
+          target={isFile ? undefined : "_blank"}
+          rel={isFile ? undefined : "noopener noreferrer"}
+          className={`underline font-medium cursor-pointer break-all ${isMobile ? 'touch-manipulation' : ''}`}
+          style={{ 
+            color: '#001583',
+            ...(isMobile && {
+              WebkitTapHighlightColor: 'rgba(0, 21, 131, 0.2)',
+              touchAction: 'manipulation',
+              minHeight: '44px',
+              display: 'inline-block',
+              padding: '4px 0'
+            })
+          }}
+          onMouseEnter={(e) => {
+            if (!isMobile) {
+              e.currentTarget.style.opacity = '0.8';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isMobile) {
+              e.currentTarget.style.opacity = '1';
+            }
+          }}
+          onTouchStart={(e) => {
+            if (isMobile) {
+              e.currentTarget.style.opacity = '0.7';
+            }
+          }}
+          onTouchEnd={(e) => {
+            if (isMobile) {
+              e.currentTarget.style.opacity = '1';
+            }
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (linkUrl) {
+              if (isFile) {
+                // For native platform (iOS), open all file types directly in native viewer
+                if (isMobile && Capacitor.isNativePlatform()) {
+                  // Open directly in native file viewer
+                  openFileDirectly(linkUrl, linkText).catch((error) => {
+                    console.error('Failed to open file in native viewer:', error);
+                    // Fallback to modal if native viewer fails
+                    setPreviewFile({ url: linkUrl, name: linkText });
+                  });
+                } else {
+                  // For web, use modal
+                  setPreviewFile({ url: linkUrl, name: linkText });
+                }
+              } else {
+                // Open in new tab for regular links
+                window.open(linkUrl, '_blank', 'noopener,noreferrer');
+              }
+            }
+          }}
+        >
+          {linkText}
+        </a>
+      );
+    }
     
     lastIndex = linkRegex.lastIndex;
   }
