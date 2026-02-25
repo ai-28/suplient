@@ -116,10 +116,43 @@ export function MessageWithLinks({ messageText, className = "" }) {
         }
       }
       
-      // Extract filename from URL if not provided
-      const finalFileName = fileName || fileUrl.split('/').pop() || 'document';
+      // Extract filename from URL (always use URL, not link text, for proper MIME type detection)
+      // Get filename from URL (last part of path)
+      let finalFileName = fileUrl.split('/').pop() || 'document';
+      // Remove query parameters if any
+      finalFileName = finalFileName.split('?')[0];
+      // Extract just the filename without path if it contains slashes
+      finalFileName = finalFileName.split('/').pop() || 'document';
+      
+      // If filename is still generic, try to extract from URL path
+      if (finalFileName === 'document' || !finalFileName.includes('.')) {
+        const urlParts = fileUrl.split('/');
+        for (let i = urlParts.length - 1; i >= 0; i--) {
+          const part = urlParts[i].split('?')[0];
+          if (part && part.includes('.')) {
+            finalFileName = part;
+            break;
+          }
+        }
+      }
+      
+      // Clean filename - remove special characters that might cause issues in Android
+      // But preserve the extension
+      const extension = finalFileName.split('.').pop();
+      const nameWithoutExt = finalFileName.substring(0, finalFileName.lastIndexOf('.')) || finalFileName;
+      const cleanedName = nameWithoutExt.replace(/[^a-zA-Z0-9\s_-]/g, '_').trim();
+      finalFileName = cleanedName ? `${cleanedName}.${extension}` : finalFileName;
+      
       const fileType = getFileType(finalFileName);
       const mimeType = getMimeType(finalFileName);
+      
+      // For PDFs, ensure we use the correct MIME type (critical for Android)
+      const finalMimeType = fileType === 'pdf' ? 'application/pdf' : mimeType;
+      
+      console.log('Extracted filename from URL:', finalFileName);
+      console.log('Detected file type:', fileType);
+      console.log('Detected MIME type:', mimeType);
+      console.log('Final MIME type:', finalMimeType);
       
       console.log('Opening file directly from URL:', previewUrl);
       console.log('Platform:', platform);
@@ -157,18 +190,28 @@ export function MessageWithLinks({ messageText, className = "" }) {
           // The plugin will download the file and open it with the appropriate app
           console.log('Android: Opening document from URL:', previewUrl);
           console.log('Android: Filename:', finalFileName);
-          console.log('Android: MIME type:', mimeType);
+          console.log('Android: MIME type:', finalMimeType);
+          console.log('Android: File type:', fileType);
           
           try {
             // For Android, openDocumentFromUrl should handle remote URLs directly
             // It will download the file temporarily and open it with the system's default app
-            await FileViewer.openDocumentFromUrl({
+            // Pass MIME type if the plugin supports it (some versions do)
+            const openOptions = {
               url: previewUrl,
               filename: finalFileName
-            });
+            };
+            
+            // Some versions of FileViewer support contentType parameter
+            if (finalMimeType && finalMimeType !== 'application/octet-stream') {
+              openOptions.contentType = finalMimeType;
+            }
+            
+            await FileViewer.openDocumentFromUrl(openOptions);
             console.log('Android: File opened successfully in native viewer');
           } catch (androidError) {
             console.error('Android: Error opening file with FileViewer:', androidError);
+            console.error('Android: Error details:', JSON.stringify(androidError, null, 2));
             // If FileViewer fails, try alternative approach
             throw androidError;
           }
