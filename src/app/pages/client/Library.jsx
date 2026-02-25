@@ -27,69 +27,6 @@ import { Capacitor } from "@capacitor/core";
 import { isNative } from "@/lib/capacitor";
 import { toast } from "sonner";
 
-// Mock data for shared files
-const sharedFiles = [
-  {
-    id: 1,
-    title: "Introduction to Mindfulness",
-    description: "A comprehensive guide to mindfulness techniques for beginners",
-    category: "videos",
-    format: "MP4",
-    size: "45 MB",
-    duration: "15:30",
-    sharedBy: "Dr. Sarah",
-    sharedAt: "2024-01-15T10:30:00Z",
-    shareType: "individual",
-    message: "This video will help you get started with mindfulness practice.",
-    viewed: false
-  },
-  {
-    id: 2,
-    title: "Breathing Exercises",
-    description: "Guided breathing exercises for anxiety relief",
-    category: "videos",
-    format: "MP4",
-    size: "38 MB",
-    duration: "12:45",
-    sharedBy: "Dr. Sarah",
-    sharedAt: "2024-01-14T14:20:00Z",
-    shareType: "group",
-    groupName: "Anxiety Support Group",
-    message: "Practice these exercises daily for best results.",
-    viewed: true
-  },
-  {
-    id: 3,
-    title: "Managing Anxiety",
-    description: "Comprehensive research on anxiety and treatment approaches",
-    category: "articles",
-    format: "PDF",
-    size: "1.2 MB",
-    pages: 12,
-    author: "Dr. Johnson",
-    sharedBy: "Dr. Sarah",
-    sharedAt: "2024-01-13T09:15:00Z",
-    shareType: "individual",
-    message: "This article provides excellent insights into anxiety management.",
-    viewed: true
-  },
-  {
-    id: 4,
-    title: "Ocean Waves",
-    description: "Calming ocean sounds for relaxation",
-    category: "sounds",
-    format: "MP3",
-    size: "28 MB",
-    duration: "30:00",
-    sharedBy: "Dr. Sarah",
-    sharedAt: "2024-01-12T16:45:00Z",
-    shareType: "group",
-    groupName: "Mindfulness Circle",
-    message: "Use this for your daily meditation practice.",
-    viewed: false
-  }
-];
-
 const categoryIcons = {
   videos: Video,
   images: Image,
@@ -110,6 +47,9 @@ export default function ClientLibrary() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [previewFile, setPreviewFile] = useState({ url: null, name: null });
   const [isMobile, setIsMobile] = useState(false);
+  const [sharedFiles, setSharedFiles] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Detect mobile screen size and native platform
   useEffect(() => {
@@ -120,6 +60,83 @@ export default function ClientLibrary() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Fetch shared files from API
+  useEffect(() => {
+    const fetchSharedFiles = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/resources');
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch shared files');
+        }
+        
+        const data = await response.json();
+        const resources = data.resources || [];
+        
+        // Map API resources to Library component format
+        const mappedFiles = resources.map(resource => {
+          // Map resource type to category
+          let category = 'articles';
+          if (resource.type === 'Video' || resource.category === 'Videos') {
+            category = 'videos';
+          } else if (resource.type === 'Image' || resource.category === 'Images') {
+            category = 'images';
+          } else if (resource.type === 'Audio' || resource.type === 'Sound' || resource.category === 'Sounds') {
+            category = 'sounds';
+          } else if (resource.type === 'Article' || resource.category === 'Articles') {
+            category = 'articles';
+          }
+          
+          // Get file format from fileName or fileType
+          const fileName = resource.fileName || resource.title || '';
+          const fileExtension = fileName.split('.').pop()?.toUpperCase() || resource.fileType?.toUpperCase() || '';
+          
+          // Format file size
+          const formatFileSize = (bytes) => {
+            if (!bytes) return 'Unknown';
+            const mb = bytes / (1024 * 1024);
+            if (mb >= 1) return `${mb.toFixed(1)} MB`;
+            const kb = bytes / 1024;
+            return `${kb.toFixed(1)} KB`;
+          };
+          
+          return {
+            id: resource.id,
+            title: resource.title,
+            description: resource.description || '',
+            category: category,
+            format: fileExtension,
+            size: formatFileSize(resource.fileSize),
+            duration: resource.duration || '',
+            sharedBy: resource.sharedBy || 'Coach',
+            sharedAt: resource.updatedAt || resource.createdAt || new Date().toISOString(),
+            shareType: resource.groupIds?.length > 0 ? 'group' : 'individual',
+            groupName: resource.groupName || '',
+            message: resource.message || '',
+            viewed: false, // TODO: Track viewed status
+            url: resource.url,
+            fileName: resource.fileName || fileName,
+            author: resource.author || ''
+          };
+        });
+        
+        setSharedFiles(mappedFiles);
+      } catch (err) {
+        console.error('Error fetching shared files:', err);
+        setError(err.message);
+        setSharedFiles([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchSharedFiles();
   }, []);
 
   const filteredFiles = sharedFiles.filter(file => {
@@ -202,51 +219,112 @@ export default function ClientLibrary() {
 
   // Handle file preview
   const handleFilePreview = async (file) => {
-    // For now, using mock data structure
-    // In production, you'd fetch the actual file URL from API
-    // For demo purposes, we'll construct a URL based on the file data
-    
-    // Determine file type from category
-    let fileType = 'document';
-    if (file.category === 'videos') {
-      fileType = 'video';
-    } else if (file.category === 'images') {
-      fileType = 'image';
-    } else if (file.category === 'sounds') {
-      fileType = 'audio';
-    } else if (file.category === 'articles' && file.format === 'PDF') {
-      fileType = 'pdf';
-    }
+    try {
+      // Fetch the actual file URL from the access API
+      const response = await fetch(`/api/resources/${file.id}/access?action=access`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to access file');
+      }
+      
+      const data = await response.json();
+      const fileUrl = data.resource.url;
+      const fileName = data.resource.fileName || file.fileName || file.title;
+      
+      // Determine file type from category
+      let fileType = 'document';
+      if (file.category === 'videos') {
+        fileType = 'video';
+      } else if (file.category === 'images') {
+        fileType = 'image';
+      } else if (file.category === 'sounds') {
+        fileType = 'audio';
+      } else if (file.category === 'articles' && (file.format === 'PDF' || fileName.toLowerCase().endsWith('.pdf'))) {
+        fileType = 'pdf';
+      }
 
-    // Mock URL - in production, this would come from the API
-    // For now, we'll use a placeholder that would work with the preview API
-    const fileUrl = `/api/library/preview?path=library/${file.category}/${file.id}`;
-    const fileName = `${file.title}.${file.format.toLowerCase()}`;
-
-    // For Capacitor native apps: use native viewer for videos, audio, PDFs
-    // For images: always use modal (better UX)
-    if (Capacitor.isNativePlatform() && fileType !== 'image') {
-      // For native apps, we need the actual CDN URL, not the preview API
-      // This would need to be fetched from the API in production
-      // For now, we'll try to open it, but it may need the actual URL
-      const opened = await openFileInNativeViewer(fileUrl, fileName, fileType);
-      if (opened) {
-        toast.success(`Opening ${fileType} in native viewer...`);
+      // For audio files, if the URL is not a full CDN URL, resolve it through preview API
+      if (fileType === 'audio' && !fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+        // The preview API redirects to the direct CDN URL
+        const previewUrl = `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+        
+        // For Capacitor native apps: use native viewer
+        if (Capacitor.isNativePlatform()) {
+          const baseUrl = 'https://app.suplient.com';
+          const absoluteUrl = `${baseUrl}${previewUrl}`;
+          const opened = await openFileInNativeViewer(absoluteUrl, fileName, fileType);
+          if (opened) {
+            toast.success(`Opening audio in native viewer...`);
+            return;
+          }
+        }
+        
+        // Fall through to modal if native viewer fails
+        setPreviewFile({ url: previewUrl, name: fileName });
+        toast.success(`Opening audio preview...`);
         return;
       }
-      // Fall through to modal if native viewer fails
+
+      // For Capacitor native apps: use native viewer for videos, audio, PDFs
+      // For images: always use modal (better UX)
+      if (Capacitor.isNativePlatform() && fileType !== 'image') {
+        // For native apps, we need the absolute URL
+        let nativeUrl = fileUrl;
+        if (!nativeUrl.startsWith('http://') && !nativeUrl.startsWith('https://')) {
+          const baseUrl = 'https://app.suplient.com';
+          nativeUrl = `${baseUrl}/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+        }
+        const opened = await openFileInNativeViewer(nativeUrl, fileName, fileType);
+        if (opened) {
+          toast.success(`Opening ${fileType} in native viewer...`);
+          return;
+        }
+        // Fall through to modal if native viewer fails
+      }
+      
+      // For web or if native viewer failed: use modal
+      // Images always use modal
+      // If URL is not full, use preview API
+      const previewUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://') 
+        ? fileUrl 
+        : `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+      setPreviewFile({ url: previewUrl, name: fileName });
+      toast.success(`Opening ${fileType} preview...`);
+    } catch (error) {
+      console.error('Error accessing file:', error);
+      toast.error(error.message || t('library.accessFailed', 'Failed to access file'));
     }
-    
-    // For web or if native viewer failed: use modal
-    // Images always use modal
-    setPreviewFile({ url: fileUrl, name: fileName });
-    toast.success(`Opening ${fileType} preview...`);
   };
 
   // Handle file download
   const handleFileDownload = async (file) => {
-    // Mock download - in production, this would fetch the file URL from API
-    toast.info(t('library.downloading', 'Downloading file...'));
+    try {
+      const response = await fetch(`/api/resources/${file.id}/access?action=download`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to download file');
+      }
+      
+      const data = await response.json();
+      const downloadUrl = data.downloadUrl || data.resource.url;
+      const fileName = data.fileName || file.fileName || file.title;
+      
+      // Create a temporary link to download the file
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(t('library.downloading', 'Downloading file...'));
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error(error.message || t('library.downloadFailed', 'Failed to download file'));
+    }
   };
 
   return (
@@ -283,7 +361,25 @@ export default function ClientLibrary() {
         </TabsList>
 
         <TabsContent value={selectedCategory} className="space-y-4">
-          {filteredFiles.length === 0 ? (
+          {isLoading ? (
+            <Card className="p-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">{t('library.loading', 'Loading shared files...')}</p>
+              </div>
+            </Card>
+          ) : error ? (
+            <Card className="p-8">
+              <div className="text-center">
+                <LibraryIcon className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">{t('library.error', 'Error loading files')}</h3>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()} variant="outline">
+                  {t('common.buttons.tryAgain', 'Try Again')}
+                </Button>
+              </div>
+            </Card>
+          ) : filteredFiles.length === 0 ? (
             <Card className="p-8">
               <div className="text-center">
                 <LibraryIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

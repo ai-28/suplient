@@ -390,6 +390,91 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
             }
         }
 
+        // 9.5. Share files/resources with client if they exist in Resource table
+        const fileElements = undeliveredElements.filter(e => e.type === 'content' || e.type === 'file');
+        for (const fileElement of fileElements) {
+            try {
+                let resourceId = null;
+                
+                // First, check if element has a direct resourceId or libraryFileId reference
+                resourceId = fileElement.elementData?.resourceId || 
+                            fileElement.elementData?.libraryFileId || 
+                            fileElement.elementData?.linkedDocumentId;
+                
+                if (!resourceId) {
+                    // Try to find Resource by URL
+                    const fileUrl = fileElement.elementData?.url || fileElement.elementData?.fileUrl;
+                    if (fileUrl) {
+                        // Try exact URL match first
+                        const resourceByUrl = await sql`
+                            SELECT id, title, "coachId"
+                            FROM "Resource"
+                            WHERE url = ${fileUrl}
+                            AND "coachId" = ${enrollment.coachId}
+                            LIMIT 1
+                        `;
+
+                        if (resourceByUrl.length > 0) {
+                            resourceId = resourceByUrl[0].id;
+                        } else if (fileUrl.includes('library/')) {
+                            // Try to find by library path pattern
+                            const libraryPath = fileUrl.split('library/')[1]?.split('?')[0];
+                            if (libraryPath) {
+                                const resourceByPath = await sql`
+                                    SELECT id, title, "coachId"
+                                    FROM "Resource"
+                                    WHERE url LIKE ${'%' + libraryPath + '%'}
+                                    AND "coachId" = ${enrollment.coachId}
+                                    LIMIT 1
+                                `;
+
+                                if (resourceByPath.length > 0) {
+                                    resourceId = resourceByPath[0].id;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // If we found a resource, share it with the client
+                if (resourceId) {
+                    const existingResource = await sql`
+                        SELECT id, title, "clientIds"
+                        FROM "Resource"
+                        WHERE id = ${resourceId}
+                        AND "coachId" = ${enrollment.coachId}
+                    `;
+
+                    if (existingResource.length > 0) {
+                        const resource = existingResource[0];
+                        const currentClientIds = resource.clientIds || [];
+                        
+                        // Only update if client is not already in the list
+                        if (!currentClientIds.includes(enrollment.clientId)) {
+                            const updatedClientIds = [...currentClientIds, enrollment.clientId];
+                            
+                            await sql`
+                                UPDATE "Resource"
+                                SET 
+                                    "clientIds" = ${updatedClientIds},
+                                    "updatedAt" = NOW()
+                                WHERE id = ${resourceId}
+                            `;
+                            
+                            console.log(`✅ Resource "${resource.title}" (ID: ${resourceId}) shared with client ${enrollment.clientId} via program delivery`);
+                        } else {
+                            console.log(`ℹ️ Resource "${resource.title}" (ID: ${resourceId}) already shared with client ${enrollment.clientId}`);
+                        }
+                    }
+                } else {
+                    console.log(`⚠️ Could not find Resource for file element "${fileElement.title || fileElement.id}" - file may not be in Resource table`);
+                }
+            } catch (error) {
+                console.error('Error sharing file resource from program delivery:', error);
+                // Continue even if resource sharing fails - message was already sent
+            }
+        }
+
         // 10. Record delivery for all elements
         const deliveryDateStr = deliveryDate.toISOString().split('T')[0];
         for (const element of undeliveredElements) {
