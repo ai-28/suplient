@@ -84,17 +84,35 @@ export function MessageWithLinks({ messageText, className = "" }) {
     }
 
     try {
-      // Get preview URL (same logic as FilePreviewModal)
-      const previewUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
-        ? fileUrl
-        : `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
-      
       const platform = Capacitor.getPlatform();
-      const fileType = getFileType(fileName);
+      
+      // Get preview URL - ensure it's absolute for Android
+      let previewUrl;
+      if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+        // Already a full URL (CDN URL)
+        previewUrl = fileUrl;
+      } else {
+        // For library paths, make preview API URL absolute (required for Android)
+        if (platform === 'android') {
+          // Android requires absolute URLs
+          const baseUrl = 'https://app.suplient.com'; // From capacitor.config.json
+          previewUrl = `${baseUrl}/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+        } else {
+          // iOS can handle relative URLs
+          previewUrl = `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+        }
+      }
+      
+      // Extract filename from URL if not provided
+      const finalFileName = fileName || fileUrl.split('/').pop() || 'document';
+      const fileType = getFileType(finalFileName);
+      const mimeType = getMimeType(finalFileName);
       
       console.log('Opening file directly from URL:', previewUrl);
       console.log('Platform:', platform);
       console.log('File type:', fileType);
+      console.log('File name:', finalFileName);
+      console.log('MIME type:', mimeType);
       
       // Use appropriate method based on file type and platform
       if (fileType === 'videos' || fileType === 'sounds') {
@@ -104,7 +122,7 @@ export function MessageWithLinks({ messageText, className = "" }) {
           console.log('Using iOS native media preview');
           await FileViewer.previewMediaContentFromUrl({
             url: previewUrl,
-            mimeType: getMimeType(fileName)
+            mimeType: mimeType
           });
         } else {
           // For Android or if previewMediaContentFromUrl not available, use openDocumentFromUrl
@@ -112,7 +130,7 @@ export function MessageWithLinks({ messageText, className = "" }) {
           console.log('Using document opener for media file');
           await FileViewer.openDocumentFromUrl({
             url: previewUrl,
-            filename: fileName || 'media'
+            filename: finalFileName
           });
         }
       } else {
@@ -120,10 +138,20 @@ export function MessageWithLinks({ messageText, className = "" }) {
         // iOS: Uses native document viewer (Quick Look)
         // Android: Shows app chooser for compatible apps
         console.log('Using document opener');
-        await FileViewer.openDocumentFromUrl({
-          url: previewUrl,
-          filename: fileName || 'document'
-        });
+        
+        if (platform === 'android') {
+          // Android-specific: ensure proper parameters
+          await FileViewer.openDocumentFromUrl({
+            url: previewUrl,
+            filename: finalFileName
+          });
+        } else {
+          // iOS: unchanged
+          await FileViewer.openDocumentFromUrl({
+            url: previewUrl,
+            filename: finalFileName
+          });
+        }
       }
       
       console.log('File opened successfully in native viewer');
@@ -187,10 +215,13 @@ export function MessageWithLinks({ messageText, className = "" }) {
     const isFile = isFileUrl(linkUrl);
     
     // Add clickable link - only show the text part, URL is hidden
+    // For Android file links, remove href to prevent browser opening
+    const isAndroidFile = isFile && isMobile && Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+    
     parts.push(
       <a
         key={`link-${keyCounter++}`}
-        href={linkUrl}
+        href={isAndroidFile ? undefined : linkUrl}
         target={isFile ? undefined : "_blank"}
         rel={isFile ? undefined : "noopener noreferrer"}
         className={`underline font-medium cursor-pointer break-all ${isMobile ? 'touch-manipulation' : ''}`}
@@ -232,7 +263,11 @@ export function MessageWithLinks({ messageText, className = "" }) {
               // For native platform, open all file types directly in native viewer
               if (isMobile && Capacitor.isNativePlatform()) {
                 // Open directly in native file viewer
-                openFileDirectly(linkUrl, linkText);
+                openFileDirectly(linkUrl, linkText).catch((error) => {
+                  console.error('Failed to open file in native viewer:', error);
+                  // Fallback to modal if native viewer fails
+                  setPreviewFile({ url: linkUrl, name: linkText });
+                });
               } else {
                 // For web, use modal
                 setPreviewFile({ url: linkUrl, name: linkText });
