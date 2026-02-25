@@ -9,6 +9,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { FilePreviewModal } from "@/app/components/FilePreviewModal";
+import { FileViewer } from "@capacitor/file-viewer";
+import { Capacitor } from "@capacitor/core";
+import { isNative } from "@/lib/capacitor";
 
 // Categories will be translated inline
 
@@ -50,6 +54,61 @@ const useResources = (t) => {
     fetchResources();
   }, []);
   
+  // Helper function to open file in native viewer (for Capacitor apps)
+  const openFileInNativeViewer = async (fileUrl, fileName, fileType) => {
+    if (!Capacitor.isNativePlatform() || !FileViewer) {
+      return false; // Not native or FileViewer not available
+    }
+
+    try {
+      const platform = Capacitor.getPlatform();
+      
+      // Get MIME type
+      const getMimeType = (fileName) => {
+        const extension = fileName.split('.').pop()?.toLowerCase() || '';
+        const mimeTypes = {
+          'mp4': 'video/mp4', 'avi': 'video/x-msvideo', 'mov': 'video/quicktime',
+          'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'm4a': 'audio/mp4',
+          'pdf': 'application/pdf',
+        };
+        return mimeTypes[extension] || 'application/octet-stream';
+      };
+
+      const mimeType = getMimeType(fileName);
+      const finalFileName = fileName || fileUrl.split('/').pop() || 'file';
+
+      // For videos and audio, use native viewer
+      if (fileType === 'video' || fileType === 'audio') {
+        if (platform === 'ios' && FileViewer.previewMediaContentFromUrl) {
+          await FileViewer.previewMediaContentFromUrl({
+            url: fileUrl,
+            mimeType: mimeType
+          });
+        } else {
+          await FileViewer.openDocumentFromUrl({
+            url: fileUrl,
+            filename: finalFileName
+          });
+        }
+        return true;
+      }
+      
+      // For PDFs and documents, use native viewer
+      if (fileType === 'pdf' || fileType === 'document') {
+        await FileViewer.openDocumentFromUrl({
+          url: fileUrl,
+          filename: finalFileName
+        });
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error opening file in native viewer:', error);
+      return false;
+    }
+  };
+
   // Handle resource preview (Play/Read)
   const handleResourcePreview = async (resource) => {
     try {
@@ -61,6 +120,8 @@ const useResources = (t) => {
       }
       
       const data = await response.json();
+      let fileUrl = data.resource.url;
+      const fileName = data.resource.fileName || resource.title || '';
       
       // Determine preview type based on resource type
       let previewType = 'document';
@@ -76,7 +137,6 @@ const useResources = (t) => {
         previewTypeLabel = 'audio';
       } else if (resource.type === 'Article') {
         // Check if it's a PDF
-        const fileName = resource.fileName || resource.title || '';
         const fileExtension = fileName.split('.').pop()?.toLowerCase();
         if (fileExtension === 'pdf') {
           previewType = 'pdf';
@@ -87,8 +147,37 @@ const useResources = (t) => {
         }
       }
       
-      // Set preview data
-      setPreviewUrl(data.resource.url);
+      // For audio files, if the URL is not a full CDN URL, resolve it through preview API
+      // This ensures we get the direct CDN URL for better audio playback
+      if (previewType === 'audio' && !fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+        // The preview API redirects to the direct CDN URL
+        // For audio, we'll use the preview API which will redirect correctly
+        // The FilePreviewModal will handle this properly
+        fileUrl = `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+      }
+      
+      // For Capacitor native apps: use native viewer for videos, audio, PDFs
+      // For images: always use modal (better UX)
+      if (Capacitor.isNativePlatform() && previewType !== 'image') {
+        // For native apps, we need the absolute URL
+        let nativeUrl = fileUrl;
+        if (!nativeUrl.startsWith('http://') && !nativeUrl.startsWith('https://')) {
+          // Construct absolute URL for Android
+          const baseUrl = 'https://app.suplient.com';
+          nativeUrl = `${baseUrl}${nativeUrl.startsWith('/') ? '' : '/'}${nativeUrl}`;
+        }
+        const opened = await openFileInNativeViewer(nativeUrl, fileName, previewType);
+        if (opened) {
+          toast.success(`Opening ${previewTypeLabel} in native viewer...`);
+          return; // Successfully opened in native viewer
+        }
+        // Fall through to modal if native viewer fails
+      }
+      
+      // For web or if native viewer failed: use modal
+      // Images always use modal
+      setPreviewFile({ url: fileUrl, name: fileName });
+      setPreviewUrl(fileUrl);
       setPreviewType(previewType);
       
       toast.success(`Opening ${previewTypeLabel} preview...`);
@@ -146,6 +235,7 @@ export default function ClientResources() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Videos");
   const [isMobile, setIsMobile] = useState(false);
+  const [previewFile, setPreviewFile] = useState({ url: null, name: null });
   
   const { 
     resources, 
@@ -159,10 +249,10 @@ export default function ClientResources() {
     handleResourceDownload 
   } = useResources(t);
 
-  // Detect mobile screen size
+  // Detect mobile screen size and native platform
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 768 || isNative());
     };
     
     // Check on mount
@@ -435,167 +525,20 @@ export default function ClientResources() {
         </div>
       )}
 
-      {/* Preview Modal */}
-      {previewUrl && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg max-w-4xl max-h-[90vh] w-full overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">{t('resources.preview', 'Preview')}</h3>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setPreviewUrl(null);
-                  setPreviewType(null);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="p-4">
-              {previewType === 'image' ? (
-                <div>
-                  <img 
-                    src={previewUrl}
-                    alt="Preview"
-                    className="max-w-full max-h-[70vh] object-contain mx-auto"
-                    onError={(e) => {
-                      console.error('❌ Image failed to load');
-                      e.target.style.display = 'none';
-                      const fallback = document.createElement('div');
-                      fallback.className = 'text-center py-8';
-                      const openText = t('resources.openInNewTab', 'Open in New Tab');
-                      fallback.innerHTML = `
-                        <p class="text-muted-foreground mb-4">Preview failed to load</p>
-                        <button 
-                          class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                          onclick="window.open('${previewUrl}', '_blank')"
-                        >
-                          ${openText}
-                        </button>
-                      `;
-                      e.target.parentNode.appendChild(fallback);
-                    }}
-                  />
-                </div>
-              ) : previewType === 'video' ? (
-                <video 
-                  src={previewUrl}
-                  controls
-                  className="max-w-full max-h-[70vh] mx-auto"
-                  onError={(e) => {
-                    console.error('❌ Video failed to load');
-                    e.target.style.display = 'none';
-                    const fallback = document.createElement('div');
-                    fallback.className = 'text-center py-8';
-                    const openText = t('resources.openInNewTab', 'Open in New Tab');
-                    fallback.innerHTML = `
-                      <p class="text-muted-foreground mb-4">Video failed to load</p>
-                      <button 
-                        class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                        onclick="window.open('${previewUrl}', '_blank')"
-                      >
-                        ${openText}
-                      </button>
-                    `;
-                    e.target.parentNode.appendChild(fallback);
-                  }}
-                />
-              ) : previewType === 'audio' ? (
-                <audio 
-                  src={previewUrl}
-                  controls
-                  className="w-full"
-                  onError={(e) => {
-                    console.error('❌ Audio failed to load');
-                    e.target.style.display = 'none';
-                    const fallback = document.createElement('div');
-                    fallback.className = 'text-center py-8';
-                    const openText = t('resources.openInNewTab', 'Open in New Tab');
-                    fallback.innerHTML = `
-                      <p class="text-muted-foreground mb-4">Audio failed to load</p>
-                      <button 
-                        class="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                        onclick="window.open('${previewUrl}', '_blank')"
-                      >
-                        ${openText}
-                      </button>
-                    `;
-                    e.target.parentNode.appendChild(fallback);
-                  }}
-                />
-              ) : previewType === 'pdf' ? (
-                <div>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">PDF Preview</h4>
-                    <iframe
-                      src={previewUrl}
-                      className="w-full h-[60vh] border rounded"
-                      title="PDF Preview"
-                      onError={() => {
-                        console.error('❌ PDF failed to load');
-                      }}
-                    />
-                  </div>
-                  <div className="text-center">
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => {
-                        window.open(previewUrl, '_blank');
-                      }}
-                    >
-                      {t('resources.openInNewTab', 'Open in New Tab')}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">{t('resources.documentPreview', 'Document Preview')}</h4>
-                    <div className="w-full h-[60vh] border rounded bg-gray-50 flex items-center justify-center">
-                      <div className="text-center p-8">
-                        <div className="mb-4">
-                          <FileText className="h-12 w-12 text-gray-400 mx-auto" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('resources.documentPreview', 'Document Preview')}</h3>
-                        <p className="text-sm text-gray-500 mb-6">
-                          {t('resources.cannotPreview', 'This document type cannot be previewed directly in the browser. Please download the file to view it in a compatible application.')}
-                        </p>
-                        <div className="space-y-3">
-                          <Button 
-                            variant="default" 
-                            className="w-full"
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = previewUrl;
-                              link.download = previewUrl.split('/').pop() || 'document';
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                            }}
-                          >
-                            {t('resources.downloadDocument', 'Download Document')}
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            className="w-full"
-                            onClick={() => {
-                              window.open(previewUrl, '_blank');
-                            }}
-                          >
-                            {t('resources.openInNewTab', 'Open in New Tab')}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Preview Modal - Use FilePreviewModal component for better UX */}
+      <FilePreviewModal
+        open={!!previewFile.url}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewFile({ url: null, name: null });
+            setPreviewUrl(null);
+            setPreviewType(null);
+          }
+        }}
+        fileUrl={previewFile.url}
+        fileName={previewFile.name}
+        isMobile={isMobile}
+      />
     </div>
   );
 }

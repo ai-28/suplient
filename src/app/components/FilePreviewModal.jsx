@@ -70,16 +70,28 @@ export function FilePreviewModal({
   const previewType = getFileType(fileUrl, fileName);
 
   // Determine the preview URL - use direct URL if it's already a full URL, otherwise use preview API
-  const getPreviewUrl = (url) => {
+  const getPreviewUrl = (url, fileType) => {
     // If URL is already a full URL (starts with http/https), use it directly
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
+    
+    // For audio and video files, always use direct CDN URL (not preview API)
+    // The preview API redirects anyway, but direct URLs work better for media players
+    if (fileType === 'sounds' || fileType === 'videos') {
+      // Try to construct direct CDN URL if it's a library path
+      if (url.includes('library/')) {
+        // This will be handled by the preview API redirect, but we prefer direct URL
+        // For now, still use preview API as it handles the redirect correctly
+        return `/api/library/preview?path=${encodeURIComponent(url)}`;
+      }
+    }
+    
     // Otherwise, use the preview API for library paths
     return `/api/library/preview?path=${encodeURIComponent(url)}`;
   };
 
-  const previewUrl = getPreviewUrl(fileUrl);
+  const previewUrl = getPreviewUrl(fileUrl, previewType);
   
   // For PDFs, also try preview API as fallback
   const pdfPreviewUrl = previewType === 'pdf' && fileUrl.startsWith('http') 

@@ -19,8 +19,13 @@ import {
   User,
   Users
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "@/app/context/LanguageContext";
+import { FilePreviewModal } from "@/app/components/FilePreviewModal";
+import { FileViewer } from "@capacitor/file-viewer";
+import { Capacitor } from "@capacitor/core";
+import { isNative } from "@/lib/capacitor";
+import { toast } from "sonner";
 
 // Mock data for shared files
 const sharedFiles = [
@@ -103,6 +108,19 @@ export default function ClientLibrary() {
   const t = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [previewFile, setPreviewFile] = useState({ url: null, name: null });
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size and native platform
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || isNative());
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const filteredFiles = sharedFiles.filter(file => {
     const matchesSearch = file.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -125,6 +143,110 @@ export default function ClientLibrary() {
     if (diffInDays === 1) return t('common.time.yesterday', "Yesterday");
     if (diffInDays < 7) return t('common.time.daysAgo', "{count} days ago", { count: diffInDays });
     return sharedDate.toLocaleDateString();
+  };
+
+  // Helper function to open file in native viewer (for Capacitor apps)
+  const openFileInNativeViewer = async (fileUrl, fileName, fileType) => {
+    if (!Capacitor.isNativePlatform() || !FileViewer) {
+      return false;
+    }
+
+    try {
+      const platform = Capacitor.getPlatform();
+      
+      // Get MIME type
+      const getMimeType = (fileName) => {
+        const extension = fileName.split('.').pop()?.toLowerCase() || '';
+        const mimeTypes = {
+          'mp4': 'video/mp4', 'avi': 'video/x-msvideo', 'mov': 'video/quicktime',
+          'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'm4a': 'audio/mp4',
+          'pdf': 'application/pdf',
+        };
+        return mimeTypes[extension] || 'application/octet-stream';
+      };
+
+      const mimeType = getMimeType(fileName);
+      const finalFileName = fileName || fileUrl.split('/').pop() || 'file';
+
+      // For videos and audio, use native viewer
+      if (fileType === 'video' || fileType === 'audio') {
+        if (platform === 'ios' && FileViewer.previewMediaContentFromUrl) {
+          await FileViewer.previewMediaContentFromUrl({
+            url: fileUrl,
+            mimeType: mimeType
+          });
+        } else {
+          await FileViewer.openDocumentFromUrl({
+            url: fileUrl,
+            filename: finalFileName
+          });
+        }
+        return true;
+      }
+      
+      // For PDFs and documents, use native viewer
+      if (fileType === 'pdf' || fileType === 'document') {
+        await FileViewer.openDocumentFromUrl({
+          url: fileUrl,
+          filename: finalFileName
+        });
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error opening file in native viewer:', error);
+      return false;
+    }
+  };
+
+  // Handle file preview
+  const handleFilePreview = async (file) => {
+    // For now, using mock data structure
+    // In production, you'd fetch the actual file URL from API
+    // For demo purposes, we'll construct a URL based on the file data
+    
+    // Determine file type from category
+    let fileType = 'document';
+    if (file.category === 'videos') {
+      fileType = 'video';
+    } else if (file.category === 'images') {
+      fileType = 'image';
+    } else if (file.category === 'sounds') {
+      fileType = 'audio';
+    } else if (file.category === 'articles' && file.format === 'PDF') {
+      fileType = 'pdf';
+    }
+
+    // Mock URL - in production, this would come from the API
+    // For now, we'll use a placeholder that would work with the preview API
+    const fileUrl = `/api/library/preview?path=library/${file.category}/${file.id}`;
+    const fileName = `${file.title}.${file.format.toLowerCase()}`;
+
+    // For Capacitor native apps: use native viewer for videos, audio, PDFs
+    // For images: always use modal (better UX)
+    if (Capacitor.isNativePlatform() && fileType !== 'image') {
+      // For native apps, we need the actual CDN URL, not the preview API
+      // This would need to be fetched from the API in production
+      // For now, we'll try to open it, but it may need the actual URL
+      const opened = await openFileInNativeViewer(fileUrl, fileName, fileType);
+      if (opened) {
+        toast.success(`Opening ${fileType} in native viewer...`);
+        return;
+      }
+      // Fall through to modal if native viewer fails
+    }
+    
+    // For web or if native viewer failed: use modal
+    // Images always use modal
+    setPreviewFile({ url: fileUrl, name: fileName });
+    toast.success(`Opening ${fileType} preview...`);
+  };
+
+  // Handle file download
+  const handleFileDownload = async (file) => {
+    // Mock download - in production, this would fetch the file URL from API
+    toast.info(t('library.downloading', 'Downloading file...'));
   };
 
   return (
@@ -243,11 +365,19 @@ export default function ClientLibrary() {
 
                       {/* Action Buttons */}
                       <div className="flex gap-2">
-                        <Button size="sm" className="flex-1">
+                        <Button 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleFilePreview(file)}
+                        >
                           <Eye className="h-3 w-3 mr-1" />
                           {t('library.view', 'View')}
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleFileDownload(file)}
+                        >
                           <Download className="h-3 w-3 mr-1" />
                           {t('library.download', 'Download')}
                         </Button>
@@ -260,6 +390,19 @@ export default function ClientLibrary() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Preview Modal */}
+      <FilePreviewModal
+        open={!!previewFile.url}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewFile({ url: null, name: null });
+          }
+        }}
+        fileUrl={previewFile.url}
+        fileName={previewFile.name}
+        isMobile={isMobile}
+      />
     </div>
   );
 }
