@@ -272,7 +272,11 @@ export function MessageWithLinks({ messageText, className = "" }) {
             // Aggressively prevent any default behavior or propagation
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
+            
+            // stopImmediatePropagation may not be available in all React event contexts
+            if (typeof e.stopImmediatePropagation === 'function') {
+              e.stopImmediatePropagation();
+            }
             
             if (linkUrl) {
               console.log('Android file link clicked:', linkUrl);
