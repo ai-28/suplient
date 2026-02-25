@@ -77,7 +77,17 @@ export function MessageWithLinks({ messageText, className = "" }) {
 
     // Check if FileViewer is available
     if (!FileViewer) {
-      console.error('FileViewer plugin not available');
+      console.error('FileViewer plugin not available - plugin may not be installed');
+      console.error('Please install: npm install @capacitor/file-viewer');
+      // Fallback: open in modal
+      setPreviewFile({ url: fileUrl, name: fileName });
+      return;
+    }
+    
+    // Check if FileViewer methods are available
+    if (!FileViewer.openDocumentFromUrl) {
+      console.error('FileViewer.openDocumentFromUrl is not available');
+      console.error('Plugin may not be properly synced. Run: npx cap sync');
       // Fallback: open in modal
       setPreviewFile({ url: fileUrl, name: fileName });
       return;
@@ -248,6 +258,17 @@ export function MessageWithLinks({ messageText, className = "" }) {
     const platform = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : null;
     const isAndroidFile = isFile && platform === 'android';
     
+    // Debug logging
+    if (isFile && Capacitor.isNativePlatform()) {
+      console.log('File link detected:', {
+        linkUrl,
+        platform,
+        isAndroidFile,
+        isFile,
+        isNative: Capacitor.isNativePlatform()
+      });
+    }
+    
     // Use span for Android file links to prevent any browser navigation
     if (isAndroidFile) {
       parts.push(
@@ -268,7 +289,7 @@ export function MessageWithLinks({ messageText, className = "" }) {
           onTouchEnd={(e) => {
             e.currentTarget.style.opacity = '1';
           }}
-          onClick={(e) => {
+          onClick={async (e) => {
             // Aggressively prevent any default behavior or propagation
             e.preventDefault();
             e.stopPropagation();
@@ -279,17 +300,23 @@ export function MessageWithLinks({ messageText, className = "" }) {
             }
             
             if (linkUrl) {
+              console.log('=== Android File Link Click Handler ===');
               console.log('Android file link clicked:', linkUrl);
               console.log('Platform confirmed:', Capacitor.getPlatform());
               console.log('Is native platform:', Capacitor.isNativePlatform());
+              console.log('FileViewer available:', !!FileViewer);
               
               // Immediately call openFileDirectly - don't let anything else happen
-              openFileDirectly(linkUrl, linkText).catch((error) => {
+              try {
+                await openFileDirectly(linkUrl, linkText);
+                console.log('File opened successfully via FileViewer');
+              } catch (error) {
                 console.error('Failed to open file in native viewer:', error);
                 console.error('Error details:', JSON.stringify(error, null, 2));
                 // Fallback to modal if native viewer fails - never open browser
+                console.log('Falling back to modal preview');
                 setPreviewFile({ url: linkUrl, name: linkText });
-              });
+              }
             }
             
             // Return false as additional prevention
