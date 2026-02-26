@@ -176,8 +176,11 @@ const useResources = (t) => {
       
       // For web or if native viewer failed: use modal
       // Images always use modal
-      setPreviewFile({ url: fileUrl, name: fileName });
-      setPreviewUrl(fileUrl);
+      // If URL is not full, use preview API
+      const previewUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://') 
+        ? fileUrl 
+        : `/api/library/preview?path=${encodeURIComponent(fileUrl)}`;
+      setPreviewUrl(previewUrl);
       setPreviewType(previewType);
       
       toast.success(`Opening ${previewTypeLabel} preview...`);
@@ -235,7 +238,6 @@ export default function ClientResources() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Videos");
   const [isMobile, setIsMobile] = useState(false);
-  const [previewFile, setPreviewFile] = useState({ url: null, name: null });
   
   const { 
     resources, 
@@ -268,7 +270,14 @@ export default function ClientResources() {
   const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          resource.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = resource.category === selectedCategory;
+    
+    // Map category names - API returns "Audio" but UI uses "Sounds"
+    let resourceCategory = resource.category;
+    if (resourceCategory === 'Audio') {
+      resourceCategory = 'Sounds';
+    }
+    
+    const matchesCategory = resourceCategory === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -277,6 +286,8 @@ export default function ClientResources() {
       case 'Article': return <BookOpen className="h-4 w-4" />;
       case 'Video': return <Play className="h-4 w-4" />;
       case 'Exercise': return <Heart className="h-4 w-4" />;
+      case 'Audio': return <Play className="h-4 w-4" />;
+      case 'Sound': return <Play className="h-4 w-4" />;
       default: return <BookOpen className="h-4 w-4" />;
     }
   };
@@ -527,16 +538,15 @@ export default function ClientResources() {
 
       {/* Preview Modal - Use FilePreviewModal component for better UX */}
       <FilePreviewModal
-        open={!!previewFile.url}
+        open={!!previewUrl}
         onOpenChange={(open) => {
           if (!open) {
-            setPreviewFile({ url: null, name: null });
             setPreviewUrl(null);
             setPreviewType(null);
           }
         }}
-        fileUrl={previewFile.url}
-        fileName={previewFile.name}
+        fileUrl={previewUrl}
+        fileName={null}
         isMobile={isMobile}
       />
     </div>
