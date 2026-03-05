@@ -768,7 +768,6 @@ export default function ClientProfile() {
     name: "",
     email: "",
     phone: "",
-    birthdate: "",
     bio: ""
   });
 
@@ -893,16 +892,10 @@ export default function ClientProfile() {
           setUserData(data.user);
 
           // Update form data with real user data
-          const formattedBirthdate = data.user.dateofBirth ? 
-            (data.user.dateofBirth.includes('T') ? data.user.dateofBirth.split('T')[0] : data.user.dateofBirth) : '';
-          
-          console.log('Formatted birthdate:', formattedBirthdate);
-          
           setFormData({
             name: data.user.name || '',
             email: data.user.email || '',
             phone: data.user.phone || '',
-            birthdate: formattedBirthdate,
             bio: data.user.bio || ''
           });
           
@@ -1067,7 +1060,6 @@ export default function ClientProfile() {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          birthdate: formData.birthdate,
           bio: formData.bio,
           notificationsEnabled: enabled
         }),
@@ -1907,26 +1899,6 @@ export default function ClientProfile() {
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       className={`${isMobile ? 'h-10' : ''}`}
-                      disabled={loading}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2 w-full min-w-0">
-                    <Label htmlFor="birthdate" className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.personalInfo.dateOfBirth', 'Date of Birth')}</Label>
-                    <Input 
-                      id="birthdate" 
-                      type="date" 
-                      value={formData.birthdate}
-                      onChange={(e) => handleInputChange('birthdate', e.target.value)}
-                      className={`${isMobile ? 'h-10' : ''} w-full`}
-                      style={{ 
-                        WebkitAppearance: 'none',
-                        appearance: 'none',
-                        textAlign: 'left',
-                        width: '100%',
-                        maxWidth: '100%',
-                        minWidth: 0,
-                      }}
                       disabled={loading}
                     />
                   </div>

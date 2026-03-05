@@ -448,10 +448,6 @@ input[type="date"] {
   appearance: none;
   text-align: left;
   min-height: 2.5rem;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
 }
 
 input[type="date"]::-webkit-date-and-time-value {
