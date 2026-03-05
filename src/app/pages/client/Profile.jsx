@@ -1911,15 +1911,22 @@ export default function ClientProfile() {
                     />
                   </div>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-2 w-full min-w-0">
                     <Label htmlFor="birthdate" className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.personalInfo.dateOfBirth', 'Date of Birth')}</Label>
                     <Input 
                       id="birthdate" 
                       type="date" 
                       value={formData.birthdate}
                       onChange={(e) => handleInputChange('birthdate', e.target.value)}
-                      className={`${isMobile ? 'h-10' : ''} w-full max-w-full`}
-                      style={{ boxSizing: 'border-box', overflow: 'hidden' }}
+                      className={`${isMobile ? 'h-10' : ''} w-full`}
+                      style={{ 
+                        WebkitAppearance: 'none',
+                        appearance: 'none',
+                        textAlign: 'left',
+                        width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                      }}
                       disabled={loading}
                     />
                   </div>

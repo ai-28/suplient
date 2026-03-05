@@ -442,6 +442,22 @@ All colors MUST be HSL.
   }
 }
 
+/* Fix date input styling on iOS to match other inputs */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+  min-height: 2.5rem;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
 /* Sonner Toast Close Button - Red Styling & Top Right Position */
 [data-sonner-toast] {
   position: relative !important;
