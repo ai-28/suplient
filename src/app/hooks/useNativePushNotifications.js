@@ -151,6 +151,7 @@ export function useNativePushNotifications() {
                                 const response = await fetch('/api/push/register-native', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include', // Send cookies for authentication
                                     body: JSON.stringify({
                                         token: tokenData.value,
                                         platform: platform,
