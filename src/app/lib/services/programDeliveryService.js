@@ -1,6 +1,7 @@
 import { sql } from '@/app/lib/db/postgresql';
 import { chatRepo } from '@/app/lib/db/chatSchema';
 import { taskRepo } from '@/app/lib/db/taskRepo';
+import { NotificationService } from '@/app/lib/services/NotificationService';
 import enTranslations from '@/app/lib/translations/en.json';
 import daTranslations from '@/app/lib/translations/da.json';
 
@@ -362,6 +363,18 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
 
         const clientUserId = clientUser[0].userId;
 
+        // 5.5. Get coach's name and role for notification
+        const coachUser = await sql`
+            SELECT id, name, role FROM "User" WHERE id = ${enrollment.coachId}
+        `;
+
+        if (coachUser.length === 0) {
+            throw new Error('Coach not found');
+        }
+
+        const coachName = coachUser[0].name || 'Your Coach';
+        const coachRole = coachUser[0].role || 'coach';
+
         // 6. Get or create client's conversation with coach
         const conversationId = await chatRepo.createPersonalConversation(
             enrollment.coachId,
@@ -379,6 +392,24 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
             'text'
         );
 
+        // 8.5. Create notification for client (notification bell + push notification)
+        try {
+            await NotificationService.notifyNewMessage(
+                clientUserId,           // recipientId (client)
+                enrollment.coachId,      // senderId (coach)
+                coachName,               // senderName
+                coachRole,               // senderRole
+                conversationId,          // conversationId
+                messageContent,          // messageContent
+                'text',                  // messageType
+                enrollment.clientId      // clientId (for navigation)
+            );
+            console.log(`✅ Notification created for client ${clientUserId} about new program message`);
+        } catch (notificationError) {
+            console.error('Error creating notification for program message:', notificationError);
+            // Continue even if notification fails - message was already sent
+        }
+
         // 9. Create tasks if needed
         const tasks = undeliveredElements.filter(e => e.type === 'task');
         for (const taskElement of tasks) {
@@ -395,12 +426,12 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
         for (const fileElement of fileElements) {
             try {
                 let resourceId = null;
-                
+
                 // First, check if element has a direct resourceId or libraryFileId reference
-                resourceId = fileElement.elementData?.resourceId || 
-                            fileElement.elementData?.libraryFileId || 
-                            fileElement.elementData?.linkedDocumentId;
-                
+                resourceId = fileElement.elementData?.resourceId ||
+                    fileElement.elementData?.libraryFileId ||
+                    fileElement.elementData?.linkedDocumentId;
+
                 if (!resourceId) {
                     // Try to find Resource by URL
                     const fileUrl = fileElement.elementData?.url || fileElement.elementData?.fileUrl;
@@ -448,11 +479,11 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
                     if (existingResource.length > 0) {
                         const resource = existingResource[0];
                         const currentClientIds = resource.clientIds || [];
-                        
+
                         // Only update if client is not already in the list
                         if (!currentClientIds.includes(enrollment.clientId)) {
                             const updatedClientIds = [...currentClientIds, enrollment.clientId];
-                            
+
                             await sql`
                                 UPDATE "Resource"
                                 SET 
@@ -460,7 +491,7 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
                                     "updatedAt" = NOW()
                                 WHERE id = ${resourceId}
                             `;
-                            
+
                             console.log(`✅ Resource "${resource.title}" (ID: ${resourceId}) shared with client ${enrollment.clientId} via program delivery`);
                         } else {
                             console.log(`ℹ️ Resource "${resource.title}" (ID: ${resourceId}) already shared with client ${enrollment.clientId}`);
