@@ -447,12 +447,6 @@ All colors MUST be HSL.
   position: relative !important;
 }
 
-/* Add safe area inset for iOS to prevent toasts from being hidden by notch/Dynamic Island */
-[data-sonner-toaster] {
-  top: calc(1rem + env(safe-area-inset-top, 0px)) !important;
-  right: calc(1rem + env(safe-area-inset-right, 0px)) !important;
-}
-
 [data-sonner-toast] [data-close-button] {
   color: #ef4444 !important;
   /* Red-500 */

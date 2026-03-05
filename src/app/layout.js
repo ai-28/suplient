@@ -113,6 +113,10 @@ export default function RootLayout({ children }) {
                   position="top-right"
                   richColors
                   closeButton
+                  style={{
+                    top: 'calc(1rem + env(safe-area-inset-top, 0px))',
+                    right: 'calc(1rem + env(safe-area-inset-right, 0px))',
+                  }}
                   classes={{
                     closeButton: 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20'
                   }}
