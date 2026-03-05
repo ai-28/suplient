@@ -234,7 +234,7 @@ async function sendAPNsNotification(tokens, notification) {
                 keyId: process.env.APNS_KEY_ID,
                 teamId: process.env.APNS_TEAM_ID
             },
-            production: false
+            production: process.env.NODE_ENV === 'production'
         };
         console.log('[APNs] 🔧 Provider config:', {
             keyType: typeof apnsKey === 'string' && apnsKey.length > 100 ? 'string (key content)' : 'file path',
