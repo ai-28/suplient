@@ -11,6 +11,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import PWAInstallPrompt from "./PWAInstallPrompt";
 import { useServiceWorker } from "@/app/hooks/useServiceWorker";
+import { useNativePushNotifications } from "@/app/hooks/useNativePushNotifications";
 import { useTranslation } from "@/app/context/LanguageContext";
 import SubscriptionGuard from "./SubscriptionGuard";
 import { isIOS } from "@/lib/capacitor";
@@ -25,6 +26,10 @@ export default function ClientLayout({ children }) {
   
   // Register service worker for PWA functionality
   useServiceWorker();
+  
+  // Register for native push notifications (iOS/Android)
+  // This will automatically request permissions and register the device token
+  useNativePushNotifications();
 
   // Check if running on iOS Capacitor (client-side only)
   useEffect(() => {

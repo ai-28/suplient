@@ -395,7 +395,7 @@ export async function deliverProgramElements(enrollmentId, programDay, deliveryD
         // 8.5. Create notification for client (notification bell + push notification)
         try {
             await NotificationService.notifyNewMessage(
-                clientUserId,           // recipientId (client)
+                clientUserId,            // recipientId (client)
                 enrollment.coachId,      // senderId (coach)
                 coachName,               // senderName
                 coachRole,               // senderRole
