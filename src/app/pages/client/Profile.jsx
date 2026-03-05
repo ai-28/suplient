@@ -1664,7 +1664,10 @@ export default function ClientProfile() {
     return (
       <div className={`${isMobile ? 'px-4 pb-24' : 'pb-6'}`}>
         <div className={`space-y-6 ${isMobile ? 'space-y-4' : 'space-y-8'} max-w-6xl mx-auto`}>
-          <div className={`${isMobile ? 'text-center pt-4' : 'pt-6'}`}>
+          <div 
+            className={`${isMobile ? 'text-center pt-4' : 'pt-6'}`}
+            style={isMobile ? { paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' } : undefined}
+          >
             <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>{t('client.profile.title', 'My Profile')}</h1>
             <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
               {t('client.profile.loading', 'Loading your profile...')}
@@ -1680,9 +1683,12 @@ export default function ClientProfile() {
   }
 
   return (
-    <div className={`${isMobile ? 'px-4 pb-24' : 'pb-6'}`}>
+      <div className={`${isMobile ? 'px-4 pb-24 overflow-x-hidden' : 'pb-6'}`}>
       <div className={`space-y-6 ${isMobile ? 'space-y-4' : 'space-y-8'} max-w-6xl mx-auto`}>
-        <div className={`${isMobile ? 'text-center pt-4' : 'pt-6'} flex items-start justify-between`}>
+        <div 
+          className={`${isMobile ? 'text-center pt-4' : 'pt-6'} flex items-start justify-between`}
+          style={isMobile ? { paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' } : undefined}
+        >
           <div>
             <h1 className={`font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>{t('client.profile.title', 'My Profile')}</h1>
             <p className={`text-muted-foreground ${isMobile ? 'text-sm mt-1' : 'mt-2'}`}>
@@ -1868,7 +1874,7 @@ export default function ClientProfile() {
                   <CardTitle className={`${isMobile ? 'text-lg' : ''}`}>{t('client.profile.personalInfo.title', 'Personal Information')}</CardTitle>
                   <CardDescription className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.personalInfo.description', 'Update your personal details')}</CardDescription>
                 </CardHeader>
-                <CardContent className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
+                <CardContent className={`space-y-4 ${isMobile ? 'space-y-3 overflow-hidden' : ''}`}>
                   <div className="space-y-2">
                     <Label htmlFor="name" className={`${isMobile ? 'text-sm' : ''}`}>{t('client.profile.personalInfo.fullName', 'Full Name')} *</Label>
                     <Input 
@@ -1912,7 +1918,8 @@ export default function ClientProfile() {
                       type="date" 
                       value={formData.birthdate}
                       onChange={(e) => handleInputChange('birthdate', e.target.value)}
-                      className={`${isMobile ? 'h-10' : ''}`}
+                      className={`${isMobile ? 'h-10' : ''} w-full max-w-full`}
+                      style={{ boxSizing: 'border-box', overflow: 'hidden' }}
                       disabled={loading}
                     />
                   </div>
