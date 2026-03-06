@@ -673,8 +673,8 @@ export default function BookSession() {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="p-4 space-y-6 max-w-full">
+      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="p-4 space-y-6">
         {/* Coach Info */}
         <Card>
           <CardHeader>
@@ -700,13 +700,13 @@ export default function BookSession() {
             <CardTitle>{t('sessions.selectDate', 'Select Date')}</CardTitle>
             <CardDescription>{t('sessions.chooseDate', 'Choose your preferred date')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 overflow-x-hidden">
+          <CardContent className="space-y-4 overflow-hidden">
             <Calendar 
               mode="single" 
               selected={selectedDate} 
               onSelect={setSelectedDate} 
               disabled={date => date < new Date()} 
-              className="rounded-md border w-full max-w-full [--cell-size:clamp(1.75rem,calc((100%-1.5rem)/7),2.5rem)]" 
+              className="rounded-md border w-full max-w-full overflow-hidden" 
             />
             
             {/* Timezone Selector */}

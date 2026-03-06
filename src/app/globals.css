@@ -502,6 +502,19 @@ input[type="date"]::-webkit-date-and-time-value {
   background-color: rgba(248, 113, 113, 0.15) !important;
 }
 
+/* Fix react-day-picker calendar overflow in Capacitor iOS */
+[data-slot="calendar"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+[data-slot="calendar"] table {
+  width: 100% !important;
+  table-layout: fixed;
+}
+
 /* Mobile Emulator Responsive Styles */
 .mobile-emulator-wrapper {
   width: 100%;
