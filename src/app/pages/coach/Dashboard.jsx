@@ -506,11 +506,6 @@ export default function Dashboard() {
                           <h4 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground truncate`}>
                             {activity.title}
                           </h4>
-                          {activity.pointsEarned > 0 && (
-                            <Badge variant="secondary" className={`${isMobile ? 'ml-1 text-xs px-1 py-0' : 'ml-2'}`}>
-                              +{activity.pointsEarned} {t('streak.points')}
-                            </Badge>
-                          )}
                         </div>
                         {activity.description && (
                           <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-muted-foreground mt-1 line-clamp-2`}>

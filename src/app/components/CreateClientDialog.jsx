@@ -146,7 +146,7 @@ export function CreateClientDialog({ onClientCreated }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-primary text-[#1A2D4D] shadow-medium border-1px border-[#B6D7D1] hover:shadow-medium hover:text-white transition-all">
+        <Button variant="outline" className="gap-2">
           <UserPlus className="h-4 w-4 mr-2" />
           {t('clients.addClient')}
         </Button>
